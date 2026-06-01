@@ -1,0 +1,17569 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+index.html
+package.json
+postcss.config.js
+src/api/client.ts
+src/api/services.ts
+src/App.tsx
+src/components/admin/AdminSearchBar.tsx
+src/components/admin/ProductUnitPriceManager.tsx
+src/components/dashboard/HeaderSearch.tsx
+src/components/layout/Navbar.tsx
+src/components/ui/index.tsx
+src/index.css
+src/main.tsx
+src/pages/Accounts/AccountsReports.tsx
+src/pages/Accounts/AccountsSettlement.tsx
+src/pages/Admin/AdminAnalytics.tsx
+src/pages/Admin/AdminCustomers.tsx
+src/pages/Admin/AdminDailyAssignment.tsx
+src/pages/Admin/AdminDashboard.tsx
+src/pages/Admin/AdminIncentives.tsx
+src/pages/Admin/AdminOrderEdit.tsx
+src/pages/Admin/AdminOrders.tsx
+src/pages/Admin/AdminProducts.tsx
+src/pages/Admin/AdminReports.tsx
+src/pages/Admin/AdminRoutes/AdminRoutes.tsx
+src/pages/Admin/AdminRoutes/AssignRoutePage.tsx
+src/pages/Admin/AdminRoutes/components/ActionBtn.tsx
+src/pages/Admin/AdminRoutes/components/AddRouteCard.tsx
+src/pages/Admin/AdminRoutes/components/AssignRouteCard.tsx
+src/pages/Admin/AdminRoutes/components/EditRouteCard.tsx
+src/pages/Admin/AdminRoutes/components/OverrideRouteCard.tsx
+src/pages/Admin/AdminRoutes/components/RoutesTable.tsx
+src/pages/Admin/AdminRoutes/EditRoutePage.tsx
+src/pages/Admin/AdminRoutes/index.tsx
+src/pages/Admin/AdminRoutes/OverrideRoutePage.tsx
+src/pages/Admin/AdminRoutes/types.ts
+src/pages/Admin/AdminSettings.tsx
+src/pages/Admin/AdminSettlement.tsx
+src/pages/Admin/AdminUsers.tsx
+src/pages/Auth/LoginPage.tsx
+src/pages/Auth/PinLoginPage.tsx
+src/pages/Auth/RegisterPage.tsx
+src/pages/Dashboard/HomeHub.tsx
+src/pages/Dashboard/MainHub.tsx
+src/pages/Landing/LandingPage.tsx
+src/pages/Salesman/OrderEntry/components/OrderSummary.tsx
+src/pages/Salesman/OrderEntry/components/PreviousOrdersModal.tsx
+src/pages/Salesman/OrderEntry/components/PriceVarianceBadge.tsx
+src/pages/Salesman/OrderEntry/components/ProductSidebar.tsx
+src/pages/Salesman/OrderEntry/components/RetailItemsSection.tsx
+src/pages/Salesman/OrderEntry/components/WholesaleItemsTable.tsx
+src/pages/Salesman/OrderEntry/index.tsx
+src/pages/Salesman/OrderEntry/OrderEntry.tsx
+src/pages/Salesman/OrderEntry/types.tsx
+src/pages/Salesman/ReviewOrdersPage.tsx
+src/pages/Salesman/RouteExecution.tsx
+src/pages/Salesman/SalesmanCustomers.tsx
+src/pages/Salesman/SalesmanIncentives.tsx
+src/pages/Salesman/SalesmanOrders.tsx
+src/pages/Salesman/SalesmanRoutes.tsx
+src/pages/Warehouse/WarehouseDashboard.tsx
+src/pages/Warehouse/WarehouseLoading.tsx
+src/store/authStore.ts
+src/types/index.ts
+src/vite-env.d.ts
+tailwind.config.js
+tsconfig.json
+tsconfig.node.json
+vite.config.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="index.html">
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FMCG Distribution Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <!-- Malayalam script support — Manjari renders Kh/Mal glyphs cleanly -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manjari:wght@400;700&display=swap"
+      rel="stylesheet"
+    >
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+</file>
+
+<file path="package.json">
+{
+  "name": "fmcg-distribution-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "lucide-react": "^0.383.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.3",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "@types/react-router-dom": "^5.3.3",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.12",
+    "vite-plugin-pwa": "^1.3.0"
+  }
+}
+</file>
+
+<file path="postcss.config.js">
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+</file>
+
+<file path="src/api/client.ts">
+// PATH: src/api/client.ts
+import axios from 'axios';
+
+const BASE_URL = import.meta.env.VITE_API_URL || '';
+
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 30000,
+});
+
+// Flag to prevent multiple refresh requests
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (value: unknown) => void; reject: (reason?: unknown) => void }> = [];
+
+const processQueue = (error: Error | null, token: string | null = null) => {
+  failedQueue.forEach(promise => {
+    if (error) {
+      promise.reject(error);
+    } else {
+      promise.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+// ── Request: attach JWT ───────────────────────────────────────────────────────
+apiClient.interceptors.request.use(
+  (config) => {
+    const stored = localStorage.getItem('fmcg_auth');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        const token = parsed?.state?.user?.token ?? parsed?.user?.token;
+        if (token && config.headers) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
+
+// ── Response: handle 401 + token refresh ─────────────────────────────────────
+apiClient.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // If 401 and not a retry attempt
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // Queue the request while token is being refreshed
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return apiClient(originalRequest);
+        }).catch(err => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const stored = localStorage.getItem('fmcg_auth');
+        if (!stored) {
+          throw new Error('No stored auth');
+        }
+        
+        const parsed = JSON.parse(stored);
+        const refreshToken = parsed?.state?.user?.refreshToken ?? parsed?.user?.refreshToken;
+        
+        if (!refreshToken) {
+          throw new Error('No refresh token');
+        }
+
+        // Call refresh endpoint
+        const response = await axios.post(`${BASE_URL}/api/v1/auth/refresh`, { refreshToken });
+        const { token } = response.data;
+        
+        // Update stored token
+        const auth = JSON.parse(localStorage.getItem('fmcg_auth') || '{}');
+        if (auth.state) {
+          auth.state.user.token = token;
+          auth.state.token = token;
+          localStorage.setItem('fmcg_auth', JSON.stringify(auth));
+        }
+        
+        // Update Authorization header
+        apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
+        
+        processQueue(null, token);
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError as Error, null);
+        localStorage.removeItem('fmcg_auth');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    const data = error.response?.data;
+    let msg: string | null = null;
+    if (typeof data === 'string' && data.trim()) {
+      msg = data.trim();
+    } else if (data && typeof data === 'object') {
+      msg = data.error ?? data.message ?? null;
+    }
+
+    return msg ? Promise.reject(new Error(msg)) : Promise.reject(error);
+  },
+);
+
+export default apiClient;
+</file>
+
+<file path="src/api/services.ts">
+// PATH: src/api/services.ts
+// UPDATED: imports from '../types/index' (matches actual file path src/types/index.ts),
+//          RoutePackingStatusDto now imported from types (added there),
+//          ordersApi.approve / getPendingApproval / getPendingApprovalCount added,
+//          warehouseApi.getPackingStatus added.
+//          ADDED: productsApi.getUnitPrices, addUnitPrice, updateUnitPrice, deleteUnitPrice
+
+import apiClient from './client';
+import type {
+  ApiResult,
+  LoginResponse,
+  RouteDto, RouteDetailDto, CreateRouteCommand, UpdateRouteCommand,
+  CustomerDto, CustomerDetailDto, CreateCustomerCommand, UpdateCustomerCommand,
+  ProductGroupDto,
+  ProductDto, ProductDetailDto, ProductSearchDto, PriceHistoryDto,
+  CreateProductCommand, UpdateProductCommand,
+  UnitDto, UnitPriorityDto,
+  OrderDto, OrderDetailDto, CreateOrderCommand, CustomerOrderHistoryDto,
+  ExpectedCashDto, OutstandingSummaryDto, OutstandingCustomerDto, SettlementSummaryDto,
+  DailyClosureStatusDto,
+  DailyClosureResultDto,
+  DashboardKpisDto, ProductProfitabilityDto, RouteProfitabilityDto,
+  TopProductDto, RoutePerformanceResponseDto, ProductPerformanceResponseDto,
+  PeriodComparisonResponseDto, OrderMarginDto, PricingAuditLogDto,
+  ProductIncentiveDto, SalesmanIncentiveSummaryDto,
+  StartRouteExecutionResponse, CurrentRouteExecutionDto, RecordVisitBody,
+  RecordCustomerVisitResponse, CompleteRouteExecutionResponse,
+  WarehouseOrderDto, WarehouseSummaryDto,
+  RouteAssignmentDto, TodayRouteDto,
+  UserDto,
+  RoutePackingStatusDto,
+  ProductUnitPriceDto, CreateProductUnitPriceDto, UpdateProductUnitPriceDto,
+} from '../types/index';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+async function get<T>(url: string, params?: object): Promise<T> {
+  const res = await apiClient.get(url, { params });
+  const body = res.data;
+  if (body && typeof body === 'object' && 'isSuccess' in body) {
+    if (!body.isSuccess) throw new Error(body.error ?? body.message ?? 'Request failed');
+    return (body.data ?? body.value) as T;
+  }
+  return body as T;
+}
+
+async function post<T>(url: string, body?: object): Promise<T> {
+  const res = await apiClient.post<ApiResult<T>>(url, body);
+  if (!res.data.isSuccess) throw new Error(res.data.error ?? 'Request failed');
+  return (res.data.data ?? res.data.value) as T;
+}
+
+async function put<T>(url: string, body?: object): Promise<T> {
+  const res = await apiClient.put<ApiResult<T>>(url, body);
+  if (!res.data.isSuccess) throw new Error(res.data.error ?? 'Request failed');
+  return (res.data.data ?? res.data.value) as T;
+}
+
+async function patch<T>(url: string, body?: object): Promise<T> {
+  const res = await apiClient.patch<ApiResult<T>>(url, body ?? {});
+  if (!res.data.isSuccess) throw new Error(res.data.error ?? 'Request failed');
+  return (res.data.data ?? res.data.value) as T;
+}
+
+async function del<T>(url: string): Promise<T> {
+  const res = await apiClient.delete<ApiResult<T>>(url);
+  if (!res.data.isSuccess) throw new Error(res.data.error ?? 'Request failed');
+  return (res.data.data ?? res.data.value) as T;
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+export const authApi = {
+  login: (email: string, password: string) =>
+    post<LoginResponse>('/api/v1/auth/login', { email, password }),
+  register: (email: string, password: string, fullName: string, role: string) =>
+    post('/api/v1/auth/register', { email, password, fullName, role }),
+  pinLogin: (email: string, pin: string) =>
+    post<LoginResponse>('/api/v1/auth/pin-login', { email, pin }),
+  setPin: (pin: string, userId?: string) =>
+    post<boolean>('/api/v1/auth/set-pin', { pin, ...(userId ? { userId } : {}) }),
+};
+
+// ── Users (Admin) ─────────────────────────────────────────────────────────────
+export const usersApi = {
+  getAll: (role?: string) =>
+    get<UserDto[]>('/api/v1/users', role ? { role } : undefined),
+  getAllWithInactive: (role?: string) =>
+    get<UserDto[]>('/api/v1/users/all', role ? { role } : undefined),
+  toggleActive: (id: string) =>
+    patch<boolean>(`/api/v1/users/${id}/toggle-active`),
+};
+
+// ── Routes ────────────────────────────────────────────────────────────────────
+export const routesApi = {
+  list: () => get<RouteDto[]>('/api/v1/routes'),
+  getAll: () => get<RouteDto[]>('/api/v1/routes'),
+  getById: (id: number | string) => get<RouteDetailDto>(`/api/v1/routes/${id}`),
+  create: (cmd: CreateRouteCommand) => post<{ id: string }>('/api/v1/routes', cmd),
+  update: (id: number | string, cmd: UpdateRouteCommand) => put<{ id: string }>(`/api/v1/routes/${id}`, cmd),
+  delete: (id: number | string) => del<boolean>(`/api/v1/routes/${id}`),
+  startExecution: (routeId: string, executionDate?: string) =>
+    post<StartRouteExecutionResponse>(
+      `/api/v1/routes/${routeId}/start-execution${executionDate ? `?executionDate=${executionDate}` : ''}`
+    ),
+  startOrderTaking: (routeId: string, executionDate?: string) =>
+    post<StartRouteExecutionResponse>(
+      `/api/v1/routes/${routeId}/start-order-taking${executionDate ? `?executionDate=${executionDate}` : ''}`
+    ),
+  getCurrentExecution: (routeId: string) =>
+    get<CurrentRouteExecutionDto>(`/api/v1/routes/${routeId}/current-execution`),
+  recordVisit: (body: RecordVisitBody) => {
+    const { visitStatus, ...rest } = body;
+    return post<RecordCustomerVisitResponse>('/api/v1/routes/record-visit', {
+      ...rest,
+      status: visitStatus,
+    });
+  },
+  completeExecution: (executionId: string) =>
+    post<CompleteRouteExecutionResponse>(`/api/v1/routes/${executionId}/complete-execution`),
+};
+
+// ── Customers ─────────────────────────────────────────────────────────────────
+export const customersApi = {
+  list: (routeId?: string | number) => get<CustomerDto[]>('/api/v1/customers', routeId ? { routeId } : undefined),
+  getAll: (routeId?: string | number) => get<CustomerDto[]>('/api/v1/customers', routeId ? { routeId } : undefined),
+  getById: (id: number | string) => get<CustomerDetailDto>(`/api/v1/customers/${id}`),
+  create: (cmd: CreateCustomerCommand) => post<{ id: string }>('/api/v1/customers', cmd),
+  update: (id: number | string, cmd: UpdateCustomerCommand) => put<{ id: string }>(`/api/v1/customers/${id}`, cmd),
+  delete: (id: number | string) => del<boolean>(`/api/v1/customers/${id}`),
+  reorder: (routeId: string, customerId: string, newSequenceOrder: number) =>
+    post<boolean>('/api/v1/customers/reorder', { routeId, customerId, newSequenceOrder }),
+};
+
+// ── Product Groups ────────────────────────────────────────────────────────────
+export const productGroupsApi = {
+  getAll: () => get<ProductGroupDto[]>('/api/v1/productgroups'),
+  create: (name: string, nameMl?: string) => post<{ id: string }>('/api/v1/productgroups', { name, nameMl }),
+  update: (id: string, name: string, nameMl?: string) => put<{ id: string }>(`/api/v1/productgroups/${id}`, { id, name, nameMl }),
+  delete: (id: string) => del<boolean>(`/api/v1/productgroups/${id}`),
+};
+
+// ── Products ──────────────────────────────────────────────────────────────────
+export const productsApi = {
+  list: (params?: { productGroupId?: string; isActive?: boolean }) =>
+    get<ProductDto[]>('/api/v1/products', params),
+  getAll: (params?: { productGroupId?: string; isActive?: boolean }) =>
+    get<ProductDto[]>('/api/v1/products', params),
+  getById: (id: string) => get<ProductDetailDto>(`/api/v1/products/${id}`),
+  search: (searchTerm?: string, productGroupId?: string, limit = 50) =>
+    get<ProductSearchDto[]>('/api/v1/products/search', { searchTerm, productGroupId, limit }),
+  create: (cmd: CreateProductCommand) => {
+    const payload = {
+      nameEnglish: cmd.nameEnglish,
+      nameMalayalam: cmd.nameMalayalam || '',
+      sku: cmd.sku || '',
+      productGroupId: cmd.productGroupId,
+      productUnitId: cmd.productUnitId,
+      basePrice: cmd.basePrice,
+    };
+    return post<{ id: string }>('/api/v1/products', payload);
+  },
+  update: (id: string, cmd: UpdateProductCommand) => {
+    const payload = {
+      id,
+      nameEnglish: cmd.nameEnglish,
+      nameMalayalam: cmd.nameMalayalam || '',
+      sku: cmd.sku || '',
+      productGroupId: cmd.productGroupId,
+      productUnitId: cmd.productUnitId,
+      basePrice: cmd.basePrice,
+      isActive: cmd.isActive,
+    };
+    return put<{ id: string }>(`/api/v1/products/${id}`, payload);
+  },
+  delete: (id: string) => del<boolean>(`/api/v1/products/${id}`),
+  updateBasePrice: (id: string, newPrice: number, reason?: string) =>
+    put<{ id: string }>(`/api/v1/products/${id}/base-price`, { productId: id, newPrice, reason }),
+  getPriceHistory: (id: string, limit?: number) =>
+    get<PriceHistoryDto[]>(`/api/v1/products/${id}/price-history`, limit ? { limit } : undefined),
+
+  // ── NEW: Per-Unit Pricing endpoints ──────────────────────────────────────
+  getUnitPrices: (productId: string) =>
+    get<ProductUnitPriceDto[]>(`/api/v1/products/${productId}/unit-prices`),
+
+  addUnitPrice: (data: CreateProductUnitPriceDto) =>
+    post<ProductUnitPriceDto>('/api/v1/products/unit-price', data),
+
+  updateUnitPrice: (id: string, data: UpdateProductUnitPriceDto) =>
+    put<ProductUnitPriceDto>(`/api/v1/products/unit-price/${id}`, { ...data }),
+
+  deleteUnitPrice: (id: string) =>
+    del<boolean>(`/api/v1/products/unit-price/${id}`),
+};
+
+// ── Units ─────────────────────────────────────────────────────────────────────
+export const unitsApi = {
+  getAll: () => get<UnitDto[]>('/api/v1/productunits'),
+  create: (name: string, abbreviation?: string) => post<{ id: string }>('/api/v1/productunits', { name, abbreviation }),
+  update: (id: string, name: string, abbreviation?: string) => put<{ id: string }>(`/api/v1/productunits/${id}`, { id, name, abbreviation }),
+  delete: (id: string) => del<boolean>(`/api/v1/productunits/${id}`),
+  getPriorities: () => get<UnitPriorityDto[]>('/api/v1/productunits/priorities'),
+  updatePriority: (id: string, priority: number) => put<boolean>(`/api/v1/productunits/${id}/priority`, { priority }),
+};
+
+// ── Orders ────────────────────────────────────────────────────────────────────
+export const ordersApi = {
+  listByRoute: (routeId: string | number, status?: number) =>
+    get<OrderDto[]>(`/api/v1/orders/route/${routeId}`, status !== undefined ? { status } : undefined),
+  getByRoute: (routeId: string | number, status?: number) =>
+    get<OrderDto[]>(`/api/v1/orders/route/${routeId}`, status !== undefined ? { status } : undefined),
+  getById: (id: number | string) => get<OrderDetailDto>(`/api/v1/orders/${id}`),
+  getCustomerHistory: (customerId: string, limit = 10) =>
+    get<CustomerOrderHistoryDto[]>(`/api/v1/orders/customer/${customerId}/history`, { limit }),
+  create: (cmd: CreateOrderCommand) => post<OrderDetailDto>('/api/v1/orders', cmd),
+  update: (id: number | string, cmd: Partial<CreateOrderCommand> & { id?: number | string }) =>
+    put<OrderDetailDto>(`/api/v1/orders/${id}`, cmd),
+
+  /** Salesman submits Draft → PendingApproval */
+  submit: (id: number | string) => post<OrderDetailDto>(`/api/v1/orders/${id}/submit`),
+
+  /** Admin approves PendingApproval → Approved */
+  approve: (id: number | string) => post<OrderDetailDto>(`/api/v1/orders/${id}/approve`),
+
+  /** Admin: list orders awaiting approval */
+  getPendingApproval: (routeId?: string, date?: string) =>
+    get<OrderDto[]>('/api/v1/orders/admin/pending-approval', {
+      ...(routeId ? { routeId } : {}),
+      ...(date    ? { date }    : {}),
+    }),
+
+  /** Admin: badge count — cheap endpoint */
+  getPendingApprovalCount: () =>
+    get<number>('/api/v1/orders/admin/pending-approval/count'),
+
+  close: (id: number | string) => post<OrderDetailDto>(`/api/v1/orders/${id}/close`),
+  delete: (id: number | string) => del<boolean>(`/api/v1/orders/${id}`),
+};
+
+// ── Settlement ────────────────────────────────────────────────────────────────
+export const settlementApi = {
+  getSummary: (routeId?: string, asOfDate?: string) =>
+    get<ExpectedCashDto>('/api/v1/settlement/summary', { routeId, asOfDate }),
+  summary: () =>
+    get<SettlementSummaryDto>('/api/v1/settlement/summary'),
+  getOutstanding: (routeId?: string, customerId?: string) =>
+    get<OutstandingSummaryDto>('/api/v1/settlement/outstanding', { routeId, customerId }),
+  outstanding: async (): Promise<OutstandingCustomerDto[]> => {
+    const data = await get<OutstandingSummaryDto>('/api/v1/settlement/outstanding');
+    return data.customers ?? [];
+  },
+  getStatus: (date?: string) =>
+    get<DailyClosureStatusDto>('/api/v1/settlement/status', date ? { date } : undefined),
+  closeDay: (closureDate: string, notes?: string) =>
+    post<DailyClosureResultDto>('/api/v1/settlement/close-day', { closureDate, notes }),
+  recordPayment: (body: {
+    customerId: number | string; amount: number; paymentDate: string; note?: string;
+    paymentReference?: string; paymentMode?: string; remarks?: string;
+  }) => post('/api/v1/settlement/record-payment', body),
+};
+
+// ── Reports (PDF) ─────────────────────────────────────────────────────────────
+export const reportsApi = {
+  loadingSheet: async (date: string, routeId?: number) => {
+    const res = await apiClient.get('/api/v1/reports/loading-sheet', {
+      params: { routeId, date }, responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
+  billingSheet: async (date: string, routeId?: number) => {
+    const res = await apiClient.get('/api/v1/reports/billing-sheet', {
+      params: { routeId, date }, responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
+  routeSummary: async (date: string, routeId?: number) => {
+    const res = await apiClient.get('/api/v1/reports/route-summary', {
+      params: { routeId, fromDate: date, toDate: date }, responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
+  productSummary: async (date: string) => {
+    const res = await apiClient.get('/api/v1/reports/product-summary', {
+      params: { fromDate: date, toDate: date }, responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
+  dailySummary: async (date: string) => {
+    const res = await apiClient.get('/api/v1/reports/daily-summary', {
+      params: { date }, responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
+  downloadLoadingSheet: async (routeId?: string, date?: string) => {
+    const res = await apiClient.get('/api/v1/reports/loading-sheet', {
+      params: { routeId, date }, responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
+  downloadBillingSheet: async (routeId?: string, date?: string) => {
+    const res = await apiClient.get('/api/v1/reports/billing-sheet', {
+      params: { routeId, date }, responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
+  downloadRouteSummary: async (routeId?: string, fromDate?: string, toDate?: string) => {
+    const res = await apiClient.get('/api/v1/reports/route-summary', {
+      params: { routeId, fromDate, toDate }, responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
+  downloadProductSummary: async (productGroupId?: string, fromDate?: string, toDate?: string) => {
+    const res = await apiClient.get('/api/v1/reports/product-summary', {
+      params: { productGroupId, fromDate, toDate }, responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
+  downloadDailySummary: async (date?: string) => {
+    const res = await apiClient.get('/api/v1/reports/daily-summary', {
+      params: { date }, responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
+};
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+export const analyticsApi = {
+  getDashboardKpis: (date?: string) =>
+    get<DashboardKpisDto>('/api/v1/analytics/dashboard/kpis', date ? { date } : undefined),
+  getProductProfitability: (params?: {
+    productGroupId?: string; showOnlyNegativeMargin?: boolean;
+    fromDate?: string; toDate?: string;
+  }) => get<ProductProfitabilityDto[]>('/api/v1/analytics/product-profitability', params),
+  getRouteProfitability: (params?: {
+    routeId?: string; showOnlyNegativeMargin?: boolean;
+    fromDate?: string; toDate?: string;
+  }) => get<RouteProfitabilityDto[]>('/api/v1/analytics/route-profitability', params),
+  getTopProducts: (params?: {
+    fromDate?: string; toDate?: string;
+    productGroupId?: string; limit?: number; sortBy?: string;
+  }) => get<TopProductDto[]>('/api/v1/analytics/top-products', params),
+  getRoutePerformance: (params?: { routeId?: string; fromDate?: string; toDate?: string }) =>
+    get<RoutePerformanceResponseDto>('/api/v1/analytics/route-performance', params),
+  getProductPerformance: (params?: {
+    productGroupId?: string; fromDate?: string; toDate?: string; limit?: number; sortBy?: string;
+  }) => get<ProductPerformanceResponseDto>('/api/v1/analytics/product-performance', params),
+  getPeriodComparison: (fromDate: string, toDate: string, routeId?: string) =>
+    get<PeriodComparisonResponseDto>('/api/v1/analytics/period-comparison', {
+      fromDate, toDate, routeId, compareWithPrevious: true,
+    }),
+  getOrderMargin: (orderId: string) =>
+    get<OrderMarginDto>(`/api/v1/analytics/order/${orderId}/margin`),
+  getPricingAudit: (params?: {
+    productId?: string; action?: string; fromDate?: string; toDate?: string; limit?: number;
+  }) => get<PricingAuditLogDto[]>('/api/v1/analytics/pricing-audit', params),
+};
+
+// ── Incentives ────────────────────────────────────────────────────────────────
+export const incentivesApi = {
+  getProductIncentives: (productId?: string, isActive?: boolean) =>
+    get<ProductIncentiveDto[]>('/api/v1/incentives/product', { productId, isActive }),
+  createProductIncentive: (body: {
+    productId: string; incentiveType: number; incentiveValue: number;
+    minQuantity?: number; validFrom?: string; validTo?: string; description?: string;
+  }) => post('/api/v1/incentives/product', body),
+  updateProductIncentive: (id: string, body: object) =>
+    put(`/api/v1/incentives/product/${id}`, { id, ...body }),
+  deleteProductIncentive: (id: string) =>
+    del(`/api/v1/incentives/product/${id}`),
+  getSalesmanIncentiveSummary: (salesmanId?: string, fromDate?: string, toDate?: string) =>
+    get<SalesmanIncentiveSummaryDto>('/api/v1/incentives/salesman-summary', {
+      salesmanId, fromDate, toDate,
+    }),
+  salesmanSummary: () =>
+    get<SalesmanIncentiveSummaryDto>('/api/v1/incentives/salesman-summary'),
+};
+
+// ── PDF download helper ───────────────────────────────────────────────────────
+export function triggerPdfDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── Warehouse ─────────────────────────────────────────────────────────────────
+export const warehouseApi = {
+  /** Approved orders waiting to be packed */
+  getPendingOrders: (params?: {
+    fromDate?: string;
+    toDate?: string;
+    routeId?: string;
+    packingStatus?: number;
+    search?: string;
+  }) => get<WarehouseOrderDto[]>('/api/v1/warehouse/orders/pending', params),
+
+  /** Closed orders — answers "where did yesterday's orders go?" */
+  getClosedOrders: (params?: {
+    fromDate?: string;
+    toDate?: string;
+    routeId?: string;
+    search?: string;
+  }) => get<WarehouseOrderDto[]>('/api/v1/warehouse/orders/closed', params),
+
+  /** Salesman: check if all approved orders for a route are packed */
+  getPackingStatus: (routeId: string) =>
+    get<RoutePackingStatusDto>(`/api/v1/warehouse/orders/packing-status/${routeId}`),
+
+  packOrder: (orderId: string, isPartial = false) =>
+    post<boolean>(`/api/v1/warehouse/orders/${orderId}/pack`, { isPartial }),
+
+  bulkPack: (orderIds: string[]) =>
+    post<number>('/api/v1/warehouse/orders/bulk-pack', { orderIds }),
+
+  getSummary: (date?: string) =>
+    get<WarehouseSummaryDto>('/api/v1/warehouse/summary', date ? { date } : undefined),
+};
+
+// ── Route Assignments ─────────────────────────────────────────────────────────
+export const routeAssignmentsApi = {
+  getByDateRange: (fromDate: string, toDate: string) =>
+    get<RouteAssignmentDto[]>('/api/v1/route-assignments', { fromDate, toDate }),
+
+  getByDate: (date: string) =>
+    get<RouteAssignmentDto[]>('/api/v1/route-assignments', { date }),
+
+  upsert: (body: {
+    routeId: string;
+    salesmanId: string;
+    assignmentDate: string;
+    notes?: string;
+  }) => post<RouteAssignmentDto>('/api/v1/route-assignments', body),
+
+  delete: (id: string) => del<boolean>(`/api/v1/route-assignments/${id}`),
+
+  getMyRoutesToday: (date?: string) =>
+    get<TodayRouteDto[]>('/api/v1/route-assignments/my-routes', date ? { date } : undefined),
+};
+</file>
+
+<file path="src/App.tsx">
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useAuthStore, useIsAdmin, useIsSalesman, useIsAccounts, useIsWarehouse } from './store/authStore';
+import { Navbar } from './components/layout/Navbar';
+import { PageLoader } from './components/ui';
+
+// ── Auth ────────────────────────────────────────────────────────────────────
+const LoginPage    = lazy(() => import('./pages/Auth/LoginPage').then(m => ({ default: m.LoginPage })));
+const PinLoginPage = lazy(() => import('./pages/Auth/PinLoginPage'));
+const RegisterPage = lazy(() => import('./pages/Auth/RegisterPage').then(m => ({ default: m.RegisterPage })));
+
+// ── Home Hub ───────────────────────────────────────────────────────────────
+const HomeHub = lazy(() => import('./pages/Dashboard/HomeHub').then(m => ({ default: m.HomeHub })));
+const MainHub = lazy(() => import('./pages/Dashboard/MainHub').then(m => ({ default: m.MainHub })));
+
+// ── Landing Page ───────────────────────────────────────────────────────────
+const LandingPage = lazy(() => import('./pages/Landing/LandingPage').then(m => ({ default: m.LandingPage })));
+
+// ── Admin ───────────────────────────────────────────────────────────────────
+const AdminDashboard  = lazy(() => import('./pages/Admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const AdminRoutes     = lazy(() => import('./pages/Admin/AdminRoutes/AdminRoutes').then(m => ({ default: m.AdminRoutes })));
+const EditRoutePage = lazy(() => import('./pages/Admin/AdminRoutes/EditRoutePage'));
+const AssignRoutePage = lazy(() => import('./pages/Admin/AdminRoutes/AssignRoutePage'));
+const OverrideRoutePage = lazy(() => import('./pages/Admin/AdminRoutes/OverrideRoutePage'));
+const AdminCustomers  = lazy(() => import('./pages/Admin/AdminCustomers').then(m => ({ default: m.AdminCustomers })));
+const AdminProducts   = lazy(() => import('./pages/Admin/AdminProducts').then(m => ({ default: m.AdminProducts })));
+const AdminOrders     = lazy(() => import('./pages/Admin/AdminOrders').then(m => ({ default: m.AdminOrders })));
+const AdminOrderEdit = lazy(() => import('./pages/Admin/AdminOrderEdit').then(m => ({ default: m.AdminOrderEdit })));
+const AdminSettlement = lazy(() => import('./pages/Admin/AdminSettlement').then(m => ({ default: m.AdminSettlement })));
+const AdminReports    = lazy(() => import('./pages/Admin/AdminReports').then(m => ({ default: m.AdminReports })));
+const AdminAnalytics  = lazy(() => import('./pages/Admin/AdminAnalytics').then(m => ({ default: m.AdminAnalytics })));
+const AdminIncentives = lazy(() => import('./pages/Admin/AdminIncentives').then(m => ({ default: m.AdminIncentives })));
+const AdminSettings   = lazy(() => import('./pages/Admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
+const AdminUsers      = lazy(() =>import('./pages/Admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
+const AdminDailyAssignment = lazy(() =>
+  import('./pages/Admin/AdminDailyAssignment').then(m => ({ default: m.AdminDailyAssignment }))
+);
+const WarehouseDashboard = lazy(() =>
+  import('./pages/Warehouse/WarehouseDashboard')
+);
+
+// ── Salesman ────────────────────────────────────────────────────────────────
+const SalesmanRoutes    = lazy(() => import('./pages/Salesman/SalesmanRoutes').then(m => ({ default: m.SalesmanRoutes })));
+const SalesmanOrders    = lazy(() => import('./pages/Salesman/SalesmanOrders'));
+const OrderEntry = lazy(() => import('./pages/Salesman/OrderEntry/OrderEntry'));
+const ReviewOrdersPage = lazy(() => import('./pages/Salesman/ReviewOrdersPage'));
+const SalesmanIncentives = lazy(() => import('./pages/Salesman/SalesmanIncentives'));
+const RouteExecution    = lazy(() => import('./pages/Salesman/RouteExecution'));
+const SalesmanCustomers = lazy(() => import('./pages/Salesman/SalesmanCustomers'));
+
+// ── Accounts ────────────────────────────────────────────────────────────────
+const AccountsSettlement = lazy(() => import('./pages/Accounts/AccountsSettlement'));
+const AccountsReports    = lazy(() => import('./pages/Accounts/AccountsReports'));
+
+// ── Warehouse ───────────────────────────────────────────────────────────────
+const WarehouseLoading = lazy(() => import('./pages/Warehouse/WarehouseLoading'));
+
+// ── Guards ──────────────────────────────────────────────────────────────────
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const token = useAuthStore(s => s.token);
+  const location = useLocation();
+  if (!token) return <Navigate to="/login" state={{ from: location }} replace />;
+  return <>{children}</>;
+}
+
+function RequireRole({ allowed, children }: { allowed: string[]; children: React.ReactNode }) {
+  const user = useAuthStore(s => s.user);
+  if (!user) return <Navigate to="/login" replace />;
+  const role = user.role?.toLowerCase() ?? '';
+  const ok = allowed.some(r => r.toLowerCase() === role);
+  if (!ok) return <Navigate to="/unauthorized" replace />;
+  return <>{children}</>;
+}
+
+// ── Shell ───────────────────────────────────────────────────────────────────
+function AppShell() {
+  return (
+    <div className="min-h-screen bg-[var(--bg)]">
+      <Navbar />
+      <main style={{ paddingTop: 'var(--nav-h)' }}>
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
+      </main>
+    </div>
+  );
+}
+
+// ── Root redirect ────────────────────────────────────────────────────────────
+function RootRedirect() {
+  const user = useAuthStore(s => s.user);
+  const token = useAuthStore(s => s.token);
+  if (!token || !user) return <Navigate to="/login" replace />;
+  const role = user.role?.toLowerCase() ?? '';
+  if (role === 'superadmin' || role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+  if (role === 'salesman')  return <Navigate to="/salesman/dashboard"  replace />;
+  if (role === 'accounts')  return <Navigate to="/accounts/dashboard"  replace />;
+  if (role === 'warehouse') return <Navigate to="/warehouse/dashboard" replace />;
+  return <Navigate to="/login" replace />;
+}
+
+function Unauthorized() {
+  const user = useAuthStore(s => s.user);
+  return (
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
+      <div className="text-center max-w-sm">
+        <div className="text-5xl mb-4">🚫</div>
+        <h1 className="text-xl font-bold text-white mb-2">Access Denied</h1>
+        <p className="text-[var(--muted)] text-sm mb-6">
+          Your role ({user?.role ?? 'unknown'}) does not have permission to view this page.
+        </p>
+        <a href="/" className="btn btn-primary">Go to Dashboard</a>
+      </div>
+    </div>
+  );
+}
+
+// ── App ──────────────────────────────────────────────────────────────────────
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Public */}
+          <Route path="/login"    element={<LoginPage />} />
+          <Route path="/pin-login"  element={<PinLoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
+
+          {/* Public landing — unauthenticated users see this; LandingPage itself redirects logged-in users */}
+          <Route path="/" element={<LandingPage />} />
+
+          {/* Protected shell */}
+          <Route element={<RequireAuth><AppShell /></RequireAuth>}>
+
+            {/* ── Admin / SuperAdmin ── */}
+            <Route
+              path="/admin"
+              element={<RequireRole allowed={['Admin', 'SuperAdmin']}><Outlet /></RequireRole>}
+            >
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard"  element={<HomeHub />} />
+              <Route path="routes"     element={<AdminRoutes />} />
+              <Route path="routes/edit/:id" element={<EditRoutePage />} />
+              <Route path="routes/assign/:id" element={<AssignRoutePage />} />
+              <Route path="routes/override/:id" element={<OverrideRoutePage />} />
+              <Route path="assignments" element={<AdminDailyAssignment />} />
+              <Route path="customers"  element={<AdminCustomers />} />
+              <Route path="products"   element={<AdminProducts />} />
+              <Route path="orders"     element={<AdminOrders />} />
+              <Route path="orders/:orderId/edit" element={<AdminOrderEdit />} />
+              <Route path="settlement" element={<AdminSettlement />} />
+              <Route path="reports"    element={<AdminReports />} />
+              <Route path="analytics"  element={<AdminAnalytics />} />
+              <Route path="incentives" element={<AdminIncentives />} />
+              <Route path="settings"   element={<AdminSettings />} />
+              <Route path="users"      element={<AdminUsers />} />
+            </Route>
+
+            {/* ── Salesman ── */}
+            <Route
+              path="/salesman"
+              element={<RequireRole allowed={['Salesman', 'Admin', 'SuperAdmin']}><Outlet /></RequireRole>}
+            >
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard"                                 element={<MainHub />} /> 
+              <Route path="routes"                                    element={<SalesmanRoutes />} />
+              <Route path="routes/:routeId/execute"                   element={<RouteExecution />} />
+              <Route path="routes/:routeId/orders"                    element={<SalesmanOrders />} />
+              <Route path="routes/:routeId/order/:customerId"         element={<OrderEntry />} />
+              <Route path="routes/:routeId/review-orders"             element={<ReviewOrdersPage />} />
+              <Route path="routes/:routeId/customers"                 element={<SalesmanCustomers />} />
+              <Route path="incentives"                                element={<SalesmanIncentives />} />
+            </Route>
+
+            {/* ── Accounts ── */}
+            <Route
+              path="/accounts"
+              element={<RequireRole allowed={['Accounts', 'Admin', 'SuperAdmin']}><Outlet /></RequireRole>}
+            >
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard"  element={<HomeHub />} />
+              <Route path="settlement" element={<AccountsSettlement />} />
+              <Route path="reports"    element={<AccountsReports />} />
+            </Route>
+
+            {/* ── Warehouse ── */}
+            <Route
+              path="/warehouse"
+              element={<RequireRole allowed={['Warehouse', 'Admin', 'SuperAdmin']}><Outlet /></RequireRole>}
+            >
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={<HomeHub />} />
+              <Route path="loading"   element={<WarehouseLoading />} />
+              <Route path="dispatch"  element={<WarehouseDashboard />} />
+            </Route>
+
+          </Route>
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
+  );
+}
+</file>
+
+<file path="src/components/admin/AdminSearchBar.tsx">
+// PATH: src/components/admin/AdminSearchBar.tsx
+// Premium Admin Search Bar — White & Blue Design System
+// Standalone component; pass onSearch callback and optional placeholder.
+
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  Search, X, Clock, TrendingUp, FileText,
+  ShoppingCart, Users, Route,
+} from 'lucide-react';
+
+interface AdminSearchBarProps {
+  onSearch: (query: string) => void;
+  placeholder?: string;
+  className?: string;
+}
+
+interface Suggestion {
+  icon: React.ElementType;
+  label: string;
+  category: string;
+  color: string;
+}
+
+const QUICK_SUGGESTIONS: Suggestion[] = [
+  { icon: ShoppingCart, label: 'Pending draft orders',         category: 'Orders',    color: '#2563EB' },
+  { icon: Route,        label: "Today's active routes",        category: 'Routes',    color: '#7C3AED' },
+  { icon: Users,        label: 'Salesman field activity',      category: 'Personnel', color: '#059669' },
+  { icon: FileText,     label: 'Pending settlement invoices',  category: 'Finance',   color: '#D97706' },
+  { icon: TrendingUp,   label: 'Month-to-date revenue report', category: 'Analytics', color: '#DC2626' },
+];
+
+export function AdminSearchBar({
+  onSearch,
+  placeholder = 'Search routes, active distributors, salesmen logs, or transaction invoices…',
+  className = '',
+}: AdminSearchBarProps) {
+  const [query,     setQuery]     = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [recent,    setRecent]    = useState<string[]>([]);
+  const inputRef     = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  /* Persist recent searches in session */
+  useEffect(() => {
+    const stored = sessionStorage.getItem('admin-search-recent');
+    if (stored) setRecent(JSON.parse(stored));
+  }, []);
+
+  const pushRecent = (q: string) => {
+    if (!q.trim()) return;
+    const updated = [q, ...recent.filter(r => r !== q)].slice(0, 4);
+    setRecent(updated);
+    sessionStorage.setItem('admin-search-recent', JSON.stringify(updated));
+  };
+
+  /* Close dropdown on outside click */
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleChange = (value: string) => {
+    setQuery(value);
+    onSearch(value);
+  };
+
+  const handleSelect = (value: string) => {
+    setQuery(value);
+    onSearch(value);
+    pushRecent(value);
+    setIsFocused(false);
+    inputRef.current?.blur();
+  };
+
+  const handleClear = () => {
+    setQuery('');
+    onSearch('');
+    inputRef.current?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && query.trim()) {
+      pushRecent(query);
+      setIsFocused(false);
+      inputRef.current?.blur();
+    }
+    if (e.key === 'Escape') {
+      setIsFocused(false);
+      inputRef.current?.blur();
+    }
+  };
+
+  const showDropdown = isFocused;
+
+  return (
+    <div ref={containerRef} className={`relative w-full ${className}`}>
+      {/* ── Input container ── */}
+      <div
+        className={`
+          relative flex items-center bg-white rounded-2xl border transition-all duration-200
+          ${isFocused
+            ? 'border-blue-400 shadow-[0_0_0_3px_rgba(37,99,235,0.15),0_4px_20px_rgba(37,99,235,0.12)]'
+            : 'border-slate-200 shadow-[0_1px_4px_rgba(15,23,42,0.06)] hover:border-slate-300'
+          }
+        `}
+      >
+        {/* Search icon */}
+        <div className="absolute left-4 flex items-center pointer-events-none">
+          <Search
+            size={18}
+            className={`transition-colors duration-200 ${isFocused ? 'text-blue-500' : 'text-slate-400'}`}
+          />
+        </div>
+
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={e => handleChange(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          className="
+            w-full pl-11 pr-12 py-3.5 bg-transparent rounded-2xl
+            text-sm text-slate-700 placeholder:text-slate-400
+            focus:outline-none
+          "
+        />
+
+        {/* Clear button */}
+        {query && (
+          <button
+            onClick={handleClear}
+            className="absolute right-4 p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+          >
+            <X size={15} />
+          </button>
+        )}
+      </div>
+
+      {/* ── Dropdown suggestions ── */}
+      {showDropdown && (
+        <div
+          className="
+            absolute top-full left-0 right-0 mt-2 z-50
+            bg-white rounded-2xl border border-slate-100
+            shadow-[0_12px_48px_rgba(15,23,42,0.14),0_4px_16px_rgba(15,23,42,0.06)]
+            overflow-hidden
+          "
+        >
+          {/* Recent searches */}
+          {recent.length > 0 && !query && (
+            <div className="border-b border-slate-100">
+              <div className="px-4 pt-3 pb-2">
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+                  Recent
+                </p>
+              </div>
+              {recent.map((r, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleSelect(r)}
+                  className="
+                    w-full px-4 py-2.5 text-left flex items-center gap-3
+                    text-sm text-slate-600 hover:bg-slate-50 transition-colors
+                  "
+                >
+                  <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                    <Clock size={13} className="text-slate-400" />
+                  </div>
+                  <span className="truncate">{r}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Quick suggestions */}
+          <div>
+            <div className="px-4 pt-3 pb-2">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+                {query ? 'Suggestions' : 'Quick Access'}
+              </p>
+            </div>
+            {QUICK_SUGGESTIONS
+              .filter(s => !query || s.label.toLowerCase().includes(query.toLowerCase()))
+              .map((s, i) => {
+                const Icon = s.icon;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => handleSelect(s.label)}
+                    className="
+                      w-full px-4 py-2.5 text-left flex items-center gap-3
+                      hover:bg-slate-50 transition-colors group
+                    "
+                  >
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: `${s.color}15` }}
+                    >
+                      <Icon size={13} style={{ color: s.color }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-slate-700 group-hover:text-slate-900 truncate block">
+                        {s.label}
+                      </span>
+                    </div>
+                    <span
+                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: `${s.color}12`, color: s.color }}
+                    >
+                      {s.category}
+                    </span>
+                  </button>
+                );
+              })}
+          </div>
+
+          {/* Keyboard hint */}
+          <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50">
+            <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
+              <kbd className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-[10px] font-mono shadow-sm">↵</kbd>
+              to search ·
+              <kbd className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-[10px] font-mono shadow-sm">Esc</kbd>
+              to dismiss
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/admin/ProductUnitPriceManager.tsx">
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, X, Save, DollarSign, Package } from 'lucide-react';
+import { productsApi, unitsApi } from '../../api/services';
+import { ProductUnitPriceDto, UnitDto, ProductDto } from '../../types';
+import { Spinner, Alert, ConfirmModal, Field } from '../ui';
+
+interface ProductUnitPriceManagerProps {
+    product: ProductDto;
+    onClose: () => void;
+    onUpdate: () => void;
+}
+
+export function ProductUnitPriceManager({ product, onClose, onUpdate }: ProductUnitPriceManagerProps) {
+    const [unitPrices, setUnitPrices] = useState<ProductUnitPriceDto[]>([]);
+    const [units, setUnits] = useState<UnitDto[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [modalOpen, setModalOpen] = useState<'add' | 'edit' | null>(null);
+    const [selectedPrice, setSelectedPrice] = useState<ProductUnitPriceDto | null>(null);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+    const [form, setForm] = useState({
+        productUnitId: '',
+        unitSize: 1,
+        unitSizeLabel: '',
+        salePrice: 0,
+        salePrice2: 0,
+        salePrice3: 0,
+        salePrice4: 0,
+        purchaseRate: 0,
+        landingCost: 0,
+        mrp: 0,
+        mop: 0,
+        discount1: 0,
+        discount2: 0,
+        discount3: 0,
+        discount4: 0,
+        vat: 0,
+        floodCost: 0,
+        isDefault: false,
+    });
+
+    async function load() {
+        setLoading(true);
+        try {
+            const [prices, unitList] = await Promise.all([
+                productsApi.getUnitPrices(product.id),
+                unitsApi.getAll(),
+            ]);
+            setUnitPrices(prices);
+            setUnits(unitList);
+        } catch (err: any) {
+            setError(err.message || 'Failed to load unit prices');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    useEffect(() => { load(); }, [product.id]);
+
+    function openAdd() {
+        setSelectedPrice(null);
+        setForm({
+            productUnitId: '',
+            unitSize: 1,
+            unitSizeLabel: '',
+            salePrice: 0,
+            salePrice2: 0,
+            salePrice3: 0,
+            salePrice4: 0,
+            purchaseRate: 0,
+            landingCost: 0,
+            mrp: 0,
+            mop: 0,
+            discount1: 0,
+            discount2: 0,
+            discount3: 0,
+            discount4: 0,
+            vat: 0,
+            floodCost: 0,
+            isDefault: unitPrices.length === 0, // First item becomes default
+        });
+        setModalOpen('add');
+    }
+
+    function openEdit(price: ProductUnitPriceDto) {
+        setSelectedPrice(price);
+        setForm({
+            productUnitId: price.productUnitId,
+            unitSize: price.unitSize,
+            unitSizeLabel: price.unitSizeLabel || '',
+            salePrice: price.salePrice,
+            salePrice2: price.salePrice2,
+            salePrice3: price.salePrice3,
+            salePrice4: price.salePrice4,
+            purchaseRate: price.purchaseRate,
+            landingCost: price.landingCost,
+            mrp: price.mrp,
+            mop: price.mop,
+            discount1: price.discount1,
+            discount2: price.discount2,
+            discount3: price.discount3,
+            discount4: price.discount4,
+            vat: price.vat,
+            floodCost: price.floodCost,
+            isDefault: price.isDefault,
+        });
+        setModalOpen('edit');
+    }
+
+    async function handleSave() {
+        if (!form.productUnitId || form.salePrice <= 0) {
+            setError('Please select a unit and enter a valid sale price.');
+            return;
+        }
+
+        setSaving(true);
+        setError('');
+
+        try {
+            const payload = {
+                productId: product.id,
+                productUnitId: form.productUnitId,
+                unitSize: form.unitSize,
+                unitSizeLabel: form.unitSizeLabel || undefined,
+                salePrice: form.salePrice,
+                salePrice2: form.salePrice2,
+                salePrice3: form.salePrice3,
+                salePrice4: form.salePrice4,
+                purchaseRate: form.purchaseRate,
+                landingCost: form.landingCost,
+                mrp: form.mrp,
+                mop: form.mop,
+                discount1: form.discount1,
+                discount2: form.discount2,
+                discount3: form.discount3,
+                discount4: form.discount4,
+                vat: form.vat,
+                floodCost: form.floodCost,
+                isDefault: form.isDefault,
+            };
+
+            if (modalOpen === 'add') {
+                await productsApi.addUnitPrice(payload);
+                setSuccess('Unit price added successfully!');
+            } else if (selectedPrice) {
+                await productsApi.updateUnitPrice(selectedPrice.id, { ...payload, id: selectedPrice.id, isActive: true });
+                setSuccess('Unit price updated successfully!');
+            }
+
+            setModalOpen(null);
+            await load();
+            onUpdate();
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err: any) {
+            setError(err.message || 'Save failed');
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    async function handleDelete(id: string) {
+        try {
+            await productsApi.deleteUnitPrice(id);
+            setSuccess('Unit price deleted successfully!');
+            await load();
+            onUpdate();
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err: any) {
+            setError(err.message || 'Delete failed');
+        } finally {
+            setDeleteConfirm(null);
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                    <div>
+                        <h2 className="text-xl font-bold text-slate-800">Unit Prices</h2>
+                        <p className="text-sm text-slate-500 mt-1">{product.nameEnglish}</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6">
+                    {error && <Alert variant="error">{error}</Alert>}
+                    {success && <Alert variant="success">{success}</Alert>}
+
+                    {/* Add Button */}
+                    <div className="flex justify-end mb-4">
+                        <button onClick={openAdd} className="btn btn-primary btn-sm flex items-center gap-2">
+                            <Plus size={14} /> Add Unit Price
+                        </button>
+                    </div>
+
+                    {/* Unit Prices Table */}
+                    {loading ? (
+                        <div className="text-center py-12"><Spinner /></div>
+                    ) : unitPrices.length === 0 ? (
+                        <div className="text-center py-12 text-slate-400">
+                            <Package size={48} className="mx-auto mb-3 opacity-40" />
+                            <p>No unit prices configured for this product.</p>
+                            <p className="text-sm mt-1">Click "Add Unit Price" to set up pricing for different units.</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-slate-50">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500">Unit</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500">Size</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500">Sale Price</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500">MRP</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500">Default</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {unitPrices.map(price => (
+                                        <tr key={price.id} className="hover:bg-slate-50">
+                                            <td className="px-4 py-3 font-medium">{price.unitName}</td>
+                                            <td className="px-4 py-3 text-right">
+                                                {price.unitSize} {price.unitSizeLabel}
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-semibold text-emerald-600">
+                                                ₹{price.salePrice.toLocaleString()}
+                                            </td>
+                                            <td className="px-4 py-3 text-right text-slate-600">
+                                                ₹{price.mrp.toLocaleString()}
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                {price.isDefault && (
+                                                    <span className="inline-flex px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">Default</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                <div className="flex justify-center gap-2">
+                                                    <button onClick={() => openEdit(price)} className="p-1 text-slate-400 hover:text-blue-600">
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                    <button onClick={() => setDeleteConfirm(price.id)} className="p-1 text-slate-400 hover:text-red-600">
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Add/Edit Modal */}
+            {(modalOpen === 'add' || modalOpen === 'edit') && (
+                <div className="fixed inset-0 z-60 bg-black/50 flex items-center justify-center p-4" onClick={() => setModalOpen(null)}>
+                    <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 border-b border-slate-200">
+                            <h3 className="text-lg font-bold">{modalOpen === 'add' ? 'Add' : 'Edit'} Unit Price</h3>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field label="Unit" required>
+                                    <select
+                                        className="input"
+                                        value={form.productUnitId}
+                                        onChange={e => setForm({ ...form, productUnitId: e.target.value })}
+                                    >
+                                        <option value="">Select unit...</option>
+                                        {units.map(u => (
+                                            <option key={u.id} value={u.id}>{u.name} ({u.abbreviation})</option>
+                                        ))}
+                                    </select>
+                                </Field>
+                                <Field label="Unit Size">
+                                    <input
+                                        type="number"
+                                        className="input"
+                                        value={form.unitSize}
+                                        onChange={e => setForm({ ...form, unitSize: parseFloat(e.target.value) || 0 })}
+                                        step="0.01"
+                                    />
+                                </Field>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-4">
+                                <Field label="Sale Price (₹)" required>
+                                    <input
+                                        type="number"
+                                        className="input"
+                                        value={form.salePrice}
+                                        onChange={e => setForm({ ...form, salePrice: parseFloat(e.target.value) || 0 })}
+                                        step="0.01"
+                                    />
+                                </Field>
+                                <Field label="MRP (₹)">
+                                    <input
+                                        type="number"
+                                        className="input"
+                                        value={form.mrp}
+                                        onChange={e => setForm({ ...form, mrp: parseFloat(e.target.value) || 0 })}
+                                        step="0.01"
+                                    />
+                                </Field>
+                                <Field label="Purchase Rate">
+                                    <input
+                                        type="number"
+                                        className="input"
+                                        value={form.purchaseRate}
+                                        onChange={e => setForm({ ...form, purchaseRate: parseFloat(e.target.value) || 0 })}
+                                        step="0.01"
+                                    />
+                                </Field>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field label="VAT %">
+                                    <input
+                                        type="number"
+                                        className="input"
+                                        value={form.vat}
+                                        onChange={e => setForm({ ...form, vat: parseFloat(e.target.value) || 0 })}
+                                        step="0.01"
+                                    />
+                                </Field>
+                                <Field label="Flood Cost">
+                                    <input
+                                        type="number"
+                                        className="input"
+                                        value={form.floodCost}
+                                        onChange={e => setForm({ ...form, floodCost: parseFloat(e.target.value) || 0 })}
+                                        step="0.01"
+                                    />
+                                </Field>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="isDefault"
+                                    checked={form.isDefault}
+                                    onChange={e => setForm({ ...form, isDefault: e.target.checked })}
+                                />
+                                <label htmlFor="isDefault" className="text-sm">Set as default selling unit</label>
+                            </div>
+                        </div>
+                        <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+                            <button className="btn btn-outline" onClick={() => setModalOpen(null)}>Cancel</button>
+                            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                                {saving ? <Spinner size={16} /> : 'Save'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation */}
+            <ConfirmModal
+                open={!!deleteConfirm}
+                title="Delete Unit Price"
+                message="Are you sure you want to delete this unit price? This action cannot be undone."
+                confirmLabel="Delete"
+                danger
+                onConfirm={() => deleteConfirm && handleDelete(deleteConfirm)}
+                onCancel={() => setDeleteConfirm(null)}
+            />
+        </div>
+    );
+}
+</file>
+
+<file path="src/components/dashboard/HeaderSearch.tsx">
+// PATH: src/components/dashboard/HeaderSearch.tsx
+// Modern, interactive search header with blue/white aesthetic
+
+import React, { useState, useRef, useEffect } from 'react';
+import { Search, Bell, User, ChevronDown, Menu, X } from 'lucide-react';
+import { useAuthStore } from '../../store/authStore';
+
+interface HeaderSearchProps {
+  onSearch: (query: string) => void;
+  placeholder?: string;
+}
+
+export function HeaderSearch({ onSearch, placeholder = "Search orders, customers, or invoice numbers..." }: HeaderSearchProps) {
+  const [query, setQuery] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuthStore();
+
+  const handleSearch = (value: string) => {
+    setQuery(value);
+    onSearch(value);
+  };
+
+  const initials = user?.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() ?? 'U';
+
+  return (
+    <div className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+        {/* Top bar with user info and actions */}
+        <div className="flex items-center justify-between mb-4">
+          {/* Logo / Brand */}
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-800 to-blue-600 flex items-center justify-center shadow-md">
+              <svg width="18" height="18" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+              </svg>
+            </div>
+            <div>
+              <span className="font-bold text-slate-800 text-sm">FMCG<span className="text-blue-600">Dist</span></span>
+              <span className="text-xs text-slate-400 ml-2 hidden sm:inline">Distribution Platform</span>
+            </div>
+          </div>
+
+          {/* User menu - desktop */}
+          <div className="hidden sm:flex items-center gap-4">
+            <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
+              <Bell size={18} className="text-slate-500" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
+            </button>
+            <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-700 to-blue-500 flex items-center justify-center shadow-sm">
+                <span className="text-xs font-bold text-white">{initials}</span>
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-slate-700">{user?.name?.split(' ')[0] ?? 'User'}</p>
+                <p className="text-xs text-slate-400">{user?.role}</p>
+              </div>
+              <ChevronDown size={14} className="text-slate-400" />
+            </div>
+          </div>
+
+          {/* Mobile menu button */}
+          <button className="sm:hidden p-2 rounded-lg hover:bg-slate-100">
+            <Menu size={20} className="text-slate-600" />
+          </button>
+        </div>
+
+        {/* Search bar area */}
+        <div className="relative">
+          <div className={`
+            relative transition-all duration-200
+            ${isFocused ? 'transform scale-[1.01]' : ''}
+          `}>
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search size={18} className={`
+                transition-colors duration-200
+                ${isFocused ? 'text-blue-500' : 'text-slate-400'}
+              `} />
+            </div>
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => handleSearch(e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholder={placeholder}
+              className={`
+                w-full pl-11 pr-12 py-3.5 rounded-xl text-sm
+                bg-slate-50 hover:bg-white
+                border transition-all duration-200
+                ${isFocused 
+                  ? 'border-blue-400 bg-white shadow-lg shadow-blue-500/10 ring-2 ring-blue-500/20' 
+                  : 'border-slate-200 hover:border-slate-300'
+                }
+                placeholder:text-slate-400
+                focus:outline-none
+                text-slate-700
+              `}
+            />
+            {query && (
+              <button
+                onClick={() => handleSearch('')}
+                className="absolute inset-y-0 right-0 pr-4 flex items-center"
+              >
+                <X size={16} className="text-slate-400 hover:text-slate-600 transition-colors" />
+              </button>
+            )}
+          </div>
+
+          {/* Search hints - shows when focused */}
+          {isFocused && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden z-20 animate-fade-in">
+              <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Quick Suggestions</p>
+              </div>
+              <div className="py-2">
+                {['Recent orders', 'Today\'s routes', 'Pending collections', 'Customer statements'].map((suggestion, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSearch(suggestion)}
+                    className="w-full px-4 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-3"
+                  >
+                    <Search size={14} className="text-slate-400" />
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Quick stats chips */}
+        <div className="flex gap-2 mt-4 overflow-x-auto pb-1 scrollbar-thin">
+          <div className="flex-shrink-0 px-4 py-2 rounded-lg bg-emerald-50 border border-emerald-200">
+            <span className="text-xs font-semibold text-emerald-700">📋 Active Orders: 4</span>
+          </div>
+          <div className="flex-shrink-0 px-4 py-2 rounded-lg bg-blue-50 border border-blue-200">
+            <span className="text-xs font-semibold text-blue-700">🚚 Routes Today: 1</span>
+          </div>
+          <div className="flex-shrink-0 px-4 py-2 rounded-lg bg-amber-50 border border-amber-200">
+            <span className="text-xs font-semibold text-amber-700">💰 Pending: ₹18,400</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/layout/Navbar.tsx">
+// PATH: src/components/layout/Navbar.tsx
+// Redesigned — White & Blue corporate design system
+// Drawer-first navigation, minimal top bar
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Package, Route, Users, ShoppingCart, BarChart3, FileText,
+  Settings, LogOut, Menu, X, Warehouse, Calculator, Home,
+  TrendingUp, Gift, UserCog, CalendarDays, Boxes, ChevronRight,
+  Bell, Search,
+} from 'lucide-react';
+import { useAuthStore } from '../../store/authStore';
+
+interface NavItem {
+  to:    string;
+  label: string;
+  icon:  React.ElementType;
+  roles: string[];
+  badge?: string;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  // Admin / SuperAdmin
+  { to: '/admin/dashboard',   label: 'Dashboard',        icon: Home,         roles: ['Admin', 'SuperAdmin'] },
+  { to: '/admin/routes',      label: 'Routes',           icon: Route,        roles: ['Admin', 'SuperAdmin'] },
+  { to: '/admin/assignments', label: 'Temp Assignments', icon: CalendarDays, roles: ['Admin', 'SuperAdmin'] },
+  { to: '/admin/customers',   label: 'Customers',        icon: Users,        roles: ['Admin', 'SuperAdmin'] },
+  { to: '/admin/products',    label: 'Products',         icon: Package,      roles: ['Admin', 'SuperAdmin'] },
+  { to: '/admin/orders',      label: 'Orders',           icon: ShoppingCart, roles: ['Admin', 'SuperAdmin'] },
+  { to: '/admin/settlement',  label: 'Settlement',       icon: Calculator,   roles: ['Admin', 'SuperAdmin'] },
+  { to: '/admin/reports',     label: 'Reports',          icon: FileText,     roles: ['Admin', 'SuperAdmin'] },
+  { to: '/admin/analytics',   label: 'Analytics',        icon: BarChart3,    roles: ['Admin', 'SuperAdmin'] },
+  { to: '/admin/incentives',  label: 'Incentives',       icon: Gift,         roles: ['Admin', 'SuperAdmin'] },
+  { to: '/admin/users',       label: 'Users',            icon: UserCog,      roles: ['Admin', 'SuperAdmin'] },
+  { to: '/admin/settings',    label: 'Settings',         icon: Settings,     roles: ['Admin', 'SuperAdmin'] },
+
+  // Salesman
+  { to: '/salesman/routes',     label: 'My Routes',  icon: Route,        roles: ['Salesman'] },
+  { to: '/salesman/incentives', label: 'Incentives', icon: TrendingUp,   roles: ['Salesman'] },
+
+  // Accounts
+  { to: '/accounts/settlement', label: 'Settlement', icon: Calculator, roles: ['Accounts'] },
+  { to: '/accounts/reports',    label: 'Reports',    icon: FileText,   roles: ['Accounts'] },
+
+  // Warehouse
+  { to: '/warehouse/loading',   label: 'Loading Sheet', icon: Warehouse, roles: ['Warehouse'] },
+  { to: '/warehouse/dashboard', label: 'Pack Orders',   icon: Boxes,     roles: ['Warehouse'] },
+];
+
+// Role-specific primary shortcuts shown in the top nav (max 3 visible on desktop)
+const PRIMARY_SHORTCUTS: Record<string, string[]> = {
+  Admin:      ['/admin/dashboard', '/admin/orders', '/admin/routes'],
+  SuperAdmin: ['/admin/dashboard', '/admin/orders', '/admin/routes'],
+  Salesman:   ['/salesman/routes', '/salesman/incentives'],
+  Accounts:   ['/accounts/settlement', '/accounts/reports'],
+  Warehouse:  ['/warehouse/loading', '/warehouse/dashboard'],
+};
+
+// Role pill color
+const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
+  SuperAdmin: { bg: '#FEF3C7', text: '#92400E' },
+  Admin:      { bg: '#EFF6FF', text: '#1D4ED8' },
+  Salesman:   { bg: '#F0FDF4', text: '#15803D' },
+  Accounts:   { bg: '#FDF4FF', text: '#7E22CE' },
+  Warehouse:  { bg: '#FFF7ED', text: '#C2410C' },
+};
+
+export function Navbar() {
+  const { user, logout }  = useAuthStore();
+  const location          = useLocation();
+  const navigate          = useNavigate();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  if (!user) return null;
+
+  const allItems     = NAV_ITEMS.filter(n => n.roles.includes(user.role));
+  const shortcutKeys = PRIMARY_SHORTCUTS[user.role] ?? [];
+  const shortcuts    = allItems.filter(n => shortcutKeys.includes(n.to));
+  const roleColor    = ROLE_COLORS[user.role] ?? { bg: '#EFF6FF', text: '#1D4ED8' };
+
+  function handleLogout() {
+    logout();
+    navigate('/login');
+  }
+
+  function isActive(to: string) {
+    return location.pathname === to || location.pathname.startsWith(to + '/');
+  }
+
+  // Close drawer on route change
+  useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
+
+  // Close on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (drawerOpen && drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
+        setDrawerOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [drawerOpen]);
+
+  // Prevent body scroll when drawer open
+  useEffect(() => {
+    document.body.style.overflow = drawerOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [drawerOpen]);
+
+  const initials = user.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() ?? 'U';
+
+  return (
+    <>
+      {/* ── Top Navbar ──────────────────────────────────────── */}
+      <nav style={{
+        position:      'fixed',
+        top:           0, left: 0, right: 0,
+        height:        'var(--nav-h)',
+        background:    '#FFFFFF',
+        borderBottom:  '1px solid var(--border)',
+        boxShadow:     '0 1px 0 rgba(15,23,42,0.06), 0 2px 8px rgba(15,23,42,0.04)',
+        zIndex:        100,
+        display:       'flex',
+        alignItems:    'center',
+        padding:       '0 20px',
+        gap:           12,
+      }}>
+
+        {/* Hamburger + Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            onClick={() => setDrawerOpen(true)}
+            style={{
+              display:        'flex',
+              alignItems:     'center',
+              justifyContent: 'center',
+              width:           38,
+              height:          38,
+              borderRadius:    10,
+              border:          '1px solid var(--border)',
+              background:      'transparent',
+              cursor:          'pointer',
+              color:           'var(--text-sub)',
+              transition:      'all 0.15s',
+              flexShrink:      0,
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.background = 'var(--ice)';
+              (e.currentTarget as HTMLElement).style.color = 'var(--primary)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.25)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.background = 'transparent';
+              (e.currentTarget as HTMLElement).style.color = 'var(--text-sub)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
+            }}
+            title="Open menu"
+          >
+            <Menu size={18} />
+          </button>
+
+          <Link
+            to="/"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}
+          >
+            <div style={{
+              width:          34, height: 34,
+              background:     'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+              borderRadius:   9,
+              display:        'flex',
+              alignItems:     'center',
+              justifyContent: 'center',
+              boxShadow:      '0 2px 8px rgba(37,99,235,0.25)',
+            }}>
+              <Package size={17} color="#fff" strokeWidth={2.2} />
+            </div>
+            <span style={{
+              fontWeight:    800,
+              fontSize:      15,
+              color:         'var(--navy)',
+              letterSpacing: '-0.03em',
+            }}>
+              FMCG<span style={{ color: 'var(--primary)', fontWeight: 700 }}>Dist</span>
+            </span>
+          </Link>
+        </div>
+
+        {/* Divider */}
+        <div style={{ width: 1, height: 24, background: 'var(--border)', flexShrink: 0 }} className="hide-mobile" />
+
+        {/* Desktop shortcut nav */}
+        <div
+          className="hide-mobile"
+          style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}
+        >
+          {shortcuts.map(item => {
+            const active = isActive(item.to);
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                style={{
+                  display:        'flex',
+                  alignItems:     'center',
+                  gap:            6,
+                  padding:        '6px 12px',
+                  borderRadius:   8,
+                  textDecoration: 'none',
+                  fontSize:       13,
+                  fontWeight:     600,
+                  whiteSpace:     'nowrap',
+                  color:          active ? 'var(--primary)' : 'var(--text-sub)',
+                  background:     active ? 'var(--ice)' : 'transparent',
+                  border:         `1px solid ${active ? 'rgba(37,99,235,0.20)' : 'transparent'}`,
+                  transition:     'all 0.14s',
+                  letterSpacing:  '-0.01em',
+                }}
+                onMouseEnter={e => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.background = 'var(--card-sub)';
+                    (e.currentTarget as HTMLElement).style.color = 'var(--text-body)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.background = 'transparent';
+                    (e.currentTarget as HTMLElement).style.color = 'var(--text-sub)';
+                  }
+                }}
+              >
+                <item.icon size={14} />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Right side */}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+
+          {/* Notification bell */}
+          <button
+            className="btn btn-ghost btn-icon hide-mobile"
+            style={{ position: 'relative' }}
+            title="Notifications"
+          >
+            <Bell size={16} />
+          </button>
+
+          {/* User chip */}
+          <button
+            onClick={() => setDrawerOpen(true)}
+            style={{
+              display:        'flex',
+              alignItems:     'center',
+              gap:            8,
+              padding:        '5px 12px 5px 6px',
+              borderRadius:   24,
+              border:         '1px solid var(--border)',
+              background:     'var(--card-sub)',
+              cursor:         'pointer',
+              transition:     'all 0.15s',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.25)';
+              (e.currentTarget as HTMLElement).style.background = 'var(--ice)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
+              (e.currentTarget as HTMLElement).style.background = 'var(--card-sub)';
+            }}
+          >
+            {/* Avatar */}
+            <div style={{
+              width:          30, height: 30,
+              borderRadius:   '50%',
+              background:     'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)',
+              display:        'flex',
+              alignItems:     'center',
+              justifyContent: 'center',
+              flexShrink:     0,
+            }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>
+                {initials}
+              </span>
+            </div>
+            <div className="hide-mobile" style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2, letterSpacing: '-0.01em' }}>
+                {user.name?.split(' ')[0] ?? 'User'}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-sub)', lineHeight: 1.2 }}>{user.role}</div>
+            </div>
+            <ChevronRight size={12} style={{ color: 'var(--text-muted)', marginLeft: 2 }} className="hide-mobile" />
+          </button>
+        </div>
+      </nav>
+
+      {/* ── Drawer Overlay ───────────────────────────────────── */}
+      {drawerOpen && (
+        <div
+          style={{
+            position:   'fixed',
+            inset:      0,
+            zIndex:     200,
+            background: 'rgba(15,23,42,0.40)',
+            backdropFilter: 'blur(2px)',
+            animation:  'fade-in 0.18s ease',
+          }}
+        />
+      )}
+
+      {/* ── Slide-out Drawer ─────────────────────────────────── */}
+      <div
+        ref={drawerRef}
+        style={{
+          position:      'fixed',
+          top:           0,
+          left:          0,
+          bottom:        0,
+          width:         292,
+          background:    '#FFFFFF',
+          borderRight:   '1px solid var(--border)',
+          boxShadow:     '4px 0 32px rgba(15,23,42,0.12)',
+          zIndex:        300,
+          display:       'flex',
+          flexDirection: 'column',
+          transform:     drawerOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition:    'transform 0.26s cubic-bezier(0.34, 1.2, 0.64, 1)',
+          willChange:    'transform',
+        }}
+      >
+        {/* Drawer header */}
+        <div style={{
+          padding:      '20px 20px 16px',
+          borderBottom: '1px solid var(--border)',
+          flexShrink:   0,
+        }}>
+          {/* Logo row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width:          34, height: 34,
+                background:     'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+                borderRadius:   9,
+                display:        'flex',
+                alignItems:     'center',
+                justifyContent: 'center',
+                boxShadow:      '0 2px 8px rgba(37,99,235,0.25)',
+              }}>
+                <Package size={17} color="#fff" strokeWidth={2.2} />
+              </div>
+              <span style={{
+                fontWeight:    800,
+                fontSize:      15,
+                color:         'var(--navy)',
+                letterSpacing: '-0.03em',
+              }}>
+                FMCG<span style={{ color: 'var(--primary)' }}>Dist</span>
+              </span>
+            </div>
+            <button
+              onClick={() => setDrawerOpen(false)}
+              style={{
+                display:        'flex',
+                alignItems:     'center',
+                justifyContent: 'center',
+                width:           32,
+                height:          32,
+                borderRadius:    8,
+                border:          '1px solid var(--border)',
+                background:      'transparent',
+                cursor:          'pointer',
+                color:           'var(--text-sub)',
+              }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* User profile card */}
+          <div style={{
+            display:      'flex',
+            alignItems:   'center',
+            gap:          12,
+            padding:      '12px 14px',
+            background:   'var(--ice)',
+            border:       '1px solid rgba(37,99,235,0.12)',
+            borderRadius: 12,
+          }}>
+            <div style={{
+              width:          42, height: 42,
+              borderRadius:   '50%',
+              background:     'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)',
+              display:        'flex',
+              alignItems:     'center',
+              justifyContent: 'center',
+              flexShrink:     0,
+              boxShadow:      '0 2px 8px rgba(37,99,235,0.25)',
+            }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{initials}</span>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontSize:     14,
+                fontWeight:   700,
+                color:        'var(--navy)',
+                letterSpacing: '-0.02em',
+                whiteSpace:   'nowrap',
+                overflow:     'hidden',
+                textOverflow: 'ellipsis',
+              }}>
+                {user.name}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                <span style={{
+                  display:      'inline-flex',
+                  alignItems:   'center',
+                  padding:      '2px 8px',
+                  borderRadius:  20,
+                  fontSize:      11,
+                  fontWeight:    700,
+                  background:    roleColor.bg,
+                  color:         roleColor.text,
+                  letterSpacing: '0.02em',
+                }}>
+                  {user.role}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Nav items */}
+        <div style={{
+          flex:      1,
+          overflowY: 'auto',
+          padding:   '12px 12px',
+        }}>
+          <div style={{
+            fontSize:      10,
+            fontWeight:    700,
+            color:         'var(--text-muted)',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            padding:       '4px 8px 8px',
+          }}>
+            Navigation
+          </div>
+
+          {allItems.map(item => {
+            const active = isActive(item.to);
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                onClick={() => setDrawerOpen(false)}
+                style={{
+                  display:        'flex',
+                  alignItems:     'center',
+                  gap:            10,
+                  padding:        '9px 12px',
+                  borderRadius:   10,
+                  textDecoration: 'none',
+                  fontSize:       14,
+                  fontWeight:     active ? 700 : 500,
+                  marginBottom:   2,
+                  color:          active ? 'var(--primary)' : 'var(--text-body)',
+                  background:     active ? 'var(--ice)' : 'transparent',
+                  border:         `1px solid ${active ? 'rgba(37,99,235,0.15)' : 'transparent'}`,
+                  letterSpacing:  '-0.01em',
+                  transition:     'all 0.12s',
+                }}
+                onMouseEnter={e => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.background = 'var(--card-sub)';
+                    (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.background = 'transparent';
+                    (e.currentTarget as HTMLElement).style.borderColor = 'transparent';
+                  }
+                }}
+              >
+                <div style={{
+                  width:          32, height: 32,
+                  borderRadius:   8,
+                  display:        'flex',
+                  alignItems:     'center',
+                  justifyContent: 'center',
+                  flexShrink:     0,
+                  background:     active ? 'rgba(37,99,235,0.12)' : 'var(--card-sub)',
+                  color:          active ? 'var(--primary)' : 'var(--text-sub)',
+                  transition:     'all 0.12s',
+                }}>
+                  <item.icon size={16} strokeWidth={active ? 2.2 : 1.8} />
+                </div>
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {active && (
+                  <div style={{
+                    width:        6, height: 6,
+                    borderRadius: '50%',
+                    background:   'var(--primary)',
+                    flexShrink:   0,
+                  }} />
+                )}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Drawer footer */}
+        <div style={{
+          padding:    '16px 12px',
+          borderTop:  '1px solid var(--border)',
+          flexShrink: 0,
+        }}>
+          <button
+            onClick={handleLogout}
+            style={{
+              display:        'flex',
+              alignItems:     'center',
+              gap:            10,
+              padding:        '10px 14px',
+              borderRadius:   10,
+              border:         '1px solid var(--border)',
+              background:     'transparent',
+              cursor:         'pointer',
+              width:          '100%',
+              fontSize:       14,
+              fontWeight:     600,
+              color:          'var(--text-sub)',
+              letterSpacing:  '-0.01em',
+              transition:     'all 0.15s',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.background = 'var(--red-bg)';
+              (e.currentTarget as HTMLElement).style.color = 'var(--red)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(220,38,38,0.20)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.background = 'transparent';
+              (e.currentTarget as HTMLElement).style.color = 'var(--text-sub)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
+            }}
+          >
+            <div style={{
+              width:          32, height: 32,
+              borderRadius:   8,
+              display:        'flex',
+              alignItems:     'center',
+              justifyContent: 'center',
+              background:     'var(--card-sub)',
+            }}>
+              <LogOut size={15} />
+            </div>
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+</file>
+
+<file path="src/components/ui/index.tsx">
+import React from 'react';
+import { AlertTriangle } from 'lucide-react';
+
+// ── Spinner ───────────────────────────────────────────────────────────────────
+export function Spinner({ size = 20, className = '' }: { size?: number; className?: string }) {
+  return (
+    <div
+      className={className}
+      style={{
+        width: size, height: size,
+        border: `2px solid var(--border)`,
+        borderTopColor: 'var(--primary)',
+        borderRadius: '50%',
+        animation: 'spin 0.7s linear infinite',
+        display: 'inline-block',
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
+// ── Loading page ──────────────────────────────────────────────────────────────
+export function PageLoader() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+      <Spinner size={32} />
+    </div>
+  );
+}
+
+// ── Badge ─────────────────────────────────────────────────────────────────────
+type BadgeVariant = 'green' | 'amber' | 'red' | 'blue' | 'muted' | 'primary';
+export function Badge({ variant = 'muted', children }: { variant?: BadgeVariant; children: React.ReactNode }) {
+  return <span className={`badge badge-${variant}`}>{children}</span>;
+}
+
+// ── Alert ─────────────────────────────────────────────────────────────────────
+type AlertVariant = 'error' | 'success' | 'warning' | 'info';
+export function Alert({ variant = 'error', children }: { variant?: AlertVariant; children: React.ReactNode }) {
+  return <div className={`alert alert-${variant}`}>{children}</div>;
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+export function EmptyState({ title, message, icon: Icon }: {
+  title: string; message?: string; icon?: React.ElementType;
+}) {
+  return (
+    <div className="empty-state">
+      {Icon && <Icon size={48} />}
+      <h3>{title}</h3>
+      {message && <p>{message}</p>}
+    </div>
+  );
+}
+
+// ── Confirm modal ─────────────────────────────────────────────────────────────
+export function ConfirmModal({
+  open = true, title, message, onConfirm, onCancel, loading, danger = false, confirmLabel,
+}: {
+  open?:         boolean;
+  title:         string;
+  message:       string;
+  onConfirm:     () => void;
+  onCancel:      () => void;
+  loading?:      boolean;
+  danger?:       boolean;
+  confirmLabel?: string;
+}) {
+  if (!open) return null;
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 20 }}>
+          <AlertTriangle size={22} color={danger ? 'var(--red)' : 'var(--amber)'} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>{title}</div>
+            <div style={{ color: 'var(--text-sub)', fontSize: 14 }}>{message}</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button className="btn btn-outline" onClick={onCancel}>Cancel</button>
+          <button
+            className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`}
+            onClick={onConfirm}
+            disabled={loading}
+          >
+            {loading ? <Spinner size={16} /> : (confirmLabel ?? 'Confirm')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Field ─────────────────────────────────────────────────────────────────────
+export function Field({
+  label, children, error, required,
+}: {
+  label: string; children: React.ReactNode; error?: string; required?: boolean;
+}) {
+  return (
+    <div className="input-wrap">
+      <label className="input-label">
+        {label}{required && <span style={{ color: 'var(--red)', marginLeft: 2 }}>*</span>}
+      </label>
+      {children}
+      {error && <span style={{ color: 'var(--red)', fontSize: 12 }}>{error}</span>}
+    </div>
+  );
+}
+</file>
+
+<file path="src/index.css">
+/* PATH: src/index.css */
+/* UPDATED: Added tablet breakpoint (768-1024px), larger touch targets,
+   safe area insets for notched phones, and spin keyframe for loading icons */
+
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* ── Google Fonts ──────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ═══════════════════════════════════════════════════════════
+   FMCG Distribution — White & Blue Design System
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  /* ── App Canvas ─────────────────────────────────────────── */
+  --bg:            #F1F5F9;
+  --bg-page:       #FFFFFF;
+  --card:          #FFFFFF;
+  --card-hover:    #F8FAFC;
+  --card-sub:      #F8FAFC;
+
+  /* ── Borders & Dividers ─────────────────────────────────── */
+  --border:        #E2E8F0;
+  --border-lite:   #F1F5F9;
+
+  /* ── Primary Blues ──────────────────────────────────────── */
+  --navy:          #1E3A8A;
+  --primary:       #2563EB;
+  --primary-d:     #1D4ED8;
+  --primary-lt:    #3B82F6;
+  --primary-glow:  rgba(37,99,235,0.08);
+  --primary-ring:  rgba(37,99,235,0.25);
+  --ice:           #EFF6FF;
+  --ice-deep:      #E0F2FE;
+
+  /* ── Typography ─────────────────────────────────────────── */
+  --text:          #0F172A;
+  --text-body:     #334155;
+  --text-sub:      #64748B;
+  --text-muted:    #94A3B8;
+
+  /* ── Status Colours ─────────────────────────────────────── */
+  --green:         #16A34A;
+  --green-bg:      rgba(22,163,74,0.08);
+  --amber:         #D97706;
+  --amber-bg:      rgba(217,119,6,0.08);
+  --red:           #DC2626;
+  --red-bg:        rgba(220,38,38,0.08);
+  --blue:          #2563EB;
+  --blue-bg:       rgba(37,99,235,0.08);
+
+  /* ── Utility ────────────────────────────────────────────── */
+  --radius:        10px;
+  --radius-lg:     16px;
+  --radius-xl:     20px;
+  --shadow-sm:     0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+  --shadow:        0 4px 16px rgba(15,23,42,0.08), 0 1px 4px rgba(15,23,42,0.04);
+  --shadow-lg:     0 12px 40px rgba(15,23,42,0.12), 0 4px 12px rgba(15,23,42,0.06);
+  --shadow-blue:   0 8px 32px rgba(37,99,235,0.18);
+  --nav-h:         64px;
+}
+
+/* ── Reset & Base ───────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--text-body);
+  font-family: 'Plus Jakarta Sans', 'DM Sans', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Safe area for notched iPhones / Android tablets */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #CBD5E1; }
+
+/* ── Layout ─────────────────────────────────────────────────── */
+main {
+  padding-top: var(--nav-h);
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.page-root {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.page-wrapper {
+  padding-top: var(--nav-h);
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.page-content {
+  width: 100%;
+  padding: 28px 32px;
+}
+
+/* ── Cards ──────────────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.card-sm { padding: 16px; }
+
+/* ── KPI Grid ───────────────────────────────────────────────── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+/* ── Section Header ─────────────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+  text-decoration: none;
+  letter-spacing: -0.01em;
+  /* Minimum touch target for tablets/phones */
+  min-height: 44px;
+}
+
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
+
+.btn-sm { padding: 7px 14px; font-size: 13px; min-height: 36px; }
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.30);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-d);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(37,99,235,0.38);
+}
+
+.btn-secondary {
+  background: var(--ice);
+  color: var(--primary);
+  border: 1px solid rgba(37,99,235,0.15);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: #DBEAFE;
+  border-color: rgba(37,99,235,0.30);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--text-body);
+  border: 1px solid var(--border);
+}
+.btn-outline:hover:not(:disabled) {
+  background: var(--card-sub);
+  border-color: #CBD5E1;
+  color: var(--text);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-sub);
+  border: none;
+  padding: 8px 12px;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--card-sub);
+  color: var(--text-body);
+}
+
+.btn-danger {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid rgba(220,38,38,0.20);
+}
+.btn-danger:hover:not(:disabled) {
+  background: rgba(220,38,38,0.14);
+}
+
+/* ── Inputs ─────────────────────────────────────────────────── */
+.input {
+  width: 100%;
+  padding: 10px 14px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #334155;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  /* Minimum touch target height on tablet */
+  min-height: 44px;
+}
+
+.input:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.10);
+  background: #fff;
+}
+
+.input:hover:not(:focus) {
+  background: #fff;
+  border-color: #CBD5E1;
+}
+
+.select-field {
+  width: 100%;
+  padding: 10px 14px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #334155;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  min-height: 44px;
+}
+
+.select-field:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.10);
+  background: #fff;
+}
+
+.select-field:hover:not(:focus) {
+  background: #fff;
+  border-color: #CBD5E1;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-body);
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+.form-group { margin-bottom: 18px; }
+
+/* ── Tables ─────────────────────────────────────────────────── */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  background: var(--card);
+}
+
+thead th {
+  background: var(--card-sub);
+  color: var(--text-sub);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--border-lite);
+  transition: background 0.12s;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--card-sub); }
+
+td { padding: 12px 16px; color: var(--text-body); vertical-align: middle; }
+
+/* ── Badges ─────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.badge-blue   { background: var(--blue-bg);   color: var(--primary); }
+.badge-green  { background: var(--green-bg);  color: var(--green); }
+.badge-amber  { background: var(--amber-bg);  color: var(--amber); }
+.badge-red    { background: var(--red-bg);    color: var(--red); }
+.badge-gray   { background: var(--border);    color: var(--text-sub); }
+.badge-muted  { background: var(--border);    color: var(--text-sub); }
+
+/* ── Utilities ──────────────────────────────────────────────── */
+.mono { font-family: 'JetBrains Mono', monospace; }
+.rupee::before { content: '₹'; }
+
+/* ── Spin animation (for loading icons) ─────────────────────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Tablet (768px – 1024px) ────────────────────────────────── */
+/* Touch-friendly spacing and sizing for tablet use */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .page-content { padding: 24px 24px; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  /* Make table rows taller for touch */
+  td { padding: 14px 16px; }
+  thead th { padding: 13px 16px; }
+}
+
+/* ── Mobile (≤ 768px) ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+  .page-content { padding: 16px 16px; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .card { padding: 16px; }
+  /* Larger touch targets on mobile */
+  td { padding: 14px 12px; }
+  .btn { min-height: 48px; }
+  .input, .select-field { min-height: 48px; font-size: 16px; /* prevent iOS zoom */ }
+}
+
+/* ── Animations ─────────────────────────────────────────────── */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);   opacity: 1; }
+}
+@keyframes slide-up {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scale-in {
+  from { transform: scale(0.96); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.30); }
+  50%       { box-shadow: 0 0 0 6px rgba(37,99,235,0); }
+}
+
+.animate-slide-in-right { animation: slide-in-right 0.28s cubic-bezier(0.34, 1.2, 0.64, 1); }
+.animate-slide-up       { animation: slide-up 0.22s ease; }
+.animate-fade-in        { animation: fade-in 0.18s ease; }
+.animate-scale-in       { animation: scale-in 0.20s cubic-bezier(0.34, 1.3, 0.64, 1); }
+</file>
+
+<file path="src/main.tsx">
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
+</file>
+
+<file path="src/pages/Accounts/AccountsReports.tsx">
+import { useState } from 'react';
+import { FileText, Download, Loader2 } from 'lucide-react';
+import { reportsApi, routesApi } from '../../api/services';
+import { useEffect } from 'react';
+import { RouteDto } from '../../types';
+
+interface ReportCard {
+  key: string;
+  title: string;
+  description: string;
+  needsRoute: boolean;
+  needsDate: boolean;
+  fn: (date: string, routeId?: number) => Promise<Blob>;
+  filename: (date: string) => string;
+}
+
+const REPORTS: ReportCard[] = [
+  {
+    key: 'billing',
+    title: 'Billing Sheet',
+    description: 'Customer-wise billing summary with amounts and dues',
+    needsRoute: true,
+    needsDate: true,
+    fn: reportsApi.billingSheet,
+    filename: d => `billing-${d}.pdf`,
+  },
+  {
+    key: 'daily',
+    title: 'Daily Summary',
+    description: 'End-of-day sales and collection summary',
+    needsRoute: false,
+    needsDate: true,
+    fn: reportsApi.dailySummary,
+    filename: d => `daily-summary-${d}.pdf`,
+  },
+];
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export default function AccountsReports() {
+  const [routes, setRoutes] = useState<RouteDto[]>([]);
+  const [date, setDate] = useState(today());
+  const [routeId, setRouteId] = useState<number | ''>('');
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    routesApi.list().then(setRoutes).catch(() => {});
+  }, []);
+
+  const download = async (report: ReportCard) => {
+    if (report.needsRoute && !routeId) {
+      setErrors(e => ({ ...e, [report.key]: 'Please select a route.' }));
+      return;
+    }
+    setErrors(e => ({ ...e, [report.key]: '' }));
+    setDownloading(report.key);
+    try {
+      const blob = await report.fn(date, routeId ? Number(routeId) : undefined);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = report.filename(date);
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setErrors(er => ({ ...er, [report.key]: e.message ?? 'Download failed' }));
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[var(--bg)] pb-10">
+      <div className="px-4 pt-6 pb-4 border-b border-[var(--border)]">
+        <h1 className="text-xl font-bold text-white">Reports</h1>
+        <p className="text-sm text-[var(--muted)] mt-1">Download PDF reports</p>
+      </div>
+
+      <div className="px-4 mt-6 space-y-4">
+        {/* Global filters */}
+        <div className="card space-y-3">
+          <h2 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider">Filters</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-[var(--muted)] mb-1">Date</label>
+              <input
+                type="date"
+                className="input w-full"
+                value={date}
+                onChange={e => setDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-[var(--muted)] mb-1">Route (for billing sheet)</label>
+              <select
+                className="input w-full"
+                value={routeId}
+                onChange={e => setRouteId(e.target.value ? Number(e.target.value) : '')}
+              >
+                <option value="">Select route…</option>
+                {routes.map(r => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Report cards */}
+        {REPORTS.map(report => (
+          <div key={report.key} className="card">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center shrink-0">
+                <FileText size={20} className="text-[var(--primary)]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-white">{report.title}</p>
+                <p className="text-xs text-[var(--muted)] mt-0.5">{report.description}</p>
+                {errors[report.key] && (
+                  <p className="text-xs text-red-400 mt-1">{errors[report.key]}</p>
+                )}
+              </div>
+              <button
+                onClick={() => download(report)}
+                disabled={downloading === report.key}
+                className="btn btn-primary flex items-center gap-2 shrink-0"
+              >
+                {downloading === report.key
+                  ? <><Loader2 size={15} className="animate-spin" /> Generating…</>
+                  : <><Download size={15} /> Download</>
+                }
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Accounts/AccountsSettlement.tsx">
+import { useEffect, useState } from 'react';
+import { DollarSign, Users, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { settlementApi } from '../../api/services';
+import {
+  SettlementSummaryDto, OutstandingCustomerDto, fmtNum, fmtDate
+} from '../../types';
+import { Spinner, EmptyState, ConfirmModal } from '../../components/ui';
+
+export default function AccountsSettlement() {
+  const [summary, setSummary] = useState<SettlementSummaryDto | null>(null);
+  const [outstanding, setOutstanding] = useState<OutstandingCustomerDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [paymentModal, setPaymentModal] = useState<{ customer: OutstandingCustomerDto } | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentNote, setPaymentNote] = useState('');
+  const [paying, setPaying] = useState(false);
+  const [search, setSearch] = useState('');
+  const [error, setError] = useState('');
+
+  const load = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [s, o] = await Promise.all([
+        settlementApi.summary(),
+        settlementApi.outstanding(),
+      ]);
+      setSummary(s);
+      setOutstanding(o);
+    } catch (e: any) {
+      setError(e.message ?? 'Failed to load settlement data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handlePayment = async () => {
+    if (!paymentModal) return;
+    const amount = parseFloat(paymentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Enter a valid amount');
+      return;
+    }
+    setPaying(true);
+    try {
+      await settlementApi.recordPayment({
+        customerId: paymentModal.customer.customerId,
+        amount,
+        note: paymentNote,
+        paymentDate: new Date().toISOString(),
+      });
+      setPaymentModal(null);
+      setPaymentAmount('');
+      setPaymentNote('');
+      await load();
+    } catch (e: any) {
+      alert(e.message ?? 'Payment failed');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const filtered = outstanding.filter(o =>
+    o.customerName.toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div className="min-h-screen bg-[var(--bg)] pb-10">
+      <div className="px-4 pt-6 pb-4 border-b border-[var(--border)]">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-white">Settlement</h1>
+            <p className="text-sm text-[var(--muted)] mt-1">Accounts Portal</p>
+          </div>
+          <button onClick={load} className="btn btn-secondary flex items-center gap-2">
+            <RefreshCw size={14} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div className="px-4 mt-6 space-y-6">
+        {error && <div className="alert alert-error">{error}</div>}
+
+        {/* KPI cards */}
+        {summary && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="card">
+              <DollarSign size={20} className="text-[var(--primary)] mb-2" />
+              <p className="text-xl font-bold text-white">₹{fmtNum(summary.totalBilled ?? 0)}</p>
+              <p className="text-xs text-[var(--muted)] mt-1">Total Billed</p>
+            </div>
+            <div className="card">
+              <CheckCircle2 size={20} className="text-green-400 mb-2" />
+              <p className="text-xl font-bold text-white">₹{fmtNum(summary.totalCollected ?? 0)}</p>
+              <p className="text-xs text-[var(--muted)] mt-1">Collected</p>
+            </div>
+            <div className="card">
+              <AlertCircle size={20} className="text-red-400 mb-2" />
+              <p className="text-xl font-bold text-white">₹{fmtNum(summary.totalOutstanding ?? 0)}</p>
+              <p className="text-xs text-[var(--muted)] mt-1">Outstanding</p>
+            </div>
+            <div className="card">
+              <Users size={20} className="text-blue-400 mb-2" />
+              <p className="text-xl font-bold text-white">{summary.customersWithDues ?? 0}</p>
+              <p className="text-xs text-[var(--muted)] mt-1">Customers with Dues</p>
+            </div>
+          </div>
+        )}
+
+        {/* Outstanding customers */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider">Outstanding</h2>
+            <span className="text-xs text-[var(--muted)]">{outstanding.length} customers</span>
+          </div>
+
+          <input
+            className="input w-full mb-3"
+            placeholder="Search customer…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+
+          {filtered.length === 0 && <EmptyState title="No outstanding dues" message="All customers are settled." />}
+
+          <div className="space-y-2">
+            {filtered.map(o => (
+              <div key={o.customerId} className="card flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-white text-sm truncate">{o.customerName}</p>
+                  <p className="text-xs text-[var(--muted)]">
+                    {o.routeName} · Last: {o.lastPaymentDate ? fmtDate(o.lastPaymentDate) : 'Never'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-red-400">₹{fmtNum(o.outstanding)}</p>
+                    <p className="text-xs text-[var(--muted)]">due</p>
+                  </div>
+                  <button
+                    onClick={() => { setPaymentModal({ customer: o }); setPaymentAmount(String(o.outstanding)); }}
+                    className="btn btn-primary text-xs px-3 py-2 h-auto"
+                  >
+                    Pay
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Payment modal */}
+      {paymentModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl w-full max-w-sm p-6">
+            <h3 className="text-lg font-bold text-white mb-1">Record Payment</h3>
+            <p className="text-sm text-[var(--muted)] mb-4">{paymentModal.customer.customerName}</p>
+
+            <div className="space-y-3 mb-4">
+              <div>
+                <label className="block text-xs text-[var(--muted)] mb-1">Amount (₹)</label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  className="input w-full"
+                  value={paymentAmount}
+                  onChange={e => setPaymentAmount(e.target.value)}
+                  placeholder={String(paymentModal.customer.outstanding)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[var(--muted)] mb-1">Note (optional)</label>
+                <input
+                  className="input w-full"
+                  value={paymentNote}
+                  onChange={e => setPaymentNote(e.target.value)}
+                  placeholder="Cash / UPI / Cheque…"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={() => setPaymentModal(null)} className="btn btn-secondary flex-1">Cancel</button>
+              <button onClick={handlePayment} disabled={paying} className="btn btn-primary flex-1">
+                {paying ? 'Recording…' : 'Record'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminAnalytics.tsx">
+import React, { useEffect, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
+import { analyticsApi, routesApi, productGroupsApi } from '../../api/services';
+import type {
+  ProductProfitabilityDto, RouteProfitabilityDto, TopProductDto,
+  RouteDto, ProductGroupDto,
+} from '../../types';
+import { fmt, fmtNum } from '../../types';
+import { PageLoader, Alert, Badge } from '../../components/ui';
+
+const today = new Date().toISOString().split('T')[0];
+const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+
+export function AdminAnalytics() {
+  const [routes,      setRoutes]      = useState<RouteDto[]>([]);
+  const [groups,      setGroups]      = useState<ProductGroupDto[]>([]);
+  const [prodProfit,  setProdProfit]  = useState<ProductProfitabilityDto[]>([]);
+  const [routeProfit, setRouteProfit] = useState<RouteProfitabilityDto[]>([]);
+  const [topProducts, setTopProducts] = useState<TopProductDto[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState('');
+  const [fromDate,    setFromDate]    = useState(thirtyDaysAgo);
+  const [toDate,      setToDate]      = useState(today);
+  const [showNeg,     setShowNeg]     = useState(false);
+  const [tab,         setTab]         = useState<'products' | 'routes' | 'top'>('products');
+
+  async function load() {
+    setLoading(true); setError('');
+    try {
+      const [pp, rp, tp] = await Promise.all([
+        analyticsApi.getProductProfitability({ fromDate, toDate, showOnlyNegativeMargin: showNeg || undefined }),
+        analyticsApi.getRouteProfitability({ fromDate, toDate, showOnlyNegativeMargin: showNeg || undefined }),
+        analyticsApi.getTopProducts({ fromDate, toDate, limit: 15, sortBy: 'sales' }),
+      ]);
+      setProdProfit(pp); setRouteProfit(rp); setTopProducts(tp);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Load failed');
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => {
+    Promise.all([routesApi.getAll(), productGroupsApi.getAll()])
+      .then(([r, g]) => { setRoutes(r); setGroups(g); });
+  }, []);
+
+  useEffect(() => { load(); }, [fromDate, toDate, showNeg]);
+
+  const tabs = [
+    { key: 'products', label: 'Product Profitability' },
+    { key: 'routes',   label: 'Route Profitability' },
+    { key: 'top',      label: 'Top Products' },
+  ] as const;
+
+  function fmtMargin(n: number | undefined): string {
+    if (n === undefined || n === null) return '0.00%';
+    return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
+  }
+
+  return (
+    <div className="page-content">
+      <div className="section-header">
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Analytics</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Profitability & variance insights</p>
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input className="input" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ width: 'auto' }} />
+          <span style={{ color: 'var(--text-muted)' }}>to</span>
+          <input className="input" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ width: 'auto' }} />
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+            <input type="checkbox" checked={showNeg} onChange={(e) => setShowNeg(e.target.checked)} />
+            Negative only
+          </label>
+          <button className="btn btn-outline btn-sm" onClick={load}><RefreshCw size={14} /></button>
+        </div>
+      </div>
+
+      {error && <Alert variant="error">{error}</Alert>}
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            style={{
+              padding: '8px 16px', fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer',
+              background: 'transparent', fontFamily: 'inherit',
+              color: tab === t.key ? 'var(--primary)' : 'var(--text-muted)',
+              borderBottom: `2px solid ${tab === t.key ? 'var(--primary)' : 'transparent'}`,
+              marginBottom: -1, transition: 'all 0.12s',
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? <PageLoader /> : (
+        <>
+          {/* Product Profitability */}
+          {tab === 'products' && (
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Product</th><th>Group</th><th>Qty Sold</th><th>Revenue</th>
+                    <th>Variance</th><th>Margin%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prodProfit.length === 0 && (
+                    <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</td></tr>
+                  )}
+                  {prodProfit.map((p) => (
+                    <tr key={p.productId}>
+                      <td style={{ fontWeight: 600 }}>{p.productName}</td>
+                      <td style={{ fontSize: 13 }}>{p.productGroupName ?? '—'}</td>
+                      <td>{fmtNum(p.totalQuantity)}</td>
+                      <td style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(p.totalSales)}</td>
+                      <td>
+                        <span className={p.totalVariance < 0 ? 'profit-negative' : 'profit-positive'} style={{ fontWeight: 600 }}>
+                          {p.totalVariance < 0 ? '▼' : '▲'} {fmt(Math.abs(p.totalVariance))}
+                        </span>
+                      </td>
+                      <td>
+                        <Badge variant={p.totalVariance < 0 ? 'red' : 'green'}>{fmtMargin(p.marginPercentage)}</Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Route Profitability */}
+          {tab === 'routes' && (
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Route</th><th>Orders</th><th>Customers</th><th>Revenue</th>
+                    <th>Variance</th><th>Margin%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {routeProfit.length === 0 && (
+                    <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</td></tr>
+                  )}
+                  {routeProfit.map((r) => (
+                    <tr key={r.routeId}>
+                      <td style={{ fontWeight: 600 }}>{r.routeName}</td>
+                      <td>{fmtNum(r.orderCount)}</td>
+                      <td>{fmtNum(r.customerCount)}</td>
+                      <td style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(r.totalSales)}</td>
+                      <td>
+                        <span className={r.totalVariance < 0 ? 'profit-negative' : 'profit-positive'} style={{ fontWeight: 600 }}>
+                          {r.totalVariance < 0 ? '▼' : '▲'} {fmt(Math.abs(r.totalVariance))}
+                        </span>
+                      </td>
+                      <td>
+                        <Badge variant={r.totalVariance < 0 ? 'red' : 'green'}>{fmtMargin(r.marginPercentage)}</Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Top Products */}
+          {tab === 'top' && (
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <table className="tbl">
+                <thead>
+                  <tr><th>#</th><th>Product</th><th>Qty</th><th>Revenue</th><th>Variance</th><th>Orders</th></tr>
+                </thead>
+                <tbody>
+                  {topProducts.length === 0 && (
+                    <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</td></tr>
+                  )}
+                  {topProducts.map((p, i) => (
+                    <tr key={p.productId}>
+                      <td>
+                        <span style={{
+                          display: 'inline-flex', width: 24, height: 24, borderRadius: 6,
+                          background: i < 3 ? 'var(--primary-glow)' : 'var(--border-lite)',
+                          color: i < 3 ? 'var(--primary)' : 'var(--text-muted)',
+                          alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700,
+                        }}>
+                          {i + 1}
+                        </span>
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{p.productName}</td>
+                      <td>{fmtNum(p.totalQuantity)}</td>
+                      <td style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(p.totalSales)}</td>
+                      <td className={p.totalVariance >= 0 ? 'profit-positive' : 'profit-negative'}>{fmt(p.totalVariance)}</td>
+                      <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{p.orderCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminCustomers.tsx">
+// PATH: src/pages/Admin/AdminCustomers.tsx
+// Kyte-style redesign with dedicated Reorder and Delete pages
+
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import {
+  Plus, Edit2, Trash2, Users, Search, RefreshCw,
+  AlertTriangle, Phone, MapPin, Route, X, Save,
+  ChevronRight, ArrowUpDown, MoveRight, Trash,
+} from 'lucide-react';
+import { customersApi, routesApi } from '../../api/services';
+import type { CustomerDto, RouteDto } from '../../types';
+import { PageLoader, Spinner, Alert, ConfirmModal } from '../../components/ui';
+
+// ── Avatar with initials ─────────────────────────────────────
+function Avatar({ name, size = 40 }: { name: string; size?: number }) {
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const colors   = ['#2563EB', '#1E3A8A', '#7C3AED', '#0891B2', '#D97706', '#16A34A'];
+  const color    = colors[name.charCodeAt(0) % colors.length];
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      background: `${color}18`, border: `2px solid ${color}30`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <span style={{ fontSize: size * 0.35, fontWeight: 800, color }}>{initials}</span>
+    </div>
+  );
+}
+
+// ── Reorder Page (Full width slide-in panel) ─────────────────
+function ReorderPage({
+  customer,
+  customers,
+  onClose,
+  onReorder,
+  saving,
+}: {
+  customer: CustomerDto;
+  customers: CustomerDto[];
+  onClose: () => void;
+  onReorder: (newSeq: number) => void;
+  saving: boolean;
+}) {
+  const currentSeq = customer.sequenceOrder;
+  const routeCustomers = customers
+    .filter(c => c.routeId === customer.routeId)
+    .sort((a, b) => a.sequenceOrder - b.sequenceOrder);
+  const maxSeq = routeCustomers.length;
+  const [selectedPosition, setSelectedPosition] = useState(currentSeq > 0 ? currentSeq : 1);
+
+  const handleSubmit = () => {
+    if (selectedPosition === currentSeq) {
+      onClose();
+      return;
+    }
+    onReorder(selectedPosition);
+  };
+
+  // Preview what the order will look like
+  const getPreviewOrder = () => {
+    const ordered = [...routeCustomers];
+    const oldIndex = ordered.findIndex(c => c.id === customer.id);
+    const newIndex = selectedPosition - 1;
+    
+    if (oldIndex === -1 || oldIndex === newIndex) return ordered;
+    
+    const [moved] = ordered.splice(oldIndex, 1);
+    ordered.splice(newIndex, 0, moved);
+    return ordered;
+  };
+
+  const previewOrder = getPreviewOrder();
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.40)', zIndex: 200, backdropFilter: 'blur(2px)' }} />
+      <div style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0, width: '100%', maxWidth: 520,
+        background: '#fff', zIndex: 210,
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '-8px 0 40px rgba(15,23,42,0.14)',
+        animation: 'slide-in-right 0.26s cubic-bezier(0.34,1.2,0.64,1)',
+      }}>
+        {/* Header */}
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <MoveRight size={20} color="#2563EB" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.02em' }}>Reorder Visit Sequence</div>
+            <div style={{ fontSize: 13, color: '#64748B' }}>{customer.nameEnglish}</div>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E2E8F0', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}>
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 8 }}>
+              New Position (1–{maxSeq})
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <input
+                type="range"
+                min={1}
+                max={maxSeq}
+                value={selectedPosition}
+                onChange={e => setSelectedPosition(parseInt(e.target.value))}
+                style={{ flex: 1, height: 4, borderRadius: 2, accentColor: '#2563EB' }}
+              />
+              <div style={{
+                width: 60, height: 60, borderRadius: 12,
+                background: 'linear-gradient(135deg,#1E3A8A,#2563EB)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontSize: 24, fontWeight: 800
+              }}>
+                {selectedPosition}
+              </div>
+            </div>
+          </div>
+
+          {/* Preview Section */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Preview Order
+            </div>
+            <div style={{ background: '#F8FAFC', borderRadius: 12, padding: 4 }}>
+              {previewOrder.map((c, idx) => {
+                const isMoving = c.id === customer.id;
+                const newPosition = idx + 1;
+                const isChanged = isMoving && newPosition !== currentSeq;
+                
+                return (
+                  <div
+                    key={c.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 12px', margin: 4,
+                      borderRadius: 8,
+                      background: isMoving ? '#EFF6FF' : 'transparent',
+                      border: isMoving ? '1px solid rgba(37,99,235,0.25)' : 'none',
+                    }}
+                  >
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8,
+                      background: isMoving ? '#2563EB' : '#E2E8F0',
+                      color: isMoving ? '#fff' : '#64748B',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontWeight: 700, fontSize: 14
+                    }}>
+                      {newPosition}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{c.nameEnglish}</div>
+                      {c.nameMalayalam && (
+                        <div style={{ fontSize: 11, color: '#94A3B8' }}>{c.nameMalayalam}</div>
+                      )}
+                    </div>
+                    {isChanged && (
+                      <div style={{ fontSize: 11, color: '#2563EB', background: '#DBEAFE', padding: '2px 8px', borderRadius: 12 }}>
+                        {currentSeq} → {newPosition}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ padding: 12, background: '#FFFBEB', borderRadius: 10, border: '1px solid #FEF3C7' }}>
+            <div style={{ fontSize: 12, color: '#D97706', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AlertTriangle size={14} />
+              <span>All customers on this route will be renumbered sequentially (1, 2, 3...)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #E2E8F0', display: 'flex', gap: 10, justifyContent: 'flex-end', flexShrink: 0 }}>
+          <button onClick={onClose} style={{ padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 700, color: '#64748B', border: '1px solid #E2E8F0', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving || selectedPosition === currentSeq}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 800,
+              color: '#fff', border: 'none',
+              background: (saving || selectedPosition === currentSeq) ? '#93C5FD' : 'linear-gradient(135deg,#1E3A8A,#2563EB)',
+              cursor: (saving || selectedPosition === currentSeq) ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', boxShadow: '0 3px 10px rgba(37,99,235,0.25)'
+            }}
+          >
+            {saving ? <Spinner size={15} /> : <><MoveRight size={14} /> Apply Reorder</>}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Delete Confirmation Page (Slide-in panel) ─────────────────
+function DeletePage({
+  customer,
+  onClose,
+  onDelete,
+  deleting,
+}: {
+  customer: CustomerDto;
+  onClose: () => void;
+  onDelete: () => void;
+  deleting: boolean;
+}) {
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.40)', zIndex: 200, backdropFilter: 'blur(2px)' }} />
+      <div style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0, width: '100%', maxWidth: 480,
+        background: '#fff', zIndex: 210,
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '-8px 0 40px rgba(15,23,42,0.14)',
+        animation: 'slide-in-right 0.26s cubic-bezier(0.34,1.2,0.64,1)',
+      }}>
+        {/* Header */}
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Trash size={20} color="#DC2626" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#DC2626', letterSpacing: '-0.02em' }}>Delete Customer</div>
+            <div style={{ fontSize: 13, color: '#64748B' }}>This action cannot be undone</div>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E2E8F0', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}>
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+            <Avatar name={customer.nameEnglish} size={56} />
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>{customer.nameEnglish}</div>
+              {customer.nameMalayalam && (
+                <div style={{ fontSize: 13, color: '#64748B' }}>{customer.nameMalayalam}</div>
+              )}
+              <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
+                {customer.phoneNumber} · {customer.routeName}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ background: '#FEF2F2', borderRadius: 12, padding: 16, border: '1px solid #FEE2E2', marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <AlertTriangle size={18} color="#DC2626" />
+              <span style={{ fontWeight: 700, color: '#B91C1C' }}>Warning: Permanent Deletion</span>
+            </div>
+            <ul style={{ margin: 0, paddingLeft: 20, color: '#7F1D1D', fontSize: 13, lineHeight: 1.6 }}>
+              <li>Customer will be permanently removed</li>
+              <li>All order history for this customer will be deleted</li>
+              <li>Outstanding payments and settlement records will be removed</li>
+              <li>This action cannot be reversed</li>
+            </ul>
+          </div>
+
+          <div style={{ padding: 12, background: '#EFF6FF', borderRadius: 10, border: '1px solid #DBEAFE' }}>
+            <div style={{ fontSize: 12, color: '#1E3A8A', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>💡</span>
+              <span>If you want to temporarily disable this customer, consider setting them as Inactive instead of deleting.</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #E2E8F0', display: 'flex', gap: 10, justifyContent: 'flex-end', flexShrink: 0 }}>
+          <button onClick={onClose} style={{ padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 700, color: '#64748B', border: '1px solid #E2E8F0', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+          <button
+            onClick={onDelete}
+            disabled={deleting}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 800,
+              color: '#fff', border: 'none',
+              background: deleting ? '#FCA5A5' : '#DC2626',
+              cursor: deleting ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', boxShadow: '0 3px 10px rgba(220,38,38,0.25)'
+            }}
+          >
+            {deleting ? <Spinner size={15} /> : <><Trash size={14} /> Permanently Delete</>}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Customer Card ────────────────────────────────────────────
+function CustomerCard({
+  customer, onEdit, onReorder, onDelete,
+}: {
+  customer: CustomerDto;
+  onEdit:   () => void;
+  onReorder: () => void;
+  onDelete: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const hasSeqWarn = customer.sequenceOrder === 0;
+
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: `1px solid ${hovered ? 'rgba(37,99,235,0.25)' : '#E2E8F0'}`,
+        borderRadius: 14,
+        padding: '18px 18px 14px',
+        transition: 'all 0.18s',
+        boxShadow: hovered ? '0 4px 20px rgba(37,99,235,0.08)' : '0 1px 3px rgba(15,23,42,0.05)',
+        cursor: 'default',
+        position: 'relative' as const,
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div style={{
+        position: 'absolute', top: 14, right: 14,
+        width: 8, height: 8, borderRadius: '50%',
+        background: customer.isActive ? '#16A34A' : '#94A3B8',
+        boxShadow: customer.isActive ? '0 0 0 2px rgba(22,163,74,0.20)' : 'none',
+      }} title={customer.isActive ? 'Active' : 'Inactive'} />
+
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 14 }}>
+        <Avatar name={customer.nameEnglish} size={44} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 2 }}>
+            {customer.nameEnglish}
+          </div>
+          {customer.nameMalayalam && (
+            <div style={{ fontSize: 12, color: '#64748B', fontFamily: "'Manjari', sans-serif", fontWeight: 500 }}>
+              {customer.nameMalayalam}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 14 }}>
+        {customer.phoneNumber && (
+          <a href={`tel:${customer.phoneNumber}`} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: '#2563EB', fontWeight: 600, textDecoration: 'none' }}>
+            <Phone size={12} /> {customer.phoneNumber}
+          </a>
+        )}
+        {customer.address && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: '#64748B', fontWeight: 500 }}>
+            <MapPin size={11} style={{ flexShrink: 0 }} /> {customer.address}
+          </div>
+        )}
+        {customer.routeName && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: '#64748B', fontWeight: 600 }}>
+            <Route size={11} style={{ flexShrink: 0 }} /> {customer.routeName}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #F1F5F9', paddingTop: 12 }}>
+        {hasSeqWarn ? (
+          <button
+            onClick={onEdit}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '3px 10px', borderRadius: 8,
+              background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.25)',
+              color: '#D97706', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            <AlertTriangle size={11} /> Set Sequence
+          </button>
+        ) : (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '3px 10px', borderRadius: 8,
+            background: '#EFF6FF', border: '1px solid rgba(37,99,235,0.15)',
+          }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#64748B' }}>STOP</span>
+            <span style={{ fontSize: 14, fontWeight: 900, color: '#2563EB' }}>{customer.sequenceOrder}</span>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            onClick={onReorder}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px',
+              borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC',
+              fontSize: 12, fontWeight: 700, color: '#334155', cursor: 'pointer',
+              transition: 'all 0.13s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.25)'; (e.currentTarget as HTMLElement).style.color = '#2563EB'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#E2E8F0'; (e.currentTarget as HTMLElement).style.color = '#334155'; }}
+          >
+            <ArrowUpDown size={12} /> Reorder
+          </button>
+          <button
+            onClick={onEdit}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px',
+              borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC',
+              fontSize: 12, fontWeight: 700, color: '#334155', cursor: 'pointer',
+              transition: 'all 0.13s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.25)'; (e.currentTarget as HTMLElement).style.color = '#2563EB'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#E2E8F0'; (e.currentTarget as HTMLElement).style.color = '#334155'; }}
+          >
+            <Edit2 size={12} /> Edit
+          </button>
+          <button
+            onClick={onDelete}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 30, height: 30, borderRadius: 8,
+              border: '1px solid #E2E8F0', background: '#F8FAFC',
+              color: '#94A3B8', cursor: 'pointer', transition: 'all 0.13s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#FEF2F2'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(220,38,38,0.25)'; (e.currentTarget as HTMLElement).style.color = '#DC2626'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLElement).style.borderColor = '#E2E8F0'; (e.currentTarget as HTMLElement).style.color = '#94A3B8'; }}
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Form Fields Component ────────────────────────────────────
+interface FormFieldsProps {
+  form: {
+    name: string;
+    nameMl: string;
+    phone: string;
+    address: string;
+    routeId: string;
+    sequenceOrder: string;
+  };
+  setForm: React.Dispatch<React.SetStateAction<any>>;
+  routes: RouteDto[];
+  isEdit?: boolean;
+}
+
+const FormFields = React.memo(({ form, setForm, routes, isEdit = false }: FormFieldsProps) => {
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isEdit && nameInputRef.current && !form.name) {
+      const timer = setTimeout(() => nameInputRef.current?.focus(), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isEdit, form.name]);
+
+  const handleChange = useCallback((field: string, value: string) => {
+    setForm((prev: any) => ({ ...prev, [field]: value }));
+  }, [setForm]);
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '11px 14px',
+    background: '#F8FAFC', border: '1px solid #E2E8F0',
+    borderRadius: 10, fontSize: 14, color: '#334155',
+    outline: 'none', fontFamily: 'inherit',
+    boxSizing: 'border-box', transition: 'all 0.15s',
+  };
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div style={{ gridColumn: '1 / -1' }}>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>
+          Customer Name <span style={{ color: '#DC2626' }}>*</span>
+        </label>
+        <input
+          ref={nameInputRef}
+          type="text"
+          value={form.name}
+          onChange={e => handleChange('name', e.target.value)}
+          placeholder="Shop / business name"
+          style={inputStyle}
+          onFocus={e => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.10)'; e.target.style.background = '#fff'; }}
+          onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none'; e.target.style.background = '#F8FAFC'; }}
+        />
+      </div>
+
+      <div style={{ gridColumn: '1 / -1' }}>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>
+          Malayalam Name <span style={{ fontSize: 10, color: '#94A3B8' }}>(optional)</span>
+        </label>
+        <input
+          type="text"
+          value={form.nameMl}
+          onChange={e => handleChange('nameMl', e.target.value)}
+          placeholder="പേര്"
+          lang="ml"
+          style={inputStyle}
+          onFocus={e => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.10)'; e.target.style.background = '#fff'; }}
+          onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none'; e.target.style.background = '#F8FAFC'; }}
+        />
+      </div>
+
+      <div style={{ gridColumn: isEdit ? undefined : '1 / -1' }}>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>
+          Route <span style={{ color: '#DC2626' }}>*</span>
+        </label>
+        <select
+          value={form.routeId}
+          onChange={e => handleChange('routeId', e.target.value)}
+          style={{ ...inputStyle, cursor: 'pointer' }}
+          onFocus={e => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.10)'; e.target.style.background = '#fff'; }}
+          onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none'; e.target.style.background = '#F8FAFC'; }}
+        >
+          <option value="">Select route</option>
+          {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+        </select>
+      </div>
+
+      {isEdit && (
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>
+            Visit Sequence <span style={{ color: '#DC2626' }}>*</span>
+          </label>
+          <input
+            type="number"
+            min="1"
+            value={form.sequenceOrder}
+            onChange={e => handleChange('sequenceOrder', e.target.value)}
+            style={inputStyle}
+            onFocus={e => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.10)'; e.target.style.background = '#fff'; }}
+            onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none'; e.target.style.background = '#F8FAFC'; }}
+          />
+          <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>Order salesman visits (1 = first stop)</div>
+        </div>
+      )}
+
+      <div>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Phone</label>
+        <input
+          type="tel"
+          value={form.phone}
+          onChange={e => handleChange('phone', e.target.value)}
+          placeholder="+91 9876543210"
+          style={inputStyle}
+          onFocus={e => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.10)'; e.target.style.background = '#fff'; }}
+          onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none'; e.target.style.background = '#F8FAFC'; }}
+        />
+      </div>
+
+      <div>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Address</label>
+        <input
+          type="text"
+          value={form.address}
+          onChange={e => handleChange('address', e.target.value)}
+          placeholder="Shop / locality"
+          style={inputStyle}
+          onFocus={e => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.10)'; e.target.style.background = '#fff'; }}
+          onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none'; e.target.style.background = '#F8FAFC'; }}
+        />
+      </div>
+    </div>
+  );
+});
+
+// ═══════════════════════════════════════════════════════════
+// AdminCustomers page
+// ═══════════════════════════════════════════════════════════
+export function AdminCustomers() {
+  const [customers,   setCustomers]   = useState<CustomerDto[]>([]);
+  const [routes,      setRoutes]      = useState<RouteDto[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState('');
+  const [success,     setSuccess]     = useState('');
+  const [search,      setSearch]      = useState('');
+  const [searchParams] = useSearchParams();
+  const [routeFilter, setRouteFilter] = useState(() => searchParams.get('routeId') ?? '');
+  const [showAdd,     setShowAdd]     = useState(false);
+  const [editModal,   setEditModal]   = useState<CustomerDto | null>(null);
+  const [reorderPage, setReorderPage] = useState<CustomerDto | null>(null);
+  const [deletePage,  setDeletePage]  = useState<CustomerDto | null>(null);
+  const [saving,      setSaving]      = useState(false);
+  const [deleting,    setDeleting]    = useState(false);
+  const [reordering,  setReordering]  = useState(false);
+  const addCardRef = useRef<HTMLDivElement>(null);
+
+  const emptyForm = { name: '', nameMl: '', phone: '', address: '', routeId: '', sequenceOrder: '1' };
+  const [addForm,  setAddForm]  = useState(emptyForm);
+  const [editForm, setEditForm] = useState(emptyForm);
+
+  async function load() {
+    setLoading(true); setError('');
+    try {
+      const [c, r] = await Promise.all([
+        customersApi.getAll(routeFilter || undefined),
+        routesApi.getAll(),
+      ]);
+      setCustomers(c); setRoutes(r);
+    } catch (err: unknown) {
+      console.error('Load error:', err);
+      setError(err instanceof Error ? err.message : 'Load failed');
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { load(); }, [routeFilter]);
+
+  useEffect(() => {
+    if (showAdd) {
+      const defaultRoute = String(routes[0]?.id ?? '');
+      setAddForm({ ...emptyForm, routeId: defaultRoute, sequenceOrder: String(nextSeq(defaultRoute)) });
+      setTimeout(() => addCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+    }
+  }, [showAdd, routes]);
+
+  function nextSeq(routeId: string): number {
+    const existing = customers.filter(c => c.routeId === routeId && c.sequenceOrder > 0).map(c => c.sequenceOrder);
+    return existing.length > 0 ? Math.max(...existing) + 1 : 1;
+  }
+
+  function openEdit(c: CustomerDto) {
+    setEditForm({
+      name: c.nameEnglish, nameMl: c.nameMalayalam ?? '',
+      phone: c.phoneNumber ?? '', address: c.address ?? '',
+      routeId: c.routeId,
+      sequenceOrder: String(c.sequenceOrder > 0 ? c.sequenceOrder : nextSeq(c.routeId)),
+    });
+    setEditModal(c);
+  }
+
+  async function handleReorder(customer: CustomerDto, newSeq: number) {
+    setReordering(true);
+    setError('');
+    try {
+      await customersApi.reorder(customer.routeId, customer.id, newSeq);
+      setReorderPage(null);
+      setSuccess('Customer order updated successfully');
+      setTimeout(() => setSuccess(''), 3000);
+      await load();
+    } catch (err) {
+      console.error('Reorder error:', err);
+      setError(err instanceof Error ? err.message : 'Reorder failed');
+    } finally {
+      setReordering(false);
+    }
+  }
+
+  async function handleAdd() {
+    if (!addForm.name.trim() || !addForm.routeId) return;
+    setSaving(true); setError('');
+    try {
+      await customersApi.create({
+        nameEnglish: addForm.name, nameMalayalam: addForm.nameMl || undefined,
+        phoneNumber: addForm.phone || undefined, address: addForm.address || undefined,
+        routeId: addForm.routeId,
+      });
+      setShowAdd(false); setAddForm(emptyForm); load();
+      setSuccess('Customer added successfully');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: unknown) { 
+      console.error('Add error:', err);
+      setError(err instanceof Error ? err.message : 'Save failed'); 
+    }
+    finally { setSaving(false); }
+  }
+
+  async function handleEdit() {
+    if (!editForm.name.trim() || !editForm.routeId || !editModal) return;
+    setSaving(true); setError('');
+    try {
+      const updatePayload = {
+        id: editModal.id,
+        nameEnglish: editForm.name,
+        nameMalayalam: editForm.nameMl || undefined,
+        phoneNumber: editForm.phone || undefined,
+        address: editForm.address || undefined,
+        routeId: editForm.routeId,
+        isActive: editModal.isActive,
+      };
+      await customersApi.update(editModal.id, updatePayload);
+      setEditModal(null); 
+      load();
+      setSuccess('Customer updated successfully');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: unknown) { 
+      console.error('Update error:', err);
+      setError(err instanceof Error ? err.message : 'Save failed'); 
+    }
+    finally { setSaving(false); }
+  }
+
+  async function handleDelete() {
+    if (!deletePage) return;
+    setDeleting(true);
+    setError('');
+    try {
+      await customersApi.delete(deletePage.id); 
+      setDeletePage(null); 
+      await load();
+      setSuccess('Customer deleted successfully');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: unknown) { 
+      console.error('Delete error:', err);
+      setError(err instanceof Error ? err.message : 'Delete failed'); 
+    }
+    finally { setDeleting(false); }
+  }
+
+  const filtered = customers.filter(c => {
+    const q = search.toLowerCase();
+    return !q || (c.nameEnglish ?? '').toLowerCase().includes(q)
+      || (c.nameMalayalam ?? '').includes(search)
+      || (c.phoneNumber ?? '').includes(search);
+  });
+
+  const zeroSeqCount = filtered.filter(c => c.sequenceOrder === 0).length;
+
+  if (loading) return <PageLoader />;
+
+  return (
+    <div className="page-content">
+
+      {/* Top bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' as const }}>
+        <div style={{ flex: 1 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: 'var(--navy)', letterSpacing: '-0.03em' }}>Customers</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 3 }}>
+            {filtered.length} customer{filtered.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+        <button className="btn btn-outline btn-sm" onClick={() => load()} title="Refresh"><RefreshCw size={14} /></button>
+        <button
+          onClick={() => setShowAdd(v => !v)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            padding: '9px 20px', borderRadius: 10, fontSize: 14, fontWeight: 800,
+            color: showAdd ? '#64748B' : '#fff', border: showAdd ? '1px solid #E2E8F0' : 'none',
+            background: showAdd ? 'transparent' : 'linear-gradient(135deg,#1E3A8A,#2563EB)',
+            cursor: 'pointer', fontFamily: 'inherit',
+            boxShadow: showAdd ? 'none' : '0 3px 10px rgba(37,99,235,0.28)',
+            transition: 'all 0.15s', letterSpacing: '-0.01em',
+          }}
+        >
+          {showAdd ? <><X size={15} /> Cancel</> : <><Plus size={15} /> Add Customer</>}
+        </button>
+      </div>
+
+      {error && <Alert variant="error">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
+
+      {zeroSeqCount > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderRadius: 10, marginBottom: 16, background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.25)', fontSize: 13, color: '#D97706', fontWeight: 600 }}>
+          <AlertTriangle size={15} />
+          <span><strong>{zeroSeqCount}</strong> customer{zeroSeqCount > 1 ? 's have' : ' has'} Sequence = 0 — edit to set visit order.</span>
+        </div>
+      )}
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' as const }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+          <Search size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+          <input 
+            type="text"
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+            placeholder="Search by name, phone..."
+            style={{
+              width: '100%', padding: '11px 14px 11px 38px',
+              background: '#fff', border: '1px solid #E2E8F0',
+              borderRadius: 10, fontSize: 14, color: '#334155',
+              outline: 'none', fontFamily: 'inherit',
+            }}
+            onFocus={e => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.10)'; e.target.style.background = '#fff'; }}
+            onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none'; e.target.style.background = '#F8FAFC'; }}
+          />
+        </div>
+        <select 
+          value={routeFilter} 
+          onChange={e => setRouteFilter(e.target.value)}
+          style={{
+            width: 'auto', minWidth: 160, padding: '11px 14px',
+            background: '#fff', border: '1px solid #E2E8F0',
+            borderRadius: 10, fontSize: 14, color: '#334155',
+            outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
+          }}
+          onFocus={e => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.10)'; e.target.style.background = '#fff'; }}
+          onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none'; e.target.style.background = '#F8FAFC'; }}
+        >
+          <option value="">All Routes</option>
+          {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+        </select>
+      </div>
+
+      {/* Inline Add Customer card */}
+      {showAdd && (
+        <div ref={addCardRef} style={{
+          background: '#fff', border: '1.5px solid rgba(37,99,235,0.25)',
+          borderRadius: 16, padding: '24px 24px 20px',
+          boxShadow: '0 4px 24px rgba(37,99,235,0.10)',
+          marginBottom: 24, animation: 'slide-up 0.22s cubic-bezier(0.34,1.2,0.64,1)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: 'linear-gradient(135deg,#1E3A8A,#2563EB)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(37,99,235,0.25)' }}>
+              <Users size={16} color="#fff" />
+            </div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.02em' }}>New Customer</div>
+              <div style={{ fontSize: 12, color: '#64748B' }}>Fill in the details below</div>
+            </div>
+          </div>
+
+          <FormFields form={addForm} setForm={setAddForm} routes={routes} />
+
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20, borderTop: '1px solid #F1F5F9', paddingTop: 18 }}>
+            <button onClick={() => { setShowAdd(false); setError(''); }} style={{ padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700, color: '#64748B', border: '1px solid #E2E8F0', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button onClick={handleAdd} disabled={saving || !addForm.name.trim() || !addForm.routeId}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 24px', borderRadius: 10, fontSize: 14, fontWeight: 800, color: '#fff', border: 'none', background: saving || !addForm.name.trim() || !addForm.routeId ? '#93C5FD' : 'linear-gradient(135deg,#1E3A8A,#2563EB)', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: '0 3px 10px rgba(37,99,235,0.25)' }}
+            >
+              {saving ? <Spinner size={15} /> : <><Save size={15} /> Save Customer</>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Customer grid */}
+      {filtered.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '80px 20px', color: '#94A3B8' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <Users size={28} style={{ opacity: 0.5 }} />
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#334155', marginBottom: 6 }}>No customers found</div>
+          <div style={{ fontSize: 13 }}>Add customers or adjust your filters.</div>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+          {filtered.map(c => (
+            <CustomerCard
+              key={c.id}
+              customer={c}
+              onEdit={() => openEdit(c)}
+              onReorder={() => setReorderPage(c)}
+              onDelete={() => setDeletePage(c)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Reorder Page (Slide-in) */}
+      {reorderPage && (
+        <ReorderPage
+          customer={reorderPage}
+          customers={customers}
+          onClose={() => setReorderPage(null)}
+          onReorder={(newSeq) => handleReorder(reorderPage, newSeq)}
+          saving={reordering}
+        />
+      )}
+
+      {/* Delete Page (Slide-in) */}
+      {deletePage && (
+        <DeletePage
+          customer={deletePage}
+          onClose={() => setDeletePage(null)}
+          onDelete={handleDelete}
+          deleting={deleting}
+        />
+      )}
+
+      {/* Edit Modal (Slide-in) */}
+      {editModal && (
+        <>
+          <div onClick={() => setEditModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.40)', zIndex: 200, backdropFilter: 'blur(2px)' }} />
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, width: '100%', maxWidth: 480,
+            background: '#fff', zIndex: 210,
+            display: 'flex', flexDirection: 'column',
+            boxShadow: '-8px 0 40px rgba(15,23,42,0.14)',
+            animation: 'slide-in-right 0.26s cubic-bezier(0.34,1.2,0.64,1)',
+          }}>
+            <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+              <Avatar name={editModal.nameEnglish} size={40} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.02em' }}>Edit Customer</div>
+                <div style={{ fontSize: 13, color: '#64748B' }}>{editModal.nameEnglish}</div>
+              </div>
+              <button onClick={() => setEditModal(null)} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E2E8F0', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}>
+                <X size={15} />
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+              {error && <Alert variant="error">{error}</Alert>}
+              <FormFields form={editForm} setForm={setEditForm} routes={routes} isEdit />
+            </div>
+
+            <div style={{ padding: '16px 24px', borderTop: '1px solid #E2E8F0', display: 'flex', gap: 10, justifyContent: 'flex-end', flexShrink: 0 }}>
+              <button onClick={() => setEditModal(null)} style={{ padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 700, color: '#64748B', border: '1px solid #E2E8F0', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={handleEdit} disabled={saving || !editForm.name.trim() || !editForm.routeId}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 800, color: '#fff', border: 'none', background: 'linear-gradient(135deg,#1E3A8A,#2563EB)', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: '0 3px 10px rgba(37,99,235,0.25)' }}
+              >
+                {saving ? <Spinner size={15} /> : <><Save size={14} /> Save Changes</>}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminDailyAssignment.tsx">
+// PATH: src/pages/Admin/AdminDailyAssignment.tsx
+// NEW FILE — Admin daily route assignment management with week view
+
+import { useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight, RefreshCw, Plus, Trash2, CalendarDays } from 'lucide-react';
+import { routeAssignmentsApi, usersApi, routesApi } from '../../api/services';
+import type { RouteAssignmentDto, UserDto, RouteDto } from '../../types';
+import { PageLoader, Spinner, Alert, EmptyState } from '../../components/ui';
+
+function dateStr(d: Date) { return d.toISOString().slice(0, 10); }
+function addDays(d: Date, n: number) {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+}
+function weekStart(d: Date) {
+  const r = new Date(d);
+  r.setDate(r.getDate() - r.getDay() + 1); // Monday
+  return r;
+}
+function fmtDay(d: Date) {
+  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+export function AdminDailyAssignment() {
+  const [weekAnchor, setWeekAnchor] = useState(weekStart(new Date()));
+  const [assignments, setAssignments] = useState<RouteAssignmentDto[]>([]);
+  const [routes,      setRoutes]      = useState<RouteDto[]>([]);
+  const [salesmen,    setSalesmen]    = useState<UserDto[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState('');
+  const [success,     setSuccess]     = useState('');
+
+  // Add modal
+  const [addModal,    setAddModal]    = useState<string | null>(null); // date string
+  const [addRouteId,  setAddRouteId]  = useState('');
+  const [addSalesId,  setAddSalesId]  = useState('');
+  const [addNotes,    setAddNotes]    = useState('');
+  const [saving,      setSaving]      = useState(false);
+  const [deleting,    setDeleting]    = useState<string | null>(null);
+
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekAnchor, i));
+  const from = dateStr(weekDays[0]);
+  const to   = dateStr(weekDays[6]);
+
+  async function load() {
+    setLoading(true); setError('');
+    try {
+      const [a, r, s] = await Promise.all([
+        routeAssignmentsApi.getByDateRange(from, to),
+        routesApi.getAll(),
+        usersApi.getAll('Salesman'),
+      ]);
+      setAssignments(a);
+      setRoutes(r);
+      setSalesmen(s);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load');
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { load(); }, [from]);
+
+  async function handleSave() {
+    if (!addModal || !addRouteId || !addSalesId) return;
+    setSaving(true); setError('');
+    try {
+      await routeAssignmentsApi.upsert({
+        routeId:        addRouteId,
+        salesmanId:     addSalesId,
+        assignmentDate: addModal,
+        notes:          addNotes || undefined,
+      });
+      setSuccess('Assignment saved.');
+      setAddModal(null); setAddRouteId(''); setAddSalesId(''); setAddNotes('');
+      await load();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Save failed');
+    } finally { setSaving(false); }
+  }
+
+  async function handleDelete(id: string) {
+    setDeleting(id);
+    try {
+      await routeAssignmentsApi.delete(id);
+      setSuccess('Override removed.');
+      await load();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Delete failed');
+    } finally { setDeleting(null); }
+  }
+
+  if (loading) return <PageLoader />;
+
+  return (
+    <div className="page-content">
+      {/* Header */}
+      <div className="section-header">
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Daily Route Assignment</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
+            Assign salesmen to routes per day. Overrides the permanent assignment for that date.
+          </p>
+        </div>
+        <button className="btn btn-outline btn-sm" onClick={load}><RefreshCw size={14} /></button>
+      </div>
+
+      {/* Info banner explaining when to use Daily Assignment */}
+      <div className="alert alert-info" style={{ marginBottom: 16, background: 'var(--amber-bg)', border: '1px solid var(--amber)' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <span style={{ fontSize: 20 }}>📅</span>
+          <div>
+            <strong style={{ color: 'var(--amber)' }}>When to use Daily Assignment:</strong>
+            <ul style={{ margin: '4px 0 0 20px', fontSize: 12, color: 'var(--text-muted)' }}>
+              <li>Salesman is on leave (sick, vacation)</li>
+              <li>Salesman resigned - need temporary coverage until replacement is hired</li>
+              <li>Route needs to be covered by a different salesman for a specific day</li>
+              <li>Training a new salesman (shadowing an experienced one)</li>
+              <li>Split route between two salesmen for a day</li>
+            </ul>
+            <p style={{ marginTop: 6, fontSize: 11, color: 'var(--amber)', background: 'rgba(245,158,11,0.1)', padding: '6px 10px', borderRadius: 6 }}>
+              💡 <strong>Important:</strong> This overrides the permanent assignment ONLY for the selected date.
+              The permanent salesman will automatically show up again the next day.
+              To permanently change a route's salesman, edit the route directly.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {error   && <Alert variant="error">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
+
+      {/* Week navigator */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+        <button className="btn btn-outline btn-sm" onClick={() => setWeekAnchor(w => addDays(w, -7))}>
+          <ChevronLeft size={16} />
+        </button>
+        <span style={{ fontWeight: 600, fontSize: 14 }}>
+          <CalendarDays size={14} style={{ display: 'inline', marginRight: 6 }} />
+          {fmtDay(weekDays[0])} — {fmtDay(weekDays[6])}
+        </span>
+        <button className="btn btn-outline btn-sm" onClick={() => setWeekAnchor(w => addDays(w, 7))}>
+          <ChevronRight size={16} />
+        </button>
+        <button
+          className="btn btn-outline btn-sm"
+          onClick={() => setWeekAnchor(weekStart(new Date()))}
+          style={{ marginLeft: 4 }}
+        >
+          This Week
+        </button>
+      </div>
+
+      {/* Week grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
+        {weekDays.map(day => {
+          const ds = dateStr(day);
+          const isToday = ds === dateStr(new Date());
+          const dayAssignments = assignments.filter(
+            a => dateStr(new Date(a.assignmentDate)) === ds
+          );
+
+          return (
+            <div
+              key={ds}
+              style={{
+                border: `1px solid ${isToday ? 'var(--primary)' : 'var(--border)'}`,
+                borderRadius: 12,
+                padding: 10,
+                background: isToday ? 'var(--primary-glow)' : 'var(--card)',
+                minHeight: 160,
+              }}
+            >
+              {/* Day header */}
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
+              }}>
+                <div>
+                  <p style={{ fontSize: 11, color: isToday ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
+                    {day.toLocaleDateString('en-IN', { weekday: 'short' }).toUpperCase()}
+                  </p>
+                  <p style={{ fontSize: 15, fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                    {day.getDate()}
+                  </p>
+                </div>
+                <button
+                  className="btn btn-ghost btn-icon btn-sm"
+                  onClick={() => { setAddModal(ds); setAddRouteId(''); setAddSalesId(''); setAddNotes(''); }}
+                  title="Add assignment"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+
+              {/* Assignment chips */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {dayAssignments.length === 0 && (
+                  <p style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                    No overrides
+                  </p>
+                )}
+                {dayAssignments.map(a => (
+                  <div
+                    key={a.id}
+                    style={{
+                      background: a.isPermanent ? 'var(--border)' : 'var(--primary-glow)',
+                      border: `1px solid ${a.isPermanent ? 'var(--border)' : 'var(--primary)'}`,
+                      borderRadius: 6, padding: '4px 6px',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, margin: 0, color: a.isPermanent ? 'var(--text-muted)' : 'var(--primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {a.routeName}
+                      </p>
+                      <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {a.salesmanName}
+                      </p>
+                    </div>
+                    {!a.isPermanent && a.id !== '00000000-0000-0000-0000-000000000000' && (
+                      <button
+                        onClick={() => handleDelete(a.id)}
+                        disabled={deleting === a.id}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px', color: 'var(--text-muted)', flexShrink: 0 }}
+                        title="Remove override"
+                      >
+                        {deleting === a.id ? <Spinner size={10} /> : <Trash2 size={10} />}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Add Assignment Modal ─────────────────────────────────────────── */}
+      {addModal && (
+        <div className="modal-overlay" onClick={() => setAddModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+            <h3 style={{ marginTop: 0, fontWeight: 700 }}>
+              Assign Route — {new Date(addModal + 'T00:00:00').toLocaleDateString('en-IN', {
+                weekday: 'long', day: 'numeric', month: 'long',
+              })}
+            </h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 16 }}>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+                  Route *
+                </label>
+                <select className="input" value={addRouteId} onChange={e => setAddRouteId(e.target.value)}>
+                  <option value="">Select route…</option>
+                  {routes.map(r => <option key={String(r.id)} value={String(r.id)}>{r.name}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+                  Salesman *
+                </label>
+                <select className="input" value={addSalesId} onChange={e => setAddSalesId(e.target.value)}>
+                  <option value="">Select salesman…</option>
+                  {salesmen.map(s => <option key={s.id} value={s.id}>{s.fullName}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+                  Notes (optional)
+                </label>
+                <input
+                  className="input"
+                  placeholder="e.g. Covering for Rajesh"
+                  value={addNotes}
+                  onChange={e => setAddNotes(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+              <button className="btn btn-outline" onClick={() => setAddModal(null)}>Cancel</button>
+              <button
+                className="btn btn-primary"
+                onClick={handleSave}
+                disabled={saving || !addRouteId || !addSalesId}
+              >
+                {saving ? <Spinner size={16} /> : 'Save Assignment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminDashboard.tsx">
+// PATH: src/pages/Admin/AdminDashboard.tsx
+// COMPLETE REWRITE — Premium White & Blue Admin Hub
+// Design System: Royal Blue (#2563EB) · Deep Navy (#1E3A8A) · Canvas White (#F8FAFC)
+
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  TrendingUp, ShoppingCart, Route, Users, AlertCircle,
+  ArrowUpRight, ArrowDownRight, Lock, RefreshCw,
+  MapPin, Package, FileText, IndianRupee, BarChart3,
+  PlusCircle, ChevronRight, CheckCircle2, Clock4,
+  Activity, Landmark, UserCog, CalendarDays, Gift,
+  Search, X,
+} from 'lucide-react';
+import { analyticsApi, settlementApi } from '../../api/services';
+import type { DashboardKpisDto, DailyClosureStatusDto, DailyClosureResultDto } from '../../types';
+import { fmt, fmtNum } from '../../types';
+import { PageLoader, Spinner, Alert, ConfirmModal } from '../../components/ui';
+
+// ─── Inline AdminSearchBar Component ─────────────────────────────────────────
+
+interface AdminSearchBarProps {
+  onSearch: (query: string) => void;
+  placeholder?: string;
+  className?: string;
+}
+
+interface Suggestion {
+  icon: React.ElementType;
+  label: string;
+  category: string;
+  color: string;
+}
+
+const QUICK_SUGGESTIONS: Suggestion[] = [
+  { icon: ShoppingCart, label: 'Pending draft orders',         category: 'Orders',    color: '#2563EB' },
+  { icon: Route,        label: "Today's active routes",        category: 'Routes',    color: '#7C3AED' },
+  { icon: Users,        label: 'Salesman field activity',      category: 'Personnel', color: '#059669' },
+  { icon: FileText,     label: 'Pending settlement invoices',  category: 'Finance',   color: '#D97706' },
+  { icon: TrendingUp,   label: 'Month-to-date revenue report', category: 'Analytics', color: '#DC2626' },
+];
+
+function AdminSearchBar({
+  onSearch,
+  placeholder = 'Search routes, active distributors, salesmen logs, or transaction invoices…',
+  className = '',
+}: AdminSearchBarProps) {
+  const [query,     setQuery]     = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [recent,    setRecent]    = useState<string[]>([]);
+  const inputRef     = React.useRef<HTMLInputElement>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem('admin-search-recent');
+    if (stored) setRecent(JSON.parse(stored));
+  }, []);
+
+  const pushRecent = (q: string) => {
+    if (!q.trim()) return;
+    const updated = [q, ...recent.filter(r => r !== q)].slice(0, 4);
+    setRecent(updated);
+    sessionStorage.setItem('admin-search-recent', JSON.stringify(updated));
+  };
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleChange = (value: string) => {
+    setQuery(value);
+    onSearch(value);
+  };
+
+  const handleSelect = (value: string) => {
+    setQuery(value);
+    onSearch(value);
+    pushRecent(value);
+    setIsFocused(false);
+    inputRef.current?.blur();
+  };
+
+  const handleClear = () => {
+    setQuery('');
+    onSearch('');
+    inputRef.current?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && query.trim()) {
+      pushRecent(query);
+      setIsFocused(false);
+      inputRef.current?.blur();
+    }
+    if (e.key === 'Escape') {
+      setIsFocused(false);
+      inputRef.current?.blur();
+    }
+  };
+
+  const showDropdown = isFocused;
+
+  return (
+    <div ref={containerRef} className={`relative w-full ${className}`}>
+      <div
+        className={`
+          relative flex items-center bg-white rounded-2xl border transition-all duration-200
+          ${isFocused
+            ? 'border-blue-400 shadow-[0_0_0_3px_rgba(37,99,235,0.15),0_4px_20px_rgba(37,99,235,0.12)]'
+            : 'border-slate-200 shadow-[0_1px_4px_rgba(15,23,42,0.06)] hover:border-slate-300'
+          }
+        `}
+      >
+        <div className="absolute left-4 flex items-center pointer-events-none">
+          <Search
+            size={18}
+            className={`transition-colors duration-200 ${isFocused ? 'text-blue-500' : 'text-slate-400'}`}
+          />
+        </div>
+
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={e => handleChange(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          className="
+            w-full pl-11 pr-12 py-3.5 bg-transparent rounded-2xl
+            text-sm text-slate-700 placeholder:text-slate-400
+            focus:outline-none
+          "
+        />
+
+        {query && (
+          <button
+            onClick={handleClear}
+            className="absolute right-4 p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+          >
+            <X size={15} />
+          </button>
+        )}
+      </div>
+
+      {showDropdown && (
+        <div
+          className="
+            absolute top-full left-0 right-0 mt-2 z-50
+            bg-white rounded-2xl border border-slate-100
+            shadow-[0_12px_48px_rgba(15,23,42,0.14),0_4px_16px_rgba(15,23,42,0.06)]
+            overflow-hidden
+          "
+        >
+          {recent.length > 0 && !query && (
+            <div className="border-b border-slate-100">
+              <div className="px-4 pt-3 pb-2">
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+                  Recent
+                </p>
+              </div>
+              {recent.map((r, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleSelect(r)}
+                  className="
+                    w-full px-4 py-2.5 text-left flex items-center gap-3
+                    text-sm text-slate-600 hover:bg-slate-50 transition-colors
+                  "
+                >
+                  <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                    <Clock4 size={13} className="text-slate-400" />
+                  </div>
+                  <span className="truncate">{r}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div>
+            <div className="px-4 pt-3 pb-2">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+                {query ? 'Suggestions' : 'Quick Access'}
+              </p>
+            </div>
+            {QUICK_SUGGESTIONS
+              .filter(s => !query || s.label.toLowerCase().includes(query.toLowerCase()))
+              .map((s, i) => {
+                const Icon = s.icon;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => handleSelect(s.label)}
+                    className="
+                      w-full px-4 py-2.5 text-left flex items-center gap-3
+                      hover:bg-slate-50 transition-colors group
+                    "
+                  >
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: `${s.color}15` }}
+                    >
+                      <Icon size={13} style={{ color: s.color }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-slate-700 group-hover:text-slate-900 truncate block">
+                        {s.label}
+                      </span>
+                    </div>
+                    <span
+                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: `${s.color}12`, color: s.color }}
+                    >
+                      {s.category}
+                    </span>
+                  </button>
+                );
+              })}
+          </div>
+
+          <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50">
+            <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
+              <kbd className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-[10px] font-mono shadow-sm">↵</kbd>
+              to search ·
+              <kbd className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-[10px] font-mono shadow-sm">Esc</kbd>
+              to dismiss
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface NavHub {
+  id: string;
+  to: string;
+  label: string;
+  sublabel: string;
+  icon: React.ElementType;
+  accent: string;        // hex
+  accentBg: string;      // hex
+  badge?: string;
+}
+
+// ─── Hub Navigation Configuration ────────────────────────────────────────────
+
+const NAV_HUBS: NavHub[] = [
+  {
+    id:       'routes',
+    to:       '/admin/routes',
+    label:    'Salesmen & Routes',
+    sublabel: 'Field personnel · Beat management',
+    icon:     MapPin,
+    accent:   '#2563EB',
+    accentBg: '#EFF6FF',
+  },
+  {
+    id:       'products',
+    to:       '/admin/products',
+    label:    'Global Inventory / SKUs',
+    sublabel: 'Warehouse · Product catalogue',
+    icon:     Package,
+    accent:   '#7C3AED',
+    accentBg: '#F5F3FF',
+  },
+  {
+    id:       'orders',
+    to:       '/admin/orders',
+    label:    'Master Orders & Approvals',
+    sublabel: 'Batch processing · Status review',
+    icon:     ShoppingCart,
+    accent:   '#0891B2',
+    accentBg: '#ECFEFF',
+  },
+  {
+    id:       'settlement',
+    to:       '/admin/settlement',
+    label:    'Collections & Ledger',
+    sublabel: 'Financial settlements · Receivables',
+    icon:     IndianRupee,
+    accent:   '#059669',
+    accentBg: '#ECFDF5',
+  },
+  {
+    id:       'analytics',
+    to:       '/admin/analytics',
+    label:    'System Analytics',
+    sublabel: 'Performance metrics · Reports',
+    icon:     BarChart3,
+    accent:   '#D97706',
+    accentBg: '#FFFBEB',
+  },
+];
+
+// ─── KPI Card ─────────────────────────────────────────────────────────────────
+
+interface KpiCardProps {
+  label:   string;
+  value:   string;
+  icon:    React.ElementType;
+  color:   string;
+  bgColor: string;
+  sub?:    string;
+  trend?:  'up' | 'down' | 'neutral';
+}
+
+function KpiCard({ label, value, icon: Icon, color, bgColor, sub, trend }: KpiCardProps) {
+  return (
+    <div className="
+      bg-white rounded-2xl border border-slate-100 p-5
+      shadow-[0_1px_4px_rgba(15,23,42,0.06)]
+      hover:shadow-[0_4px_16px_rgba(15,23,42,0.10)]
+      hover:-translate-y-0.5 transition-all duration-200
+      flex flex-col gap-3
+    ">
+      <div className="flex items-start justify-between">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          style={{ backgroundColor: bgColor }}
+        >
+          <Icon size={18} style={{ color }} />
+        </div>
+        {trend && trend !== 'neutral' && (
+          <div className={`flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full ${
+            trend === 'up'
+              ? 'bg-emerald-50 text-emerald-600'
+              : 'bg-red-50 text-red-500'
+          }`}>
+            {trend === 'up'
+              ? <ArrowUpRight size={12} />
+              : <ArrowDownRight size={12} />
+            }
+          </div>
+        )}
+      </div>
+      <div>
+        <p className="text-2xl font-bold text-slate-800 leading-none tracking-tight">{value}</p>
+        {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
+      </div>
+      <p className="text-xs font-medium text-slate-500 leading-tight">{label}</p>
+    </div>
+  );
+}
+
+// ─── Hub Block ────────────────────────────────────────────────────────────────
+
+function HubBlock({ hub }: { hub: NavHub }) {
+  const Icon = hub.icon;
+  return (
+    <Link
+      to={hub.to}
+      className="
+        group relative bg-white rounded-2xl border border-slate-100 p-6
+        shadow-[0_1px_4px_rgba(15,23,42,0.05)]
+        hover:shadow-[0_8px_28px_rgba(15,23,42,0.10)]
+        hover:-translate-y-1 transition-all duration-200
+        flex items-center gap-4 no-underline overflow-hidden
+      "
+    >
+      {/* Accent sweep on hover */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
+        style={{
+          background: `linear-gradient(135deg, ${hub.accentBg}80 0%, transparent 60%)`,
+        }}
+      />
+
+      {/* Icon */}
+      <div
+        className="relative w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0
+          group-hover:scale-110 transition-transform duration-200"
+        style={{ backgroundColor: hub.accentBg }}
+      >
+        <Icon size={22} style={{ color: hub.accent }} />
+      </div>
+
+      {/* Text */}
+      <div className="relative flex-1 min-w-0">
+        <p className="text-[15px] font-700 text-slate-800 font-bold leading-tight">{hub.label}</p>
+        <p className="text-xs text-slate-400 mt-0.5 truncate">{hub.sublabel}</p>
+      </div>
+
+      {/* Arrow */}
+      <ChevronRight
+        size={16}
+        className="relative text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all duration-200 flex-shrink-0"
+      />
+
+      {/* Badge */}
+      {hub.badge && (
+        <span
+          className="absolute top-3 right-10 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+          style={{ backgroundColor: `${hub.accent}18`, color: hub.accent }}
+        >
+          {hub.badge}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+// ─── Closure Status Banner ────────────────────────────────────────────────────
+
+function ClosureBanner({ closure }: { closure: DailyClosureStatusDto }) {
+  if (closure.isClosed) {
+    return (
+      <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+        <CheckCircle2 size={16} className="text-emerald-600 flex-shrink-0" />
+        <p className="text-sm text-emerald-800 font-medium">
+          Day closed at {new Date(closure.closedAt!).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} by{' '}
+          <span className="font-bold">{closure.closedBy}</span>
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+      <Clock4 size={16} className="text-blue-600 flex-shrink-0" />
+      <p className="text-sm text-blue-800 font-medium">
+        <span className="font-bold">{closure.submittedOrders}</span> orders submitted ·{' '}
+        <span className="font-bold">{closure.totalOrders - closure.closedOrders - closure.submittedOrders}</span> still in draft
+      </p>
+    </div>
+  );
+}
+
+// ─── Quick Action Pill ────────────────────────────────────────────────────────
+
+function QuickLink({ label, to, icon: Icon, color }: { label: string; to: string; icon: React.ElementType; color: string }) {
+  return (
+    <Link
+      to={to}
+      className="
+        flex items-center gap-2 px-4 py-2.5 rounded-xl
+        border border-slate-100 bg-white
+        hover:bg-slate-50 hover:border-slate-200
+        transition-all duration-150 no-underline
+        text-sm font-semibold text-slate-600 hover:text-slate-800
+        shadow-[0_1px_3px_rgba(15,23,42,0.05)]
+        whitespace-nowrap
+      "
+    >
+      <Icon size={14} style={{ color }} />
+      {label}
+    </Link>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export function AdminDashboard() {
+  const navigate = useNavigate();
+  const [kpis,         setKpis]         = useState<DashboardKpisDto | null>(null);
+  const [closure,      setClosure]      = useState<DailyClosureStatusDto | null>(null);
+  const [loading,      setLoading]      = useState(true);
+  const [closing,      setClosing]      = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
+  const [closeNotes,   setCloseNotes]   = useState('');
+  const [error,        setError]        = useState('');
+  const [msg,          setMsg]          = useState('');
+  const [closureResult, setClosureResult] = useState<DailyClosureResultDto | null>(null);
+  const [searchQuery,  setSearchQuery]  = useState('');
+
+  async function load() {
+    setLoading(true);
+    try {
+      const [k, c] = await Promise.all([
+        analyticsApi.getDashboardKpis(),
+        settlementApi.getStatus(),
+      ]);
+      setKpis(k);
+      setClosure(c);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleCloseDay() {
+    setClosing(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const res   = await settlementApi.closeDay(today, closeNotes || undefined);
+      setClosureResult(res);
+      setMsg(`Day closed successfully. ${res.ordersLocked} orders locked. Revenue: ${fmt(res.totalRevenue)}`);
+      setConfirmClose(false);
+      load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to close day');
+    } finally {
+      setClosing(false);
+    }
+  }
+
+  if (loading) return <PageLoader />;
+
+  const today = new Date().toLocaleDateString('en-IN', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  });
+
+  // Build KPI rows from data
+  const kpiCards: KpiCardProps[] = kpis ? [
+    {
+      label:   'Today Revenue',
+      value:   fmt(kpis.todayRevenue),
+      icon:    TrendingUp,
+      color:   '#2563EB',
+      bgColor: '#EFF6FF',
+      trend:   'up',
+    },
+    {
+      label:   'Today Orders',
+      value:   fmtNum(kpis.todayOrders),
+      icon:    ShoppingCart,
+      color:   '#7C3AED',
+      bgColor: '#F5F3FF',
+    },
+    {
+      label:   'Today Variance',
+      value:   fmt(kpis.todayVariance),
+      icon:    kpis.todayVariance >= 0 ? ArrowUpRight : ArrowDownRight,
+      color:   kpis.todayVariance >= 0 ? '#059669' : '#DC2626',
+      bgColor: kpis.todayVariance >= 0 ? '#ECFDF5' : '#FEF2F2',
+      trend:   kpis.todayVariance >= 0 ? 'up' : 'down',
+    },
+    {
+      label:   'Active Routes',
+      value:   fmtNum(kpis.activeRoutes),
+      icon:    Route,
+      color:   '#0891B2',
+      bgColor: '#ECFEFF',
+    },
+    {
+      label:   'Active Customers',
+      value:   fmtNum(kpis.activeCustomers),
+      icon:    Users,
+      color:   '#D97706',
+      bgColor: '#FFFBEB',
+    },
+    {
+      label:   'Pending Settlement',
+      value:   fmt(kpis.pendingSettlement),
+      icon:    AlertCircle,
+      color:   '#DC2626',
+      bgColor: '#FEF2F2',
+    },
+    {
+      label:   'MTD Revenue',
+      value:   fmt(kpis.mtdRevenue),
+      icon:    TrendingUp,
+      color:   '#059669',
+      bgColor: '#ECFDF5',
+      sub:     `${fmtNum(kpis.mtdOrders)} orders`,
+      trend:   'up',
+    },
+    {
+      label:   'Top Route',
+      value:   kpis.topRouteName ?? 'N/A',
+      icon:    Activity,
+      color:   '#2563EB',
+      bgColor: '#EFF6FF',
+      sub:     kpis.topRouteRevenue ? fmt(kpis.topRouteRevenue) : undefined,
+    },
+  ] : [];
+
+  return (
+    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 py-8 space-y-8">
+
+        {/* ── PAGE HEADER ─────────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">
+              Operations Dashboard
+            </h1>
+            <p className="text-sm text-slate-400 mt-1.5 flex items-center gap-1.5">
+              <CalendarDays size={13} />
+              {today}
+            </p>
+          </div>
+
+          {/* Header actions */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              className="btn btn-outline btn-sm flex items-center gap-1.5"
+              onClick={load}
+              title="Refresh dashboard"
+            >
+              <RefreshCw size={13} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+
+            {!closure?.isClosed && (
+              <button
+                className="btn btn-sm flex items-center gap-1.5 text-white"
+                style={{ background: '#DC2626', boxShadow: '0 2px 8px rgba(220,38,38,0.28)' }}
+                onClick={() => setConfirmClose(true)}
+              >
+                <Lock size={13} />
+                Close Day
+              </button>
+            )}
+
+            {/* FAB — primary action */}
+            <button
+              className="btn btn-primary btn-sm flex items-center gap-1.5"
+              onClick={() => navigate('/admin/routes')}
+            >
+              <PlusCircle size={14} />
+              <span className="hidden sm:inline">Assign New Route</span>
+              <span className="sm:hidden">New Route</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ── ALERTS ──────────────────────────────────────────────── */}
+        {error && <Alert variant="error">{error}</Alert>}
+        {msg   && (
+          <div className="space-y-3">
+            <Alert variant="success">{msg}</Alert>
+            {/* Updated: using optional chaining with sheet URLs that may exist */}
+            {(closureResult && (closureResult as any).loadingSheetUrl) && (
+              <div className="flex gap-3 flex-wrap">
+                <a
+                  href={(closureResult as any).loadingSheetUrl}
+                  target="_blank" rel="noreferrer"
+                  className="btn btn-outline btn-sm"
+                >
+                  📦 Download Loading Sheet
+                </a>
+                {(closureResult as any).billingSheetUrl && (
+                  <a
+                    href={(closureResult as any).billingSheetUrl}
+                    target="_blank" rel="noreferrer"
+                    className="btn btn-outline btn-sm"
+                  >
+                    🧾 Download Billing Sheet
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── CLOSURE STATUS ───────────────────────────────────────── */}
+        {closure && <ClosureBanner closure={closure} />}
+
+        {/* ── SEARCH BAR ───────────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-5
+          shadow-[0_1px_4px_rgba(15,23,42,0.06)]">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">
+            Admin Search
+          </p>
+          <AdminSearchBar onSearch={setSearchQuery} />
+        </div>
+
+        {/* ── MACRO NAVIGATION HUBS ───────────────────────────────── */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold text-slate-700">Control Centre</h2>
+            <span className="text-xs text-slate-400">{NAV_HUBS.length} modules</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {NAV_HUBS.map(hub => (
+              <HubBlock key={hub.id} hub={hub} />
+            ))}
+          </div>
+        </div>
+
+        {/* ── KPI METRICS ─────────────────────────────────────────── */}
+        {kpis && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-slate-700">Today at a Glance</h2>
+              <span className="text-xs text-slate-400">Live metrics</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {kpiCards.map((k, i) => (
+                <KpiCard key={i} {...k} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── QUICK LINKS ──────────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-6
+          shadow-[0_1px_4px_rgba(15,23,42,0.06)]">
+          <h2 className="text-base font-bold text-slate-700 mb-4">Quick Actions</h2>
+          <div className="flex flex-wrap gap-2">
+            <QuickLink label="View Orders"       to="/admin/orders"      icon={ShoppingCart} color="#2563EB" />
+            <QuickLink label="Manage Routes"     to="/admin/routes"      icon={MapPin}       color="#7C3AED" />
+            <QuickLink label="Settlement"        to="/admin/settlement"  icon={Landmark}     color="#059669" />
+            <QuickLink label="Analytics"         to="/admin/analytics"   icon={BarChart3}    color="#D97706" />
+            <QuickLink label="Reports"           to="/admin/reports"     icon={FileText}     color="#0891B2" />
+            <QuickLink label="Incentives"        to="/admin/incentives"  icon={Gift}         color="#DC2626" />
+            <QuickLink label="User Management"   to="/admin/users"       icon={UserCog}      color="#64748B" />
+            <QuickLink label="Temp Assignments"  to="/admin/assignments" icon={CalendarDays} color="#2563EB" />
+          </div>
+        </div>
+
+      </div>{/* /max-w-7xl */}
+
+      {/* ── CLOSE DAY MODAL ─────────────────────────────────────── */}
+      {confirmClose && (
+        <ConfirmModal
+          open={confirmClose}
+          title="Close Operational Day"
+          message="This will lock all submitted orders for today. This action cannot be undone."
+          confirmLabel={closing ? 'Closing…' : 'Close Day'}
+          danger
+          onConfirm={handleCloseDay}
+          onCancel={() => setConfirmClose(false)}
+        />
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminIncentives.tsx">
+import React, { useEffect, useState } from 'react';
+import { Plus, Edit2, Trash2, Gift, RefreshCw } from 'lucide-react';
+import { incentivesApi, productsApi } from '../../api/services';
+import type { ProductIncentiveDto, ProductSearchDto } from '../../types';
+import { fmt, fmtDate } from '../../types';
+import { PageLoader, Spinner, Alert, Badge, EmptyState, Field, ConfirmModal } from '../../components/ui';
+
+const INCENTIVE_TYPES = { 1: 'Per Unit (₹)', 2: 'Percentage (%)' };
+
+export function AdminIncentives() {
+  const [incentives, setIncentives] = useState<ProductIncentiveDto[]>([]);
+  const [products,   setProducts]   = useState<ProductSearchDto[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState('');
+  const [modal,      setModal]      = useState<'add' | 'edit' | null>(null);
+  const [confirm,    setConfirm]    = useState<string | null>(null);
+  const [saving,     setSaving]     = useState(false);
+  const [deleting,   setDeleting]   = useState(false);
+  const [selected,   setSelected]   = useState<ProductIncentiveDto | null>(null);
+  const [form, setForm] = useState({
+    productId: '', incentiveType: '1', incentiveValue: '',
+    minQuantity: '', validFrom: '', validTo: '', description: '',
+  });
+
+  async function load() {
+    setLoading(true); setError('');
+    try {
+      const [inc, prod] = await Promise.all([
+        incentivesApi.getProductIncentives(),
+        productsApi.search(undefined, undefined, 200),
+      ]);
+      setIncentives(inc); setProducts(prod);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Load failed');
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  function openAdd() {
+    setSelected(null);
+    setForm({ productId: '', incentiveType: '1', incentiveValue: '', minQuantity: '', validFrom: '', validTo: '', description: '' });
+    setModal('add');
+  }
+
+  function openEdit(inc: ProductIncentiveDto) {
+    setSelected(inc);
+    setForm({
+      productId: inc.productId,
+      incentiveType: inc.incentiveType.toString(),
+      incentiveValue: inc.incentiveValue.toString(),
+      minQuantity: inc.minQuantity?.toString() ?? '',
+      validFrom: inc.validFrom?.split('T')[0] ?? '',
+      validTo: inc.validTo?.split('T')[0] ?? '',
+      description: inc.description ?? '',
+    });
+    setModal('edit');
+  }
+
+  async function handleSave() {
+    if (!form.productId || !form.incentiveValue) return;
+    setSaving(true); setError('');
+    try {
+      const payload = {
+        productId: form.productId,
+        incentiveType: parseInt(form.incentiveType),
+        incentiveValue: parseFloat(form.incentiveValue),
+        minQuantity: form.minQuantity ? parseInt(form.minQuantity) : undefined,
+        validFrom: form.validFrom || undefined,
+        validTo: form.validTo || undefined,
+        description: form.description || undefined,
+      };
+      if (modal === 'add') {
+        await incentivesApi.createProductIncentive(payload);
+      } else if (selected) {
+        await incentivesApi.updateProductIncentive(selected.id, payload);
+      }
+      setModal(null); load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Save failed');
+    } finally { setSaving(false); }
+  }
+
+  async function handleDelete() {
+    if (!confirm) return;
+    setDeleting(true);
+    try { await incentivesApi.deleteProductIncentive(confirm); setConfirm(null); load(); }
+    catch (err: unknown) { setError(err instanceof Error ? err.message : 'Delete failed'); }
+    finally { setDeleting(false); }
+  }
+
+  if (loading) return <PageLoader />;
+
+  return (
+    <div className="page-content">
+      <div className="section-header">
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Incentives</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>SKU-level salesman incentive configuration</p>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-outline btn-sm" onClick={load}><RefreshCw size={14} /></button>
+          <button className="btn btn-primary" onClick={openAdd}><Plus size={16} /> Add Incentive</button>
+        </div>
+      </div>
+
+      {error && <Alert variant="error">{error}</Alert>}
+
+      {incentives.length === 0 ? (
+        <EmptyState title="No incentives configured" message="Add product incentives to motivate your salesmen." icon={Gift} />
+      ) : (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table className="tbl">
+            <thead>
+              <tr><th>Product</th><th>Type</th><th>Value</th><th>Min Qty</th><th>Valid</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              {incentives.map((inc) => (
+                <tr key={inc.id}>
+                  <td style={{ fontWeight: 600 }}>{inc.productName ?? inc.productId.slice(0, 8)}</td>
+                  <td style={{ fontSize: 13 }}>{INCENTIVE_TYPES[inc.incentiveType as 1 | 2] ?? '—'}</td>
+                  <td style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                    {inc.incentiveType === 1 ? fmt(inc.incentiveValue) : `${inc.incentiveValue}%`}
+                  </td>
+                  <td style={{ fontSize: 13 }}>{inc.minQuantity ?? '—'}</td>
+                  <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    {inc.validFrom ? fmtDate(inc.validFrom) : '∞'} – {inc.validTo ? fmtDate(inc.validTo) : '∞'}
+                  </td>
+                  <td><Badge variant={inc.isActive ? 'green' : 'muted'}>{inc.isActive ? 'Active' : 'Inactive'}</Badge></td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                      <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openEdit(inc)}><Edit2 size={14} /></button>
+                      <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setConfirm(inc.id)}><Trash2 size={14} color="var(--red)" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {modal && (
+        <div className="modal-overlay" onClick={() => setModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0, fontWeight: 700 }}>{modal === 'add' ? 'Add Incentive' : 'Edit Incentive'}</h3>
+            {error && <Alert variant="error">{error}</Alert>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 16 }}>
+              <Field label="Product" required>
+                <select className="input" value={form.productId} onChange={(e) => setForm((p) => ({ ...p, productId: e.target.value }))}>
+                  <option value="">Select Product</option>
+                  {products.map((p) => <option key={p.id} value={p.id}>{p.nameEnglish} {p.nameMalayalam ? `(${p.nameMalayalam})` : ''}</option>)}
+                </select>
+              </Field>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <Field label="Incentive Type" required>
+                  <select className="input" value={form.incentiveType} onChange={(e) => setForm((p) => ({ ...p, incentiveType: e.target.value }))}>
+                    <option value="1">Per Unit (₹)</option>
+                    <option value="2">Percentage (%)</option>
+                  </select>
+                </Field>
+                <Field label="Value" required>
+                  <input className="input" type="number" step="0.01" value={form.incentiveValue} onChange={(e) => setForm((p) => ({ ...p, incentiveValue: e.target.value }))} placeholder="e.g. 5" />
+                </Field>
+              </div>
+              <Field label="Min Quantity">
+                <input className="input" type="number" value={form.minQuantity} onChange={(e) => setForm((p) => ({ ...p, minQuantity: e.target.value }))} placeholder="e.g. 10" />
+              </Field>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <Field label="Valid From"><input className="input" type="date" value={form.validFrom} onChange={(e) => setForm((p) => ({ ...p, validFrom: e.target.value }))} /></Field>
+                <Field label="Valid To"><input className="input" type="date" value={form.validTo} onChange={(e) => setForm((p) => ({ ...p, validTo: e.target.value }))} /></Field>
+              </div>
+              <Field label="Description">
+                <input className="input" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Optional note" />
+              </Field>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button className="btn btn-outline" onClick={() => setModal(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                {saving ? <Spinner size={16} /> : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirm && (
+        <ConfirmModal
+          title="Delete Incentive" message="This will permanently delete the incentive rule."
+          danger loading={deleting}
+          onConfirm={handleDelete} onCancel={() => setConfirm(null)}
+        />
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminOrderEdit.tsx">
+// PATH: src/pages/Admin/AdminOrderEdit.tsx
+// Updated: Back button top-left, numbered remarks lines
+
+import { useEffect, useState, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  Search, Minus, Plus, Trash2, ShoppingCart, Save,
+  ChevronDown, ChevronUp, AlertTriangle, ArrowLeft, Package, X, Edit2
+} from 'lucide-react';
+import { ordersApi, productsApi, customersApi } from '../../api/services';
+import {
+  CustomerDto, OrderDetailDto, ProductDto,
+  OrderStatus, fmtNum, CreateOrderItemDto
+} from '../../types';
+import { Spinner, ConfirmModal, Alert } from '../../components/ui';
+import { useAuthStore } from '../../store/authStore';
+
+interface LineItem {
+  product: ProductDto;
+  qty: number;
+  sellingPrice: number;
+  unit: string;
+  productId: string;
+  isNew?: boolean;
+}
+
+function PriceVarianceBadge({ base, selling }: { base: number; selling: number }) {
+  if (!base || !selling) return null;
+  const diff = ((selling - base) / base) * 100;
+  const abs = Math.abs(diff).toFixed(1);
+  if (Math.abs(diff) < 0.1) return <span className="text-xs text-emerald-600">✓ At base price</span>;
+  if (diff < 0) {
+    return (
+      <span className="text-xs text-red-500 flex items-center gap-1">
+        <AlertTriangle size={11} /> {abs}% below base
+      </span>
+    );
+  }
+  return <span className="text-xs text-emerald-600">▲ +{abs}% above base</span>;
+}
+
+const ORDER_STATUS_LABELS: Record<number, string> = {
+  1: 'Draft',
+  2: 'Pending Approval',
+  3: 'Approved',
+  4: 'Packed',
+  5: 'Closed',
+};
+
+export function AdminOrderEdit() {
+  const { orderId } = useParams<{ orderId: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin';
+
+  const [order, setOrder] = useState<OrderDetailDto | null>(null);
+  const [customer, setCustomer] = useState<CustomerDto | null>(null);
+  const [products, setProducts] = useState<ProductDto[]>([]);
+  const [lines, setLines] = useState<LineItem[]>([]);
+  const [remarks, setRemarks] = useState('');
+  const [search, setSearch] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!orderId) {
+      setError('Invalid order ID');
+      setLoading(false);
+      return;
+    }
+
+    Promise.all([
+      ordersApi.getById(orderId),
+      productsApi.list(),
+    ]).then(async ([o, p]) => {
+      setOrder(o);
+      setProducts(p);
+      setRemarks(o.remarks ?? '');
+
+      if (o.customerId) {
+        try {
+          const c = await customersApi.getById(String(o.customerId));
+          setCustomer(c);
+        } catch {
+          // Customer not found
+        }
+      }
+
+      const reconstructed: LineItem[] = (o.items ?? []).map(item => {
+        const prod = p.find(pp => String(pp.id) === String(item.productId));
+        if (!prod) return null;
+        return {
+          product: prod,
+          productId: String(prod.id),
+          qty: item.quantity,
+          sellingPrice: item.sellingPrice,
+          unit: prod.productUnitName ?? 'Unit',
+        };
+      }).filter(Boolean) as LineItem[];
+      setLines(reconstructed);
+    }).catch((err) => {
+      setError(err instanceof Error ? err.message : 'Failed to load order');
+    }).finally(() => setLoading(false));
+  }, [orderId]);
+
+  const filteredProducts = products.filter(p => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      p.nameEnglish.toLowerCase().includes(q) ||
+      (p.nameMalayalam && p.nameMalayalam.toLowerCase().includes(q)) ||
+      (p.productGroupName && p.productGroupName.toLowerCase().includes(q))
+    );
+  });
+
+  const addProduct = useCallback((product: ProductDto) => {
+    setLines(prev => {
+      if (prev.find(l => l.product.id === product.id)) return prev;
+      return [...prev, {
+        product,
+        productId: String(product.id),
+        qty: 1,
+        sellingPrice: product.basePrice,
+        unit: product.productUnitName ?? 'Unit',
+        isNew: true,
+      }];
+    });
+    setSearch('');
+    setShowSearch(false);
+  }, []);
+
+  const updateQty = (productId: string, delta: number) => {
+    setLines(prev =>
+      prev.map(l => {
+        if (l.product.id !== productId) return l;
+        const newQty = l.qty + delta;
+        if (newQty < 0) return l;
+        if (newQty === 0) return null;
+        return { ...l, qty: newQty };
+      }).filter(Boolean) as LineItem[]
+    );
+  };
+
+  const setQtyDirect = (productId: string, val: string) => {
+    let n = parseInt(val, 10);
+    if (isNaN(n) || n < 0) return;
+    if (n === 0) {
+      setLines(prev => prev.filter(l => l.product.id !== productId));
+      return;
+    }
+    setLines(prev =>
+      prev.map(l =>
+        l.product.id === productId ? { ...l, qty: n } : l
+      )
+    );
+  };
+
+  const setPrice = (productId: string, val: string) => {
+    let n = parseFloat(val);
+    if (isNaN(n)) return;
+    setLines(prev => prev.map(l =>
+      l.product.id === productId ? { ...l, sellingPrice: n } : l
+    ));
+  };
+
+  const removeItem = (productId: string) => {
+    setLines(prev => prev.filter(l => l.product.id !== productId));
+  };
+
+  const totalAmount = lines.reduce((s, l) => s + l.qty * l.sellingPrice, 0);
+  const totalItems = lines.reduce((s, l) => s + l.qty, 0);
+
+  const buildPayload = () => {
+    return {
+      id: orderId,
+      customerId: String(order?.customerId),
+      routeId: String(order?.routeId),
+      orderDate: order?.orderDate || new Date().toISOString(),
+      remarks: remarks || undefined,
+      items: lines.map(l => ({
+        id: l.isNew ? undefined : l.productId,
+        productId: l.productId,
+        quantity: l.qty,
+        unitId: l.product.productUnitId,
+        sellingPrice: l.sellingPrice,
+      } as CreateOrderItemDto)),
+    };
+  };
+
+  const handleSave = async () => {
+    if (lines.length === 0) {
+      setError('Add at least one item to the order.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      await ordersApi.update(orderId!, buildPayload());
+      setSuccessMsg('Order updated successfully!');
+      setTimeout(() => {
+        navigate('/admin/orders');
+      }, 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Function to format remarks with line numbers
+  const formatRemarksWithNumbers = (text: string): string => {
+    if (!text) return '';
+    const lines = text.split(/\r?\n/);
+    return lines.map((line, index) => {
+      const trimmedLine = line.trim();
+      if (trimmedLine === '') return '';
+      return `${index + 1}. ${trimmedLine}`;
+    }).filter(line => line !== '').join('\n');
+  };
+
+  // Handle remarks change - preserve raw input but show numbered preview
+  const handleRemarksChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setRemarks(e.target.value);
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <Spinner />
+    </div>
+  );
+
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-6">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 mb-4">
+          Order not found.
+        </div>
+        <button className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50" onClick={() => navigate('/admin/orders')}>
+          ← Back to Orders
+        </button>
+      </div>
+    );
+  }
+
+  const orderStatus = order.status;
+  const isClosed = orderStatus === OrderStatus.Closed;
+  const canEdit = orderStatus === OrderStatus.Draft || 
+                  orderStatus === OrderStatus.PendingApproval || 
+                  orderStatus === OrderStatus.Approved;
+
+  if (!canEdit) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-6">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 mb-4">
+          Cannot edit order in '{ORDER_STATUS_LABELS[orderStatus]}' status. 
+          Only Draft, Pending Approval, or Approved orders can be edited.
+        </div>
+        <button className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50" onClick={() => navigate('/admin/orders')}>
+          ← Back to Orders
+        </button>
+      </div>
+    );
+  }
+
+  const formattedRemarksPreview = formatRemarksWithNumbers(remarks);
+
+  return (
+    <div className="min-h-screen bg-slate-50 pb-32">
+      {/* Header - Fixed position with back button on left */}
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-6 py-3 shadow-sm">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-between">
+            {/* Back button - left corner */}
+            <button
+              onClick={() => navigate('/admin/orders')}
+              className="flex items-center gap-2 text-slate-500 hover:text-blue-600 text-sm transition-colors"
+            >
+              <ArrowLeft size={18} />
+              <span>Back to Orders</span>
+            </button>
+
+            {/* Title and status - centered */}
+            <div className="text-center">
+              <h1 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Edit2 size={16} className="text-blue-500" />
+                Edit Order
+              </h1>
+              <p className="text-xs text-slate-500">
+                {customer?.nameEnglish ?? order.customerName} · Order #{String(order.id).slice(0, 8)}
+              </p>
+            </div>
+
+            {/* Status badge - right */}
+            {(orderStatus === OrderStatus.PendingApproval || orderStatus === OrderStatus.Approved) && (
+              <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
+                {ORDER_STATUS_LABELS[orderStatus]}
+              </span>
+            )}
+            {orderStatus === OrderStatus.Draft && (
+              <div className="w-20"></div>
+            )}
+          </div>
+
+          {/* Warning banner for non-draft orders */}
+          {orderStatus !== OrderStatus.Draft && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs mt-3">
+              <AlertTriangle size={14} />
+              Order is in {ORDER_STATUS_LABELS[orderStatus]} status. Editing will update it.
+            </div>
+          )}
+
+          {/* Search bar */}
+          <button
+            onClick={() => setShowSearch(!showSearch)}
+            className="w-full flex items-center gap-3 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-left hover:bg-slate-100 transition-colors mt-3"
+          >
+            <Search size={16} className="text-slate-400" />
+            <span className="flex-1 text-slate-500 text-sm">Add product to order...</span>
+            {showSearch && <X size={14} className="text-slate-400" onClick={(e) => { e.stopPropagation(); setShowSearch(false); }} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-5xl mx-auto px-6 py-6">
+        {/* Error/Success messages */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between">
+            <span className="text-sm text-red-700">{error}</span>
+            <button onClick={() => setError('')} className="text-red-400 hover:text-red-600">✕</button>
+          </div>
+        )}
+        {successMsg && (
+          <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
+            <span className="text-sm text-emerald-700">✓ {successMsg}</span>
+            <button onClick={() => setSuccessMsg('')} className="text-emerald-400 hover:text-emerald-600">✕</button>
+          </div>
+        )}
+
+        {/* Product search panel */}
+        {showSearch && (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-lg mb-6 overflow-hidden">
+            <div className="p-4 border-b border-slate-100">
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  placeholder="Search product by name or group..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="max-h-96 overflow-y-auto divide-y divide-slate-100">
+              {filteredProducts.slice(0, 30).map(p => {
+                const alreadyAdded = lines.some(l => l.product.id === p.id);
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => !alreadyAdded && addProduct(p)}
+                    disabled={alreadyAdded}
+                    className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${
+                      alreadyAdded ? 'opacity-50 cursor-not-allowed bg-slate-50' : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-slate-800">{p.nameEnglish}</p>
+                      {p.nameMalayalam && (
+                        <p className="text-xs text-slate-400 mt-0.5" lang="ml">{p.nameMalayalam}</p>
+                      )}
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {p.productGroupName || 'General'} · {p.productUnitName || 'Unit'}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0 ml-4">
+                      <p className="text-sm font-semibold text-emerald-600">₹{fmtNum(p.basePrice)}</p>
+                      {alreadyAdded && <p className="text-xs text-blue-500 mt-0.5">Already added</p>}
+                    </div>
+                  </button>
+                );
+              })}
+              {filteredProducts.length === 0 && (
+                <div className="text-center py-12">
+                  <Package size={32} className="mx-auto text-slate-300 mb-2" />
+                  <p className="text-sm text-slate-400">No products found</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Line items */}
+        {lines.length === 0 && !showSearch && (
+          <div className="bg-white rounded-2xl border border-slate-200 text-center py-16">
+            <ShoppingCart size={48} className="mx-auto text-slate-300 mb-3" />
+            <p className="text-slate-500">No items in this order</p>
+            <p className="text-xs text-slate-400 mt-1">Click the search bar above to add products</p>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {lines.map(line => {
+            const isExpanded = expandedProduct === line.product.id;
+            const variance = line.product.basePrice
+              ? ((line.sellingPrice - line.product.basePrice) / line.product.basePrice) * 100
+              : 0;
+            const hasNegativeVariance = variance < -0.1;
+
+            return (
+              <div
+                key={line.product.id}
+                className={`bg-white rounded-2xl border transition-all hover:shadow-md ${
+                  hasNegativeVariance ? 'border-red-200 bg-red-50/5' : 'border-slate-200'
+                }`}
+              >
+                <div className="p-5">
+                  {/* Product Header */}
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <h3 className="font-semibold text-slate-800 text-lg">{line.product.nameEnglish}</h3>
+                        <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} />
+                      </div>
+                      {line.product.nameMalayalam && (
+                        <p className="text-sm text-slate-400 mt-1" lang="ml">{line.product.nameMalayalam}</p>
+                      )}
+                      <p className="text-xs text-slate-400 mt-1">
+                        {line.product.productGroupName || 'General'} · {line.unit}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setExpandedProduct(isExpanded ? null : line.product.id)}
+                        className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                        title={isExpanded ? 'Show less' : 'Show more'}
+                      >
+                        {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      </button>
+                      <button
+                        onClick={() => setShowDeleteConfirm(line.product.id)}
+                        className="p-2 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        title="Remove item"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Quantity and Price Controls */}
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2 bg-slate-50 rounded-xl p-1">
+                      <button
+                        onClick={() => updateQty(line.product.id, -1)}
+                        className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:bg-white hover:text-slate-700 transition-colors"
+                      >
+                        <Minus size={16} />
+                      </button>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        value={line.qty}
+                        onChange={e => setQtyDirect(line.product.id, e.target.value)}
+                        className="w-16 text-center text-lg font-semibold bg-transparent text-slate-800 focus:outline-none"
+                      />
+                      <button
+                        onClick={() => updateQty(line.product.id, 1)}
+                        className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:bg-white hover:text-slate-700 transition-colors"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+
+                    <span className="text-sm text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg">{line.unit}</span>
+
+                    <div className="flex items-center gap-2 border border-slate-200 rounded-xl px-3 py-2 bg-white focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
+                      <span className="text-slate-400 text-sm font-medium">₹</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={line.sellingPrice > 0 ? line.sellingPrice : ''}
+                        onChange={e => setPrice(line.product.id, e.target.value)}
+                        placeholder={String(line.product.basePrice ?? 0)}
+                        className="w-24 bg-transparent text-slate-800 text-base font-medium focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="ml-auto text-right">
+                      <p className="text-xl font-bold text-emerald-600">₹{fmtNum(line.qty * line.sellingPrice)}</p>
+                      <p className="text-xs text-slate-400">total</p>
+                    </div>
+                  </div>
+
+                  {/* Expanded details */}
+                  {isExpanded && (
+                    <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <div className="bg-slate-50 rounded-xl p-3">
+                        <span className="text-xs text-slate-400 block">Base Price</span>
+                        <p className="font-semibold text-slate-800 mt-0.5">₹{fmtNum(line.product.basePrice)}</p>
+                      </div>
+                      <div className="bg-slate-50 rounded-xl p-3">
+                        <span className="text-xs text-slate-400 block">Variance</span>
+                        <p className={`font-semibold mt-0.5 ${variance < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                          {variance >= 0 ? '+' : ''}{variance.toFixed(1)}%
+                        </p>
+                      </div>
+                      <div className="bg-slate-50 rounded-xl p-3">
+                        <span className="text-xs text-slate-400 block">Unit</span>
+                        <p className="font-semibold text-slate-800 mt-0.5">{line.unit}</p>
+                      </div>
+                      <div className="bg-slate-50 rounded-xl p-3">
+                        <span className="text-xs text-slate-400 block">Line Total</span>
+                        <p className="font-semibold text-slate-800 mt-0.5">{line.qty} × ₹{fmtNum(line.sellingPrice)}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Remarks section with numbered preview */}
+        {lines.length > 0 && (
+          <div className="mt-6 bg-white rounded-2xl border border-slate-200 p-5">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Retail Items <span className="text-xs font-normal text-slate-400">(Enter one item per line)</span>
+            </label>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Input area */}
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Enter items:</p>
+                <textarea
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-y font-mono"
+                  rows={8}
+                  placeholder={`Savala - 10 kg
+Colli - 10 kg
+Waz - 24 pieces
+Duocsu - 24 units
+Salt - 25 kg
+Sugar - 50 kg`}
+                  value={remarks}
+                  onChange={handleRemarksChange}
+                />
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-xs text-slate-400">
+                    Press Enter for new line
+                  </p>
+                  <p className={`text-xs ${remarks.length > 1000 ? 'text-amber-500' : 'text-slate-400'}`}>
+                    {remarks.length}/1000 characters
+                  </p>
+                </div>
+              </div>
+
+              {/* Numbered preview */}
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Preview (with line numbers):</p>
+                <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono whitespace-pre-wrap min-h-[200px] max-h-[250px] overflow-y-auto">
+                  {formattedRemarksPreview || <span className="text-slate-300 italic">No items entered yet</span>}
+                </div>
+                <p className="text-xs text-slate-400 mt-2">
+                  These items will appear in the order's remarks section
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Fixed bottom footer */}
+      {lines.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg px-6 py-4 z-30">
+          <div className="max-w-5xl mx-auto flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <p className="text-sm text-slate-500">{lines.length} products · {totalItems} units</p>
+              <p className="text-2xl font-bold text-emerald-600">₹{fmtNum(totalAmount)}</p>
+            </div>
+            <button
+              onClick={handleSave}
+              disabled={saving || lines.length === 0}
+              className="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            >
+              <Save size={18} />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      <ConfirmModal
+        open={!!showDeleteConfirm}
+        title="Remove Item"
+        message="Are you sure you want to remove this item from the order?"
+        confirmLabel="Remove"
+        danger={true}
+        onConfirm={() => {
+          if (showDeleteConfirm) {
+            removeItem(showDeleteConfirm);
+            setShowDeleteConfirm(null);
+          }
+        }}
+        onCancel={() => setShowDeleteConfirm(null)}
+      />
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminOrders.tsx">
+// PATH: src/pages/Admin/AdminOrders.tsx
+// UPDATED: Fixed modal z-index, changed button logic for Approved vs Closed orders
+
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  ShoppingCart, RefreshCw, CheckCircle, Search, Send, Calendar, 
+  Package, Eye, Edit2, User, Clock, ChevronRight, Filter, X, List, Globe
+} from 'lucide-react';
+import { ordersApi, routesApi } from '../../api/services';
+import type { OrderDto, RouteDto, OrderDetailDto, CustomerOrderHistoryDto } from '../../types';
+import { OrderStatus, ORDER_STATUS_LABELS, fmt, fmtDate } from '../../types';
+import { PageLoader, Spinner, Alert, Badge, EmptyState } from '../../components/ui';
+
+export function AdminOrders() {
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState<OrderDto[]>([]);
+  const [routes, setRoutes] = useState<RouteDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [routeFilter, setRouteFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const [submitting, setSubmitting] = useState<string | null>(null);
+  const [closing, setClosing] = useState<string | null>(null);
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [previousOrders, setPreviousOrders] = useState<Record<string, CustomerOrderHistoryDto[]>>({});
+  const [loadingHistory, setLoadingHistory] = useState<Record<string, boolean>>({});
+  const [reviewOrder, setReviewOrder] = useState<OrderDetailDto | null>(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [loadingReview, setLoadingReview] = useState(false);
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  useEffect(() => {
+    if (dateFilter === '') {
+      setDateFilter(today);
+    }
+  }, []);
+
+  async function load() {
+    setLoading(true); setError('');
+    try {
+      let allOrders: OrderDto[] = [];
+      
+      if (!routeFilter || routeFilter === 'all') {
+        const routePromises = routes.map(route => 
+          ordersApi.getByRoute(String(route.id), statusFilter !== '' ? parseInt(statusFilter) : undefined)
+            .catch(() => [])
+        );
+        const results = await Promise.all(routePromises);
+        allOrders = results.flat();
+      } else {
+        const status = statusFilter !== '' ? parseInt(statusFilter) : undefined;
+        allOrders = await ordersApi.getByRoute(routeFilter, status);
+      }
+      
+      let filteredOrders = allOrders;
+      if (dateFilter) {
+        filteredOrders = allOrders.filter(order => 
+          order.orderDate?.startsWith(dateFilter)
+        );
+      }
+      filteredOrders.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
+      setOrders(filteredOrders);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Load failed');
+    } finally { setLoading(false); }
+  }
+
+  async function loadRoutes() {
+    try {
+      const r = await routesApi.getAll();
+      setRoutes(r);
+      setRouteFilter('all');
+    } catch (err) {
+      setError('Failed to load routes');
+    }
+  }
+
+  useEffect(() => { loadRoutes(); }, []);
+  useEffect(() => { load(); }, [routeFilter, statusFilter, dateFilter]);
+
+  async function handleSubmit(orderId: string) {
+    setSubmitting(orderId); setError('');
+    try {
+      await ordersApi.submit(orderId);
+      setShowReviewModal(false);
+      setReviewOrder(null);
+      await load();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Submit failed';
+      setError(msg);
+      alert(msg);
+    } finally { setSubmitting(null); }
+  }
+
+  async function handleClose(orderId: string) {
+    setClosing(orderId); setError('');
+    try {
+      await ordersApi.close(orderId);
+      await load();
+      setShowReviewModal(false);
+      setReviewOrder(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Close failed');
+    } finally { setClosing(null); }
+  }
+
+  async function loadPreviousOrders(customerId: string, orderId: string) {
+    if (previousOrders[orderId]) {
+      setExpandedOrder(expandedOrder === orderId ? null : orderId);
+      return;
+    }
+    
+    setLoadingHistory(prev => ({ ...prev, [orderId]: true }));
+    try {
+      const history = await ordersApi.getCustomerHistory(customerId, 3);
+      setPreviousOrders(prev => ({ ...prev, [orderId]: history.filter(h => h.orderId !== orderId) }));
+      setExpandedOrder(orderId);
+    } catch (err) {
+      console.error('Failed to load history', err);
+    } finally {
+      setLoadingHistory(prev => ({ ...prev, [orderId]: false }));
+    }
+  }
+
+  function calculateOrderDetailFromOrder(order: OrderDto): OrderDetailDto {
+    const items = order.items || [];
+    const totalBasePrice = items.reduce((sum, item) => sum + (item.basePrice || 0) * item.quantity, 0);
+    const totalSelling = items.reduce((sum, item) => sum + (item.sellingPrice || 0) * item.quantity, 0);
+    const totalVariance = totalSelling - totalBasePrice;
+    const variancePct = totalBasePrice > 0 ? (totalVariance / totalBasePrice) * 100 : 0;
+    
+    return {
+      id: order.id,
+      customerId: order.customerId,
+      customerName: order.customerName,
+      customerNameMalayalam: order.customerNameMalayalam,
+      routeId: order.routeId,
+      routeName: order.routeName,
+      salesmanId: order.salesmanId,
+      salesmanName: order.salesmanName,
+      status: order.status,
+      orderDate: order.orderDate,
+      totalAmount: order.totalAmount,
+      totalVariance: order.totalVariance ?? totalVariance,
+      totalQuantity: order.totalQuantity ?? 0,
+      itemCount: order.itemCount ?? items.length,
+      createdDate: order.createdDate,
+      remarks: order.remarks,
+      items: items,
+      totalBasePrice: totalBasePrice,
+      totalSelling: totalSelling,
+      variancePct: variancePct,
+    };
+  }
+
+  async function handleReviewOrder(orderId: string) {
+    setLoadingReview(true);
+    try {
+      const orderDetail = await ordersApi.getById(orderId);
+      
+      if (!orderDetail.items) {
+        orderDetail.items = [];
+      }
+      
+      if (orderDetail.totalBasePrice === undefined) {
+        const items = orderDetail.items;
+        orderDetail.totalBasePrice = items.reduce((sum, item) => sum + (item.basePrice || 0) * item.quantity, 0);
+        orderDetail.totalSelling = items.reduce((sum, item) => sum + (item.sellingPrice || 0) * item.quantity, 0);
+        orderDetail.totalVariance = orderDetail.totalSelling - orderDetail.totalBasePrice;
+        orderDetail.variancePct = orderDetail.totalBasePrice > 0 ? (orderDetail.totalVariance / orderDetail.totalBasePrice) * 100 : 0;
+      }
+      
+      setReviewOrder(orderDetail);
+      setShowReviewModal(true);
+    } catch (err) {
+      console.error('Failed to load order details:', err);
+      setError('Failed to load order details. Please try again.');
+      
+      const existingOrder = orders.find(o => String(o.id) === orderId);
+      if (existingOrder) {
+        const fallbackDetail = calculateOrderDetailFromOrder(existingOrder);
+        setReviewOrder(fallbackDetail);
+        setShowReviewModal(true);
+      }
+    } finally {
+      setLoadingReview(false);
+    }
+  }
+
+  function handleEditOrder(orderId: string, customerId: string) {
+    navigate(`/admin/orders/${orderId}/edit`, { 
+      state: { orderId, customerId, routeId: routeFilter === 'all' ? undefined : routeFilter }
+    });
+  }
+
+  const ordersByDate = orders.reduce((acc, order) => {
+    const date = order.orderDate?.split('T')[0] || 'Unknown';
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(order);
+    return acc;
+  }, {} as Record<string, OrderDto[]>);
+
+  const totalRevenue = orders.reduce((s, o) => s + (o.totalAmount ?? 0), 0);
+  const draftCount = orders.filter(o => o.status === OrderStatus.Draft).length;
+  const pendingApprovalCount = orders.filter(o => o.status === OrderStatus.PendingApproval).length;
+  const approvedCount = orders.filter(o => o.status === OrderStatus.Approved).length;
+  const packedCount = orders.filter(o => o.status === OrderStatus.Packed).length;
+  const closedCount = orders.filter(o => o.status === OrderStatus.Closed).length;
+
+  const filteredOrdersByDate = Object.entries(ordersByDate).reduce((acc, [date, dateOrders]) => {
+    const filtered = dateOrders.filter(o => 
+      search ? o.customerName?.toLowerCase().includes(search.toLowerCase()) : true
+    );
+    if (filtered.length > 0) acc[date] = filtered;
+    return acc;
+  }, {} as Record<string, OrderDto[]>);
+
+  const getSelectedRouteName = () => {
+    if (routeFilter === 'all') return 'All Orders';
+    const route = routes.find(r => String(r.id) === routeFilter);
+    return route?.name || 'Select Route';
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 pb-24">
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-5 py-4 shadow-sm">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
+            <div>
+              <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <ShoppingCart size={22} className="text-blue-600" />
+                Orders
+              </h1>
+              <p className="text-sm text-slate-500 mt-0.5">
+                {orders.length} orders · {fmt(totalRevenue)} total
+              </p>
+            </div>
+            <button 
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+              onClick={load}
+            >
+              <RefreshCw size={14} />
+              Refresh
+            </button>
+          </div>
+
+          {/* Workflow Banner */}
+          <div className="flex items-center gap-2 flex-wrap p-2.5 rounded-xl bg-blue-50 border border-blue-100 text-xs text-blue-700">
+            <Send size={12} />
+            <span className="font-medium">Workflow:</span>
+            <span>Salesman saves → <strong>Draft</strong></span>
+            <ChevronRight size={10} />
+            <span>Salesman submits → <strong>Pending Approval</strong></span>
+            <ChevronRight size={10} />
+            <span>Admin approves → <strong>Approved</strong></span>
+            <ChevronRight size={10} />
+            <span>Warehouse packs → <strong>Packed</strong></span>
+            <ChevronRight size={10} />
+            <span>Admin closes → <strong>Closed</strong></span>
+          </div>
+
+          {/* Stats Chips */}
+          <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+            <div className="shrink-0 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm">
+              <span className="text-xs text-slate-500">Total</span>
+              <span className="ml-1 font-semibold text-slate-700">{orders.length}</span>
+            </div>
+            <div className="shrink-0 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+              <span className="text-xs text-amber-600">Draft</span>
+              <span className="ml-1 font-semibold text-amber-700">{draftCount}</span>
+            </div>
+            <div className="shrink-0 bg-purple-50 border border-purple-200 rounded-lg px-3 py-1.5">
+              <span className="text-xs text-purple-600">Pending Approval</span>
+              <span className="ml-1 font-semibold text-purple-700">{pendingApprovalCount}</span>
+            </div>
+            <div className="shrink-0 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
+              <span className="text-xs text-blue-600">Approved/Packed</span>
+              <span className="ml-1 font-semibold text-blue-700">{approvedCount + packedCount}</span>
+            </div>
+            <div className="shrink-0 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5">
+              <span className="text-xs text-emerald-600">Closed</span>
+              <span className="ml-1 font-semibold text-emerald-700">{closedCount}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-5 py-5">
+        {error && <Alert variant="error">{error}</Alert>}
+
+        {/* Filters Row */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-sm">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 text-slate-500 text-sm">
+              <Filter size={14} />
+              <span className="font-medium">Filters:</span>
+            </div>
+            <select 
+              className="border-slate-200 rounded-xl px-3 py-2 text-sm bg-white min-w-[180px] border"
+              value={routeFilter} 
+              onChange={(e) => setRouteFilter(e.target.value)}
+            >
+              <option value="all">🌍 All Orders</option>
+              {routes.map((r) => (
+                <option key={r.id} value={r.id}>📍 {r.name}</option>
+              ))}
+            </select>
+            <select 
+              className="border-slate-200 rounded-xl px-3 py-2 text-sm bg-white min-w-[140px] border"
+              value={statusFilter} 
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              <option value="1">Draft</option>
+              <option value="2">Pending Approval</option>
+              <option value="3">Approved</option>
+              <option value="4">Packed</option>
+              <option value="5">Closed</option>
+            </select>
+            <input 
+              type="date" 
+              className="border-slate-200 rounded-xl px-3 py-2 text-sm bg-white min-w-[160px] border"
+              value={dateFilter} 
+              onChange={(e) => setDateFilter(e.target.value)}
+            />
+            <div className="flex-1 min-w-[200px] relative">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input 
+                className="w-full pl-9 border-slate-200 rounded-xl py-2 text-sm bg-white border"
+                value={search} 
+                onChange={(e) => setSearch(e.target.value)} 
+                placeholder="Search customer..." 
+              />
+              {search && (
+                <button 
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center gap-2">
+            <Globe size={12} className="text-blue-500" />
+            <span className="text-xs text-slate-500">Showing:</span>
+            <span className="text-xs font-medium text-slate-700">{getSelectedRouteName()}</span>
+            {routeFilter !== 'all' && routes.length > 0 && (
+              <button 
+                onClick={() => setRouteFilter('all')}
+                className="text-xs text-blue-500 hover:text-blue-700 ml-2"
+              >
+                View All Orders
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Orders List */}
+        {loading ? <PageLoader /> : (
+          Object.keys(filteredOrdersByDate).length === 0 ? (
+            <EmptyState
+              title={routeFilter === 'all' ? 'No orders found' : (routeFilter ? 'No orders found' : 'Select a route')}
+              message={routeFilter === 'all' ? 'No orders match your filters across any route.' : (routeFilter ? 'No orders match your filters.' : 'Choose a route to view its orders.')}
+              icon={ShoppingCart}
+            />
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(filteredOrdersByDate)
+                .sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime())
+                .map(([date, dateOrders]) => (
+                  <div key={date}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Calendar size={16} className="text-blue-500" />
+                      <h3 className="text-sm font-semibold text-slate-700">
+                        {new Date(date).toLocaleDateString('en-IN', { 
+                          weekday: 'long', 
+                          day: 'numeric', 
+                          month: 'long', 
+                          year: 'numeric' 
+                        })}
+                      </h3>
+                      <span className="text-xs text-slate-400">({dateOrders.length} orders)</span>
+                    </div>
+
+                    <div className="space-y-3">
+                      {dateOrders.map((order) => {
+                        const itemCount = order.items?.length ?? 0;
+                        const totalUnits = order.items?.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
+                        const isExpanded = expandedOrder === String(order.id);
+                        const isEditable = order.status === OrderStatus.Draft || 
+                                          order.status === OrderStatus.PendingApproval ||
+                                          order.status === OrderStatus.Approved;
+                        const isClosable = order.status === OrderStatus.Approved || order.status === OrderStatus.Packed;
+                        
+                        return (
+                          <div key={order.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                            {/* Order Header */}
+                            <div className="p-5 border-b border-slate-100">
+                              <div className="flex items-start justify-between flex-wrap gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <User size={14} className="text-blue-600" />
+                                      </div>
+                                      <h4 className="font-semibold text-slate-800 truncate">{order.customerName}</h4>
+                                    </div>
+                                    <Badge variant={
+                                      order.status === OrderStatus.Closed ? 'green' :
+                                      order.status === OrderStatus.Approved || order.status === OrderStatus.Packed ? 'blue' :
+                                      order.status === OrderStatus.PendingApproval ? 'primary' : 'amber'
+                                    }>
+                                      {ORDER_STATUS_LABELS[order.status]}
+                                    </Badge>
+                                    {routeFilter === 'all' && order.routeName && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-xs text-slate-500">
+                                        <Globe size={10} />
+                                        {order.routeName}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-slate-400 font-mono">
+                                    Order #{String(order.id).slice(0, 8)} · {fmtDate(order.orderDate)} at {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                  </p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-xl font-bold text-emerald-600">{fmt(order.totalAmount)}</p>
+                                  <p className="text-xs text-slate-400">{itemCount} items · {totalUnits} units</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Order Items Preview */}
+                            {order.items && order.items.length > 0 && (
+                              <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/30">
+                                <div className="flex flex-wrap gap-2">
+                                  {order.items.slice(0, 3).map((item, idx) => (
+                                    <div key={idx} className="flex items-center gap-1 text-xs bg-white px-2 py-1 rounded-full border border-slate-200">
+                                      <Package size={10} className="text-slate-400" />
+                                      <span className="text-slate-600">{item.productName}</span>
+                                      <span className="text-slate-400">({item.quantity})</span>
+                                    </div>
+                                  ))}
+                                  {order.items.length > 3 && (
+                                    <span className="text-xs text-blue-500 px-2 py-1">+{order.items.length - 3} more</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Action Buttons */}
+                            <div className="px-5 py-3 flex flex-wrap justify-end gap-2">
+                              <button
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                                onClick={() => handleReviewOrder(String(order.id))}
+                                disabled={loadingReview}
+                              >
+                                <Eye size={13} />
+                                Review
+                              </button>
+
+                              {/* Show Edit button for Draft, PendingApproval, and Approved orders */}
+                              {isEditable && (
+                                <button
+                                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+                                  onClick={() => handleEditOrder(String(order.id), String(order.customerId))}
+                                >
+                                  <Edit2 size={13} />
+                                  Edit Order
+                                </button>
+                              )}
+
+                              {/* Show Close button only for Approved or Packed orders */}
+                              {isClosable && (
+                                <button
+                                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                                  onClick={() => handleClose(String(order.id))}
+                                  disabled={closing === String(order.id)}
+                                >
+                                  {closing === String(order.id) ? <Spinner size={13} /> : <CheckCircle size={13} />}
+                                  Close Order
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Previous Orders History Toggle */}
+                            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/20">
+                              <button
+                                onClick={() => loadPreviousOrders(String(order.customerId), String(order.id))}
+                                className="flex items-center gap-2 text-xs text-blue-500 hover:text-blue-700 transition-colors"
+                              >
+                                {loadingHistory[String(order.id)] ? (
+                                  <Spinner size={12} />
+                                ) : (
+                                  <Clock size={12} />
+                                )}
+                                {isExpanded ? 'Hide previous orders' : 'Show previous orders (last 3)'}
+                              </button>
+                              
+                              {isExpanded && previousOrders[String(order.id)] && (
+                                <div className="mt-3 space-y-2">
+                                  {previousOrders[String(order.id)].length === 0 ? (
+                                    <p className="text-xs text-slate-400 italic">No previous orders found</p>
+                                  ) : (
+                                    previousOrders[String(order.id)].map((prevOrder, idx) => (
+                                      <div key={idx} className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                                        <div className="flex justify-between items-start flex-wrap gap-2">
+                                          <div>
+                                            <p className="text-xs font-semibold text-slate-600">
+                                              {idx === 0 ? '📋 Most recent' : `${idx + 1} order${idx > 0 ? 's' : ''} ago`}
+                                            </p>
+                                            <p className="text-xs text-slate-400 mt-0.5">
+                                              {fmtDate(prevOrder.orderDate)} · {prevOrder.itemCount} items
+                                            </p>
+                                          </div>
+                                          <p className="text-sm font-semibold text-emerald-600">{fmt(prevOrder.totalAmount)}</p>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1 mt-2">
+                                          {prevOrder.items.slice(0, 3).map((item, i) => (
+                                            <span key={i} className="text-xs text-slate-500 bg-white px-2 py-0.5 rounded-full border border-slate-200">
+                                              {item.productName} ({item.quantity})
+                                            </span>
+                                          ))}
+                                          {prevOrder.items.length > 3 && (
+                                            <span className="text-xs text-blue-400">+{prevOrder.items.length - 3} more</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )
+        )}
+      </div>
+
+      {/* Review Order Modal - Fixed z-index issue */}
+      {showReviewModal && reviewOrder && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" 
+          onClick={() => setShowReviewModal(false)}
+          style={{ zIndex: 9999 }}
+        >
+          <div 
+            className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-xl" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ marginTop: 0 }}
+          >
+            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Eye size={18} className="text-blue-500" />
+                Review Order
+              </h3>
+              <button className="p-1 rounded-lg hover:bg-slate-100 transition-colors" onClick={() => setShowReviewModal(false)}>
+                <X size={18} className="text-slate-400" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <p className="text-base font-semibold text-slate-800">{reviewOrder.customerName}</p>
+                <p className="text-xs text-slate-400 font-mono mt-0.5">
+                  Order #{String(reviewOrder.id).slice(0, 8)} · {fmtDate(reviewOrder.orderDate)}
+                </p>
+                <div className="mt-2">
+                  <Badge variant={
+                    reviewOrder.status === OrderStatus.Closed ? 'green' :
+                    reviewOrder.status === OrderStatus.Approved || reviewOrder.status === OrderStatus.Packed ? 'blue' :
+                    reviewOrder.status === OrderStatus.PendingApproval ? 'primary' : 'amber'
+                  }>
+                    {ORDER_STATUS_LABELS[reviewOrder.status]}
+                  </Badge>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                  <Package size={14} />
+                  Items ({reviewOrder.items?.length ?? 0})
+                </h4>
+                
+                {reviewOrder.items && reviewOrder.items.length > 0 ? (
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
+                    {reviewOrder.items.map((item, idx) => (
+                      <div key={idx} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-slate-800">{item.productName}</p>
+                          <p className="text-xs text-slate-400">
+                            {item.quantity} {item.unitSymbol || 'unit'} × {fmt(item.sellingPrice)}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold text-emerald-600 ml-4">{fmt(item.sellingPrice * item.quantity)}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
+                    <List size={32} className="mx-auto text-slate-300 mb-2" />
+                    <p className="text-sm text-slate-400">No items in this order</p>
+                    <p className="text-xs text-slate-300 mt-1">Click Edit Order to add products</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-slate-200 pt-3 space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Total Items:</span>
+                  <span className="font-medium text-slate-700">{reviewOrder.items?.length ?? 0}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Total Units:</span>
+                  <span className="font-medium text-slate-700">{reviewOrder.totalQuantity ?? 0}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Base Price:</span>
+                  <span className="font-medium text-slate-700">{fmt(reviewOrder.totalBasePrice)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Variance:</span>
+                  <span className={`font-medium ${reviewOrder.totalVariance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {fmt(reviewOrder.totalVariance)} ({reviewOrder.variancePct?.toFixed(1)}%)
+                  </span>
+                </div>
+                <div className="flex justify-between text-lg pt-2 border-t border-slate-200">
+                  <span className="font-semibold text-slate-800">Grand Total:</span>
+                  <span className="font-bold text-emerald-600">{fmt(reviewOrder.totalAmount)}</span>
+                </div>
+              </div>
+
+              {reviewOrder.remarks && (
+                <div className="bg-amber-50 rounded-xl p-3 border border-amber-200">
+                  <p className="text-xs font-medium text-amber-700 mb-1">📝 Remarks</p>
+                  <p className="text-sm text-amber-800">{reviewOrder.remarks}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4 flex gap-3 justify-end">
+              
+              
+              {/* Show Edit button for Draft, PendingApproval, and Approved orders */}
+              {(reviewOrder.status === OrderStatus.Draft || 
+                reviewOrder.status === OrderStatus.PendingApproval || 
+                reviewOrder.status === OrderStatus.Approved) && (
+                <button 
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+                  onClick={() => handleEditOrder(String(reviewOrder.id), String(reviewOrder.customerId))}
+                >
+                  <Edit2 size={14} />
+                  Edit Order
+                </button>
+              )}
+              
+              {/* Show Close button only for Approved or Packed orders */}
+              {(reviewOrder.status === OrderStatus.Approved || reviewOrder.status === OrderStatus.Packed) && (
+                <button 
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                  onClick={() => handleClose(String(reviewOrder.id))}
+                  disabled={closing === String(reviewOrder.id)}
+                >
+                  {closing === String(reviewOrder.id) ? <Spinner size={14} /> : <CheckCircle size={14} />}
+                  Close Order
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminProducts.tsx">
+// PATH: src/pages/Admin/AdminProducts.tsx
+// Kyte-style redesign:
+//  • Product cards in a responsive grid (icon, name, group, price badge, unit)
+//  • Inline slide-down Add Product form (Kyte "+ Product" pattern)
+//  • Edit in right slide-out panel
+//  • Price update and history in focused modals
+//  • NEW: Unit Price Manager button for per-unit pricing
+
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  Plus, Edit2, Trash2, Package, Search, RefreshCw,
+  IndianRupee, History, X, Save, TrendingUp, TrendingDown, DollarSign,
+} from 'lucide-react';
+import { productsApi, productGroupsApi, unitsApi } from '../../api/services';
+import type { ProductDto, ProductGroupDto, UnitDto, PriceHistoryDto } from '../../types';
+import { fmt, fmtDate } from '../../types';
+import { PageLoader, Spinner, Alert, ConfirmModal } from '../../components/ui';
+import { ProductUnitPriceManager } from '../../components/admin/ProductUnitPriceManager';
+
+// ── Product icon tile ────────────────────────────────────────
+function ProductTile({ name }: { name: string }) {
+  const colors = ['#2563EB', '#1E3A8A', '#7C3AED', '#0891B2', '#D97706', '#16A34A'];
+  const color  = colors[name.charCodeAt(0) % colors.length];
+  return (
+    <div style={{
+      width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+      background: `${color}12`, border: `1px solid ${color}22`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <Package size={24} color={color} strokeWidth={1.8} />
+    </div>
+  );
+}
+
+// ── Reusable input helpers ───────────────────────────────────
+const inp: React.CSSProperties = {
+  width: '100%', padding: '11px 14px',
+  background: '#F8FAFC', border: '1px solid #E2E8F0',
+  borderRadius: 10, fontSize: 14, color: '#334155',
+  outline: 'none', fontFamily: 'inherit',
+  boxSizing: 'border-box', transition: 'all 0.15s',
+};
+function onFoc(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+  e.target.style.borderColor = '#2563EB';
+  e.target.style.boxShadow   = '0 0 0 3px rgba(37,99,235,0.10)';
+  (e.target as HTMLElement).style.background = '#fff';
+}
+function onBlr(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+  e.target.style.borderColor = '#E2E8F0';
+  e.target.style.boxShadow   = 'none';
+  (e.target as HTMLElement).style.background = '#F8FAFC';
+}
+
+// ── Product Card ─────────────────────────────────────────────
+function ProductCard({
+  product, onEdit, onPrice, onHistory, onDelete, onUnitPrices,
+}: {
+  product:      ProductDto;
+  onEdit:       () => void;
+  onPrice:      () => void;
+  onHistory:    () => void;
+  onDelete:     () => void;
+  onUnitPrices: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: `1px solid ${hovered ? 'rgba(37,99,235,0.25)' : '#E2E8F0'}`,
+        borderRadius: 14, padding: '18px 18px 14px',
+        transition: 'all 0.18s',
+        boxShadow: hovered ? '0 4px 20px rgba(37,99,235,0.08)' : '0 1px 3px rgba(15,23,42,0.05)',
+        position: 'relative' as const,
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Status dot */}
+      <div style={{ position: 'absolute', top: 14, right: 14, width: 8, height: 8, borderRadius: '50%', background: product.isActive ? '#16A34A' : '#94A3B8' }} title={product.isActive ? 'Active' : 'Inactive'} />
+
+      {/* Icon + name */}
+      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 14 }}>
+        <ProductTile name={product.nameEnglish} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 2 }}>
+            {product.nameEnglish}
+          </div>
+          {product.nameMalayalam && (
+            <div style={{ fontSize: 12, color: '#64748B', fontFamily: "'Manjari', sans-serif" }}>
+              {product.nameMalayalam}
+            </div>
+          )}
+          <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+            {product.productGroupName && (
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#2563EB', background: '#EFF6FF', border: '1px solid rgba(37,99,235,0.15)', padding: '2px 8px', borderRadius: 6 }}>
+                {product.productGroupName}
+              </span>
+            )}
+            {product.productUnitName && (
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#64748B', background: '#F1F5F9', border: '1px solid #E2E8F0', padding: '2px 8px', borderRadius: 6 }}>
+                {product.productUnitName}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Price prominent display */}
+      <div style={{ padding: '12px 14px', borderRadius: 10, background: '#EFF6FF', border: '1px solid rgba(37,99,235,0.15)', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B' }}>Base Price</span>
+        <span style={{ fontSize: 20, fontWeight: 900, color: '#1E3A8A', letterSpacing: '-0.03em' }}>
+          ₹{fmt(product.basePrice)}
+        </span>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 6, borderTop: '1px solid #F1F5F9', paddingTop: 12, flexWrap: 'wrap' as const }}>
+        <button onClick={onUnitPrices} title="Unit Prices"
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, border: '1px solid rgba(37,99,235,0.20)', background: '#EFF6FF', fontSize: 12, fontWeight: 700, color: '#2563EB', cursor: 'pointer', transition: 'all 0.13s' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#DBEAFE'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#EFF6FF'; }}
+        >
+          <DollarSign size={12} /> Unit Prices
+        </button>
+        <button onClick={onPrice} title="Update price"
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, border: '1px solid rgba(37,99,235,0.20)', background: '#EFF6FF', fontSize: 12, fontWeight: 700, color: '#2563EB', cursor: 'pointer', transition: 'all 0.13s' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#DBEAFE'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#EFF6FF'; }}
+        >
+          <IndianRupee size={12} /> Price
+        </button>
+        <button onClick={onHistory} title="Price history"
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: 12, fontWeight: 700, color: '#64748B', cursor: 'pointer', transition: 'all 0.13s' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#F1F5F9'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#F8FAFC'; }}
+        >
+          <History size={12} /> History
+        </button>
+        <button onClick={onEdit} title="Edit"
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: 12, fontWeight: 700, color: '#334155', cursor: 'pointer', transition: 'all 0.13s' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.25)'; (e.currentTarget as HTMLElement).style.color = '#2563EB'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#E2E8F0'; (e.currentTarget as HTMLElement).style.color = '#334155'; }}
+        >
+          <Edit2 size={12} /> Edit
+        </button>
+        <button onClick={onDelete} title="Delete"
+          style={{ width: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#94A3B8', cursor: 'pointer', transition: 'all 0.13s' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#FEF2F2'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(220,38,38,0.25)'; (e.currentTarget as HTMLElement).style.color = '#DC2626'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLElement).style.borderColor = '#E2E8F0'; (e.currentTarget as HTMLElement).style.color = '#94A3B8'; }}
+        >
+          <Trash2 size={13} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Form fields shared between Add and Edit ──────────────────
+function ProductFormFields({
+  form, setForm, groups, units, autoFocus,
+}: {
+  form:      { name: string; nameMl: string; productGroupId: string; unitId: string; basePrice: string };
+  setForm:   React.Dispatch<React.SetStateAction<any>>;
+  groups:    ProductGroupDto[];
+  units:     UnitDto[];
+  autoFocus?: boolean;
+}) {
+  const lbl: React.CSSProperties = {
+    display: 'block', fontSize: 12, fontWeight: 700, color: '#334155',
+    marginBottom: 6, letterSpacing: '0.02em', textTransform: 'uppercase' as const,
+  };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <label style={lbl}>Product Name <span style={{ color: '#DC2626' }}>*</span></label>
+        <input value={form.name} onChange={e => setForm((p: any) => ({ ...p, name: e.target.value }))}
+          placeholder="Name in English" style={inp} onFocus={onFoc} onBlur={onBlr} autoFocus={autoFocus} />
+      </div>
+      <div>
+        <label style={lbl}>Malayalam Name <span style={{ fontSize: 10, color: '#94A3B8' }}>(optional)</span></label>
+        <input value={form.nameMl} onChange={e => setForm((p: any) => ({ ...p, nameMl: e.target.value }))}
+          placeholder="മലയാളം" lang="ml" style={inp} onFocus={onFoc} onBlur={onBlr} />
+      </div>
+
+      {/* Price - prominent */}
+      <div style={{ padding: '16px', borderRadius: 12, background: '#EFF6FF', border: '1px solid rgba(37,99,235,0.18)' }}>
+        <label style={{ ...lbl, color: '#1E3A8A' }}>Base Price (₹) <span style={{ color: '#DC2626' }}>*</span></label>
+        <div style={{ position: 'relative' }}>
+          <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: '#1E3A8A', fontSize: 16 }}>₹</span>
+          <input type="number" step="0.01" min="0" value={form.basePrice}
+            onChange={e => setForm((p: any) => ({ ...p, basePrice: e.target.value }))}
+            placeholder="0.00" style={{ ...inp, paddingLeft: 32, fontSize: 18, fontWeight: 800, color: '#1E3A8A', background: '#fff', border: '1px solid rgba(37,99,235,0.20)' }}
+            onFocus={onFoc} onBlur={onBlr} />
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div>
+          <label style={lbl}>Product Group <span style={{ color: '#DC2626' }}>*</span></label>
+          <select value={form.productGroupId} onChange={e => setForm((p: any) => ({ ...p, productGroupId: e.target.value }))}
+            style={{ ...inp, cursor: 'pointer' }} onFocus={onFoc} onBlur={onBlr}>
+            <option value="">Select group</option>
+            {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={lbl}>Unit</label>
+          <select value={form.unitId} onChange={e => setForm((p: any) => ({ ...p, unitId: e.target.value }))}
+            style={{ ...inp, cursor: 'pointer' }} onFocus={onFoc} onBlur={onBlr}>
+            <option value="">None</option>
+            {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// AdminProducts page
+// ═══════════════════════════════════════════════════════════
+export function AdminProducts() {
+  const [products,       setProducts]       = useState<ProductDto[]>([]);
+  const [groups,         setGroups]         = useState<ProductGroupDto[]>([]);
+  const [units,          setUnits]          = useState<UnitDto[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [error,          setError]          = useState('');
+  const [search,         setSearch]         = useState('');
+  const [groupFilter,    setGroupFilter]    = useState('');
+  const [showAdd,        setShowAdd]        = useState(false);
+  const [editModal,      setEditModal]      = useState<ProductDto | null>(null);
+  const [priceModal,     setPriceModal]     = useState<ProductDto | null>(null);
+  const [historyModal,   setHistoryModal]   = useState<ProductDto | null>(null);
+  const [unitPriceModal, setUnitPriceModal] = useState<ProductDto | null>(null);
+  const [priceHistory,   setPriceHistory]   = useState<PriceHistoryDto[]>([]);
+  const [confirm,        setConfirm]        = useState<string | null>(null);
+  const [saving,         setSaving]         = useState(false);
+  const [deleting,       setDeleting]       = useState(false);
+  const [newPrice,       setNewPrice]       = useState('');
+  const [priceReason,    setPriceReason]    = useState('');
+  const addCardRef = useRef<HTMLDivElement>(null);
+
+  const emptyForm = { name: '', nameMl: '', productGroupId: '', unitId: '', basePrice: '' };
+  const [addForm,  setAddForm]  = useState(emptyForm);
+  const [editForm, setEditForm] = useState(emptyForm);
+
+  async function load() {
+    setLoading(true); setError('');
+    try {
+      const [p, g, u] = await Promise.all([
+        productsApi.getAll(groupFilter ? { productGroupId: groupFilter } : undefined),
+        productGroupsApi.getAll(),
+        unitsApi.getAll(),
+      ]);
+      setProducts(p); setGroups(g); setUnits(u);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Load failed');
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { load(); }, [groupFilter]);
+
+  useEffect(() => {
+    if (showAdd) {
+      setAddForm({ ...emptyForm, productGroupId: groups[0]?.id ?? '' });
+      setTimeout(() => addCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+    }
+  }, [showAdd]);
+
+  function openEdit(p: ProductDto) {
+    setEditForm({ name: p.nameEnglish, nameMl: p.nameMalayalam ?? '', productGroupId: p.productGroupId, unitId: p.productUnitId ?? '', basePrice: p.basePrice.toString() });
+    setEditModal(p);
+  }
+
+  function openPrice(p: ProductDto) {
+    setNewPrice(p.basePrice.toString()); setPriceReason(''); setPriceModal(p);
+  }
+
+  async function openHistory(p: ProductDto) {
+    setHistoryModal(p);
+    try { setPriceHistory(await productsApi.getPriceHistory(p.id, 20)); }
+    catch { setPriceHistory([]); }
+  }
+
+  async function handleAdd() {
+    if (!addForm.name.trim() || !addForm.productGroupId || !addForm.basePrice) { setError('Fill all required fields'); return; }
+    setSaving(true); setError('');
+    try {
+      await productsApi.create({
+        nameEnglish: addForm.name, nameMalayalam: addForm.nameMl || undefined,
+        productGroupId: addForm.productGroupId, productUnitId: addForm.unitId || undefined,
+        basePrice: parseFloat(addForm.basePrice),
+      });
+      setShowAdd(false); setAddForm(emptyForm); load();
+    } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Save failed'); }
+    finally { setSaving(false); }
+  }
+
+  async function handleEdit() {
+    if (!editForm.name.trim() || !editForm.productGroupId || !editForm.basePrice || !editModal) return;
+    setSaving(true); setError('');
+    try {
+      await productsApi.update(editModal.id, {
+        id: editModal.id, isActive: editModal.isActive,
+        nameEnglish: editForm.name, nameMalayalam: editForm.nameMl || undefined,
+        productGroupId: editForm.productGroupId, productUnitId: editForm.unitId || undefined,
+        basePrice: parseFloat(editForm.basePrice),
+      });
+      setEditModal(null); load();
+    } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Save failed'); }
+    finally { setSaving(false); }
+  }
+
+  async function handleUpdatePrice() {
+    if (!priceModal || !newPrice) return;
+    setSaving(true);
+    try {
+      await productsApi.updateBasePrice(priceModal.id, parseFloat(newPrice), priceReason || undefined);
+      setPriceModal(null); load();
+    } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Price update failed'); }
+    finally { setSaving(false); }
+  }
+
+  async function handleDelete() {
+    if (!confirm) return;
+    setDeleting(true);
+    try { await productsApi.delete(confirm); setConfirm(null); load(); }
+    catch (err: unknown) { setError(err instanceof Error ? err.message : 'Delete failed'); }
+    finally { setDeleting(false); }
+  }
+
+  const filtered = products.filter(p => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (p.nameEnglish || '').toLowerCase().includes(q)
+      || (p.nameMalayalam || '').toLowerCase().includes(q)
+      || (p.productGroupName || '').toLowerCase().includes(q);
+  });
+
+  if (loading) return <PageLoader />;
+
+  return (
+    <div className="page-content">
+
+      {/* Top bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' as const }}>
+        <div style={{ flex: 1 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: 'var(--navy)', letterSpacing: '-0.03em' }}>Products</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 3 }}>{filtered.length} item{filtered.length !== 1 ? 's' : ''} registered</p>
+        </div>
+        <button className="btn btn-outline btn-sm" onClick={load}><RefreshCw size={14} /></button>
+        <button
+          onClick={() => setShowAdd(v => !v)}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 10, fontSize: 14, fontWeight: 800, color: showAdd ? '#64748B' : '#fff', border: showAdd ? '1px solid #E2E8F0' : 'none', background: showAdd ? 'transparent' : 'linear-gradient(135deg,#1E3A8A,#2563EB)', cursor: 'pointer', fontFamily: 'inherit', boxShadow: showAdd ? 'none' : '0 3px 10px rgba(37,99,235,0.28)', transition: 'all 0.15s' }}
+        >
+          {showAdd ? <><X size={15} /> Cancel</> : <><Plus size={15} /> Add Product</>}
+        </button>
+      </div>
+
+      {error && <Alert variant="error">{error}</Alert>}
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' as const }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+          <Search size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search product name, group..."
+            style={{ ...inp, paddingLeft: 38, background: '#fff', border: '1px solid #E2E8F0' }} onFocus={onFoc} onBlur={onBlr} />
+        </div>
+        <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)} style={{ ...inp, width: 'auto', minWidth: 160, background: '#fff', cursor: 'pointer' }} onFocus={onFoc} onBlur={onBlr}>
+          <option value="">All Groups</option>
+          {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+        </select>
+      </div>
+
+      {/* Inline Add card */}
+      {showAdd && (
+        <div ref={addCardRef} style={{ background: '#fff', border: '1.5px solid rgba(37,99,235,0.25)', borderRadius: 16, padding: '24px 24px 20px', boxShadow: '0 4px 24px rgba(37,99,235,0.10)', marginBottom: 24, animation: 'slide-up 0.22s cubic-bezier(0.34,1.2,0.64,1)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: 'linear-gradient(135deg,#1E3A8A,#2563EB)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Package size={16} color="#fff" />
+            </div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.02em' }}>New Product</div>
+              <div style={{ fontSize: 12, color: '#64748B' }}>Fill in the details to register a product</div>
+            </div>
+          </div>
+          <ProductFormFields form={addForm} setForm={setAddForm} groups={groups} units={units} autoFocus />
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20, borderTop: '1px solid #F1F5F9', paddingTop: 18 }}>
+            <button onClick={() => { setShowAdd(false); setError(''); }} style={{ padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700, color: '#64748B', border: '1px solid #E2E8F0', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button onClick={handleAdd} disabled={saving || !addForm.name.trim() || !addForm.productGroupId || !addForm.basePrice}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 24px', borderRadius: 10, fontSize: 14, fontWeight: 800, color: '#fff', border: 'none', background: 'linear-gradient(135deg,#1E3A8A,#2563EB)', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: '0 3px 10px rgba(37,99,235,0.25)' }}
+            >
+              {saving ? <Spinner size={15} /> : <><Save size={15} /> Save Product</>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Product grid */}
+      {filtered.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '80px 20px', color: '#94A3B8' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <Package size={28} style={{ opacity: 0.5 }} />
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#334155', marginBottom: 6 }}>
+            {products.length === 0 ? 'No products yet' : 'No products match your filters'}
+          </div>
+          <div style={{ fontSize: 13 }}>
+            {products.length === 0 ? 'Click "+ Add Product" to register your first item.' : 'Try clearing your filters.'}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+          {filtered.map(p => (
+            <ProductCard key={p.id} product={p}
+              onEdit={() => openEdit(p)}
+              onPrice={() => openPrice(p)}
+              onHistory={() => openHistory(p)}
+              onDelete={() => setConfirm(p.id)}
+              onUnitPrices={() => setUnitPriceModal(p)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* ── Unit Price Manager Modal ──────────────────────────────────────── */}
+      {unitPriceModal && (
+        <ProductUnitPriceManager
+          product={unitPriceModal}
+          onClose={() => setUnitPriceModal(null)}
+          onUpdate={load}
+        />
+      )}
+
+      {/* ── Edit slide panel ─────────────────────────────────── */}
+      {editModal && (
+        <>
+          <div onClick={() => setEditModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.40)', zIndex: 200, backdropFilter: 'blur(2px)' }} />
+          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '100%', maxWidth: 460, background: '#fff', zIndex: 210, display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 40px rgba(15,23,42,0.14)', animation: 'slide-in-right 0.26s cubic-bezier(0.34,1.2,0.64,1)' }}>
+            <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+              <ProductTile name={editModal.nameEnglish} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#1E3A8A' }}>Edit Product</div>
+                <div style={{ fontSize: 13, color: '#64748B' }}>{editModal.nameEnglish}</div>
+              </div>
+              <button onClick={() => setEditModal(null)} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E2E8F0', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}>
+                <X size={15} />
+              </button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+              {error && <Alert variant="error">{error}</Alert>}
+              <ProductFormFields form={editForm} setForm={setEditForm} groups={groups} units={units} />
+            </div>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid #E2E8F0', display: 'flex', gap: 10, justifyContent: 'flex-end', flexShrink: 0 }}>
+              <button onClick={() => setEditModal(null)} style={{ padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 700, color: '#64748B', border: '1px solid #E2E8F0', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={handleEdit} disabled={saving}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 800, color: '#fff', border: 'none', background: 'linear-gradient(135deg,#1E3A8A,#2563EB)', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: '0 3px 10px rgba(37,99,235,0.25)' }}
+              >
+                {saving ? <Spinner size={15} /> : <><Save size={14} /> Save Changes</>}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Price update modal ───────────────────────────────── */}
+      {priceModal && (
+        <>
+          <div onClick={() => setPriceModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.40)', zIndex: 200, backdropFilter: 'blur(2px)' }} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '90%', maxWidth: 420, background: '#fff', borderRadius: 20, zIndex: 210, boxShadow: '0 20px 60px rgba(15,23,42,0.18)', overflow: 'hidden' }}>
+            <div style={{ background: 'linear-gradient(135deg,#1E3A8A,#2563EB)', padding: '20px 24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>Update Base Price</div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.70)', marginTop: 2 }}>{priceModal.nameEnglish}</div>
+                </div>
+                <button onClick={() => setPriceModal(null)} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.20)', background: 'rgba(255,255,255,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}>
+                  <X size={14} />
+                </button>
+              </div>
+              <div style={{ marginTop: 12, fontSize: 13, color: 'rgba(255,255,255,0.80)' }}>
+                Current: <strong style={{ color: '#fff' }}>₹{fmt(priceModal.basePrice)}</strong>
+              </div>
+            </div>
+            <div style={{ padding: '20px 24px' }}>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 8, textTransform: 'uppercase' as const, letterSpacing: '0.02em' }}>New Price (₹) *</label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: '#1E3A8A', fontSize: 16 }}>₹</span>
+                  <input type="number" step="0.01" min="0" value={newPrice} onChange={e => setNewPrice(e.target.value)}
+                    style={{ ...inp, paddingLeft: 32, fontSize: 18, fontWeight: 800, color: '#1E3A8A' }} onFocus={onFoc} onBlur={onBlr} autoFocus />
+                </div>
+                {newPrice && priceModal.basePrice && (
+                  <div style={{ marginTop: 6, fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, color: parseFloat(newPrice) > priceModal.basePrice ? '#16A34A' : '#DC2626' }}>
+                    {parseFloat(newPrice) > priceModal.basePrice ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                    {parseFloat(newPrice) > priceModal.basePrice ? '+' : ''}{(((parseFloat(newPrice) - priceModal.basePrice) / priceModal.basePrice) * 100).toFixed(1)}% change
+                  </div>
+                )}
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 8, textTransform: 'uppercase' as const, letterSpacing: '0.02em' }}>Reason</label>
+                <input value={priceReason} onChange={e => setPriceReason(e.target.value)} placeholder="Price revision, supplier update..." style={inp} onFocus={onFoc} onBlur={onBlr} />
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setPriceModal(null)} style={{ flex: 1, padding: '12px', borderRadius: 10, fontSize: 14, fontWeight: 700, color: '#64748B', border: '1px solid #E2E8F0', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                <button onClick={handleUpdatePrice} disabled={saving || !newPrice}
+                  style={{ flex: 2, padding: '12px', borderRadius: 10, fontSize: 14, fontWeight: 800, color: '#fff', border: 'none', background: saving || !newPrice ? '#93C5FD' : 'linear-gradient(135deg,#1E3A8A,#2563EB)', cursor: saving || !newPrice ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+                >
+                  {saving ? <Spinner size={15} /> : <><IndianRupee size={14} /> Update Price</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Price history modal ──────────────────────────────── */}
+      {historyModal && (
+        <>
+          <div onClick={() => setHistoryModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.40)', zIndex: 200, backdropFilter: 'blur(2px)' }} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '90%', maxWidth: 520, background: '#fff', borderRadius: 20, zIndex: 210, boxShadow: '0 20px 60px rgba(15,23,42,0.18)', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#1E3A8A' }}>Price History</div>
+                <div style={{ fontSize: 13, color: '#64748B' }}>{historyModal.nameEnglish}</div>
+              </div>
+              <button onClick={() => setHistoryModal(null)} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E2E8F0', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}>
+                <X size={15} />
+              </button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
+              {priceHistory.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: '#94A3B8' }}>
+                  <History size={32} style={{ margin: '0 auto 12px', opacity: 0.4 }} />
+                  <div style={{ fontWeight: 700 }}>No price history yet</div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {priceHistory.map((h, i) => (
+                    <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 10, background: i === 0 ? '#EFF6FF' : '#F8FAFC', border: `1px solid ${i === 0 ? 'rgba(37,99,235,0.18)' : '#E2E8F0'}` }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>{fmtDate(h.effectiveDate)}</div>
+                        {h.reason && <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>{h.reason}</div>}
+                      </div>
+                      <div style={{ textAlign: 'right' as const }}>
+                        {h.previousPrice != null && (
+                          <div style={{ fontSize: 11, color: '#94A3B8', textDecoration: 'line-through' }}>₹{fmt(h.previousPrice)}</div>
+                        )}
+                        <div style={{ fontSize: 15, fontWeight: 900, color: i === 0 ? '#1E3A8A' : '#334155' }}>₹{fmt(h.price)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{ padding: '14px 24px', borderTop: '1px solid #E2E8F0', flexShrink: 0 }}>
+              <button onClick={() => setHistoryModal(null)} style={{ width: '100%', padding: '11px', borderRadius: 10, fontSize: 14, fontWeight: 700, color: '#64748B', border: '1px solid #E2E8F0', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>Close</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {confirm && (
+        <ConfirmModal
+          title="Delete Product"
+          message="This will permanently delete the product. This cannot be undone."
+          danger loading={deleting}
+          onConfirm={handleDelete}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminReports.tsx">
+import React, { useEffect, useState } from 'react';
+import { FileText, Download, RefreshCw, Loader } from 'lucide-react';
+import { reportsApi, routesApi, productGroupsApi, triggerPdfDownload } from '../../api/services';
+import type { RouteDto, ProductGroupDto } from '../../types';
+import { Alert } from '../../components/ui';
+
+const today = new Date().toISOString().split('T')[0];
+const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+
+export function AdminReports() {
+  const [routes,     setRoutes]     = useState<RouteDto[]>([]);
+  const [groups,     setGroups]     = useState<ProductGroupDto[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [error,      setError]      = useState('');
+  const [msg,        setMsg]        = useState('');
+
+  // Filters per report
+  const [loadRoute,  setLoadRoute]  = useState('');
+  const [loadDate,   setLoadDate]   = useState(today);
+  const [billRoute,  setBillRoute]  = useState('');
+  const [billDate,   setBillDate]   = useState(today);
+  const [routeRptRoute, setRouteRptRoute] = useState('');
+  const [routeFrom, setRouteFrom]  = useState(thirtyDaysAgo);
+  const [routeTo,   setRouteTo]    = useState(today);
+  const [prodGroup, setProdGroup]   = useState('');
+  const [prodFrom,  setProdFrom]    = useState(thirtyDaysAgo);
+  const [prodTo,    setProdTo]      = useState(today);
+  const [dailyDate, setDailyDate]   = useState(today);
+
+  useEffect(() => {
+    Promise.all([routesApi.getAll(), productGroupsApi.getAll()])
+      .then(([r, g]) => { setRoutes(r); setGroups(g); })
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function download(key: string, fn: () => Promise<Blob>, filename: string) {
+    setDownloading(key); setError(''); setMsg('');
+    try {
+      const blob = await fn();
+      triggerPdfDownload(blob, filename);
+      setMsg(`${filename} downloaded.`);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Download failed');
+    } finally { setDownloading(null); }
+  }
+
+  const reports = [
+    {
+      key: 'loading',
+      title: 'Loading Sheet',
+      desc: 'Warehouse picking list for today\'s deliveries (Warehouse / Admin)',
+      color: 'var(--amber)',
+      filters: (
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <select className="input" value={loadRoute} onChange={(e) => setLoadRoute(e.target.value)} style={{ width: 'auto' }}>
+            <option value="">All Routes</option>
+            {routes.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+          <input className="input" type="date" value={loadDate} onChange={(e) => setLoadDate(e.target.value)} style={{ width: 'auto' }} />
+        </div>
+      ),
+      onDownload: () => download('loading', () => reportsApi.downloadLoadingSheet(loadRoute || undefined, loadDate), `LoadingSheet_${loadDate}.pdf`),
+    },
+    {
+      key: 'billing',
+      title: 'Billing Sheet',
+      desc: 'Accounts billing report with customer-wise totals (Accounts / Admin)',
+      color: 'var(--green)',
+      filters: (
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <select className="input" value={billRoute} onChange={(e) => setBillRoute(e.target.value)} style={{ width: 'auto' }}>
+            <option value="">All Routes</option>
+            {routes.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+          <input className="input" type="date" value={billDate} onChange={(e) => setBillDate(e.target.value)} style={{ width: 'auto' }} />
+        </div>
+      ),
+      onDownload: () => download('billing', () => reportsApi.downloadBillingSheet(billRoute || undefined, billDate), `BillingSheet_${billDate}.pdf`),
+    },
+    {
+      key: 'routeSummary',
+      title: 'Route Summary Report',
+      desc: 'Route-wise performance summary for a date range',
+      color: 'var(--primary)',
+      filters: (
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <select className="input" value={routeRptRoute} onChange={(e) => setRouteRptRoute(e.target.value)} style={{ width: 'auto' }}>
+            <option value="">All Routes</option>
+            {routes.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+          <input className="input" type="date" value={routeFrom} onChange={(e) => setRouteFrom(e.target.value)} style={{ width: 'auto' }} />
+          <input className="input" type="date" value={routeTo}   onChange={(e) => setRouteTo(e.target.value)}   style={{ width: 'auto' }} />
+        </div>
+      ),
+      onDownload: () => download('routeSummary', () => reportsApi.downloadRouteSummary(routeRptRoute || undefined, routeFrom, routeTo), `RouteSummary_${routeFrom}_${routeTo}.pdf`),
+    },
+    {
+      key: 'productSummary',
+      title: 'Product Summary Report',
+      desc: 'SKU-level movement and revenue analysis',
+      color: 'var(--blue)',
+      filters: (
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <select className="input" value={prodGroup} onChange={(e) => setProdGroup(e.target.value)} style={{ width: 'auto' }}>
+            <option value="">All Groups</option>
+            {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+          </select>
+          <input className="input" type="date" value={prodFrom} onChange={(e) => setProdFrom(e.target.value)} style={{ width: 'auto' }} />
+          <input className="input" type="date" value={prodTo}   onChange={(e) => setProdTo(e.target.value)}   style={{ width: 'auto' }} />
+        </div>
+      ),
+      onDownload: () => download('productSummary', () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo), `ProductSummary_${prodFrom}_${prodTo}.pdf`),
+    },
+    {
+      key: 'daily',
+      title: 'Daily Summary Report',
+      desc: 'Full operational day summary (Admin / Accounts)',
+      color: 'var(--text-sub)',
+      filters: (
+        <input className="input" type="date" value={dailyDate} onChange={(e) => setDailyDate(e.target.value)} style={{ width: 'auto' }} />
+      ),
+      onDownload: () => download('daily', () => reportsApi.downloadDailySummary(dailyDate), `DailySummary_${dailyDate}.pdf`),
+    },
+  ];
+
+  return (
+    <div className="page-content">
+      <div className="section-header">
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Reports</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Download PDF operational reports</p>
+        </div>
+      </div>
+
+      {error && <Alert variant="error">{error}</Alert>}
+      {msg   && <Alert variant="success">{msg}</Alert>}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {reports.map((r) => (
+          <div key={r.key} className="card">
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                  <FileText size={18} color={r.color} />
+                  <span style={{ fontWeight: 700, fontSize: 15 }}>{r.title}</span>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '0 0 14px' }}>{r.desc}</p>
+                {r.filters}
+              </div>
+              <button
+                className="btn btn-primary"
+                onClick={r.onDownload}
+                disabled={downloading === r.key}
+                style={{ flexShrink: 0, marginTop: 4 }}
+              >
+                {downloading === r.key ? <Loader size={16} className="animate-spin" /> : <Download size={16} />}
+                Download PDF
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminRoutes/AdminRoutes.tsx">
+import { useEffect, useState } from 'react';
+import { Plus, X, RefreshCw, Route, Edit2, Calendar, ChevronDown, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { routesApi, usersApi } from '../../../api/services';
+import type { RouteDto, UserDto } from '../../../types';
+import { PageLoader, Alert, EmptyState, ConfirmModal, Badge } from '../../../components/ui';
+import { RoutesTable } from './components/RoutesTable';
+import { AddRouteCard } from './components/AddRouteCard';
+import type { RouteFormData } from './types';
+
+export function AdminRoutes() {
+  const navigate = useNavigate();
+  const [routes, setRoutes] = useState<RouteDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<string | number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [salesmen, setSalesmen] = useState<UserDto[]>([]);
+  const [showAddCard, setShowAddCard] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    setError('');
+    try {
+      const loadedRoutes = await routesApi.getAll();
+      setRoutes(loadedRoutes);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load routes');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadSalesmen() {
+    try {
+      setSalesmen(await usersApi.getAll('Salesman'));
+    } catch {}
+  }
+
+  useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (showAddCard) {
+      loadSalesmen();
+    }
+  }, [showAddCard]);
+
+  // ── Add Route ────────────────────────────────────────────────
+  async function handleAdd(form: RouteFormData) {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    setError('');
+    try {
+      await routesApi.create({
+        name: form.name,
+        description: form.description || undefined,
+        assignedSalesmanId: form.assignedSalesmanId || undefined,
+      });
+      setShowAddCard(false);
+      setSuccess('Route created successfully');
+      setTimeout(() => setSuccess(''), 3000);
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ── Delete Route ─────────────────────────────────────────────
+  async function handleDelete() {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    setError('');
+    try {
+      await routesApi.delete(confirmDelete);
+      setConfirmDelete(null);
+      await load();
+      setSuccess('Route deleted successfully');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Delete failed');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  // ── Navigation to separate pages ─────────────────────────────
+  function handleEdit(route: RouteDto) {
+    navigate(`/admin/routes/edit/${route.id}`, { state: { route } });
+  }
+
+  function handleAssign(route: RouteDto) {
+    navigate(`/admin/routes/assign/${route.id}`, { state: { routeId: route.id, routeName: route.name } });
+  }
+
+  function handleOverride(route: RouteDto) {
+    navigate(`/admin/routes/override/${route.id}`, { state: { routeId: route.id, routeName: route.name } });
+  }
+
+  if (loading) return <PageLoader />;
+
+  return (
+    <div className="page-content">
+      {/* Header */}
+      <div className="section-header">
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: 'var(--navy)', letterSpacing: '-0.03em' }}>Routes</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
+            {routes.length} route{routes.length !== 1 ? 's' : ''} configured
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-outline btn-sm" onClick={load} title="Refresh">
+            <RefreshCw size={14} />
+          </button>
+          <button
+            onClick={() => setShowAddCard(v => !v)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 7,
+              padding: '9px 20px',
+              borderRadius: 10,
+              fontSize: 14,
+              fontWeight: 700,
+              color: showAddCard ? 'var(--text-sub)' : '#fff',
+              border: showAddCard ? '1px solid var(--border)' : 'none',
+              background: showAddCard ? 'transparent' : 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              boxShadow: showAddCard ? 'none' : '0 3px 10px rgba(37,99,235,0.28)',
+              transition: 'all 0.15s',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            {showAddCard ? <><X size={15} /> Cancel</> : <><Plus size={15} /> Add Route</>}
+          </button>
+        </div>
+      </div>
+
+      {error && <Alert variant="error">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
+
+      {/* Routes Table */}
+      {routes.length === 0 && !showAddCard ? (
+        <EmptyState title="No routes yet" message="Add your first delivery route to get started." icon={Route} />
+      ) : routes.length > 0 && (
+        <RoutesTable
+          routes={routes}
+          onAssign={handleAssign}
+          onOverride={handleOverride}
+          onEdit={handleEdit}
+          onDelete={(routeId) => setConfirmDelete(routeId)}
+        />
+      )}
+
+      {/* Inline Add Card */}
+      {showAddCard && (
+        <AddRouteCard
+          salesmen={salesmen}
+          saving={saving}
+          error={error}
+          onSave={handleAdd}
+          onCancel={() => { setShowAddCard(false); setError(''); }}
+        />
+      )}
+
+      {/* Delete Confirm Modal */}
+      <ConfirmModal
+        open={!!confirmDelete}
+        title="Delete Route"
+        message="This will permanently delete the route. All customer mappings will be lost. This action cannot be undone."
+        danger
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    </div>
+  );
+}
+
+export default AdminRoutes;
+</file>
+
+<file path="src/pages/Admin/AdminRoutes/AssignRoutePage.tsx">
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, Calendar, UserPlus } from 'lucide-react';
+import { Spinner, Alert } from '../../../components/ui';
+import { routeAssignmentsApi, usersApi } from '../../../api/services';
+import type { UserDto } from '../../../types';
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export default function AssignRoutePage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { routeId, routeName } = location.state as { routeId: string; routeName: string };
+  
+  const [salesmen, setSalesmen] = useState<UserDto[]>([]);
+  const [salesmanId, setSalesmanId] = useState('');
+  const [date, setDate] = useState(todayStr());
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    if (!routeId) {
+      navigate('/admin/routes');
+      return;
+    }
+    usersApi.getAll('Salesman').then(setSalesmen).catch(() => {});
+  }, [routeId, navigate]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!salesmanId) {
+      setError('Please select a salesman');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await routeAssignmentsApi.upsert({
+        routeId,
+        salesmanId,
+        assignmentDate: date,
+        notes: notes || `Assigned by Admin on ${new Date().toLocaleDateString()}`,
+      });
+      setSuccess(`Route assigned to salesman for ${date}`);
+      setTimeout(() => {
+        navigate('/admin/routes');
+      }, 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Assignment failed');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 pb-10">
+      <div className="max-w-2xl mx-auto px-5 py-6">
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/admin/routes')}
+            className="flex items-center gap-2 text-slate-600 hover:text-blue-600 mb-4"
+          >
+            <ArrowLeft size={18} /> Back to Routes
+          </button>
+          
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center">
+              <Calendar size={22} color="#fff" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800">Assign Route</h1>
+              <p className="text-slate-500">Route: <strong>{routeName}</strong></p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+              ✓ {success}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  <UserPlus size={14} className="inline mr-1" /> Assign to Salesman *
+                </label>
+                <select
+                  value={salesmanId}
+                  onChange={e => setSalesmanId(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  required
+                >
+                  <option value="">Select salesman...</option>
+                  {salesmen.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.fullName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  Assignment Date *
+                </label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={e => setDate(e.target.value)}
+                  min={todayStr()}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  Notes (optional)
+                </label>
+                <input
+                  type="text"
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  placeholder="e.g., Covering for Rajesh"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end mt-8 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => navigate('/admin/routes')}
+                className="px-5 py-2.5 text-sm font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {saving ? <Spinner size={16} /> : <Calendar size={16} />}
+                Assign for {date}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminRoutes/components/ActionBtn.tsx">
+import { useState } from 'react';
+
+interface ActionBtnProps {
+  icon: React.ElementType;
+  label: string;
+  onClick: () => void;
+  color?: 'default' | 'blue' | 'amber' | 'red';
+  title?: string;
+  disabled?: boolean;
+}
+
+const COLORS = {
+  default: { bg: 'var(--card-sub)', border: 'var(--border)', text: 'var(--text-sub)', hBg: '#F1F5F9', hText: 'var(--text-body)' },
+  blue:    { bg: '#EFF6FF', border: 'rgba(37,99,235,0.20)', text: '#2563EB', hBg: '#DBEAFE', hText: '#1D4ED8' },
+  amber:   { bg: 'rgba(217,119,6,0.08)', border: 'rgba(217,119,6,0.22)', text: '#D97706', hBg: 'rgba(217,119,6,0.15)', hText: '#B45309' },
+  red:     { bg: 'rgba(220,38,38,0.06)', border: 'rgba(220,38,38,0.18)', text: '#DC2626', hBg: 'rgba(220,38,38,0.12)', hText: '#B91C1C' },
+};
+
+export function ActionBtn({
+  icon: Icon,
+  label,
+  onClick,
+  color = 'default',
+  title,
+  disabled = false,
+}: ActionBtnProps) {
+  const c = COLORS[color];
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        padding: '6px 11px',
+        borderRadius: 8,
+        border: `1px solid ${hovered && !disabled ? c.border : c.border}`,
+        background: disabled ? 'var(--card-sub)' : hovered ? c.hBg : c.bg,
+        color: disabled ? 'var(--text-muted)' : hovered ? c.hText : c.text,
+        fontSize: 12,
+        fontWeight: 600,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        transition: 'all 0.14s',
+        fontFamily: 'inherit',
+        letterSpacing: '-0.01em',
+        opacity: disabled ? 0.5 : 1,
+        whiteSpace: 'nowrap' as const,
+      }}
+    >
+      <Icon size={13} strokeWidth={2} />
+      {label}
+    </button>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminRoutes/components/AddRouteCard.tsx">
+import { useEffect, useRef, useState } from 'react';
+import { Route, X, Save } from 'lucide-react';
+import { Spinner } from '../../../../components/ui';  // ← Fix: import from ui
+import type { UserDto } from '../../../../types';
+import type { RouteFormData } from '../types';
+
+interface AddRouteCardProps {
+  salesmen: UserDto[];
+  saving: boolean;
+  error: string;
+  onSave: (form: RouteFormData) => void;
+  onCancel: () => void;
+}
+
+export function AddRouteCard({
+  salesmen,
+  saving,
+  error,
+  onSave,
+  onCancel,
+}: AddRouteCardProps) {
+  const [form, setForm] = useState<RouteFormData>({ name: '', description: '', assignedSalesmanId: '' });
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { nameRef.current?.focus(); }, []);
+
+  const update = (key: keyof RouteFormData, value: string) => {
+    setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  return (
+    <div style={{
+      background: '#fff',
+      border: '1px solid rgba(37,99,235,0.25)',
+      borderRadius: 16,
+      boxShadow: '0 4px 24px rgba(37,99,235,0.10)',
+      padding: '28px 28px 24px',
+      animation: 'slide-up 0.22s cubic-bezier(0.34,1.2,0.64,1)',
+    }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: 'linear-gradient(135deg,#1E3A8A,#2563EB)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Route size={17} color="#fff" strokeWidth={2} />
+          </div>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.02em' }}>Add New Route</div>
+            <div style={{ fontSize: 12, color: '#64748B', fontWeight: 500 }}>Fill in the details below</div>
+          </div>
+        </div>
+        <button
+          onClick={onCancel}
+          style={{
+            width: 32, height: 32, borderRadius: 8,
+            border: '1px solid var(--border)', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: 'var(--text-sub)',
+          }}
+        >
+          <X size={15} />
+        </button>
+      </div>
+
+      {error && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 10, marginBottom: 20,
+          background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.20)',
+          color: '#B91C1C', fontSize: 13, fontWeight: 500,
+        }}>
+          {error}
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 7 }}>
+            Route Name <span style={{ color: '#DC2626' }}>*</span>
+          </label>
+          <input
+            ref={nameRef}
+            value={form.name}
+            onChange={e => update('name', e.target.value)}
+            placeholder="e.g., Changanassery, North Zone"
+            style={{
+              width: '100%', padding: '11px 14px',
+              background: '#F8FAFC', border: '1px solid #E2E8F0',
+              borderRadius: 10, fontSize: 14, color: '#334155',
+              outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const,
+            }}
+            onFocus={e => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.10)'; e.target.style.background = '#fff'; }}
+            onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none'; e.target.style.background = '#F8FAFC'; }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 7 }}>
+            Assign Salesman
+          </label>
+          <select
+            value={form.assignedSalesmanId}
+            onChange={e => update('assignedSalesmanId', e.target.value)}
+            style={{
+              width: '100%', padding: '11px 14px',
+              background: '#F8FAFC', border: '1px solid #E2E8F0',
+              borderRadius: 10, fontSize: 14, color: '#334155',
+              outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
+            }}
+          >
+            <option value="">— Unassigned —</option>
+            {salesmen.map(s => (
+              <option key={String(s.id)} value={String(s.id)}>
+                {s.fullName} ({s.email})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 7 }}>
+          Description
+        </label>
+        <input
+          value={form.description}
+          onChange={e => update('description', e.target.value)}
+          placeholder="Optional — e.g., 10 shops, morning route"
+          style={{
+            width: '100%', padding: '11px 14px',
+            background: '#F8FAFC', border: '1px solid #E2E8F0',
+            borderRadius: 10, fontSize: 14, color: '#334155',
+            outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const,
+          }}
+        />
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: 20 }}>
+        <button
+          onClick={onCancel}
+          style={{
+            padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700,
+            color: 'var(--text-sub)', border: '1px solid var(--border)',
+            background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => onSave(form)}
+          disabled={saving || !form.name.trim()}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '10px 24px', borderRadius: 10, fontSize: 14, fontWeight: 800,
+            color: '#fff', border: 'none',
+            background: saving || !form.name.trim() ? '#93C5FD' : 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)',
+            cursor: saving || !form.name.trim() ? 'not-allowed' : 'pointer',
+            fontFamily: 'inherit', boxShadow: saving ? 'none' : '0 4px 14px rgba(37,99,235,0.28)',
+          }}
+        >
+          {saving ? <Spinner size={16} /> : <><Save size={15} /> Create Route</>}
+        </button>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminRoutes/components/AssignRouteCard.tsx">
+import { useState } from 'react';
+import { Calendar, UserPlus, X } from 'lucide-react';
+import { Spinner } from '../../../../components/ui';  // ← Fix: import from ui
+import type { UserDto } from '../../../../types';
+
+interface AssignRouteCardProps {
+  route: { routeId: string; routeName: string };
+  salesmen: UserDto[];
+  saving: boolean;
+  error: string;
+  onSave: (routeId: string, salesmanId: string, date: string, notes: string) => void;
+  onCancel: () => void;
+}
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function AssignRouteCard({
+  route,
+  salesmen,
+  saving,
+  error,
+  onSave,
+  onCancel,
+}: AssignRouteCardProps) {
+  const [salesmanId, setSalesmanId] = useState('');
+  const [date, setDate] = useState(todayStr());
+  const [notes, setNotes] = useState('');
+
+  return (
+    <div style={{
+      background: '#fff',
+      border: '1px solid rgba(37,99,235,0.25)',
+      borderRadius: 16,
+      boxShadow: '0 4px 24px rgba(37,99,235,0.10)',
+      padding: '28px 28px 24px',
+      animation: 'slide-up 0.22s cubic-bezier(0.34,1.2,0.64,1)',
+      marginBottom: 24,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: 'linear-gradient(135deg,#2563EB,#3B82F6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Calendar size={17} color="#fff" strokeWidth={2} />
+          </div>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.02em' }}>Assign Route for Today</div>
+            <div style={{ fontSize: 12, color: '#64748B', fontWeight: 500 }}>Route: <strong>{route.routeName}</strong></div>
+          </div>
+        </div>
+        <button
+          onClick={onCancel}
+          style={{
+            width: 32, height: 32, borderRadius: 8,
+            border: '1px solid var(--border)', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: 'var(--text-sub)',
+          }}
+        >
+          <X size={15} />
+        </button>
+      </div>
+
+      {error && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 10, marginBottom: 20,
+          background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.20)',
+          color: '#B91C1C', fontSize: 13, fontWeight: 500,
+        }}>
+          {error}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 7 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><UserPlus size={13} /> Assign to Salesman *</span>
+          </label>
+          <select
+            className="input"
+            value={salesmanId}
+            onChange={e => setSalesmanId(e.target.value)}
+            style={{ width: '100%' }}
+          >
+            <option value="">Select salesman...</option>
+            {salesmen.map(s => <option key={s.id} value={s.id}>{s.fullName}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 7 }}>Assignment Date *</label>
+          <input
+            type="date"
+            className="input"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            min={todayStr()}
+            style={{ width: '100%' }}
+          />
+        </div>
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 7 }}>Notes (optional)</label>
+          <input
+            className="input"
+            placeholder="e.g., Covering for Rajesh"
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            style={{ width: '100%' }}
+          />
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20, borderTop: '1px solid var(--border)', paddingTop: 20 }}>
+        <button
+          onClick={onCancel}
+          style={{
+            padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700,
+            color: 'var(--text-sub)', border: '1px solid var(--border)',
+            background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => onSave(route.routeId, salesmanId, date, notes)}
+          disabled={saving || !salesmanId}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '10px 24px', borderRadius: 10, fontSize: 14, fontWeight: 800,
+            color: '#fff', border: 'none',
+            background: saving || !salesmanId ? '#93C5FD' : 'linear-gradient(135deg,#2563EB,#3B82F6)',
+            cursor: saving || !salesmanId ? 'not-allowed' : 'pointer',
+            fontFamily: 'inherit', boxShadow: saving ? 'none' : '0 4px 14px rgba(37,99,235,0.28)',
+          }}
+        >
+          {saving ? <Spinner size={16} /> : <><Calendar size={14} /> Assign for {date}</>}
+        </button>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminRoutes/components/EditRouteCard.tsx">
+import { useEffect, useRef, useState } from 'react';
+import { Edit2, X, Save } from 'lucide-react';
+import { Spinner } from '../../../../components/ui';  // ← Fix: import from ui
+import type { RouteDto, UserDto } from '../../../../types';
+import type { RouteFormData } from '../types';
+
+interface EditRouteCardProps {
+  route: RouteDto;
+  salesmen: UserDto[];
+  saving: boolean;
+  error: string;
+  onSave: (form: RouteFormData) => void;
+  onCancel: () => void;
+}
+
+export function EditRouteCard({
+  route,
+  salesmen,
+  saving,
+  error,
+  onSave,
+  onCancel,
+}: EditRouteCardProps) {
+  const [form, setForm] = useState<RouteFormData>({
+    name: route.name,
+    description: route.description || '',
+    assignedSalesmanId: route.assignedSalesmanId || '',
+  });
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { nameRef.current?.focus(); }, []);
+
+  const update = (key: keyof RouteFormData, value: string) => {
+    setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  return (
+    <div style={{
+      background: '#fff',
+      border: '1px solid rgba(37,99,235,0.25)',
+      borderRadius: 16,
+      boxShadow: '0 4px 24px rgba(37,99,235,0.10)',
+      padding: '28px 28px 24px',
+      animation: 'slide-up 0.22s cubic-bezier(0.34,1.2,0.64,1)',
+      marginBottom: 24,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: 'linear-gradient(135deg,#1E3A8A,#2563EB)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Edit2 size={17} color="#fff" strokeWidth={2} />
+          </div>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.02em' }}>Edit Route</div>
+            <div style={{ fontSize: 12, color: '#64748B', fontWeight: 500 }}>{route.name}</div>
+          </div>
+        </div>
+        <button
+          onClick={onCancel}
+          style={{
+            width: 32, height: 32, borderRadius: 8,
+            border: '1px solid var(--border)', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: 'var(--text-sub)',
+          }}
+        >
+          <X size={15} />
+        </button>
+      </div>
+
+      {error && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 10, marginBottom: 20,
+          background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.20)',
+          color: '#B91C1C', fontSize: 13, fontWeight: 500,
+        }}>
+          {error}
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 7 }}>
+            Route Name <span style={{ color: '#DC2626' }}>*</span>
+          </label>
+          <input
+            ref={nameRef}
+            value={form.name}
+            onChange={e => update('name', e.target.value)}
+            placeholder="e.g., Changanassery, North Zone"
+            style={{
+              width: '100%', padding: '11px 14px',
+              background: '#F8FAFC', border: '1px solid #E2E8F0',
+              borderRadius: 10, fontSize: 14, color: '#334155',
+              outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const,
+            }}
+            onFocus={e => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.10)'; e.target.style.background = '#fff'; }}
+            onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none'; e.target.style.background = '#F8FAFC'; }}
+          />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 7 }}>
+            Assign Salesman
+          </label>
+          <select
+            value={form.assignedSalesmanId}
+            onChange={e => update('assignedSalesmanId', e.target.value)}
+            style={{
+              width: '100%', padding: '11px 14px',
+              background: '#F8FAFC', border: '1px solid #E2E8F0',
+              borderRadius: 10, fontSize: 14, color: '#334155',
+              outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
+            }}
+          >
+            <option value="">— Unassigned —</option>
+            {salesmen.map(s => (
+              <option key={String(s.id)} value={String(s.id)}>
+                {s.fullName} ({s.email})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 7 }}>
+          Description
+        </label>
+        <input
+          value={form.description}
+          onChange={e => update('description', e.target.value)}
+          placeholder="Optional — e.g., 10 shops, morning route"
+          style={{
+            width: '100%', padding: '11px 14px',
+            background: '#F8FAFC', border: '1px solid #E2E8F0',
+            borderRadius: 10, fontSize: 14, color: '#334155',
+            outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const,
+          }}
+        />
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: 20 }}>
+        <button
+          onClick={onCancel}
+          style={{
+            padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700,
+            color: 'var(--text-sub)', border: '1px solid var(--border)',
+            background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => onSave(form)}
+          disabled={saving || !form.name.trim()}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '10px 24px', borderRadius: 10, fontSize: 14, fontWeight: 800,
+            color: '#fff', border: 'none',
+            background: saving || !form.name.trim() ? '#93C5FD' : 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)',
+            cursor: saving || !form.name.trim() ? 'not-allowed' : 'pointer',
+            fontFamily: 'inherit', boxShadow: saving ? 'none' : '0 4px 14px rgba(37,99,235,0.28)',
+          }}
+        >
+          {saving ? <Spinner size={16} /> : <><Save size={15} /> Save Changes</>}
+        </button>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminRoutes/components/OverrideRouteCard.tsx">
+import { useState } from 'react';
+import { ChevronDown, Calendar, X } from 'lucide-react';
+import { Spinner } from '../../../../components/ui';  // ← Fix: import from ui
+import type { UserDto } from '../../../../types';
+
+interface OverrideRouteCardProps {
+  route: { routeId: string; routeName: string };
+  salesmen: UserDto[];
+  saving: boolean;
+  error: string;
+  onSave: (routeId: string, salesmanId: string, date: string, notes: string) => void;
+  onCancel: () => void;
+}
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function OverrideRouteCard({
+  route,
+  salesmen,
+  saving,
+  error,
+  onSave,
+  onCancel,
+}: OverrideRouteCardProps) {
+  const [salesmanId, setSalesmanId] = useState('');
+  const [date, setDate] = useState(todayStr());
+  const [notes, setNotes] = useState('');
+
+  return (
+    <div style={{
+      background: '#fff',
+      border: '1px solid rgba(217,119,6,0.35)',
+      borderRadius: 16,
+      boxShadow: '0 4px 24px rgba(217,119,6,0.12)',
+      padding: '28px 28px 24px',
+      animation: 'slide-up 0.22s cubic-bezier(0.34,1.2,0.64,1)',
+      marginBottom: 24,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: 'linear-gradient(135deg,#D97706,#F59E0B)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <ChevronDown size={17} color="#fff" strokeWidth={2} />
+          </div>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.02em' }}>Temporary Route Assignment</div>
+            <div style={{ fontSize: 12, color: '#64748B', fontWeight: 500 }}>Route: <strong>{route.routeName}</strong></div>
+          </div>
+        </div>
+        <button
+          onClick={onCancel}
+          style={{
+            width: 32, height: 32, borderRadius: 8,
+            border: '1px solid var(--border)', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: 'var(--text-sub)',
+          }}
+        >
+          <X size={15} />
+        </button>
+      </div>
+
+      <div className="alert alert-info" style={{ marginBottom: 16, fontSize: 12, background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+        <strong>📅 When to use:</strong> Salesman on leave, resigned, or temporary coverage.
+        This overrides the permanent assignment ONLY for the selected date.
+      </div>
+
+      {error && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 10, marginBottom: 20,
+          background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.20)',
+          color: '#B91C1C', fontSize: 13, fontWeight: 500,
+        }}>
+          {error}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 7 }}>Assign to Salesman *</label>
+          <select
+            className="input"
+            value={salesmanId}
+            onChange={e => setSalesmanId(e.target.value)}
+            style={{ width: '100%' }}
+          >
+            <option value="">Select salesman...</option>
+            {salesmen.map(s => <option key={s.id} value={s.id}>{s.fullName}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 7 }}>Assignment Date *</label>
+          <input
+            type="date"
+            className="input"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            min={todayStr()}
+            style={{ width: '100%' }}
+          />
+        </div>
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 7 }}>Notes (optional)</label>
+          <input
+            className="input"
+            placeholder="e.g., Rajesh on leave, covering for him"
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            style={{ width: '100%' }}
+          />
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20, borderTop: '1px solid var(--border)', paddingTop: 20 }}>
+        <button
+          onClick={onCancel}
+          style={{
+            padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700,
+            color: 'var(--text-sub)', border: '1px solid var(--border)',
+            background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => onSave(route.routeId, salesmanId, date, notes)}
+          disabled={saving || !salesmanId}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '10px 24px', borderRadius: 10, fontSize: 14, fontWeight: 800,
+            color: '#fff', border: 'none',
+            background: saving || !salesmanId ? '#FCD34D' : 'linear-gradient(135deg,#D97706,#F59E0B)',
+            cursor: saving || !salesmanId ? 'not-allowed' : 'pointer',
+            fontFamily: 'inherit', opacity: saving || !salesmanId ? 0.6 : 1,
+            boxShadow: saving ? 'none' : '0 4px 14px rgba(217,119,6,0.28)',
+          }}
+        >
+          {saving ? <Spinner size={16} /> : <><Calendar size={14} /> Assign for {date}</>}
+        </button>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminRoutes/components/RoutesTable.tsx">
+// PATH: src/pages/Admin/AdminRoutes/components/RoutesTable.tsx
+// UPDATED: Added "Customers" action button — clicking navigates to
+//          /admin/customers?routeId=<id> so admin can see customers for that route.
+
+import { useNavigate } from 'react-router-dom';
+import { Badge } from '../../../../components/ui';
+import { ActionBtn } from './ActionBtn';
+import { Route, Users, Edit2, Trash2, Calendar, ChevronDown } from 'lucide-react';
+import { fmtDate } from '../../../../types';
+import type { RouteDto } from '../../../../types';
+
+interface RoutesTableProps {
+  routes:    RouteDto[];
+  onAssign:  (route: RouteDto) => void;
+  onOverride:(route: RouteDto) => void;
+  onEdit:    (route: RouteDto) => void;
+  onDelete:  (routeId: string) => void;
+}
+
+export function RoutesTable({
+  routes, onAssign, onOverride, onEdit, onDelete,
+}: RoutesTableProps) {
+  const navigate = useNavigate();
+  const hasCustomers = (n?: number) => !!(n && n > 0);
+
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 20 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#fff' }}>
+        <thead>
+          <tr>
+            {['Route Name', 'Assigned Salesman', 'Customers', 'Status', 'Created', 'Override', 'Actions'].map(h => (
+              <th key={h} style={{
+                background: '#F8FAFC', color: '#64748B',
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+                textTransform: 'uppercase' as const, padding: '12px 16px',
+                borderBottom: '1px solid #E2E8F0', textAlign: 'left' as const,
+                whiteSpace: 'nowrap' as const,
+              }}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {routes.map(r => (
+            <tr
+              key={r.id}
+              style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.12s' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#FAFBFD'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+            >
+              {/* Route name */}
+              <td style={{ padding: '14px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 9, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Route size={16} color="#2563EB" />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#0F172A' }}>{r.name}</div>
+                    {r.description && <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 1 }}>{r.description}</div>}
+                  </div>
+                </div>
+              </td>
+
+              {/* Salesman */}
+              <td style={{ padding: '14px 16px' }}>
+                {r.assignedSalesmanName ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: '#2563EB' }}>
+                        {r.assignedSalesmanName.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{r.assignedSalesmanName}</span>
+                  </div>
+                ) : (
+                  <span style={{ fontSize: 13, color: '#94A3B8', fontStyle: 'italic' }}>— Not Assigned —</span>
+                )}
+              </td>
+
+              {/* Customers — clickable to navigate */}
+              <td style={{ padding: '14px 16px' }}>
+                <button
+                  onClick={() => navigate(`/admin/customers?routeId=${r.id}`)}
+                  title="View customers for this route"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    fontSize: 13, fontWeight: 700,
+                    color: hasCustomers(r.customerCount) ? '#2563EB' : '#94A3B8',
+                    background: hasCustomers(r.customerCount) ? '#EFF6FF' : 'transparent',
+                    border: hasCustomers(r.customerCount) ? '1px solid #BFDBFE' : 'none',
+                    borderRadius: 7, padding: hasCustomers(r.customerCount) ? '4px 10px' : '0',
+                    cursor: hasCustomers(r.customerCount) ? 'pointer' : 'default',
+                    fontFamily: 'inherit', transition: 'all 0.12s',
+                  }}
+                  onMouseEnter={e => hasCustomers(r.customerCount) && ((e.currentTarget as HTMLElement).style.background = '#DBEAFE')}
+                  onMouseLeave={e => hasCustomers(r.customerCount) && ((e.currentTarget as HTMLElement).style.background = '#EFF6FF')}
+                >
+                  <Users size={13} />
+                  {r.customerCount ?? 0}
+                </button>
+              </td>
+
+              {/* Status */}
+              <td style={{ padding: '14px 16px' }}>
+                <Badge variant={r.isActive ? 'green' : 'muted'}>
+                  {r.isActive ? 'Active' : 'Inactive'}
+                </Badge>
+              </td>
+
+              {/* Created */}
+              <td style={{ padding: '14px 16px', color: '#94A3B8', fontSize: 12, fontWeight: 500 }}>
+                {r.createdAt ? fmtDate(r.createdAt) : '—'}
+              </td>
+
+              {/* Override badge */}
+              <td style={{ padding: '14px 16px' }}>
+                {r.hasOverrideToday && (
+                  <span style={{
+                    fontSize: 11, fontWeight: 700,
+                    background: 'rgba(217,119,6,0.10)',
+                    color: '#B45309', padding: '3px 8px',
+                    borderRadius: 6, border: '1px solid rgba(217,119,6,0.20)',
+                  }}>
+                    Override Today
+                  </span>
+                )}
+              </td>
+
+              {/* Actions */}
+              <td style={{ padding: '12px 16px' }}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' as const }}>
+                  <ActionBtn
+                    icon={Calendar}
+                    label="Assign"
+                    color="blue"
+                    title="Assign salesman for today"
+                    onClick={() => onAssign(r)}
+                  />
+                  <ActionBtn
+                    icon={ChevronDown}
+                    label="Override"
+                    color="amber"
+                    title="Assign different salesman for a specific date"
+                    onClick={() => onOverride(r)}
+                  />
+                  <ActionBtn
+                    icon={Edit2}
+                    label="Edit"
+                    color="default"
+                    title="Edit route"
+                    onClick={() => onEdit(r)}
+                  />
+                  <ActionBtn
+                    icon={Trash2}
+                    label="Delete"
+                    color="red"
+                    title={hasCustomers(r.customerCount) ? 'Cannot delete route with customers' : 'Delete route'}
+                    disabled={hasCustomers(r.customerCount)}
+                    onClick={() => onDelete(String(r.id))}
+                  />
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminRoutes/EditRoutePage.tsx">
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, Save, Edit2 } from 'lucide-react';
+import { Spinner, Alert } from '../../../components/ui';
+import { routesApi, usersApi } from '../../../api/services';
+import type { RouteDto, UserDto } from '../../../types';
+
+export default function EditRoutePage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const route = location.state?.route as RouteDto;
+  
+  const [form, setForm] = useState({
+    name: route?.name || '',
+    description: route?.description || '',
+    assignedSalesmanId: route?.assignedSalesmanId || '',
+  });
+  const [salesmen, setSalesmen] = useState<UserDto[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    if (!route) {
+      navigate('/admin/routes');
+      return;
+    }
+    usersApi.getAll('Salesman').then(setSalesmen).catch(() => {});
+  }, [route, navigate]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim()) {
+      setError('Route name is required');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await routesApi.update(route.id, {
+        id: String(route.id),
+        name: form.name,
+        description: form.description || undefined,
+        assignedSalesmanId: form.assignedSalesmanId || undefined,
+      });
+      setSuccess('Route updated successfully!');
+      setTimeout(() => {
+        navigate('/admin/routes');
+      }, 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Update failed');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 pb-10">
+      <div className="max-w-3xl mx-auto px-5 py-6">
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/admin/routes')}
+            className="flex items-center gap-2 text-slate-600 hover:text-blue-600 mb-4"
+          >
+            <ArrowLeft size={18} /> Back to Routes
+          </button>
+          
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center">
+              <Edit2 size={22} color="#fff" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800">Edit Route</h1>
+              <p className="text-slate-500">{route?.name}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+              ✓ {success}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  Route Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  placeholder="e.g., Changanassery, North Zone"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  Description
+                </label>
+                <input
+                  type="text"
+                  value={form.description}
+                  onChange={e => setForm({ ...form, description: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  placeholder="Optional - e.g., 10 shops, morning route"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  Assign Salesman
+                </label>
+                <select
+                  value={form.assignedSalesmanId}
+                  onChange={e => setForm({ ...form, assignedSalesmanId: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="">— Unassigned —</option>
+                  {salesmen.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.fullName} ({s.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end mt-8 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => navigate('/admin/routes')}
+                className="px-5 py-2.5 text-sm font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {saving ? <Spinner size={16} /> : <Save size={16} />}
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminRoutes/index.tsx">
+// src/pages/Admin/AdminRoutes/index.tsx
+import AdminRoutes from './AdminRoutes';
+export { default as AdminRoutes } from './AdminRoutes';
+export { default as EditRoutePage } from './EditRoutePage';
+export { default as AssignRoutePage } from './AssignRoutePage';
+export { default as OverrideRoutePage } from './OverrideRoutePage';
+</file>
+
+<file path="src/pages/Admin/AdminRoutes/OverrideRoutePage.tsx">
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, Calendar, ChevronDown } from 'lucide-react';
+import { Spinner, Alert } from '../../../components/ui';
+import { routeAssignmentsApi, usersApi } from '../../../api/services';
+import type { UserDto } from '../../../types';
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export default function OverrideRoutePage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { routeId, routeName } = location.state as { routeId: string; routeName: string };
+  
+  const [salesmen, setSalesmen] = useState<UserDto[]>([]);
+  const [salesmanId, setSalesmanId] = useState('');
+  const [date, setDate] = useState(todayStr());
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    if (!routeId) {
+      navigate('/admin/routes');
+      return;
+    }
+    usersApi.getAll('Salesman').then(setSalesmen).catch(() => {});
+  }, [routeId, navigate]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!salesmanId) {
+      setError('Please select a salesman');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await routeAssignmentsApi.upsert({
+        routeId,
+        salesmanId,
+        assignmentDate: date,
+        notes: notes || 'Temporary assignment',
+      });
+      setSuccess(`Route temporarily assigned for ${new Date(date).toLocaleDateString()}`);
+      setTimeout(() => {
+        navigate('/admin/routes');
+      }, 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Assignment failed');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 pb-10">
+      <div className="max-w-2xl mx-auto px-5 py-6">
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/admin/routes')}
+            className="flex items-center gap-2 text-slate-600 hover:text-blue-600 mb-4"
+          >
+            <ArrowLeft size={18} /> Back to Routes
+          </button>
+          
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
+              <ChevronDown size={22} color="#fff" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800">Temporary Route Assignment</h1>
+              <p className="text-slate-500">Route: <strong>{routeName}</strong></p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-sm text-amber-700">
+            <strong>📅 When to use:</strong> Salesman on leave, resigned, or temporary coverage.
+            This overrides the permanent assignment ONLY for the selected date.
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+              ✓ {success}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  Assign to Salesman *
+                </label>
+                <select
+                  value={salesmanId}
+                  onChange={e => setSalesmanId(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  required
+                >
+                  <option value="">Select salesman...</option>
+                  {salesmen.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.fullName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  Assignment Date *
+                </label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={e => setDate(e.target.value)}
+                  min={todayStr()}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  Notes (optional)
+                </label>
+                <input
+                  type="text"
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  placeholder="e.g., Rajesh on leave, covering for him"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end mt-8 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => navigate('/admin/routes')}
+                className="px-5 py-2.5 text-sm font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-5 py-2.5 text-sm font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {saving ? <Spinner size={16} /> : <Calendar size={16} />}
+                Assign for {date}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminRoutes/types.ts">
+// Shared types for AdminRoutes components
+
+export interface RouteFormData {
+  name: string;
+  description: string;
+  assignedSalesmanId: string;
+}
+
+export interface AssignFormData {
+  routeId: string;
+  routeName: string;
+  salesmanId: string;
+  date: string;
+  notes: string;
+}
+
+export interface OverrideFormData {
+  routeId: string;
+  routeName: string;
+  salesmanId: string;
+  date: string;
+  notes: string;
+}
+
+export interface ActionBtnProps {
+  icon: React.ElementType;
+  label: string;
+  onClick: () => void;
+  color?: 'default' | 'blue' | 'amber' | 'red';
+  title?: string;
+  disabled?: boolean;
+}
+</file>
+
+<file path="src/pages/Admin/AdminSettings.tsx">
+import React, { useEffect, useState } from 'react';
+import { Plus, Edit2, Trash2, Settings, RefreshCw, ArrowUp, ArrowDown } from 'lucide-react';
+import { productGroupsApi, unitsApi } from '../../api/services';
+import type { ProductGroupDto, UnitDto, UnitPriorityDto } from '../../types';
+import { Spinner, Alert, EmptyState, Field, ConfirmModal } from '../../components/ui';
+
+export function AdminSettings() {
+  const [groups,   setGroups]   = useState<ProductGroupDto[]>([]);
+  const [units,    setUnits]    = useState<UnitDto[]>([]);
+  const [priorities, setPriorities] = useState<UnitPriorityDto[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [priorityLoading, setPriorityLoading] = useState(false);
+  const [error,    setError]    = useState('');
+  const [success,  setSuccess]  = useState('');
+  const [tab,      setTab]      = useState<'groups' | 'units' | 'priorities'>('groups');
+  const [updatingPriority, setUpdatingPriority] = useState<string | null>(null);
+
+  // Groups form state
+  const [gModal,   setGModal]   = useState<'add' | 'edit' | null>(null);
+  const [gSelected, setGSelected] = useState<ProductGroupDto | null>(null);
+  const [gForm, setGForm] = useState({ name: '', nameMl: '' });
+  const [gSaving, setGSaving] = useState(false);
+  const [gConfirm, setGConfirm] = useState<string | null>(null);
+  const [gDeleting, setGDeleting] = useState(false);
+
+  // Units form state
+  const [uModal,   setUModal]   = useState<'add' | 'edit' | null>(null);
+  const [uSelected, setUSelected] = useState<UnitDto | null>(null);
+  const [uForm, setUForm] = useState({ name: '', abbreviation: '' });
+  const [uSaving, setUSaving] = useState(false);
+  const [uConfirm, setUConfirm] = useState<string | null>(null);
+  const [uDeleting, setUDeleting] = useState(false);
+
+  async function load() {
+    setLoading(true); setError('');
+    try {
+      const [g, u] = await Promise.all([productGroupsApi.getAll(), unitsApi.getAll()]);
+      setGroups(g); setUnits(u);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Load failed');
+    } finally { setLoading(false); }
+  }
+
+  async function loadPriorities() {
+    setPriorityLoading(true);
+    try {
+      const p = await unitsApi.getPriorities();
+      setPriorities(p);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load priorities');
+    } finally {
+      setPriorityLoading(false);
+    }
+  }
+
+  async function handleUpdatePriority(unitId: string, newPriority: number) {
+    setUpdatingPriority(unitId);
+    try {
+      await unitsApi.updatePriority(unitId, newPriority);
+      await loadPriorities();
+      setSuccess('Loading priority updated.');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Update failed');
+    } finally {
+      setUpdatingPriority(null);
+    }
+  }
+
+  useEffect(() => { load(); loadPriorities(); }, []);
+
+  // Group handlers
+  async function saveGroup() {
+    if (!gForm.name.trim()) return;
+    setGSaving(true); setError('');
+    try {
+      if (gModal === 'add') await productGroupsApi.create(gForm.name, gForm.nameMl || undefined);
+      else if (gSelected) await productGroupsApi.update(gSelected.id, gForm.name, gForm.nameMl || undefined);
+      setGModal(null); load();
+    } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Save failed'); }
+    finally { setGSaving(false); }
+  }
+
+  async function deleteGroup() {
+    if (!gConfirm) return;
+    setGDeleting(true);
+    try { await productGroupsApi.delete(gConfirm); setGConfirm(null); load(); }
+    catch (err: unknown) { setError(err instanceof Error ? err.message : 'Delete failed'); }
+    finally { setGDeleting(false); }
+  }
+
+  // Unit handlers
+  async function saveUnit() {
+    if (!uForm.name.trim()) return;
+    setUSaving(true); setError('');
+    try {
+      if (uModal === 'add') await unitsApi.create(uForm.name, uForm.abbreviation || undefined);
+      else if (uSelected) await unitsApi.update(uSelected.id, uForm.name, uForm.abbreviation || undefined);
+      setUModal(null); load();
+    } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Save failed'); }
+    finally { setUSaving(false); }
+  }
+
+  async function deleteUnit() {
+    if (!uConfirm) return;
+    setUDeleting(true);
+    try { await unitsApi.delete(uConfirm); setUConfirm(null); load(); }
+    catch (err: unknown) { setError(err instanceof Error ? err.message : 'Delete failed'); }
+    finally { setUDeleting(false); }
+  }
+
+  return (
+    <div className="page-content">
+      <div className="section-header">
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Settings</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Product groups and measurement units</p>
+        </div>
+        <button className="btn btn-outline btn-sm" onClick={load}><RefreshCw size={14} /></button>
+      </div>
+
+      {error && <Alert variant="error">{error}</Alert>}
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)' }}>
+        {[['groups', 'Product Groups'], ['units', 'Units'], ['priorities', 'Loading Priorities']].map(([k, l]) => (
+          <button key={k} onClick={() => setTab(k as 'groups' | 'units' | 'priorities')} style={{
+            padding: '8px 16px', fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer',
+            background: 'transparent', fontFamily: 'inherit',
+            color: tab === k ? 'var(--primary)' : 'var(--text-muted)',
+            borderBottom: `2px solid ${tab === k ? 'var(--primary)' : 'transparent'}`,
+            marginBottom: -1, transition: 'all 0.12s',
+          }}>{l}</button>
+        ))}
+      </div>
+
+      {/* Product Groups */}
+      {tab === 'groups' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Product Groups ({groups.length})</h3>
+            <button className="btn btn-primary btn-sm" onClick={() => { setGSelected(null); setGForm({ name: '', nameMl: '' }); setGModal('add'); }}>
+              <Plus size={14} /> Add Group
+            </button>
+          </div>
+          {groups.length === 0 ? (
+            <EmptyState title="No groups yet" icon={Settings} />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {groups.map((g) => (
+                <div key={g.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8 }}>
+                  <div>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{g.name}</span>
+                    {g.nameMl && <span style={{ color: 'var(--text-muted)', fontSize: 13, marginLeft: 8 }}>{g.nameMl}</span>}
+                    {g.productCount !== undefined && <span style={{ color: 'var(--text-muted)', fontSize: 12, marginLeft: 8 }}>({g.productCount} products)</span>}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="btn btn-ghost btn-icon btn-sm" onClick={() => { setGSelected(g); setGForm({ name: g.name, nameMl: g.nameMl ?? '' }); setGModal('edit'); }}><Edit2 size={13} /></button>
+                    <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setGConfirm(g.id)}><Trash2 size={13} color="var(--red)" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Units */}
+      {tab === 'units' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Units ({units.length})</h3>
+            <button className="btn btn-primary btn-sm" onClick={() => { setUSelected(null); setUForm({ name: '', abbreviation: '' }); setUModal('add'); }}>
+              <Plus size={14} /> Add Unit
+            </button>
+          </div>
+          {units.length === 0 ? (
+            <EmptyState title="No units yet" icon={Settings} />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {units.map((u) => (
+                <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8 }}>
+                  <div>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{u.name}</span>
+                    {u.abbreviation && <span style={{ color: 'var(--primary)', fontSize: 12, marginLeft: 8, fontFamily: 'monospace' }}>[{u.abbreviation}]</span>}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="btn btn-ghost btn-icon btn-sm" onClick={() => { setUSelected(u); setUForm({ name: u.name, abbreviation: u.abbreviation ?? '' }); setUModal('edit'); }}><Edit2 size={13} /></button>
+                    <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setUConfirm(u.id)}><Trash2 size={13} color="var(--red)" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Group modal */}
+      {gModal && (
+        <div className="modal-overlay" onClick={() => setGModal(null)}>
+          <div className="modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0, fontWeight: 700 }}>{gModal === 'add' ? 'Add' : 'Edit'} Product Group</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <Field label="Group Name" required><input className="input" value={gForm.name} onChange={(e) => setGForm((p) => ({ ...p, name: e.target.value }))} placeholder="e.g. Beverages" /></Field>
+              <Field label="Malayalam Name"><input className="input" value={gForm.nameMl} onChange={(e) => setGForm((p) => ({ ...p, nameMl: e.target.value }))} placeholder="ഗ്രൂപ്പ് (optional)" lang="ml" /></Field>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button className="btn btn-outline" onClick={() => setGModal(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={saveGroup} disabled={gSaving}>{gSaving ? <Spinner size={16} /> : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unit modal */}
+      {uModal && (
+        <div className="modal-overlay" onClick={() => setUModal(null)}>
+          <div className="modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0, fontWeight: 700 }}>{uModal === 'add' ? 'Add' : 'Edit'} Unit</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <Field label="Unit Name" required><input className="input" value={uForm.name} onChange={(e) => setUForm((p) => ({ ...p, name: e.target.value }))} placeholder="e.g. Kilogram" /></Field>
+              <Field label="Abbreviation"><input className="input" value={uForm.abbreviation} onChange={(e) => setUForm((p) => ({ ...p, abbreviation: e.target.value }))} placeholder="e.g. kg" /></Field>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button className="btn btn-outline" onClick={() => setUModal(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={saveUnit} disabled={uSaving}>{uSaving ? <Spinner size={16} /> : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Priorities */}
+      {tab === 'priorities' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Unit Loading Priorities</h3>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              Lower number = Load FIRST in van
+            </div>
+          </div>
+
+          {success && <Alert variant="success">{success}</Alert>}
+
+          <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12, lineHeight: 1.6 }}>
+            <strong>📦 Loading Priority Guide:</strong><br/>
+            • Priority 1: Load FIRST (e.g., Heavy bags go at bottom)<br/>
+            • Priority 99: Load LAST (e.g., Small items go on top)<br/>
+            • Items are grouped by priority when generating Loading Sheet
+          </div>
+
+          {priorityLoading ? (
+            <Spinner />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 2fr 1fr 100px',
+                padding: '10px 14px',
+                background: 'var(--border-lite)',
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+              }}>
+                <div>Priority</div>
+                <div>Unit Name</div>
+                <div>Symbol</div>
+                <div style={{ textAlign: 'center' }}>Actions</div>
+              </div>
+
+              {priorities.length === 0 ? (
+                <EmptyState title="No units with priorities" />
+              ) : (
+                priorities.map((unit) => (
+                  <div key={unit.id} style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 2fr 1fr 100px',
+                    alignItems: 'center',
+                    padding: '10px 14px',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    background: unit.loadingPriority <= 5 ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                  }}>
+                    <div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: 14 }}>
+                      {unit.loadingPriority}
+                    </div>
+                    <div style={{ fontWeight: 600 }}>{unit.name}</div>
+                    <div style={{ color: 'var(--text-muted)' }}>{unit.symbol || '—'}</div>
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                      <button
+                        className="btn btn-ghost btn-icon btn-sm"
+                        onClick={() => handleUpdatePriority(unit.id, Math.max(1, unit.loadingPriority - 1))}
+                        disabled={updatingPriority === unit.id || unit.loadingPriority <= 1}
+                        title="Increase priority (load earlier)"
+                      >
+                        <ArrowUp size={14} />
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-icon btn-sm"
+                        onClick={() => handleUpdatePriority(unit.id, unit.loadingPriority + 1)}
+                        disabled={updatingPriority === unit.id}
+                        title="Decrease priority (load later)"
+                      >
+                        <ArrowDown size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          <div style={{ borderTop: '1px solid var(--border)', marginTop: 16, paddingTop: 16 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', background: 'var(--border-lite)', padding: 12, borderRadius: 8 }}>
+              <p style={{ fontWeight: 600, margin: '0 0 8px 0' }}>📦 How Loading Priority Works:</p>
+              <ul style={{ margin: 0, paddingLeft: 20 }}>
+                <li>Priority 1 items are loaded FIRST (bottom of van)</li>
+                <li>Priority 99 items are loaded LAST (top of van, unloaded first)</li>
+                <li>First delivery customer's items should have HIGHEST priority numbers</li>
+                <li>Last delivery customer's items should have LOWEST priority numbers</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {gConfirm && <ConfirmModal title="Delete Group" message="This will delete the product group." danger loading={gDeleting} onConfirm={deleteGroup} onCancel={() => setGConfirm(null)} />}
+      {uConfirm && <ConfirmModal title="Delete Unit" message="This will delete the measurement unit." danger loading={uDeleting} onConfirm={deleteUnit} onCancel={() => setUConfirm(null)} />}
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminSettlement.tsx">
+import React, { useEffect, useState } from 'react';
+import { Calculator, RefreshCw, DollarSign, AlertCircle, CheckCircle2, Users } from 'lucide-react';
+import { settlementApi, routesApi } from '../../api/services';
+import type { ExpectedCashDto, OutstandingSummaryDto, RouteDto, DailyClosureStatusDto } from '../../types';
+import { fmt, fmtDate } from '../../types';
+import { PageLoader, Spinner, Alert, Badge, EmptyState, Field } from '../../components/ui';
+
+export function AdminSettlement() {
+  const [routes,      setRoutes]      = useState<RouteDto[]>([]);
+  const [routeFilter, setRouteFilter] = useState('');
+  const [summary,     setSummary]     = useState<ExpectedCashDto | null>(null);
+  const [outstanding, setOutstanding] = useState<OutstandingSummaryDto | null>(null);
+  const [closureStatus, setClosureStatus] = useState<DailyClosureStatusDto | null>(null);
+  const [loading,     setLoading]     = useState(true);
+  const [payModal,    setPayModal]    = useState<string | null>(null); // customerId
+  const [payForm, setPayForm] = useState({ amount: '', paymentMode: 'Cash', reference: '', remarks: '' });
+  const [paying,      setPaying]      = useState(false);
+  const [error,       setError]       = useState('');
+  const [msg,         setMsg]         = useState('');
+
+  async function load() {
+    setLoading(true); setError('');
+    try {
+      const [s, o, cs] = await Promise.all([
+        settlementApi.getSummary(routeFilter || undefined),
+        settlementApi.getOutstanding(routeFilter || undefined),
+        settlementApi.getStatus(),
+      ]);
+      setSummary(s); setOutstanding(o); setClosureStatus(cs);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Load failed');
+    } finally { setLoading(false); }
+  }
+
+  async function loadRoutes() {
+    const r = await routesApi.getAll();
+    setRoutes(r);
+  }
+
+  useEffect(() => { loadRoutes(); }, []);
+  useEffect(() => { load(); }, [routeFilter]);
+
+  async function handlePay(customerId: string) {
+    if (!payForm.amount) return;
+    setPaying(true);
+    try {
+      await settlementApi.recordPayment({
+        customerId,
+        amount: parseFloat(payForm.amount),
+        paymentDate: new Date().toISOString(),
+        paymentMode: payForm.paymentMode,
+        paymentReference: payForm.reference || undefined,
+        remarks: payForm.remarks || undefined,
+      });
+      setMsg('Payment recorded successfully.');
+      setPayModal(null);
+      load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Payment failed');
+    } finally { setPaying(false); }
+  }
+
+  if (loading) return <PageLoader />;
+
+  return (
+    <div className="page-content">
+      <div className="section-header">
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Settlement</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
+            Outstanding reconciliation & payment tracking
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <select className="input" value={routeFilter} onChange={(e) => setRouteFilter(e.target.value)} style={{ width: 'auto' }}>
+            <option value="">All Routes</option>
+            {routes.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+          <button className="btn btn-outline btn-sm" onClick={load}><RefreshCw size={14} /></button>
+        </div>
+      </div>
+
+      {error && <Alert variant="error">{error}</Alert>}
+      {msg   && <Alert variant="success">{msg}</Alert>}
+
+      {/* Closure status */}
+      {closureStatus && (
+        <div className={`alert alert-${closureStatus.isClosed ? 'success' : 'warning'}`} style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {closureStatus.isClosed ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+            {closureStatus.isClosed
+              ? `Today closed · ${closureStatus.closedOrders} orders locked · Revenue: ${fmt(closureStatus.totalRevenue)}`
+              : `Day still open · ${closureStatus.submittedOrders} submitted, ${closureStatus.totalOrders - closureStatus.closedOrders - closureStatus.submittedOrders} in draft`}
+          </div>
+        </div>
+      )}
+
+      {/* Summary cards */}
+      {summary && (
+        <div className="kpi-grid" style={{ marginBottom: 24 }}>
+          <SummCard label="Total Orders"      value={summary.orderCount.toString()}      icon={Calculator} color="var(--blue)" />
+          <SummCard label="Expected Cash"     value={fmt(summary.totalOrderValue)}       icon={DollarSign} color="var(--green)" />
+          <SummCard label="Collected"         value={fmt(summary.paidAmount)}            icon={CheckCircle2} color="var(--green)" />
+          <SummCard label="Outstanding"       value={fmt(summary.outstandingAmount)}     icon={AlertCircle} color="var(--red)" />
+        </div>
+      )}
+
+      {/* Outstanding by customer */}
+      {outstanding && (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Outstanding by Customer</h3>
+            <span style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>{fmt(outstanding.totalOutstanding)} total</span>
+          </div>
+          {outstanding.customers.length === 0 ? (
+            <div className="empty-state" style={{ padding: 40 }}>
+              <CheckCircle2 size={32} color="var(--green)" />
+              <p style={{ marginTop: 10 }}>No outstanding balances!</p>
+            </div>
+          ) : (
+            <table className="tbl">
+              <thead>
+                <tr><th>Customer</th><th>Route</th><th>Billed</th><th>Paid</th><th>Outstanding</th><th></th></tr>
+              </thead>
+              <tbody>
+                {outstanding.customers.map((c) => (
+                  <tr key={c.customerId}>
+                    <td style={{ fontWeight: 600 }}>{c.customerName}</td>
+                    <td style={{ fontSize: 13 }}>{c.routeName ?? '—'}</td>
+                    <td>{fmt(c.totalBilled)}</td>
+                    <td style={{ color: 'var(--green)' }}>{fmt(c.totalPaid)}</td>
+                    <td style={{ color: c.outstanding > 0 ? 'var(--red)' : 'var(--green)', fontWeight: 700 }}>{fmt(c.outstanding)}</td>
+                    <td>
+                      {c.outstanding > 0 && (
+                        <button className="btn btn-outline btn-sm" onClick={() => { setPayModal(String(c.customerId)); setPayForm({ amount: c.outstanding.toFixed(2), paymentMode: 'Cash', reference: '', remarks: '' }); }}>
+                          <DollarSign size={13} /> Record Payment
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* Payment modal */}
+      {payModal && (
+        <div className="modal-overlay" onClick={() => setPayModal(null)}>
+          <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0, fontWeight: 700 }}>Record Payment</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <Field label="Amount (₹)" required>
+                <input className="input" type="number" step="0.01" value={payForm.amount} onChange={(e) => setPayForm((p) => ({ ...p, amount: e.target.value }))} />
+              </Field>
+              <Field label="Payment Mode">
+                <select className="input" value={payForm.paymentMode} onChange={(e) => setPayForm((p) => ({ ...p, paymentMode: e.target.value }))}>
+                  {['Cash', 'UPI', 'NEFT', 'Cheque', 'Other'].map((m) => <option key={m}>{m}</option>)}
+                </select>
+              </Field>
+              <Field label="Reference No">
+                <input className="input" value={payForm.reference} onChange={(e) => setPayForm((p) => ({ ...p, reference: e.target.value }))} placeholder="UPI transaction / cheque no." />
+              </Field>
+              <Field label="Remarks">
+                <input className="input" value={payForm.remarks} onChange={(e) => setPayForm((p) => ({ ...p, remarks: e.target.value }))} placeholder="Optional notes" />
+              </Field>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button className="btn btn-outline" onClick={() => setPayModal(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={() => handlePay(payModal)} disabled={paying || !payForm.amount}>
+                {paying ? <Spinner size={16} /> : 'Save Payment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SummCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: React.ElementType; color: string }) {
+  return (
+    <div className="kpi-card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+        <span className="kpi-label">{label}</span>
+        <Icon size={18} color={color} />
+      </div>
+      <div className="kpi-value" style={{ color }}>{value}</div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Admin/AdminUsers.tsx">
+// PATH: src/pages/Admin/AdminUsers.tsx
+// NEW FILE — Admin User Management: list, activate/deactivate, set salesman PIN
+
+import { useEffect, useState } from 'react';
+import { RefreshCw, UserCheck, UserX, KeyRound, Search } from 'lucide-react';
+import { usersApi, authApi } from '../../api/services';
+import type { UserDto } from '../../types';
+import { PageLoader, Spinner, Alert, Badge, EmptyState, ConfirmModal } from '../../components/ui';
+
+// Badge only accepts: 'green' | 'amber' | 'red' | 'blue' | 'muted' | 'primary'
+const ROLE_BADGE: Record<string, 'primary' | 'blue' | 'green' | 'muted' | 'amber'> = {
+  SuperAdmin: 'primary',
+  Admin:      'primary',
+  Salesman:   'green',
+  Accounts:   'blue',
+  Warehouse:  'blue',
+};
+
+type RoleFilter = 'All' | 'Salesman' | 'Admin' | 'Accounts' | 'Warehouse';
+const ROLE_FILTERS: RoleFilter[] = ['All', 'Salesman', 'Admin', 'Accounts', 'Warehouse'];
+
+export function AdminUsers() {
+  const [users,        setUsers]        = useState<UserDto[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState('');
+  const [success,      setSuccess]      = useState('');
+  const [search,       setSearch]       = useState('');
+  const [roleFilter,   setRoleFilter]   = useState<RoleFilter>('All');
+
+  // Toggle active state
+  const [toggling,     setToggling]     = useState<string | null>(null);
+  const [toggleTarget, setToggleTarget] = useState<UserDto | null>(null);
+
+  // Set PIN modal
+  const [pinModal,     setPinModal]     = useState<UserDto | null>(null);
+  const [pinValue,     setPinValue]     = useState('');
+  const [pinSaving,    setPinSaving]    = useState(false);
+  const [pinError,     setPinError]     = useState('');
+
+  async function load() {
+    setLoading(true); setError('');
+    try {
+      const all = await usersApi.getAllWithInactive(
+        roleFilter === 'All' ? undefined : roleFilter
+      );
+      setUsers(all);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load users');
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { load(); }, [roleFilter]);
+
+  // ── Toggle active ─────────────────────────────────────────────────────────
+  async function handleToggleConfirm() {
+    if (!toggleTarget) return;
+    setToggling(toggleTarget.id);
+    setError('');
+    try {
+      await usersApi.toggleActive(toggleTarget.id);
+      setSuccess(
+        `${toggleTarget.fullName} has been ${toggleTarget.isActive ? 'deactivated' : 'activated'}.`
+      );
+      setToggleTarget(null);
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to update user status');
+      setToggleTarget(null);
+    } finally { setToggling(null); }
+  }
+
+  // ── Set PIN ───────────────────────────────────────────────────────────────
+  function openPinModal(u: UserDto) {
+    setPinModal(u);
+    setPinValue('');
+    setPinError('');
+  }
+
+  async function handleSetPin() {
+    if (!pinModal) return;
+    if (!/^\d{4,6}$/.test(pinValue)) {
+      setPinError('PIN must be 4–6 digits.');
+      return;
+    }
+    setPinSaving(true); setPinError('');
+    try {
+      await authApi.setPin(pinValue, pinModal.id);
+      setSuccess(`PIN set successfully for ${pinModal.fullName}.`);
+      setPinModal(null);
+    } catch (err: unknown) {
+      setPinError(err instanceof Error ? err.message : 'Failed to set PIN');
+    } finally { setPinSaving(false); }
+  }
+
+  // ── Filter ────────────────────────────────────────────────────────────────
+  const filtered = users.filter(u => {
+    const q = search.toLowerCase();
+    return u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+  });
+
+  if (loading) return <PageLoader />;
+
+  return (
+    <div className="page-content">
+      {/* Header */}
+      <div className="section-header">
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Users</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
+            {users.length} user{users.length !== 1 ? 's' : ''} · manage accounts, PIN and access
+          </p>
+        </div>
+        <button className="btn btn-outline btn-sm" onClick={load}>
+          <RefreshCw size={14} />
+        </button>
+      </div>
+
+      {/* Alerts — Alert only accepts variant + children, no style/onClose */}
+      {error   && <Alert variant="error">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        {/* Search */}
+        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          <Search size={14} style={{
+            position: 'absolute', left: 10, top: '50%',
+            transform: 'translateY(-50%)', color: 'var(--text-muted)',
+          }} />
+          <input
+            className="input"
+            style={{ paddingLeft: 32 }}
+            placeholder="Search by name or email…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+
+        {/* Role filter pills */}
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          {ROLE_FILTERS.map(r => (
+            <button
+              key={r}
+              onClick={() => setRoleFilter(r)}
+              style={{
+                padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+                border: '1px solid var(--border)',
+                background: roleFilter === r ? 'var(--primary)' : 'var(--surface)',
+                color:      roleFilter === r ? '#fff' : 'var(--text-muted)',
+                cursor: 'pointer', transition: 'all 0.12s',
+              }}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Table */}
+      {filtered.length === 0 ? (
+        <EmptyState title="No users found" message="Try adjusting your filters." icon={UserCheck} />
+      ) : (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(u => (
+                <tr key={u.id} style={{ opacity: u.isActive ? 1 : 0.55 }}>
+                  {/* Name */}
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                        background: u.isActive ? 'var(--primary-glow)' : 'var(--border)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 13, fontWeight: 700,
+                        color: u.isActive ? 'var(--primary)' : 'var(--text-muted)',
+                      }}>
+                        {u.fullName.charAt(0).toUpperCase()}
+                      </div>
+                      <span style={{ fontWeight: 600, fontSize: 14 }}>{u.fullName}</span>
+                    </div>
+                  </td>
+
+                  {/* Email */}
+                  <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{u.email}</td>
+
+                  {/* Role — only valid BadgeVariant values used */}
+                  <td>
+                    <Badge variant={ROLE_BADGE[u.role] ?? 'muted'}>{u.role}</Badge>
+                  </td>
+
+                  {/* Status */}
+                  <td>
+                    <Badge variant={u.isActive ? 'green' : 'muted'}>
+                      {u.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </td>
+
+                  {/* Actions */}
+                  <td>
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                      {/* Set PIN — Salesman only */}
+                      {u.role === 'Salesman' && u.isActive && (
+                        <button
+                          className="btn btn-outline btn-sm"
+                          style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+                          onClick={() => openPinModal(u)}
+                          title="Set PIN for this salesman"
+                        >
+                          <KeyRound size={12} /> Set PIN
+                        </button>
+                      )}
+
+                      {/* Activate / Deactivate */}
+                      <button
+                        className={`btn btn-sm ${u.isActive ? 'btn-danger' : 'btn-outline'}`}
+                        style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+                        onClick={() => setToggleTarget(u)}
+                        disabled={toggling === u.id}
+                        title={u.isActive ? 'Deactivate account' : 'Activate account'}
+                      >
+                        {toggling === u.id
+                          ? <Spinner size={12} />
+                          : u.isActive
+                            ? <><UserX size={12} /> Deactivate</>
+                            : <><UserCheck size={12} /> Activate</>
+                        }
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── Set PIN Modal ──────────────────────────────────────────────────── */}
+      {pinModal && (
+        <div className="modal-overlay" onClick={() => setPinModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+            <h3 style={{ marginTop: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <KeyRound size={18} color="var(--primary)" /> Set PIN
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
+              Setting PIN for <strong style={{ color: 'var(--text)' }}>{pinModal.fullName}</strong>.
+              The salesman uses this 4–6 digit PIN to log in from their mobile device.
+            </p>
+
+            {/* pinError shown inline — no Alert needed here */}
+            {pinError && (
+              <div style={{
+                background: 'var(--red-dim, rgba(239,68,68,0.12))',
+                border: '1px solid var(--red, #ef4444)',
+                borderRadius: 8, padding: '8px 12px',
+                color: 'var(--red, #ef4444)', fontSize: 13, marginBottom: 12,
+              }}>
+                {pinError}
+              </div>
+            )}
+
+            <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+              PIN (4–6 digits) *
+            </label>
+            <input
+              className="input"
+              type="password"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="e.g. 1234"
+              value={pinValue}
+              onChange={e => setPinValue(e.target.value.replace(/\D/g, ''))}
+              autoFocus
+              onKeyDown={e => e.key === 'Enter' && handleSetPin()}
+              style={{ letterSpacing: 8, fontSize: 20, textAlign: 'center' }}
+            />
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+              Choose something easy for the salesman to remember.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+              <button className="btn btn-outline" onClick={() => setPinModal(null)}>Cancel</button>
+              <button
+                className="btn btn-primary"
+                onClick={handleSetPin}
+                disabled={pinSaving || pinValue.length < 4}
+              >
+                {pinSaving ? <Spinner size={16} /> : 'Set PIN'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Toggle Active Confirm — ConfirmModal accepts open prop ────────── */}
+      <ConfirmModal
+        open={!!toggleTarget}
+        title={toggleTarget?.isActive ? 'Deactivate User' : 'Activate User'}
+        message={
+          toggleTarget?.isActive
+            ? `Deactivating ${toggleTarget.fullName} will immediately block their login. Continue?`
+            : `Reactivate ${toggleTarget?.fullName ?? ''}? They will be able to log in again immediately.`
+        }
+        confirmLabel={toggleTarget?.isActive ? 'Deactivate' : 'Activate'}
+        danger={toggleTarget?.isActive ?? false}
+        loading={!!toggling}
+        onConfirm={handleToggleConfirm}
+        onCancel={() => setToggleTarget(null)}
+      />
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Auth/LoginPage.tsx">
+// PATH: src/pages/Auth/LoginPage.tsx
+// Redesigned — White & Blue design system
+
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Package, Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { authApi } from '../../api/services';
+import { useAuthStore, getRoleHome } from '../../store/authStore';
+import type { UserRole, AuthUser } from '../../types';
+import { Spinner } from '../../components/ui';
+
+export function LoginPage() {
+  const navigate = useNavigate();
+  const { setUser } = useAuthStore();
+
+  const [email,    setEmail]    = useState('');
+  const [password, setPassword] = useState('');
+  const [showPw,   setShowPw]   = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState('');
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    if (!email || !password) { setError('Email and password are required.'); return; }
+    setLoading(true);
+    try {
+      const res = await authApi.login(email, password);
+      const user: AuthUser = {
+        id:    res.userId,
+        email: res.email,
+        name:  res.fullName,
+        role:  res.role as UserRole,
+        token: res.token,
+      };
+      setUser(user);
+      navigate(getRoleHome(user.role));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{
+      minHeight:      '100vh',
+      display:        'flex',
+      alignItems:     'center',
+      justifyContent: 'center',
+      background:     'linear-gradient(135deg, #EFF6FF 0%, #F1F5F9 50%, #E0F2FE 100%)',
+      padding:        20,
+      position:       'relative',
+      overflow:       'hidden',
+    }}>
+
+      {/* Decorative blobs */}
+      <div style={{
+        position: 'fixed', top: '-10%', right: '-5%',
+        width: 500, height: 500, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'fixed', bottom: '-15%', left: '-8%',
+        width: 600, height: 600, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(30,58,138,0.05) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{
+        width: '100%', maxWidth: 400,
+        animation: 'slide-up 0.35s cubic-bezier(0.34,1.2,0.64,1)',
+        position: 'relative', zIndex: 1,
+      }}>
+
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{
+            width: 60, height: 60,
+            background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+            borderRadius: 18,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 16px',
+            boxShadow: '0 8px 32px rgba(37,99,235,0.28)',
+          }}>
+            <Package size={30} color="#fff" strokeWidth={2} />
+          </div>
+          <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.04em', margin: 0, color: '#0F172A' }}>
+            FMCG<span style={{ color: '#2563EB' }}>Dist</span>
+          </h1>
+          <p style={{ color: '#64748B', fontSize: 13, marginTop: 6, fontWeight: 500 }}>
+            Distribution Management Platform
+          </p>
+        </div>
+
+        {/* Card */}
+        <div style={{
+          background: '#FFFFFF',
+          border: '1px solid #E2E8F0',
+          borderRadius: 20,
+          padding: '32px 28px',
+          boxShadow: '0 4px 24px rgba(15,23,42,0.08), 0 1px 4px rgba(15,23,42,0.04)',
+        }}>
+          <h2 style={{
+            fontSize: 20, fontWeight: 800, color: '#0F172A',
+            marginBottom: 24, marginTop: 0, letterSpacing: '-0.03em',
+          }}>
+            Sign In
+          </h2>
+
+          {error && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 10,
+              background: 'rgba(220,38,38,0.06)',
+              border: '1px solid rgba(220,38,38,0.20)',
+              color: '#B91C1C', fontSize: 13, fontWeight: 500, marginBottom: 20,
+            }}>
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+            {/* Email */}
+            <div>
+              <label style={{
+                display: 'block', fontSize: 13, fontWeight: 600,
+                color: '#334155', marginBottom: 6, letterSpacing: '-0.01em',
+              }}>
+                Email address
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={15} style={{
+                  position: 'absolute', left: 13, top: '50%',
+                  transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none',
+                }} />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@company.com"
+                  autoComplete="email"
+                  disabled={loading}
+                  style={{
+                    width: '100%', padding: '11px 14px 11px 38px',
+                    background: '#F8FAFC', border: '1px solid #E2E8F0',
+                    borderRadius: 10, fontSize: 14, color: '#334155',
+                    outline: 'none', fontFamily: 'inherit',
+                    transition: 'border-color 0.15s, box-shadow 0.15s, background 0.15s',
+                    boxSizing: 'border-box',
+                  }}
+                  onFocus={e => {
+                    e.target.style.borderColor = '#2563EB';
+                    e.target.style.boxShadow   = '0 0 0 3px rgba(37,99,235,0.12)';
+                    e.target.style.background  = '#fff';
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = '#E2E8F0';
+                    e.target.style.boxShadow   = 'none';
+                    e.target.style.background  = '#F8FAFC';
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label style={{
+                display: 'block', fontSize: 13, fontWeight: 600,
+                color: '#334155', marginBottom: 6, letterSpacing: '-0.01em',
+              }}>
+                Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={15} style={{
+                  position: 'absolute', left: 13, top: '50%',
+                  transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none',
+                }} />
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  disabled={loading}
+                  style={{
+                    width: '100%', padding: '11px 44px 11px 38px',
+                    background: '#F8FAFC', border: '1px solid #E2E8F0',
+                    borderRadius: 10, fontSize: 14, color: '#334155',
+                    outline: 'none', fontFamily: 'inherit',
+                    transition: 'border-color 0.15s, box-shadow 0.15s, background 0.15s',
+                    boxSizing: 'border-box',
+                  }}
+                  onFocus={e => {
+                    e.target.style.borderColor = '#2563EB';
+                    e.target.style.boxShadow   = '0 0 0 3px rgba(37,99,235,0.12)';
+                    e.target.style.background  = '#fff';
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = '#E2E8F0';
+                    e.target.style.boxShadow   = 'none';
+                    e.target.style.background  = '#F8FAFC';
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  style={{
+                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: '#94A3B8', display: 'flex', alignItems: 'center',
+                    padding: 4, borderRadius: 6, transition: 'color 0.12s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#2563EB'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#94A3B8'}
+                >
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit button */}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%', padding: '13px',
+                background: loading ? '#BFDBFE' : 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+                color: '#fff', border: 'none', borderRadius: 12,
+                fontSize: 15, fontWeight: 700,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                boxShadow: loading ? 'none' : '0 4px 16px rgba(37,99,235,0.30)',
+                transition: 'all 0.18s', letterSpacing: '-0.01em',
+                fontFamily: 'inherit', marginTop: 4,
+              }}
+              onMouseEnter={e => {
+                if (!loading) {
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(37,99,235,0.38)';
+                }
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(37,99,235,0.30)';
+              }}
+            >
+              {loading ? <Spinner size={18} /> : 'Sign In'}
+            </button>
+          </form>
+
+          {/* Links */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: 16, marginTop: 20, fontSize: 13,
+          }}>
+            <Link to="/pin-login" style={{ color: '#64748B', textDecoration: 'none', fontWeight: 500 }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#2563EB'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#64748B'}
+            >
+              PIN Login
+            </Link>
+            <span style={{ color: '#CBD5E1' }}>·</span>
+            <Link to="/register" style={{ color: '#2563EB', textDecoration: 'none', fontWeight: 600 }}>
+              Create account
+            </Link>
+          </div>
+        </div>
+
+        <p style={{ textAlign: 'center', fontSize: 12, color: '#94A3B8', marginTop: 20 }}>
+          FMCG Distribution Platform · Secure Access
+        </p>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Auth/PinLoginPage.tsx">
+// PATH: src/pages/Auth/PinLoginPage.tsx
+// Redesigned — White & Blue design system
+
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Package, Delete, Mail, ArrowLeft } from 'lucide-react';
+import { authApi } from '../../api/services';
+import { useAuthStore, getRoleHome } from '../../store/authStore';
+import type { UserRole, AuthUser } from '../../types';
+import { Spinner } from '../../components/ui';
+
+// ── PIN digit button ──────────────────────────────────────────
+function DigitBtn({
+  label, sub, onClick, disabled,
+}: {
+  label: string; sub?: string; onClick: () => void; disabled: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        width: 72, height: 72, borderRadius: 14,
+        border: '1px solid #E2E8F0',
+        background: '#F8FAFC',
+        color: '#0F172A', fontSize: 22, fontWeight: 700,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        transition: 'all 0.12s',
+        gap: 1,
+        WebkitTapHighlightColor: 'transparent',
+        fontFamily: 'inherit',
+      }}
+      onMouseEnter={e => {
+        if (!disabled) {
+          (e.currentTarget as HTMLElement).style.background    = '#EFF6FF';
+          (e.currentTarget as HTMLElement).style.borderColor   = 'rgba(37,99,235,0.30)';
+          (e.currentTarget as HTMLElement).style.color         = '#2563EB';
+        }
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLElement).style.background  = '#F8FAFC';
+        (e.currentTarget as HTMLElement).style.borderColor = '#E2E8F0';
+        (e.currentTarget as HTMLElement).style.color       = '#0F172A';
+      }}
+      onPointerDown={e => {
+        (e.currentTarget as HTMLButtonElement).style.background  = '#DBEAFE';
+        (e.currentTarget as HTMLButtonElement).style.transform   = 'scale(0.95)';
+      }}
+      onPointerUp={e => {
+        (e.currentTarget as HTMLButtonElement).style.background  = '#F8FAFC';
+        (e.currentTarget as HTMLButtonElement).style.transform   = 'scale(1)';
+      }}
+    >
+      <span>{label}</span>
+      {sub && <span style={{ fontSize: 9, color: '#94A3B8', letterSpacing: 1 }}>{sub}</span>}
+    </button>
+  );
+}
+
+const KEYS = [
+  { label: '1', sub: '' },
+  { label: '2', sub: 'ABC' },
+  { label: '3', sub: 'DEF' },
+  { label: '4', sub: 'GHI' },
+  { label: '5', sub: 'JKL' },
+  { label: '6', sub: 'MNO' },
+  { label: '7', sub: 'PQRS' },
+  { label: '8', sub: 'TUV' },
+  { label: '9', sub: 'WXYZ' },
+];
+
+const PIN_LENGTH = 4;
+
+export default function PinLoginPage() {
+  const navigate = useNavigate();
+  const { setUser } = useAuthStore();
+
+  const [email,   setEmail]   = useState('');
+  const [pin,     setPin]     = useState('');
+  const [step,    setStep]    = useState<'email' | 'pin'>('email');
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState('');
+
+  function handleEmailNext() {
+    setError('');
+    if (!email.trim()) { setError('Please enter your email.'); return; }
+    setStep('pin');
+  }
+
+  function backspace() { setPin(p => p.slice(0, -1)); }
+
+  async function submit(finalPin: string) {
+    if (finalPin.length < 4) return;
+    setError('');
+    setLoading(true);
+    try {
+      const res = await authApi.pinLogin(email, finalPin);
+      const user: AuthUser = {
+        id:    res.userId,
+        email: res.email,
+        name:  res.fullName,
+        role:  res.role as UserRole,
+        token: res.token,
+      };
+      setUser(user);
+      navigate(getRoleHome(user.role));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Login failed.');
+      setPin('');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handlePress(digit: string) {
+    if (pin.length >= PIN_LENGTH) return;
+    const next = pin + digit;
+    setPin(next);
+    if (next.length >= 4) submit(next);
+  }
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'linear-gradient(135deg, #EFF6FF 0%, #F1F5F9 50%, #E0F2FE 100%)',
+      padding: 20, position: 'relative', overflow: 'hidden',
+    }}>
+
+      {/* Decorative blobs */}
+      <div style={{
+        position: 'fixed', top: '-10%', right: '-5%',
+        width: 500, height: 500, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'fixed', bottom: '-15%', left: '-8%',
+        width: 600, height: 600, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(30,58,138,0.05) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{
+        width: '100%', maxWidth: 360,
+        animation: 'slide-up 0.35s cubic-bezier(0.34,1.2,0.64,1)',
+        position: 'relative', zIndex: 1,
+      }}>
+
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{
+            width: 56, height: 56,
+            background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+            borderRadius: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 14px',
+            boxShadow: '0 8px 28px rgba(37,99,235,0.28)',
+          }}>
+            <Package size={27} color="#fff" strokeWidth={2} />
+          </div>
+          <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.04em', margin: 0, color: '#0F172A' }}>
+            FMCG<span style={{ color: '#2563EB' }}>Dist</span>
+          </h1>
+          <p style={{ color: '#64748B', fontSize: 12, marginTop: 5, fontWeight: 500 }}>
+            Salesman Quick Login
+          </p>
+        </div>
+
+        {/* Card */}
+        <div style={{
+          background: '#FFFFFF',
+          border: '1px solid #E2E8F0',
+          borderRadius: 20,
+          padding: '28px 24px',
+          boxShadow: '0 4px 24px rgba(15,23,42,0.08), 0 1px 4px rgba(15,23,42,0.04)',
+        }}>
+
+          {error && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 10,
+              background: 'rgba(220,38,38,0.06)',
+              border: '1px solid rgba(220,38,38,0.20)',
+              color: '#B91C1C', fontSize: 13, fontWeight: 500, marginBottom: 20,
+            }}>
+              {error}
+            </div>
+          )}
+
+          {/* Step 1: Email */}
+          {step === 'email' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <h2 style={{
+                margin: 0, fontSize: 17, fontWeight: 800,
+                color: '#0F172A', letterSpacing: '-0.03em',
+              }}>
+                Enter your email
+              </h2>
+              <div style={{ position: 'relative' }}>
+                <Mail size={15} style={{
+                  position: 'absolute', left: 13, top: '50%',
+                  transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none',
+                }} />
+                <input
+                  type="email"
+                  placeholder="salesman@example.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleEmailNext()}
+                  autoFocus
+                  autoComplete="email"
+                  style={{
+                    width: '100%', padding: '11px 14px 11px 38px',
+                    background: '#F8FAFC', border: '1px solid #E2E8F0',
+                    borderRadius: 10, fontSize: 14, color: '#334155',
+                    outline: 'none', fontFamily: 'inherit',
+                    transition: 'border-color 0.15s, box-shadow 0.15s, background 0.15s',
+                    boxSizing: 'border-box',
+                  }}
+                  onFocus={e => {
+                    e.target.style.borderColor = '#2563EB';
+                    e.target.style.boxShadow   = '0 0 0 3px rgba(37,99,235,0.12)';
+                    e.target.style.background  = '#fff';
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = '#E2E8F0';
+                    e.target.style.boxShadow   = 'none';
+                    e.target.style.background  = '#F8FAFC';
+                  }}
+                />
+              </div>
+              <button
+                onClick={handleEmailNext}
+                style={{
+                  padding: '12px',
+                  background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+                  color: '#fff', border: 'none', borderRadius: 11,
+                  fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(37,99,235,0.28)',
+                  fontFamily: 'inherit', letterSpacing: '-0.01em',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 20px rgba(37,99,235,0.36)';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 14px rgba(37,99,235,0.28)';
+                }}
+              >
+                Continue →
+              </button>
+              <Link to="/login" style={{
+                textAlign: 'center', fontSize: 13,
+                color: '#64748B', textDecoration: 'none', fontWeight: 500,
+              }}>
+                Use password instead
+              </Link>
+            </div>
+          )}
+
+          {/* Step 2: PIN keypad */}
+          {step === 'pin' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+
+              {/* Back + user info */}
+              <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <button
+                  onClick={() => { setStep('email'); setPin(''); setError(''); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 32, height: 32, borderRadius: 8,
+                    border: '1px solid #E2E8F0', background: '#F8FAFC',
+                    cursor: 'pointer', color: '#64748B', flexShrink: 0,
+                    transition: 'all 0.12s',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.background   = '#EFF6FF';
+                    (e.currentTarget as HTMLElement).style.borderColor  = 'rgba(37,99,235,0.25)';
+                    (e.currentTarget as HTMLElement).style.color        = '#2563EB';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.background   = '#F8FAFC';
+                    (e.currentTarget as HTMLElement).style.borderColor  = '#E2E8F0';
+                    (e.currentTarget as HTMLElement).style.color        = '#64748B';
+                  }}
+                >
+                  <ArrowLeft size={15} />
+                </button>
+                <div>
+                  <p style={{ margin: 0, fontSize: 11, color: '#94A3B8', fontWeight: 500 }}>Enter PIN for</p>
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#0F172A' }}>{email}</p>
+                </div>
+              </div>
+
+              {/* PIN dots */}
+              <div style={{ display: 'flex', gap: 14 }}>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} style={{
+                    width: 14, height: 14, borderRadius: '50%',
+                    background: i < pin.length
+                      ? 'linear-gradient(135deg, #1E3A8A, #2563EB)'
+                      : '#E2E8F0',
+                    boxShadow: i < pin.length ? '0 2px 8px rgba(37,99,235,0.35)' : 'none',
+                    transition: 'all 0.18s cubic-bezier(0.34,1.4,0.64,1)',
+                    transform: i < pin.length ? 'scale(1.15)' : 'scale(1)',
+                  }} />
+                ))}
+              </div>
+
+              {loading
+                ? <div style={{ padding: 16 }}><Spinner size={32} /></div>
+                : (
+                  <>
+                    {/* Keypad */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 72px)', gap: 10 }}>
+                      {KEYS.map(k => (
+                        <DigitBtn key={k.label} label={k.label} sub={k.sub}
+                          onClick={() => handlePress(k.label)} disabled={loading} />
+                      ))}
+                      <div />
+                      <DigitBtn label="0" onClick={() => handlePress('0')} disabled={loading} />
+                      <button
+                        onClick={backspace}
+                        disabled={loading || pin.length === 0}
+                        style={{
+                          width: 72, height: 72, borderRadius: 14,
+                          border: '1px solid #E2E8F0', background: '#F8FAFC',
+                          color: '#64748B',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: pin.length === 0 ? 'not-allowed' : 'pointer',
+                          opacity: pin.length === 0 ? 0.4 : 1,
+                          transition: 'all 0.12s',
+                        }}
+                        onMouseEnter={e => {
+                          if (pin.length > 0) {
+                            (e.currentTarget as HTMLElement).style.background   = '#FEF2F2';
+                            (e.currentTarget as HTMLElement).style.borderColor  = 'rgba(220,38,38,0.25)';
+                            (e.currentTarget as HTMLElement).style.color        = '#DC2626';
+                          }
+                        }}
+                        onMouseLeave={e => {
+                          (e.currentTarget as HTMLElement).style.background   = '#F8FAFC';
+                          (e.currentTarget as HTMLElement).style.borderColor  = '#E2E8F0';
+                          (e.currentTarget as HTMLElement).style.color        = '#64748B';
+                        }}
+                      >
+                        <Delete size={20} />
+                      </button>
+                    </div>
+                  </>
+                )
+              }
+            </div>
+          )}
+        </div>
+
+        <p style={{ textAlign: 'center', fontSize: 12, color: '#94A3B8', marginTop: 18 }}>
+          <Link to="/login" style={{ color: '#94A3B8', textDecoration: 'none' }}>Password login</Link>
+          {' · '}
+          <a href="#" style={{ color: '#94A3B8', textDecoration: 'none' }}>Help</a>
+        </p>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Auth/RegisterPage.tsx">
+// PATH: src/pages/Auth/RegisterPage.tsx
+// Redesigned — White & Blue design system
+
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Package, User, Mail, Lock, ShieldCheck } from 'lucide-react';
+import { authApi } from '../../api/services';
+import { Spinner } from '../../components/ui';
+
+const ROLES = ['Admin', 'Salesman', 'Accounts', 'Warehouse'];
+
+const ROLE_DESCRIPTIONS: Record<string, string> = {
+  Admin:     'Full platform access',
+  Salesman:  'Field orders & routes',
+  Accounts:  'Settlement & reports',
+  Warehouse: 'Loading & packing',
+};
+
+export function RegisterPage() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    name: '', email: '', password: '', confirmPassword: '', role: 'Salesman',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState('');
+  const [success, setSuccess] = useState('');
+
+  function update(k: string, v: string) { setForm(p => ({ ...p, [k]: v })); }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(''); setSuccess('');
+    if (form.password !== form.confirmPassword) { setError('Passwords do not match.'); return; }
+    if (form.password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    setLoading(true);
+    try {
+      await authApi.register(form.email, form.password, form.name, form.role);
+      setSuccess('Account created! Redirecting to login...');
+      setTimeout(() => navigate('/login'), 1800);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Registration failed.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const inputStyle = (focused = false): React.CSSProperties => ({
+    width: '100%', padding: '11px 14px 11px 38px',
+    background: focused ? '#fff' : '#F8FAFC',
+    border: `1px solid ${focused ? '#2563EB' : '#E2E8F0'}`,
+    borderRadius: 10, fontSize: 14, color: '#334155',
+    outline: 'none', fontFamily: 'inherit',
+    boxSizing: 'border-box',
+    transition: 'border-color 0.15s, box-shadow 0.15s, background 0.15s',
+    boxShadow: focused ? '0 0 0 3px rgba(37,99,235,0.12)' : 'none',
+  });
+
+  function onFocus(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
+    e.target.style.borderColor = '#2563EB';
+    e.target.style.boxShadow   = '0 0 0 3px rgba(37,99,235,0.12)';
+    (e.target as HTMLElement).style.background  = '#fff';
+  }
+  function onBlur(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
+    e.target.style.borderColor = '#E2E8F0';
+    e.target.style.boxShadow   = 'none';
+    (e.target as HTMLElement).style.background  = '#F8FAFC';
+  }
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'linear-gradient(135deg, #EFF6FF 0%, #F1F5F9 50%, #E0F2FE 100%)',
+      padding: '40px 20px', position: 'relative', overflow: 'hidden',
+    }}>
+
+      {/* Decorative blobs */}
+      <div style={{
+        position: 'fixed', top: '-10%', right: '-5%',
+        width: 500, height: 500, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'fixed', bottom: '-15%', left: '-8%',
+        width: 600, height: 600, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(30,58,138,0.05) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{
+        width: '100%', maxWidth: 460,
+        animation: 'slide-up 0.35s cubic-bezier(0.34,1.2,0.64,1)',
+        position: 'relative', zIndex: 1,
+      }}>
+
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{
+            width: 56, height: 56,
+            background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+            borderRadius: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 14px',
+            boxShadow: '0 8px 28px rgba(37,99,235,0.28)',
+          }}>
+            <Package size={27} color="#fff" strokeWidth={2} />
+          </div>
+          <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.04em', margin: 0, color: '#0F172A' }}>
+            FMCG<span style={{ color: '#2563EB' }}>Dist</span>
+          </h1>
+          <p style={{ color: '#64748B', fontSize: 13, marginTop: 5, fontWeight: 500 }}>
+            Create your account
+          </p>
+        </div>
+
+        {/* Card */}
+        <div style={{
+          background: '#FFFFFF',
+          border: '1px solid #E2E8F0',
+          borderRadius: 20,
+          padding: '32px 28px',
+          boxShadow: '0 4px 24px rgba(15,23,42,0.08), 0 1px 4px rgba(15,23,42,0.04)',
+        }}>
+          <h2 style={{
+            fontSize: 20, fontWeight: 800, color: '#0F172A',
+            marginBottom: 24, marginTop: 0, letterSpacing: '-0.03em',
+          }}>
+            Register
+          </h2>
+
+          {error && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 10,
+              background: 'rgba(220,38,38,0.06)',
+              border: '1px solid rgba(220,38,38,0.20)',
+              color: '#B91C1C', fontSize: 13, fontWeight: 500, marginBottom: 20,
+            }}>
+              {error}
+            </div>
+          )}
+          {success && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 10,
+              background: 'rgba(22,163,74,0.06)',
+              border: '1px solid rgba(22,163,74,0.20)',
+              color: '#15803D', fontSize: 13, fontWeight: 500, marginBottom: 20,
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <ShieldCheck size={15} /> {success}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* Full Name */}
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+                Full Name
+              </label>
+              <div style={{ position: 'relative' }}>
+                <User size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+                <input
+                  style={inputStyle()}
+                  value={form.name}
+                  onChange={e => update('name', e.target.value)}
+                  placeholder="John Doe"
+                  disabled={loading}
+                  onFocus={onFocus}
+                  onBlur={onBlur}
+                />
+              </div>
+            </div>
+
+            {/* Email */}
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+                Email Address
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+                <input
+                  type="email"
+                  style={inputStyle()}
+                  value={form.email}
+                  onChange={e => update('email', e.target.value)}
+                  placeholder="you@company.com"
+                  disabled={loading}
+                  onFocus={onFocus}
+                  onBlur={onBlur}
+                />
+              </div>
+            </div>
+
+            {/* Role selector */}
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 8 }}>
+                Role
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                {ROLES.map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => update('role', r)}
+                    disabled={loading}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: `1px solid ${form.role === r ? 'rgba(37,99,235,0.40)' : '#E2E8F0'}`,
+                      background: form.role === r ? '#EFF6FF' : '#F8FAFC',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.14s',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 700, color: form.role === r ? '#1D4ED8' : '#334155' }}>
+                      {r}
+                    </div>
+                    <div style={{ fontSize: 11, color: form.role === r ? '#3B82F6' : '#94A3B8', marginTop: 1 }}>
+                      {ROLE_DESCRIPTIONS[r]}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+                Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+                <input
+                  type="password"
+                  style={inputStyle()}
+                  value={form.password}
+                  onChange={e => update('password', e.target.value)}
+                  placeholder="Min. 6 characters"
+                  disabled={loading}
+                  onFocus={onFocus}
+                  onBlur={onBlur}
+                />
+              </div>
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+                Confirm Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+                <input
+                  type="password"
+                  style={inputStyle()}
+                  value={form.confirmPassword}
+                  onChange={e => update('confirmPassword', e.target.value)}
+                  placeholder="Repeat password"
+                  disabled={loading}
+                  onFocus={onFocus}
+                  onBlur={onBlur}
+                />
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%', padding: '13px',
+                background: loading ? '#BFDBFE' : 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+                color: '#fff', border: 'none', borderRadius: 12,
+                fontSize: 15, fontWeight: 700,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                boxShadow: loading ? 'none' : '0 4px 16px rgba(37,99,235,0.30)',
+                transition: 'all 0.18s', letterSpacing: '-0.01em',
+                fontFamily: 'inherit', marginTop: 4,
+              }}
+              onMouseEnter={e => {
+                if (!loading) {
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(37,99,235,0.38)';
+                }
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(37,99,235,0.30)';
+              }}
+            >
+              {loading ? <Spinner size={18} /> : 'Create Account'}
+            </button>
+          </form>
+
+          <div style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: '#64748B' }}>
+            Already have an account?{' '}
+            <Link to="/login" style={{ color: '#2563EB', textDecoration: 'none', fontWeight: 600 }}>
+              Sign in
+            </Link>
+          </div>
+        </div>
+
+        <p style={{ textAlign: 'center', fontSize: 12, color: '#94A3B8', marginTop: 20 }}>
+          FMCG Distribution Platform · Secure Registration
+        </p>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Dashboard/HomeHub.tsx">
+// PATH: src/pages/Dashboard/HomeHub.tsx
+// Role-aware home hub — white & blue design system
+// 4-5 main nav blocks + Floating Action Button with Quick-Action modal
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Route, ShoppingCart, Users, IndianRupee, BarChart3,
+  Plus, X, ClipboardList, Banknote, ScanBarcode,
+  Package, Warehouse, FileText, Calculator,
+  Zap, ChevronRight, TrendingUp, Clock, CheckCircle2,
+  ArrowUpRight,
+} from 'lucide-react';
+import { useAuthStore } from '../../store/authStore';
+
+// ── Types ──────────────────────────────────────────────────────
+interface NavBlock {
+  id:          string;
+  label:       string;
+  description: string;
+  icon:        React.ElementType;
+  to:          string;
+  badge?:      string;
+  badgeColor?: 'blue' | 'green' | 'amber' | 'red';
+  accent:      string;       // CSS color for icon background
+  accentText:  string;       // Icon foreground color
+  roles:       string[];
+}
+
+interface QuickAction {
+  id:          string;
+  label:       string;
+  description: string;
+  icon:        React.ElementType;
+  to:          string;
+  color:       string;
+  roles:       string[];
+}
+
+// ── Nav block definitions (role-filtered) ───────────────────────
+const NAV_BLOCKS: NavBlock[] = [
+  {
+    id:          'routes',
+    label:       'Deliveries & Routes',
+    description: 'View and manage today\'s delivery routes',
+    icon:        Route,
+    to:          '/salesman/routes',
+    badge:       '3 Active',
+    badgeColor:  'blue',
+    accent:      '#EFF6FF',
+    accentText:  '#2563EB',
+    roles:       ['Salesman'],
+  },
+  {
+    id:          'admin-routes',
+    label:       'Route Hub',
+    description: 'Assign routes and track live deliveries',
+    icon:        Route,
+    to:          '/admin/routes',
+    badge:       'Live',
+    badgeColor:  'green',
+    accent:      '#EFF6FF',
+    accentText:  '#2563EB',
+    roles:       ['Admin', 'SuperAdmin'],
+  },
+  {
+    id:          'orders',
+    label:       'Orders Panel',
+    description: 'Create, track, and manage customer orders',
+    icon:        ShoppingCart,
+    to:          '/admin/orders',
+    badge:       '12 Pending',
+    badgeColor:  'blue',
+    accent:      '#EFF6FF',
+    accentText:  '#2563EB',
+    roles:       ['Admin', 'SuperAdmin'],
+  },
+  {
+    id:          'salesman-orders',
+    label:       'My Orders',
+    description: 'View and submit field orders',
+    icon:        ShoppingCart,
+    to:          '/salesman/routes',
+    badge:       '5 Open',
+    badgeColor:  'blue',
+    accent:      '#EFF6FF',
+    accentText:  '#2563EB',
+    roles:       ['Salesman'],
+  },
+  {
+    id:          'customers',
+    label:       'Customers',
+    description: 'Browse and manage customer catalog',
+    icon:        Users,
+    to:          '/admin/customers',
+    badge:       '248 Active',
+    badgeColor:  'blue',
+    accent:      '#FDF4FF',
+    accentText:  '#7E22CE',
+    roles:       ['Admin', 'SuperAdmin'],
+  },
+  {
+    id:          'collections',
+    label:       'Collections & Settlement',
+    description: 'Manage payments and outstanding balances',
+    icon:        IndianRupee,
+    to:          '/admin/settlement',
+    badge:       '₹2.4L Due',
+    badgeColor:  'red',
+    accent:      '#FFF7ED',
+    accentText:  '#C2410C',
+    roles:       ['Admin', 'SuperAdmin'],
+  },
+  {
+    id:          'accounts-settlement',
+    label:       'Settlement',
+    description: 'Process daily collections and closures',
+    icon:        IndianRupee,
+    to:          '/accounts/settlement',
+    badge:       'Today',
+    badgeColor:  'blue',
+    accent:      '#FFF7ED',
+    accentText:  '#C2410C',
+    roles:       ['Accounts'],
+  },
+  {
+    id:          'analytics',
+    label:       'Analytics',
+    description: 'Performance metrics and business insights',
+    icon:        BarChart3,
+    to:          '/admin/analytics',
+    accent:      '#EFF6FF',
+    accentText:  '#1E3A8A',
+    roles:       ['Admin', 'SuperAdmin'],
+  },
+  {
+    id:          'incentives',
+    label:       'My Incentives',
+    description: 'Track earnings and performance targets',
+    icon:        TrendingUp,
+    to:          '/salesman/incentives',
+    accent:      '#EFF6FF',
+    accentText:  '#2563EB',
+    roles:       ['Salesman'],
+  },
+  {
+    id:          'loading',
+    label:       'Loading Sheet',
+    description: 'Manage warehouse packing and dispatch',
+    icon:        Warehouse,
+    to:          '/warehouse/loading',
+    badge:       'Ready',
+    badgeColor:  'green',
+    accent:      '#EFF6FF',
+    accentText:  '#2563EB',
+    roles:       ['Warehouse'],
+  },
+  {
+    id:          'pack-orders',
+    label:       'Pack Orders',
+    description: 'Process and pack confirmed orders',
+    icon:        Package,
+    to:          '/warehouse/dispatch',
+    accent:      '#EFF6FF',
+    accentText:  '#2563EB',
+    roles:       ['Warehouse'],
+  },
+  {
+    id:          'accounts-reports',
+    label:       'Reports',
+    description: 'Daily and monthly financial reports',
+    icon:        FileText,
+    to:          '/accounts/reports',
+    accent:      '#EFF6FF',
+    accentText:  '#1E3A8A',
+    roles:       ['Accounts'],
+  },
+];
+
+// ── Quick action definitions (role-filtered) ────────────────────
+const QUICK_ACTIONS: QuickAction[] = [
+  {
+    id:    'new-order',
+    label: 'New Order',
+    description: 'Create a fresh customer order',
+    icon:  ClipboardList,
+    to:    '/admin/orders',
+    color: '#2563EB',
+    roles: ['Admin', 'SuperAdmin', 'Salesman'],
+  },
+  {
+    id:    'record-payment',
+    label: 'Record Payment',
+    description: 'Log a collection or payment',
+    icon:  Banknote,
+    to:    '/admin/settlement',
+    color: '#16A34A',
+    roles: ['Admin', 'SuperAdmin', 'Accounts'],
+  },
+  {
+    id:    'scan-sku',
+    label: 'Scan Product',
+    description: 'Scan barcode or search SKU',
+    icon:  ScanBarcode,
+    to:    '/admin/products',
+    color: '#7E22CE',
+    roles: ['Admin', 'SuperAdmin', 'Warehouse'],
+  },
+  {
+    id:    'add-customer',
+    label: 'Add Customer',
+    description: 'Register a new customer',
+    icon:  Users,
+    to:    '/admin/customers',
+    color: '#D97706',
+    roles: ['Admin', 'SuperAdmin', 'Salesman'],
+  },
+  {
+    id:    'view-routes',
+    label: 'View Routes',
+    description: 'Check today\'s route map',
+    icon:  Route,
+    to:    '/salesman/routes',
+    color: '#C2410C',
+    roles: ['Salesman'],
+  },
+  {
+    id:    'start-route',
+    label: 'Start Route',
+    description: 'Begin executing a delivery route',
+    icon:  Zap,
+    to:    '/salesman/routes',
+    color: '#0891B2',
+    roles: ['Salesman'],
+  },
+  {
+    id:    'reports',
+    label: 'View Reports',
+    description: 'Open financial and sales reports',
+    icon:  FileText,
+    to:    '/admin/reports',
+    color: '#475569',
+    roles: ['Admin', 'SuperAdmin', 'Accounts'],
+  },
+  {
+    id:    'settlement',
+    label: 'Daily Settlement',
+    description: 'Close and settle today\'s accounts',
+    icon:  Calculator,
+    to:    '/accounts/settlement',
+    color: '#15803D',
+    roles: ['Admin', 'SuperAdmin', 'Accounts'],
+  },
+];
+
+// ── Badge color map ────────────────────────────────────────────
+const BADGE_STYLES: Record<string, { bg: string; color: string }> = {
+  blue:  { bg: 'rgba(37,99,235,0.10)',  color: '#1D4ED8' },
+  green: { bg: 'rgba(22,163,74,0.10)',  color: '#15803D' },
+  amber: { bg: 'rgba(217,119,6,0.10)',  color: '#B45309' },
+  red:   { bg: 'rgba(220,38,38,0.10)',  color: '#B91C1C' },
+};
+
+// ── Greeting ───────────────────────────────────────────────────
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function getDateString(): string {
+  return new Date().toLocaleDateString('en-IN', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HomeHub Component
+// ═══════════════════════════════════════════════════════════════
+export function HomeHub() {
+  const { user }          = useAuthStore();
+  const navigate          = useNavigate();
+  const [fabOpen, setFabOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 60);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Close modal on Escape
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setFabOpen(false); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  if (!user) return null;
+
+  const role         = user.role;
+  const blocks       = NAV_BLOCKS.filter(b => b.roles.includes(role)).slice(0, 5);
+  const quickActions = QUICK_ACTIONS.filter(a => a.roles.includes(role));
+  const firstName    = user.name?.split(' ')[0] ?? 'there';
+
+  // Grid layout varies by block count
+  const gridCols = blocks.length <= 2
+    ? 'repeat(2, 1fr)'
+    : blocks.length === 3
+      ? 'repeat(3, 1fr)'
+      : blocks.length === 4
+        ? 'repeat(2, 1fr)'
+        : 'repeat(3, 1fr)';   // 5: 3+2 — handled with CSS special case
+
+  return (
+    <div className="page-wrapper" style={{ background: 'var(--bg)' }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '32px 20px 120px' }}>
+
+        {/* ── Welcome Header ─────────────────────────────────── */}
+        <div
+          style={{
+            opacity:    mounted ? 1 : 0,
+            transform:  mounted ? 'translateY(0)' : 'translateY(12px)',
+            transition: 'all 0.4s cubic-bezier(0.34, 1.2, 0.64, 1)',
+            marginBottom: 36,
+          }}
+        >
+          {/* Date chip */}
+          <div style={{
+            display:      'inline-flex',
+            alignItems:   'center',
+            gap:          6,
+            padding:      '5px 12px',
+            borderRadius: 20,
+            background:   'var(--ice)',
+            border:       '1px solid rgba(37,99,235,0.15)',
+            marginBottom: 14,
+          }}>
+            <Clock size={12} style={{ color: 'var(--primary)' }} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)', letterSpacing: '0.01em' }}>
+              {getDateString()}
+            </span>
+          </div>
+
+          <h1 style={{
+            fontSize:      28,
+            fontWeight:    800,
+            color:         'var(--navy)',
+            letterSpacing: '-0.04em',
+            margin:        0,
+            lineHeight:    1.1,
+          }}>
+            {getGreeting()}, {firstName} 👋
+          </h1>
+          <p style={{
+            color:      'var(--text-sub)',
+            fontSize:   14,
+            marginTop:  8,
+            marginBottom: 0,
+            fontWeight:  500,
+          }}>
+            Here's your operations overview for today.
+          </p>
+        </div>
+
+        {/* ── Status strip (role-contextual) ─────────────────── */}
+        <div
+          style={{
+            display:      'flex',
+            gap:          12,
+            marginBottom: 32,
+            flexWrap:     'wrap',
+            opacity:      mounted ? 1 : 0,
+            transform:    mounted ? 'translateY(0)' : 'translateY(8px)',
+            transition:   'all 0.4s 0.08s cubic-bezier(0.34, 1.2, 0.64, 1)',
+          }}
+        >
+          {[
+            { label: 'System Status', value: 'Operational', icon: CheckCircle2, color: '#16A34A', bg: '#F0FDF4', border: 'rgba(22,163,74,0.20)' },
+            { label: 'Active Role',   value: role,           icon: ArrowUpRight, color: '#2563EB', bg: '#EFF6FF', border: 'rgba(37,99,235,0.20)' },
+          ].map(s => (
+            <div key={s.label} style={{
+              display:      'flex',
+              alignItems:   'center',
+              gap:          8,
+              padding:      '8px 16px',
+              borderRadius: 10,
+              background:   s.bg,
+              border:       `1px solid ${s.border}`,
+            }}>
+              <s.icon size={14} style={{ color: s.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: s.color, fontWeight: 700 }}>{s.label}:</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: s.color }}>{s.value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Main Navigation Grid ────────────────────────────── */}
+        <div
+          style={{
+            display:               'grid',
+            gridTemplateColumns:   gridCols,
+            gap:                   16,
+            opacity:               mounted ? 1 : 0,
+            transform:             mounted ? 'translateY(0)' : 'translateY(12px)',
+            transition:            'all 0.42s 0.12s cubic-bezier(0.34, 1.2, 0.64, 1)',
+          }}
+        >
+          {blocks.map((block, idx) => (
+            <NavBlockCard
+              key={block.id}
+              block={block}
+              delay={idx * 0.05}
+              // Make 5th card span full-width on 3-col grid
+              fullWidth={blocks.length === 5 && idx === 4}
+            />
+          ))}
+        </div>
+
+        {/* ── Secondary quick links (for admin) ──────────────── */}
+        {(role === 'Admin' || role === 'SuperAdmin') && (
+          <div
+            style={{
+              marginTop:  24,
+              padding:    '20px 24px',
+              background: 'var(--card)',
+              border:     '1px solid var(--border)',
+              borderRadius: 16,
+              boxShadow:  'var(--shadow-sm)',
+              opacity:    mounted ? 1 : 0,
+              transition: 'opacity 0.4s 0.3s ease',
+            }}
+          >
+            <div style={{
+              display:       'flex',
+              alignItems:    'center',
+              justifyContent: 'space-between',
+              marginBottom:  16,
+            }}>
+              <h3 style={{
+                fontSize:      13,
+                fontWeight:    700,
+                color:         'var(--text-sub)',
+                margin:        0,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+              }}>
+                More Tools
+              </h3>
+            </div>
+            <div style={{
+              display:             'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+              gap:                 8,
+            }}>
+              {[
+                { label: 'Reports',     to: '/admin/reports',     color: '#64748B', icon: FileText },
+                { label: 'Products',    to: '/admin/products',    color: '#7E22CE', icon: Package },
+                { label: 'Users',       to: '/admin/users',       color: '#0891B2', icon: Users },
+                { label: 'Incentives',  to: '/admin/incentives',  color: '#D97706', icon: TrendingUp },
+                { label: 'Assignments', to: '/admin/assignments',  color: '#16A34A', icon: Route },
+                { label: 'Settings',    to: '/admin/settings',    color: '#94A3B8', icon: Calculator },
+              ].map(l => (
+                <Link
+                  key={l.to}
+                  to={l.to}
+                  style={{
+                    display:        'flex',
+                    alignItems:     'center',
+                    gap:            8,
+                    padding:        '9px 12px',
+                    borderRadius:   10,
+                    textDecoration: 'none',
+                    fontSize:       13,
+                    fontWeight:     600,
+                    color:          'var(--text-body)',
+                    background:     'var(--card-sub)',
+                    border:         '1px solid var(--border)',
+                    transition:     'all 0.14s',
+                    letterSpacing:  '-0.01em',
+                  }}
+                  onMouseEnter={e => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.borderColor = `${l.color}33`;
+                    el.style.background  = `${l.color}0d`;
+                    el.style.color       = l.color;
+                    el.style.transform   = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={e => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.borderColor = 'var(--border)';
+                    el.style.background  = 'var(--card-sub)';
+                    el.style.color       = 'var(--text-body)';
+                    el.style.transform   = 'translateY(0)';
+                  }}
+                >
+                  <l.icon size={14} style={{ color: l.color, flexShrink: 0 }} />
+                  {l.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Floating Action Button ──────────────────────────────── */}
+      <button
+        onClick={() => setFabOpen(true)}
+        style={{
+          position:       'fixed',
+          bottom:          28,
+          right:           24,
+          width:           58,
+          height:          58,
+          borderRadius:    '50%',
+          background:      'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+          border:          'none',
+          cursor:          'pointer',
+          display:         'flex',
+          alignItems:      'center',
+          justifyContent:  'center',
+          boxShadow:       '0 8px 32px rgba(37,99,235,0.40), 0 2px 8px rgba(15,23,42,0.15)',
+          zIndex:          150,
+          transition:      'all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          animation:       'pulse-ring 3s ease-in-out infinite',
+        }}
+        onMouseEnter={e => {
+          const el = e.currentTarget as HTMLElement;
+          el.style.transform  = 'scale(1.10)';
+          el.style.boxShadow  = '0 12px 40px rgba(37,99,235,0.50), 0 4px 12px rgba(15,23,42,0.18)';
+        }}
+        onMouseLeave={e => {
+          const el = e.currentTarget as HTMLElement;
+          el.style.transform  = 'scale(1)';
+          el.style.boxShadow  = '0 8px 32px rgba(37,99,235,0.40), 0 2px 8px rgba(15,23,42,0.15)';
+        }}
+        title="Quick Actions"
+      >
+        <Plus size={24} color="#fff" strokeWidth={2.5} />
+      </button>
+
+      {/* ── Quick Action Modal ──────────────────────────────────── */}
+      {fabOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={() => setFabOpen(false)}
+            style={{
+              position:   'fixed',
+              inset:      0,
+              background: 'rgba(15,23,42,0.45)',
+              backdropFilter: 'blur(4px)',
+              zIndex:     160,
+              animation:  'fade-in 0.15s ease',
+            }}
+          />
+
+          {/* Modal sheet */}
+          <div
+            style={{
+              position:      'fixed',
+              bottom:         0,
+              left:           0,
+              right:          0,
+              zIndex:         170,
+              background:     '#FFFFFF',
+              borderRadius:   '20px 20px 0 0',
+              padding:        '0 0 32px',
+              boxShadow:      '0 -8px 40px rgba(15,23,42,0.18)',
+              animation:      'slide-up 0.28s cubic-bezier(0.34, 1.2, 0.64, 1)',
+              maxHeight:      '80vh',
+              overflowY:      'auto',
+            }}
+          >
+            {/* Handle bar */}
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />
+            </div>
+
+            {/* Header */}
+            <div style={{
+              display:        'flex',
+              alignItems:     'center',
+              justifyContent: 'space-between',
+              padding:        '16px 24px 20px',
+              borderBottom:   '1px solid var(--border)',
+            }}>
+              <div>
+                <h2 style={{
+                  margin:        0,
+                  fontSize:      18,
+                  fontWeight:    800,
+                  color:         'var(--navy)',
+                  letterSpacing: '-0.03em',
+                }}>
+                  Quick Actions
+                </h2>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-sub)' }}>
+                  High-frequency shortcuts for your role
+                </p>
+              </div>
+              <button
+                onClick={() => setFabOpen(false)}
+                style={{
+                  width:          36, height: 36,
+                  borderRadius:   '50%',
+                  border:         '1px solid var(--border)',
+                  background:     'var(--card-sub)',
+                  cursor:         'pointer',
+                  display:        'flex',
+                  alignItems:     'center',
+                  justifyContent: 'center',
+                  color:          'var(--text-sub)',
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Action grid */}
+            <div style={{
+              display:             'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+              gap:                 12,
+              padding:             '20px 24px',
+            }}>
+              {quickActions.map(action => (
+                <Link
+                  key={action.id}
+                  to={action.to}
+                  onClick={() => setFabOpen(false)}
+                  style={{
+                    display:        'flex',
+                    flexDirection:  'column',
+                    alignItems:     'flex-start',
+                    gap:            12,
+                    padding:        '16px 14px',
+                    borderRadius:   14,
+                    border:         '1px solid var(--border)',
+                    background:     '#fff',
+                    textDecoration: 'none',
+                    cursor:         'pointer',
+                    transition:     'all 0.18s cubic-bezier(0.34, 1.3, 0.64, 1)',
+                    boxShadow:      'var(--shadow-sm)',
+                  }}
+                  onMouseEnter={e => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.borderColor = `${action.color}30`;
+                    el.style.background  = `${action.color}08`;
+                    el.style.transform   = 'translateY(-2px)';
+                    el.style.boxShadow   = `0 8px 24px ${action.color}20`;
+                  }}
+                  onMouseLeave={e => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.borderColor = 'var(--border)';
+                    el.style.background  = '#fff';
+                    el.style.transform   = 'translateY(0)';
+                    el.style.boxShadow   = 'var(--shadow-sm)';
+                  }}
+                >
+                  <div style={{
+                    width:          40, height: 40,
+                    borderRadius:   10,
+                    background:     `${action.color}15`,
+                    display:        'flex',
+                    alignItems:     'center',
+                    justifyContent: 'center',
+                  }}>
+                    <action.icon size={20} style={{ color: action.color }} strokeWidth={1.8} />
+                  </div>
+                  <div>
+                    <div style={{
+                      fontSize:      13,
+                      fontWeight:    700,
+                      color:         'var(--navy)',
+                      letterSpacing: '-0.02em',
+                      lineHeight:    1.2,
+                    }}>
+                      {action.label}
+                    </div>
+                    <div style={{
+                      fontSize:   11,
+                      color:      'var(--text-sub)',
+                      marginTop:  3,
+                      lineHeight: 1.3,
+                    }}>
+                      {action.description}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NavBlockCard — individual large navigation card
+// ═══════════════════════════════════════════════════════════════
+interface NavBlockCardProps {
+  block:     NavBlock;
+  delay:     number;
+  fullWidth: boolean;
+}
+
+function NavBlockCard({ block, delay, fullWidth }: NavBlockCardProps) {
+  const [hovered, setHovered] = useState(false);
+  const badgeStyle = block.badgeColor ? BADGE_STYLES[block.badgeColor] : BADGE_STYLES.blue;
+
+  return (
+    <Link
+      to={block.to}
+      style={{
+        gridColumn:     fullWidth ? '1 / -1' : undefined,
+        display:        'flex',
+        flexDirection:  'column',
+        padding:        '24px',
+        borderRadius:   18,
+        border:         `1px solid ${hovered ? 'rgba(37,99,235,0.25)' : 'var(--border)'}`,
+        background:     hovered ? 'var(--ice)' : 'var(--card)',
+        textDecoration: 'none',
+        cursor:         'pointer',
+        transition:     'all 0.22s cubic-bezier(0.34, 1.2, 0.64, 1)',
+        boxShadow:      hovered
+          ? '0 12px 40px rgba(37,99,235,0.12), 0 4px 12px rgba(15,23,42,0.06)'
+          : 'var(--shadow-sm)',
+        transform:      hovered ? 'translateY(-3px)' : 'translateY(0)',
+        animationDelay: `${delay}s`,
+        minHeight:      160,
+        position:       'relative',
+        overflow:       'hidden',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Subtle accent gradient on hover */}
+      <div style={{
+        position:   'absolute',
+        top:         0,
+        right:       0,
+        width:       120,
+        height:      120,
+        borderRadius: '50%',
+        background:  `radial-gradient(circle, ${block.accentText}08 0%, transparent 70%)`,
+        transform:   'translate(30%, -30%)',
+        pointerEvents: 'none',
+        opacity:     hovered ? 1 : 0,
+        transition:  'opacity 0.22s',
+      }} />
+
+      {/* Top row: icon + badge */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 'auto' }}>
+        <div style={{
+          width:          52, height: 52,
+          borderRadius:   14,
+          background:     hovered ? `${block.accentText}15` : block.accent,
+          display:        'flex',
+          alignItems:     'center',
+          justifyContent: 'center',
+          transition:     'all 0.22s',
+          boxShadow:      hovered ? `0 4px 16px ${block.accentText}25` : 'none',
+        }}>
+          <block.icon
+            size={24}
+            style={{ color: block.accentText }}
+            strokeWidth={hovered ? 2.2 : 1.8}
+          />
+        </div>
+
+        {block.badge && (
+          <span style={{
+            display:      'inline-flex',
+            alignItems:   'center',
+            padding:      '4px 10px',
+            borderRadius:  20,
+            fontSize:      11,
+            fontWeight:    700,
+            letterSpacing: '0.02em',
+            background:    badgeStyle.bg,
+            color:         badgeStyle.color,
+          }}>
+            {block.badge}
+          </span>
+        )}
+      </div>
+
+      {/* Label + description */}
+      <div style={{ marginTop: 20 }}>
+        <div style={{
+          display:     'flex',
+          alignItems:  'center',
+          gap:         6,
+          marginBottom: 6,
+        }}>
+          <h3 style={{
+            fontSize:      15,
+            fontWeight:    800,
+            color:         'var(--navy)',
+            margin:        0,
+            letterSpacing: '-0.02em',
+            lineHeight:    1.2,
+            transition:    'color 0.15s',
+          }}>
+            {block.label}
+          </h3>
+          <ChevronRight
+            size={14}
+            style={{
+              transition: 'transform 0.18s, color 0.15s',
+              transform:   hovered ? 'translateX(3px)' : 'translateX(0)',
+              color:       hovered ? block.accentText : 'var(--text-muted)',
+            }}
+          />
+        </div>
+        <p style={{
+          fontSize:   13,
+          color:      'var(--text-sub)',
+          margin:     0,
+          lineHeight: 1.4,
+          fontWeight: 500,
+        }}>
+          {block.description}
+        </p>
+      </div>
+    </Link>
+  );
+}
+</file>
+
+<file path="src/pages/Dashboard/MainHub.tsx">
+// PATH: src/pages/Dashboard/MainHub.tsx
+// Premium dashboard with 4-5 navigation blocks and clean spacing
+
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  MapPin, ShoppingCart, Users, Wallet, ClipboardList, Plus,
+  ChevronRight, TrendingUp, CheckCircle2, Clock, Package,
+  Truck, Calendar, BarChart3, FileText, Settings, HelpCircle
+} from 'lucide-react';
+import { useAuthStore } from '../../store/authStore';
+import { HeaderSearch } from '../../components/dashboard/HeaderSearch';
+
+interface NavBlock {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  href: string;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+  stats?: string;
+}
+
+const NAV_BLOCKS: NavBlock[] = [
+  {
+    id: 'route-tracker',
+    title: 'Route Tracker',
+    description: 'Track deliveries & beat progress',
+    icon: MapPin,
+    href: '/salesman/routes',
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-50',
+    borderColor: 'border-blue-100',
+    stats: '1 active route'
+  },
+  {
+    id: 'orders',
+    title: 'Order Matrix',
+    description: 'Create & manage customer orders',
+    icon: ShoppingCart,
+    href: '/salesman/routes',
+    color: 'text-indigo-600',
+    bgColor: 'bg-indigo-50',
+    borderColor: 'border-indigo-100',
+    stats: '4 pending'
+  },
+  {
+    id: 'customers',
+    title: 'Customer Outlets',
+    description: 'View customer directory',
+    icon: Users,
+    href: '/salesman/routes',
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-50',
+    borderColor: 'border-emerald-100',
+    stats: '2 active'
+  },
+  {
+    id: 'collections',
+    title: 'Collections',
+    description: 'Track payments & dues',
+    icon: Wallet,
+    href: '/accounts/settlement',
+    color: 'text-amber-600',
+    bgColor: 'bg-amber-50',
+    borderColor: 'border-amber-100',
+    stats: '₹18.4K due'
+  },
+  {
+    id: 'incentives',
+    title: 'My Incentives',
+    description: 'View earnings & targets',
+    icon: TrendingUp,
+    href: '/salesman/incentives',
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-50',
+    borderColor: 'border-purple-100',
+    stats: '₹2,450 earned'
+  }
+];
+
+interface Order {
+  id: string;
+  customerName: string;
+  totalAmount: number;
+  status: 'draft' | 'submitted' | 'closed';
+  orderDate: string;
+  itemCount: number;
+  date: string;
+}
+
+function getRelativeDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  if (date.toDateString() === today.toDateString()) return 'Today';
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' });
+}
+
+function formatTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+}
+
+export function MainHub() {
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  // Mock orders data (replace with API call)
+  const [orders] = useState<Order[]>([
+    {
+      id: '1',
+      customerName: 'KN Stores',
+      totalAmount: 9600,
+      status: 'draft',
+      orderDate: '2026-05-21T19:07:00',
+      itemCount: 6,
+      date: '2026-05-21'
+    },
+    {
+      id: '2',
+      customerName: 'KD stores',
+      totalAmount: 6400,
+      status: 'draft',
+      orderDate: '2026-05-21T18:47:00',
+      itemCount: 4,
+      date: '2026-05-21'
+    },
+    {
+      id: '3',
+      customerName: 'City Mart',
+      totalAmount: 12500,
+      status: 'submitted',
+      orderDate: '2026-05-20T15:30:00',
+      itemCount: 8,
+      date: '2026-05-20'
+    },
+    {
+      id: '4',
+      customerName: 'Metro Traders',
+      totalAmount: 8200,
+      status: 'closed',
+      orderDate: '2026-05-20T11:15:00',
+      itemCount: 5,
+      date: '2026-05-20'
+    }
+  ]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const filteredOrders = orders.filter(order =>
+    order.customerName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const groupedOrders = filteredOrders.reduce((acc, order) => {
+    const dateKey = order.orderDate.split('T')[0];
+    if (!acc[dateKey]) acc[dateKey] = [];
+    acc[dateKey].push(order);
+    return acc;
+  }, {} as Record<string, Order[]>);
+
+  const totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
+  const draftCount = orders.filter(o => o.status === 'draft').length;
+  const submittedCount = orders.filter(o => o.status === 'submitted').length;
+  const closedCount = orders.filter(o => o.status === 'closed').length;
+
+  const firstName = user?.name?.split(' ')[0] ?? 'Salesman';
+
+  if (!mounted) return null;
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* Modern Search Header */}
+      <HeaderSearch onSearch={setSearchQuery} />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {/* Welcome Section */}
+        <div className="mb-8 animate-slide-up">
+          <h1 className="text-2xl font-bold text-slate-800">
+            Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, {firstName} 👋
+          </h1>
+          <p className="text-slate-500 text-sm mt-1">
+            {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8 animate-slide-up" style={{ animationDelay: '0.05s' }}>
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Orders</span>
+              <ShoppingCart size={14} className="text-slate-400" />
+            </div>
+            <p className="text-2xl font-bold text-slate-800">{orders.length}</p>
+            <p className="text-xs text-slate-400 mt-1">this period</p>
+          </div>
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Revenue</span>
+              <Wallet size={14} className="text-slate-400" />
+            </div>
+            <p className="text-2xl font-bold text-emerald-600">₹{totalRevenue.toLocaleString()}</p>
+            <p className="text-xs text-slate-400 mt-1">pending settlement</p>
+          </div>
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Route</span>
+              <Truck size={14} className="text-slate-400" />
+            </div>
+            <p className="text-2xl font-bold text-slate-800">Thiruvalla</p>
+            <p className="text-xs text-slate-400 mt-1">2 customers · 75% complete</p>
+          </div>
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pending Dues</span>
+              <Clock size={14} className="text-slate-400" />
+            </div>
+            <p className="text-2xl font-bold text-amber-600">₹18,400</p>
+            <p className="text-xs text-slate-400 mt-1">from 2 customers</p>
+          </div>
+        </div>
+
+        {/* Navigation Hub - 5 main blocks */}
+        <div className="mb-10 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Quick Access Hub</h2>
+            <Link to="/salesman/routes" className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+              View All <ChevronRight size={12} />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {NAV_BLOCKS.map((block, idx) => (
+              <Link
+                key={block.id}
+                to={block.href}
+                className="group bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-all duration-200 hover:border-blue-200 hover:-translate-y-0.5"
+                style={{ animationDelay: `${0.1 + idx * 0.03}s` }}
+              >
+                <div className={`w-10 h-10 rounded-xl ${block.bgColor} flex items-center justify-center mb-3 group-hover:scale-105 transition-transform`}>
+                  <block.icon size={20} className={block.color} />
+                </div>
+                <h3 className="font-semibold text-slate-800 text-sm">{block.title}</h3>
+                <p className="text-xs text-slate-400 mt-1 line-clamp-2">{block.description}</p>
+                {block.stats && (
+                  <div className="mt-2 pt-2 border-t border-slate-100">
+                    <span className="text-xs font-medium text-blue-600">{block.stats}</span>
+                  </div>
+                )}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Orders Section */}
+        <div className="animate-slide-up" style={{ animationDelay: '0.15s' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Recent Orders</h2>
+            <div className="flex gap-2">
+              <div className="px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+                <span className="text-xs font-medium text-emerald-700">Draft: {draftCount}</span>
+              </div>
+              <div className="px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200">
+                <span className="text-xs font-medium text-blue-700">Submitted: {submittedCount}</span>
+              </div>
+              <div className="px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200">
+                <span className="text-xs font-medium text-slate-600">Closed: {closedCount}</span>
+              </div>
+            </div>
+          </div>
+
+          {Object.keys(groupedOrders).length === 0 ? (
+            <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
+              <Package size={48} className="mx-auto text-slate-300 mb-3" />
+              <p className="text-slate-500">No orders found</p>
+              <p className="text-xs text-slate-400 mt-1">Try adjusting your search</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(groupedOrders)
+                .sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime())
+                .map(([date, dateOrders]) => (
+                  <div key={date}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Calendar size={14} className="text-blue-500" />
+                      <span className="text-sm font-semibold text-slate-700">
+                        {getRelativeDate(date)}
+                      </span>
+                      <span className="text-xs text-slate-400">({dateOrders.length} orders)</span>
+                    </div>
+                    <div className="space-y-3">
+                      {dateOrders.map((order) => (
+                        <div
+                          key={order.id}
+                          onClick={() => navigate(`/salesman/routes/${order.id}/order/${order.id}`)}
+                          className="bg-white rounded-xl border border-slate-200 p-4 cursor-pointer hover:shadow-md hover:border-blue-200 transition-all duration-200"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <h3 className="font-semibold text-slate-800">{order.customerName}</h3>
+                                <span className={`
+                                  text-xs px-2 py-0.5 rounded-full font-medium
+                                  ${order.status === 'draft' ? 'bg-amber-50 text-amber-700 border border-amber-200' : ''}
+                                  ${order.status === 'submitted' ? 'bg-blue-50 text-blue-700 border border-blue-200' : ''}
+                                  ${order.status === 'closed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : ''}
+                                `}>
+                                  {order.status === 'draft' ? 'Draft' : order.status === 'submitted' ? 'Submitted' : 'Closed'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-slate-500">
+                                <span>📦 {order.itemCount} items</span>
+                                <span>🕐 {formatTime(order.orderDate)}</span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-slate-800">₹{order.totalAmount.toLocaleString()}</p>
+                              <button className="mt-1 text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+                                View Details <ChevronRight size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+
+        {/* Floating Action Button - Main CTA */}
+        <div className="fixed bottom-6 right-6 z-40">
+          <button
+            onClick={() => navigate('/salesman/routes')}
+            className="group w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 hover:scale-105 flex items-center justify-center"
+          >
+            <Plus size={24} strokeWidth={2} />
+          </button>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes slide-up {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out forwards;
+          opacity: 0;
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+          height: 4px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 4px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 4px;
+        }
+      `}</style>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Landing/LandingPage.tsx">
+// PATH: src/pages/Landing/LandingPage.tsx
+// Public landing page — white & blue design system
+// Shown at "/" for unauthenticated users
+
+import { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
+
+export function LandingPage() {
+  const token    = useAuthStore(s => s.token);
+  const user     = useAuthStore(s => s.user);
+  const navigate = useNavigate();
+
+  // If already logged in, redirect to role home
+  useEffect(() => {
+    if (token && user) {
+      const role = user.role?.toLowerCase() ?? '';
+      if (role === 'superadmin' || role === 'admin') navigate('/admin/dashboard', { replace: true });
+      else if (role === 'salesman')  navigate('/salesman/routes',      { replace: true });
+      else if (role === 'accounts')  navigate('/accounts/settlement',  { replace: true });
+      else if (role === 'warehouse') navigate('/warehouse/loading',    { replace: true });
+    }
+  }, [token, user, navigate]);
+
+  return (
+    <div style={{ fontFamily: "'Plus Jakarta Sans', 'DM Sans', sans-serif", background: '#fff', color: '#334155', overflowX: 'hidden' }}>
+
+      {/* ── Navbar ────────────────────────────────────────────── */}
+      <nav style={{
+        position:       'sticky', top: 0, zIndex: 100,
+        background:     'rgba(255,255,255,0.96)',
+        backdropFilter: 'blur(12px)',
+        borderBottom:   '1px solid #E2E8F0',
+        display:        'flex', alignItems: 'center',
+        padding:        '0 48px', height: 68, gap: 40,
+      }}>
+        {/* Logo */}
+        <a href="#" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 11,
+            background: 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(37,99,235,0.25)',
+          }}>
+            <svg width="20" height="20" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+          </div>
+          <span style={{ fontSize: 18, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.04em' }}>
+            FMCG<span style={{ color: '#2563EB' }}>Dist</span>
+          </span>
+        </a>
+
+        {/* Nav links */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
+          {['#features', '#how-it-works', '#roles'].map((href, i) => (
+            <a key={href} href={href} style={{
+              padding: '7px 14px', borderRadius: 8,
+              fontSize: 14, fontWeight: 600, color: '#64748B',
+              textDecoration: 'none', transition: 'all 0.14s',
+              letterSpacing: '-0.01em',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#2563EB'; (e.currentTarget as HTMLElement).style.background = '#EFF6FF'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#64748B'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+            >
+              {['Features', 'How It Works', 'Roles'][i]}
+            </a>
+          ))}
+        </div>
+
+        {/* CTAs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
+          <Link to="/login" style={{
+            padding: '8px 18px', borderRadius: 9, fontSize: 14, fontWeight: 700,
+            color: '#1E3A8A', border: '1px solid #E2E8F0', background: 'transparent',
+            textDecoration: 'none', transition: 'all 0.15s', letterSpacing: '-0.01em',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#EFF6FF'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.25)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.borderColor = '#E2E8F0'; }}
+          >
+            Sign In
+          </Link>
+          <Link to="/register" style={{
+            padding: '8px 20px', borderRadius: 9, fontSize: 14, fontWeight: 700,
+            color: '#fff', border: 'none', textDecoration: 'none',
+            background: 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)',
+            boxShadow: '0 3px 10px rgba(37,99,235,0.28)',
+            transition: 'all 0.18s', letterSpacing: '-0.01em',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 18px rgba(37,99,235,0.36)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 10px rgba(37,99,235,0.28)'; }}
+          >
+            Get Started →
+          </Link>
+        </div>
+      </nav>
+
+      {/* ── Hero ──────────────────────────────────────────────── */}
+      <section style={{
+        minHeight: 600,
+        background: 'linear-gradient(135deg,#F8FAFC 0%,#EFF6FF 60%,#E0F2FE 100%)',
+        position: 'relative', overflow: 'hidden',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '80px 48px 60px', gap: 64,
+        flexWrap: 'wrap',
+      }}>
+        <div style={{
+          position: 'absolute', top: '-10%', right: '-5%',
+          width: 700, height: 700, borderRadius: '50%',
+          background: 'radial-gradient(circle,rgba(37,99,235,0.07) 0%,transparent 65%)',
+          pointerEvents: 'none',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '-15%', left: '-8%',
+          width: 600, height: 600, borderRadius: '50%',
+          background: 'radial-gradient(circle,rgba(30,58,138,0.05) 0%,transparent 65%)',
+          pointerEvents: 'none',
+        }} />
+
+        {/* Left */}
+        <div style={{ flex: 1, maxWidth: 560, position: 'relative', zIndex: 1 }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            padding: '6px 14px', borderRadius: 20,
+            background: '#DBEAFE', border: '1px solid rgba(37,99,235,0.20)',
+            fontSize: 12, fontWeight: 700, color: '#2563EB',
+            letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 22,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2563EB', display: 'inline-block' }} />
+            FMCG Distribution Platform
+          </div>
+          <h1 style={{
+            fontSize: 'clamp(34px,5vw,56px)', fontWeight: 900,
+            color: '#1E3A8A', letterSpacing: '-0.04em', lineHeight: 1.06, marginBottom: 22,
+          }}>
+            Manage your <span style={{ color: '#2563EB' }}>entire</span> distribution network, in one place.
+          </h1>
+          <p style={{ fontSize: 17, color: '#64748B', lineHeight: 1.65, fontWeight: 500, maxWidth: 460, marginBottom: 36 }}>
+            From routes and orders to collections and settlements — FMCGDist gives your team a single, powerful hub to run field operations with precision.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' as const }}>
+            <Link to="/register" style={{
+              padding: '14px 30px', borderRadius: 12, fontSize: 15, fontWeight: 800,
+              color: '#fff', textDecoration: 'none', letterSpacing: '-0.02em',
+              background: 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)',
+              boxShadow: '0 6px 22px rgba(37,99,235,0.32)', transition: 'all 0.2s',
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 10px 32px rgba(37,99,235,0.42)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 22px rgba(37,99,235,0.32)'; }}
+            >
+              Start Free Trial →
+            </Link>
+            <a href="#features" style={{
+              padding: '14px 28px', borderRadius: 12, fontSize: 15, fontWeight: 800,
+              color: '#1E3A8A', textDecoration: 'none', letterSpacing: '-0.02em',
+              border: '1.5px solid #E2E8F0', background: 'transparent', transition: 'all 0.18s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#fff'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.30)'; (e.currentTarget as HTMLElement).style.color = '#2563EB'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.borderColor = '#E2E8F0'; (e.currentTarget as HTMLElement).style.color = '#1E3A8A'; }}
+            >
+              See Features
+            </a>
+          </div>
+        </div>
+
+        {/* Right — live ops card */}
+        <div style={{ flexShrink: 0, position: 'relative', zIndex: 1 }}>
+          <div style={{
+            background: '#fff', border: '1px solid #E2E8F0', borderRadius: 24,
+            padding: 24, boxShadow: '0 20px 60px rgba(15,23,42,0.10)', width: 340,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, paddingBottom: 16, borderBottom: '1px solid #E2E8F0' }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="18" height="18" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#1E3A8A' }}>Today's Operations</div>
+                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 500 }}>Live dashboard · Updated now</div>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+              {[
+                { val: '48',   lbl: 'Active Routes' },
+                { val: '312',  lbl: 'Orders Today' },
+                { val: '₹4.2L', lbl: 'Collections' },
+                { val: '96%',  lbl: 'On-Time Rate' },
+              ].map(s => (
+                <div key={s.lbl} style={{ padding: '12px 14px', borderRadius: 10, background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.03em' }}>{s.val}</div>
+                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, marginTop: 2 }}>{s.lbl}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 10, background: '#F0FDF4', border: '1px solid rgba(22,163,74,0.18)' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16A34A', flexShrink: 0 }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#15803D' }}>All systems operational · 0 route delays</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Trust bar ─────────────────────────────────────────── */}
+      <div style={{
+        padding: '20px 48px', borderBottom: '1px solid #E2E8F0',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: 40, flexWrap: 'wrap' as const, background: '#fff',
+      }}>
+        {[
+          { icon: <svg width="16" height="16" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>, label: 'Real-time route tracking' },
+          { icon: <svg width="16" height="16" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>, label: 'Role-based access control' },
+          { icon: <svg width="16" height="16" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, label: 'Daily settlement reports' },
+          { icon: <svg width="16" height="16" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>, label: 'Mobile-first design' },
+          { icon: <svg width="16" height="16" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>, label: 'Live ₹ collections tracking' },
+        ].map((t, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {i > 0 && <div style={{ width: 1, height: 24, background: '#E2E8F0', marginRight: 30 }} />}
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: '#EFF6FF', border: '1px solid rgba(37,99,235,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {t.icon}
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#1E3A8A' }}>{t.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Features ──────────────────────────────────────────── */}
+      <section id="features" style={{ padding: '80px 48px', background: '#F8FAFC' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ marginBottom: 56 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#EFF6FF', color: '#2563EB', padding: '5px 13px', borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 16 }}>✦ Features</div>
+            <h2 style={{ fontSize: 'clamp(26px,3.5vw,42px)', fontWeight: 900, color: '#1E3A8A', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 14 }}>Everything your distribution team needs</h2>
+            <p style={{ fontSize: 17, color: '#64748B', fontWeight: 500, lineHeight: 1.6, maxWidth: 540 }}>Purpose-built tools for every part of the FMCG supply chain — from warehouse to final-mile delivery.</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
+            {[
+              { bg: '#EFF6FF', stroke: '#2563EB', title: 'Route Management', desc: 'Assign and track delivery routes in real time. View progress, stops completed, and ETA for each salesman on the field.', icon: <svg width="24" height="24" fill="none" stroke="#2563EB" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg> },
+              { bg: '#F0FDF4', stroke: '#16A34A', title: 'Order Processing', desc: 'Create, edit, and track field orders from any device. Full order lifecycle from entry to fulfilment, with history and audit trail.', icon: <svg width="24" height="24" fill="none" stroke="#16A34A" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg> },
+              { bg: '#FFF7ED', stroke: '#C2410C', title: 'Collections & Settlement', desc: 'Log cash, cheque, and UPI collections on the spot. Auto-reconcile daily settlements and flag outstanding dues instantly.', icon: <svg width="24" height="24" fill="none" stroke="#C2410C" strokeWidth="1.8" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg> },
+              { bg: '#FDF4FF', stroke: '#7E22CE', title: 'Customer Catalog', desc: 'Maintain a live customer directory with credit limits, order history, and contact details. Assign customers to routes automatically.', icon: <svg width="24" height="24" fill="none" stroke="#7E22CE" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> },
+              { bg: '#EFF6FF', stroke: '#2563EB', title: 'Warehouse Dispatch', desc: 'Generate digital loading sheets, track packing status, and ensure accurate inventory dispatch before every route begins.', icon: <svg width="24" height="24" fill="none" stroke="#2563EB" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> },
+              { bg: '#F0FDF4', stroke: '#15803D', title: 'Analytics & Reports', desc: 'Daily, weekly, and monthly performance reports. Track salesman productivity, product-wise sales, and route efficiency.', icon: <svg width="24" height="24" fill="none" stroke="#15803D" strokeWidth="1.8" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
+            ].map(f => (
+              <div key={f.title} style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 18, padding: 28, transition: 'all 0.22s', cursor: 'default' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 40px rgba(37,99,235,0.10)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.25)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; (e.currentTarget as HTMLElement).style.borderColor = '#E2E8F0'; }}
+              >
+                <div style={{ width: 52, height: 52, borderRadius: 14, background: f.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>{f.icon}</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#1E3A8A', marginBottom: 8, letterSpacing: '-0.02em' }}>{f.title}</div>
+                <div style={{ fontSize: 14, color: '#64748B', lineHeight: 1.6, fontWeight: 500 }}>{f.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Highlight 1 ───────────────────────────────────────── */}
+      <section id="how-it-works" style={{ padding: '80px 48px', background: '#fff' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', gap: 80, alignItems: 'center', flexWrap: 'wrap' as const }}>
+          <div style={{ flex: 1, minWidth: 280 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#EFF6FF', color: '#2563EB', padding: '5px 13px', borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 16 }}>📦 Operations Hub</div>
+            <h2 style={{ fontSize: 'clamp(22px,2.8vw,34px)', fontWeight: 900, color: '#1E3A8A', letterSpacing: '-0.04em', lineHeight: 1.15, marginBottom: 16 }}>Your entire field operation, <span style={{ color: '#2563EB' }}>visible in real time.</span></h2>
+            <p style={{ fontSize: 15, color: '#64748B', lineHeight: 1.7, fontWeight: 500, maxWidth: 440, marginBottom: 24 }}>Admins get a live bird's-eye view of every route, every salesman, and every order — all from a single dashboard.</p>
+            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 12 }}>
+              {['Live route progress with stop-by-stop visibility', 'Order status — pending, packed, dispatched, delivered', 'Daily collection targets vs. actual — at a glance', 'Incentive tracking tied to salesman performance'].map(pt => (
+                <div key={pt} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 14, fontWeight: 600, color: '#334155' }}>
+                  <div style={{ width: 20, height: 20, borderRadius: 6, background: '#DBEAFE', border: '1px solid rgba(37,99,235,0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                    <svg width="11" height="11" fill="none" stroke="#2563EB" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  {pt}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ flex: 1, minWidth: 280 }}>
+            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 24, padding: 28, boxShadow: '0 8px 32px rgba(15,23,42,0.07)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <div><div style={{ fontSize: 13, fontWeight: 800, color: '#1E3A8A' }}>Today's Route Performance</div><div style={{ fontSize: 11, color: '#64748B' }}>48 routes · 6 salesmen active</div></div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#16A34A', background: '#F0FDF4', padding: '4px 10px', borderRadius: 20, border: '1px solid rgba(22,163,74,0.18)' }}>LIVE</span>
+              </div>
+              {[
+                { label: 'Route A — North Zone', pct: 87, color: '#2563EB' },
+                { label: 'Route B — East Zone',  pct: 100, color: '#16A34A' },
+                { label: 'Route C — South Zone', pct: 64, color: '#D97706' },
+                { label: 'Route D — West Zone',  pct: 79, color: '#2563EB' },
+              ].map(r => (
+                <div key={r.label} style={{ marginBottom: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>{r.label}</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: r.color }}>{r.pct}%</span>
+                  </div>
+                  <div style={{ height: 8, background: '#E2E8F0', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ width: `${r.pct}%`, height: '100%', borderRadius: 4, background: r.color }} />
+                  </div>
+                </div>
+              ))}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginTop: 18, borderTop: '1px solid #E2E8F0', paddingTop: 18 }}>
+                {[{ n: '312', l: 'Orders' }, { n: '₹4.2L', l: 'Collected' }, { n: '96%', l: 'On-Time' }].map(s => (
+                  <div key={s.l} style={{ textAlign: 'center' as const }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.03em' }}>{s.n}</div>
+                    <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Highlight 2 ───────────────────────────────────────── */}
+      <section style={{ padding: '80px 48px', background: '#F8FAFC' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'row-reverse' as const, gap: 80, alignItems: 'center', flexWrap: 'wrap' as const }}>
+          <div style={{ flex: 1, minWidth: 280 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#EFF6FF', color: '#2563EB', padding: '5px 13px', borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 16 }}>💳 Collections</div>
+            <h2 style={{ fontSize: 'clamp(22px,2.8vw,34px)', fontWeight: 900, color: '#1E3A8A', letterSpacing: '-0.04em', lineHeight: 1.15, marginBottom: 16 }}>Never miss a <span style={{ color: '#2563EB' }}>payment</span> or outstanding due.</h2>
+            <p style={{ fontSize: 15, color: '#64748B', lineHeight: 1.7, fontWeight: 500, maxWidth: 440, marginBottom: 24 }}>FMCGDist gives your accounts team full visibility into daily collections — by route, by salesman, and by customer.</p>
+            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 12 }}>
+              {['Cash, cheque, UPI — all in one place', 'Automatic daily settlement closing', 'Outstanding dues flagged automatically', 'Exportable reconciliation reports'].map(pt => (
+                <div key={pt} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 14, fontWeight: 600, color: '#334155' }}>
+                  <div style={{ width: 20, height: 20, borderRadius: 6, background: '#DBEAFE', border: '1px solid rgba(37,99,235,0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                    <svg width="11" height="11" fill="none" stroke="#2563EB" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  {pt}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ flex: 1, minWidth: 280 }}>
+            <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 24, padding: 28, boxShadow: '0 8px 32px rgba(15,23,42,0.07)' }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#1E3A8A', marginBottom: 4 }}>Collection Summary — Today</div>
+              <div style={{ fontSize: 11, color: '#64748B', marginBottom: 20 }}>Accounts · Auto-settled at 6 PM</div>
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10 }}>
+                {[
+                  { label: 'Cash Collections', val: '₹1,84,500' },
+                  { label: 'UPI / Online',      val: '₹2,12,000' },
+                  { label: 'Cheques Collected', val: '₹48,000' },
+                ].map(c => (
+                  <div key={c.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 10 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>{c.label}</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>{c.val}</div>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 14px', background: '#EFF6FF', border: '1px solid rgba(37,99,235,0.20)', borderRadius: 10 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#1E3A8A' }}>Total Settled</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: '#1E3A8A' }}>₹4,44,500</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#FEF2F2', border: '1px solid rgba(220,38,38,0.18)', borderRadius: 10 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#DC2626', flexShrink: 0, display: 'inline-block' }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#B91C1C' }}>2 customers with outstanding dues · ₹18,400</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Roles ─────────────────────────────────────────────── */}
+      <section id="roles" style={{ padding: '80px 48px', background: '#fff' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ marginBottom: 56 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#EFF6FF', color: '#2563EB', padding: '5px 13px', borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 16 }}>👥 Roles</div>
+            <h2 style={{ fontSize: 'clamp(26px,3.5vw,42px)', fontWeight: 900, color: '#1E3A8A', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 14 }}>Built for every team member</h2>
+            <p style={{ fontSize: 17, color: '#64748B', fontWeight: 500, lineHeight: 1.6, maxWidth: 540 }}>Four role-based access levels, each with the right tools and permissions for the job.</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
+            {[
+              { badge: 'Admin',     badgeBg: '#EFF6FF', badgeColor: '#1D4ED8', title: 'Distribution Manager', desc: 'Full platform access. Manage all users, routes, products, and business reports.', perms: ['All routes & assignments', 'User management', 'Analytics & reports', 'Incentive configuration'] },
+              { badge: 'Salesman',  badgeBg: '#F0FDF4', badgeColor: '#15803D', title: 'Field Sales Executive', desc: 'Mobile-first access to assigned routes, order entry, and collection recording.', perms: ['View assigned routes', 'Create & submit orders', 'Log collections', 'Track incentives'] },
+              { badge: 'Accounts',  badgeBg: '#FDF4FF', badgeColor: '#7E22CE', title: 'Accounts Executive', desc: 'Focused view on daily settlements, outstanding dues, and financial reports.', perms: ['Daily settlement', 'Collection review', 'Financial reports', 'Dues management'] },
+              { badge: 'Warehouse', badgeBg: '#FFF7ED', badgeColor: '#C2410C', title: 'Warehouse Operator', desc: 'Manage loading sheets, packing status, and inventory dispatch for daily routes.', perms: ['Loading sheet view', 'Pack & dispatch orders', 'Inventory tracking', 'Dispatch confirmation'] },
+            ].map(r => (
+              <div key={r.badge} style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 18, padding: 24, transition: 'all 0.2s' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.25)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 28px rgba(37,99,235,0.09)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.borderColor = '#E2E8F0'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}
+              >
+                <div style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 14, background: r.badgeBg, color: r.badgeColor }}>{r.badge}</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#1E3A8A', marginBottom: 8, letterSpacing: '-0.02em' }}>{r.title}</div>
+                <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.6, fontWeight: 500, marginBottom: 16 }}>{r.desc}</div>
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 7 }}>
+                  {r.perms.map(p => (
+                    <div key={p} style={{ fontSize: 12, color: '#334155', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <span style={{ color: '#16A34A', fontWeight: 900, fontSize: 11 }}>✓</span>{p}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Auth section ──────────────────────────────────────── */}
+      <section style={{ background: 'linear-gradient(135deg,#F8FAFC 0%,#EFF6FF 60%,#E0F2FE 100%)', padding: '80px 48px', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: '-20%', right: '-5%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle,rgba(37,99,235,0.07) 0%,transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ maxWidth: 900, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <div style={{ textAlign: 'center' as const, marginBottom: 48 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#EFF6FF', color: '#2563EB', padding: '5px 13px', borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 16 }}>🔐 Get Started</div>
+            <h2 style={{ fontSize: 'clamp(26px,3.5vw,42px)', fontWeight: 900, color: '#1E3A8A', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 14 }}>Sign in or create your account</h2>
+            <p style={{ fontSize: 17, color: '#64748B', fontWeight: 500, lineHeight: 1.6, maxWidth: 540, margin: '0 auto' }}>Already part of a distribution team? Sign in. Setting up a new company? Register and get onboarded in minutes.</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
+            {/* Login card */}
+            <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 24, padding: '36px 32px', boxShadow: '0 8px 40px rgba(15,23,42,0.08)' }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#1E3A8A', letterSpacing: '-0.04em', marginBottom: 8 }}>Sign In</div>
+              <div style={{ fontSize: 14, color: '#64748B', fontWeight: 500, marginBottom: 28 }}>Access your distribution dashboard</div>
+              {['Email Address', 'Password'].map((label, i) => (
+                <div key={label} style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', letterSpacing: '0.02em', textTransform: 'uppercase' as const, marginBottom: 7 }}>{label}</label>
+                  <input type={i === 1 ? 'password' : 'email'} placeholder={i === 0 ? 'you@company.com' : '••••••••'} style={{ width: '100%', padding: '11px 14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, fontSize: 14, color: '#334155', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const }} />
+                </div>
+              ))}
+              <Link to="/login" style={{ display: 'block', width: '100%', padding: 13, background: 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer', letterSpacing: '-0.02em', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(37,99,235,0.28)', textDecoration: 'none', textAlign: 'center' as const, marginBottom: 12 }}>Sign In →</Link>
+              <Link to="/pin-login" style={{ display: 'block', width: '100%', padding: 13, background: 'linear-gradient(135deg,#334155,#1E293B)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer', letterSpacing: '-0.02em', fontFamily: 'inherit', textDecoration: 'none', textAlign: 'center' as const }}>🔢 Sign In with PIN</Link>
+              <div style={{ textAlign: 'center' as const, marginTop: 18, fontSize: 13, color: '#64748B' }}>Don't have an account? <Link to="/register" style={{ color: '#2563EB', fontWeight: 700, textDecoration: 'none' }}>Create one →</Link></div>
+            </div>
+            {/* Register card */}
+            <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 24, padding: '36px 32px', boxShadow: '0 8px 40px rgba(15,23,42,0.08)' }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#1E3A8A', letterSpacing: '-0.04em', marginBottom: 8 }}>Create Account</div>
+              <div style={{ fontSize: 14, color: '#64748B', fontWeight: 500, marginBottom: 28 }}>Set up your distribution company</div>
+              {['Full Name', 'Email Address', 'Password'].map((label, i) => (
+                <div key={label} style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', letterSpacing: '0.02em', textTransform: 'uppercase' as const, marginBottom: 7 }}>{label}</label>
+                  <input type={i === 2 ? 'password' : i === 1 ? 'email' : 'text'} placeholder={i === 0 ? 'Your full name' : i === 1 ? 'you@company.com' : 'Min. 6 characters'} style={{ width: '100%', padding: '11px 14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, fontSize: 14, color: '#334155', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const }} />
+                </div>
+              ))}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', letterSpacing: '0.02em', textTransform: 'uppercase' as const, marginBottom: 7 }}>Role</label>
+                <select style={{ width: '100%', padding: '11px 14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, fontSize: 14, color: '#334155', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const }}>
+                  <option>Admin — Distribution Manager</option>
+                  <option>Salesman — Field Executive</option>
+                  <option>Accounts — Accounts Team</option>
+                  <option>Warehouse — Warehouse Operator</option>
+                </select>
+              </div>
+              <Link to="/register" style={{ display: 'block', width: '100%', padding: 13, background: 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer', letterSpacing: '-0.02em', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(37,99,235,0.28)', textDecoration: 'none', textAlign: 'center' as const }}>Create Account →</Link>
+              <div style={{ textAlign: 'center' as const, marginTop: 18, fontSize: 13, color: '#64748B' }}>Already registered? <Link to="/login" style={{ color: '#2563EB', fontWeight: 700, textDecoration: 'none' }}>Sign in →</Link></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ────────────────────────────────────────────── */}
+      <footer style={{ background: '#1E3A8A', color: 'rgba(255,255,255,0.7)', padding: '60px 48px 32px' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 48, marginBottom: 48 }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="18" height="18" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+              </div>
+              <span style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>FMCG<span style={{ color: '#93C5FD' }}>Dist</span></span>
+            </div>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(255,255,255,0.5)' }}>A purpose-built platform for FMCG distribution companies in India — connecting admin, field, accounts, and warehouse teams in one unified system.</p>
+          </div>
+          {[
+            { heading: 'Platform', links: ['Features', 'Roles & Access', 'How It Works', 'Get Started'] },
+            { heading: 'Modules',  links: ['Route Management', 'Order Processing', 'Collections', 'Analytics'] },
+            { heading: 'Company',  links: ['About', 'Contact', 'Privacy Policy', 'Terms of Service'] },
+          ].map(col => (
+            <div key={col.heading}>
+              <h4 style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 16 }}>{col.heading}</h4>
+              {col.links.map(l => (
+                <a key={l} href="#" style={{ display: 'block', fontSize: 14, color: 'rgba(255,255,255,0.5)', textDecoration: 'none', marginBottom: 10, fontWeight: 500, transition: 'color 0.12s' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.9)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)'}
+                >{l}</a>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div style={{ maxWidth: 1200, margin: '0 auto', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, flexWrap: 'wrap' as const, gap: 10 }}>
+          <span>© 2025 FMCGDist · Distribution Management Platform</span>
+          <span>Built for India's FMCG distribution network</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Salesman/OrderEntry/components/OrderSummary.tsx">
+interface OrderSummaryProps {
+  linesCount: number;
+  totalAmount: number;
+  remarks: string;
+  fmtNum: (num: number) => string;
+}
+
+export function OrderSummary({ linesCount, totalAmount, remarks, fmtNum }: OrderSummaryProps) {
+  if (linesCount === 0 && !remarks.trim()) return null;
+
+  return (
+    <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+      <h3 className="text-base font-bold text-slate-800 mb-2">Order Summary</h3>
+      <div className="space-y-1 text-base">
+        {linesCount > 0 && (
+          <div className="flex justify-between">
+            <span className="text-slate-600">Wholesale Total:</span>
+            <span className="font-semibold text-slate-800">₹{fmtNum(totalAmount)}</span>
+          </div>
+        )}
+        {remarks.trim() && (
+          <div className="flex justify-between">
+            <span className="text-slate-600">Retail Items:</span>
+            <span className="font-semibold text-slate-800">In remarks</span>
+          </div>
+        )}
+        <div className="border-t border-blue-200 pt-2 mt-2 flex justify-between">
+          <span className="font-bold text-slate-800">Order Total:</span>
+          <span className="font-bold text-slate-800 text-xl">₹{fmtNum(totalAmount)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Salesman/OrderEntry/components/PreviousOrdersModal.tsx">
+import { X, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { CustomerOrderHistoryDto, fmtNum } from '../../../../types';
+
+interface PreviousOrdersModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  previousOrders: CustomerOrderHistoryDto[];
+  onUseOrder: (order: CustomerOrderHistoryDto) => void;
+}
+
+export function PreviousOrdersModal({ isOpen, onClose, previousOrders, onUseOrder }: PreviousOrdersModalProps) {
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/50 z-50" onClick={onClose} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl max-h-[80vh] bg-white rounded-2xl shadow-xl z-50 flex flex-col">
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div style={{ display:'flex', alignItems:'center', background:'linear-gradient(135deg,#7C3AED,#A855F7)', borderRadius:8, padding:'4px 8px', gap:0 }}>
+              <ChevronLeft size={14} color="#fff" style={{ marginRight:-3 }} />
+              <ChevronRight size={14} color="#fff" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-800">Previous Orders</h2>
+            <span className="text-sm text-slate-400">({previousOrders.length})</span>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {previousOrders.map((order, idx) => (
+            <div key={order.orderId} className="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:border-blue-300 transition-all">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-600">
+                      {idx === 0 ? '🕐 Most Recent' : `${idx + 1} order${idx > 0 ? 's' : ''} ago`}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {new Date(order.orderDate).toLocaleDateString('en-IN', { 
+                        day: 'numeric', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">Order #{order.orderNumber?.slice(0, 8) || 'N/A'}</p>
+                </div>
+                <p className="text-lg font-bold text-emerald-600">₹{fmtNum(order.totalAmount)}</p>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 mb-3">
+                {order.items.slice(0, 4).map((item: any, i: number) => (
+                  <span key={i} className="bg-white px-2 py-1 rounded-lg border border-slate-200 text-xs text-slate-600">
+                    {item.productName} ({item.quantity})
+                  </span>
+                ))}
+                {order.items.length > 4 && (
+                  <span className="bg-white px-2 py-1 rounded-lg border border-slate-200 text-xs text-blue-500">
+                    +{order.items.length - 4} more
+                  </span>
+                )}
+              </div>
+              
+              {order.remarks && (
+                <div className="text-xs text-slate-400 bg-white p-2 rounded-lg border border-slate-100 mb-3">
+                  📝 Retail: {order.remarks.substring(0, 100)}{order.remarks.length > 100 ? '...' : ''}
+                </div>
+              )}
+              
+              <button
+                onClick={() => onUseOrder(order)}
+                className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <Plus size={14} /> Use This Order
+              </button>
+            </div>
+          ))}
+        </div>
+        
+        <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-3 rounded-b-2xl text-center text-xs text-slate-400">
+          Click "Use This Order" to load items into current bill
+        </div>
+      </div>
+    </>
+  );
+}
+</file>
+
+<file path="src/pages/Salesman/OrderEntry/components/PriceVarianceBadge.tsx">
+import { AlertTriangle } from 'lucide-react';
+
+export function PriceVarianceBadge({ base, selling }: { base: number; selling: number }) {
+  if (!base || !selling) return null;
+  const diff = ((selling - base) / base) * 100;
+  const abs = Math.abs(diff).toFixed(1);
+  if (Math.abs(diff) < 0.1) return <span className="text-xs text-emerald-600">✓ At base price</span>;
+  if (diff < 0) {
+    return (
+      <span className="text-xs text-red-500 flex items-center gap-1">
+        <AlertTriangle size={11} /> {abs}% below base
+      </span>
+    );
+  }
+  return <span className="text-xs text-emerald-600">▲ +{abs}% above base</span>;
+}
+</file>
+
+<file path="src/pages/Salesman/OrderEntry/components/ProductSidebar.tsx">
+// PATH: src/pages/Salesman/OrderEntry/components/ProductSidebar.tsx
+// FIXED: Added top offset for navbar, removed search icon
+
+import { Package, X } from 'lucide-react';
+import { ProductDto, fmtNum } from '../../../../types';
+
+interface ProductSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+  search: string;
+  onSearchChange: (value: string) => void;
+  filteredProducts: ProductDto[];
+  lines: Array<{ product: ProductDto; qty: number }>;
+  onAddProduct: (product: ProductDto) => void;
+  canEdit: boolean;
+  searchInputRef: React.RefObject<HTMLInputElement>;
+}
+
+export function ProductSidebar({
+  isOpen,
+  onClose,
+  search,
+  onSearchChange,
+  filteredProducts,
+  lines,
+  onAddProduct,
+  canEdit,
+  searchInputRef,
+}: ProductSidebarProps) {
+  if (!isOpen || !canEdit) return null;
+
+  // Get navbar height from CSS variable or default to 64px
+  const navbarHeight = typeof window !== 'undefined' 
+    ? getComputedStyle(document.documentElement).getPropertyValue('--nav-h').trim() || '64px'
+    : '64px';
+
+  return (
+    <div 
+      className="fixed right-0 w-[340px] bg-white border-l border-slate-200 shadow-xl z-40 flex flex-col"
+      style={{ 
+        top: 'var(--nav-h, 64px)',
+        height: `calc(100vh - var(--nav-h, 64px))`
+      }}
+    >
+      {/* Header */}
+      <div className="bg-white border-b border-slate-200 px-4 py-3 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-slate-800 text-sm">Products</h2>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg hover:bg-slate-100 transition-colors text-slate-400"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        
+        {/* Search input - Clean, no icon */}
+        <div className="mt-3">
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search products..."
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50"
+          />
+        </div>
+        
+        {/* Results count */}
+        <div className="mt-1.5 text-xs text-slate-400">
+          {filteredProducts.length} item{filteredProducts.length !== 1 ? 's' : ''}
+        </div>
+      </div>
+
+      {/* Product List - Scrollable */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {filteredProducts.length === 0 && search && (
+          <div className="text-center py-10">
+            <Package size={36} className="mx-auto text-slate-300 mb-2 opacity-40" />
+            <p className="text-slate-400 text-sm">No products found</p>
+          </div>
+        )}
+        
+        {filteredProducts.length === 0 && !search && (
+          <div className="text-center py-10">
+            <Package size={36} className="mx-auto text-slate-300 mb-2 opacity-40" />
+            <p className="text-slate-400 text-sm">No products available</p>
+          </div>
+        )}
+
+        {filteredProducts.map((product: ProductDto) => {
+          const isInBill = lines.some(l => l.product.id === product.id);
+          const existingQty = lines.find(l => l.product.id === product.id)?.qty || 0;
+          
+          return (
+            <button
+              key={product.id}
+              onClick={() => onAddProduct(product)}
+              className={`w-full text-left p-2.5 rounded-lg border transition-all duration-150 ${
+                isInBill 
+                  ? 'border-emerald-200 bg-emerald-50/40' 
+                  : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/20 hover:shadow-sm'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium text-slate-800 text-sm truncate">{product.nameEnglish}</p>
+                    {isInBill && (
+                      <span className="inline-flex items-center text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full shrink-0">
+                        {existingQty} in bill
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                      {product.productGroupName || 'General'}
+                    </span>
+                    <span className="text-xs text-slate-400">{product.productUnitName || 'Unit'}</span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-bold text-emerald-600">₹{fmtNum(product.basePrice)}</p>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div className="bg-slate-50 border-t border-slate-200 px-3 py-2 text-xs text-slate-400 text-center flex-shrink-0">
+        Click to add to bill
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Salesman/OrderEntry/components/RetailItemsSection.tsx">
+import { ShoppingCart, AlertTriangle, Eye } from 'lucide-react';
+
+interface RetailItemsSectionProps {
+  remarks: string;
+  canEdit: boolean;
+  onRemarksChange: (value: string) => void;
+}
+
+const QUICK_ITEMS = ['Savala - 10 kg', 'Colli - 10 kg', 'Waz - 24', 'Duocsu - 24', 'Salt - 25 kg', 'Sugar - 50 kg'];
+
+export function RetailItemsSection({ remarks, canEdit, onRemarksChange }: RetailItemsSectionProps) {
+  return (
+    <div className="mb-6">
+      <label className="flex flex-wrap items-center gap-2 text-base font-bold text-slate-800 mb-2">
+        <ShoppingCart size={18} className="text-blue-600" />
+        Retail Items
+        <span className="text-xs font-normal text-slate-400 ml-2">(Enter smaller items here)</span>
+        {remarks && remarks.trim() && (
+          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full ml-2">
+            ✓ Added
+          </span>
+        )}
+      </label>
+      
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+        <p className="text-sm text-amber-700 flex items-center gap-1">
+          <AlertTriangle size={12} />
+          <span className="font-medium">Example format:</span> Savala - 10 kg, Colli - 10 kg, Waz - 24, Duocsu - 24
+        </p>
+        <p className="text-xs text-amber-600 mt-1 ml-5">
+          💡 Tip: Enter each item on a new line or separate with commas
+        </p>
+      </div>
+      
+      <textarea
+        className={`w-full px-4 py-3 border border-slate-200 rounded-xl text-base focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none bg-white font-mono ${!canEdit ? 'bg-slate-50 text-slate-500' : ''}`}
+        rows={4}
+        placeholder={`Enter retail items here (one per line or comma separated)
+
+Examples:
+Savala - 10 kg
+Colli - 10 kg
+Waz - 24 pieces
+Duocsu - 24 units
+Salt - 25 kg
+Sugar - 50 kg`}
+        value={remarks}
+        onChange={e => canEdit && onRemarksChange(e.target.value)}
+        disabled={!canEdit}
+      />
+      
+      {canEdit && (
+        <div className="mt-3">
+          <p className="text-sm text-slate-500 mb-2">Quick add common items:</p>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_ITEMS.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => {
+                  const newRemarks = remarks ? `${remarks}\n${item}` : item;
+                  onRemarksChange(newRemarks);
+                }}
+                className="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-full transition-colors"
+              >
+                + {item}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      <div className="flex justify-between items-center mt-2">
+        <p className="text-sm text-slate-400">
+          These items will appear in the order's remarks/notes section
+        </p>
+        <p className={`text-sm ${remarks.length > 500 ? 'text-amber-500' : 'text-slate-400'}`}>
+          {remarks.length}/1000 characters
+        </p>
+      </div>
+      
+      {remarks && remarks.trim() && (
+        <div className="mt-3 bg-slate-50 rounded-lg p-3 border border-slate-200">
+          <p className="text-sm font-semibold text-slate-600 mb-2 flex items-center gap-1">
+            <Eye size={12} /> Preview:
+          </p>
+          <div className="whitespace-pre-wrap font-mono text-sm bg-white p-2 rounded border border-slate-100 max-h-32 overflow-y-auto text-slate-700">
+            {remarks}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Salesman/OrderEntry/components/WholesaleItemsTable.tsx">
+import { Package, Plus, Minus, Trash2 } from 'lucide-react';
+import { LineItem } from '../types';
+import { PriceVarianceBadge } from '../types';
+
+interface WholesaleItemsTableProps {
+  lines: LineItem[];
+  totalAmount: number;
+  totalItems: number;
+  canEdit: boolean;
+  isSidebarOpen: boolean;
+  onAddItem: () => void;
+  onQuantityInput: (productId: string, value: string) => void;
+  onQuantityBlur: (productId: string) => void;
+  onUpdateQty: (productId: string, delta: number) => void;
+  onSetPrice: (productId: string, value: string) => void;
+  onRemoveItem: (productId: string) => void;
+  getDisplayQty: (productId: string, actualQty: number) => string;
+  fmtNum: (num: number) => string;
+}
+
+export function WholesaleItemsTable({
+  lines,
+  totalAmount,
+  totalItems,
+  canEdit,
+  isSidebarOpen,
+  onAddItem,
+  onQuantityInput,
+  onQuantityBlur,
+  onUpdateQty,
+  onSetPrice,
+  onRemoveItem,
+  getDisplayQty,
+  fmtNum,
+}: WholesaleItemsTableProps) {
+  if (lines.length === 0) return null;
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+          <Package size={18} className="text-emerald-600" />
+          Wholesale Items
+        </h2>
+        {canEdit && !isSidebarOpen && (
+          <button
+            onClick={onAddItem}
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+          >
+            <Plus size={14} /> Add Item
+          </button>
+        )}
+      </div>
+      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+        <table className="w-full min-w-[600px]">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-500 uppercase">Product</th>
+              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-500 uppercase w-28">Quantity</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 uppercase w-28">Unit</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 uppercase w-32">Price (₹)</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 uppercase w-28">Total</th>
+              {canEdit && <th className="px-4 py-3 text-center w-10"></th>}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {lines.map((line) => (
+              <tr key={line.product.id} className="hover:bg-slate-50">
+                <td className="px-4 py-3">
+                  <div>
+                    <p className="font-semibold text-slate-800 text-base">{line.product.nameEnglish}</p>
+                    {line.product.nameMalayalam && (
+                      <p className="text-sm text-slate-400" lang="ml">{line.product.nameMalayalam}</p>
+                    )}
+                    <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} />
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    {canEdit && (
+                      <button
+                        onClick={() => onUpdateQty(line.product.id, -1)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                      >
+                        <Minus size={14} />
+                      </button>
+                    )}
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={getDisplayQty(line.product.id, line.qty)}
+                      onChange={(e) => onQuantityInput(line.product.id, e.target.value)}
+                      onBlur={() => onQuantityBlur(line.product.id)}
+                      disabled={!canEdit}
+                      className={`w-16 text-center px-2 py-2 border border-slate-200 rounded-lg text-base focus:outline-none focus:border-blue-400 ${!canEdit ? 'bg-slate-50 text-slate-500' : ''}`}
+                    />
+                    {canEdit && (
+                      <button
+                        onClick={() => onUpdateQty(line.product.id, 1)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    )}
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-right text-base text-slate-500">
+                  {line.unit}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={line.sellingPrice}
+                    onChange={e => onSetPrice(line.product.id, e.target.value)}
+                    disabled={!canEdit}
+                    className={`w-28 text-right px-2 py-2 border border-slate-200 rounded-lg text-base font-semibold focus:outline-none focus:border-blue-400 ${!canEdit ? 'bg-slate-50 text-slate-500' : 'text-slate-800'}`}
+                  />
+                </td>
+                <td className="px-4 py-3 text-right font-semibold text-slate-800 text-base">
+                  ₹{fmtNum(line.qty * line.sellingPrice)}
+                </td>
+                {canEdit && (
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => onRemoveItem(line.product.id)}
+                      className="text-red-400 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+          <tfoot className="bg-slate-50 border-t border-slate-200">
+            <tr>
+              <td colSpan={canEdit ? 5 : 4} className="px-4 py-3 text-right font-semibold text-slate-700 text-base">
+                Total Wholesale:
+              </td>
+              <td className="px-4 py-3 text-right font-bold text-xl text-slate-800">
+                ₹{fmtNum(totalAmount)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Salesman/OrderEntry/index.tsx">
+// Re-export the main component
+export { default } from './OrderEntry';
+</file>
+
+<file path="src/pages/Salesman/OrderEntry/OrderEntry.tsx">
+// PATH: src/pages/Salesman/OrderEntry/OrderEntry.tsx
+// Updated with cleaner layout and per-unit pricing support
+
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, Package, Printer, Edit3, Lock, Plus, Save, ChevronLeft, ChevronRight, ShoppingCart, X, CalendarDays } from 'lucide-react';
+import { customersApi, ordersApi, productsApi } from '../../../api/services';
+import { OrderStatus, fmtNum, CustomerOrderHistoryDto, CreateOrderCommand, ProductUnitPriceDto } from '../../../types';
+import { Spinner } from '../../../components/ui';
+import { useAuthStore } from '../../../store/authStore';
+import { LineItem } from './types';
+import { ProductSidebar } from './components/ProductSidebar';
+import { WholesaleItemsTable } from './components/WholesaleItemsTable';
+import { RetailItemsSection } from './components/RetailItemsSection';
+import { OrderSummary } from './components/OrderSummary';
+import { PreviousOrdersModal } from './components/PreviousOrdersModal';
+
+export default function OrderEntry() {
+  const { routeId, customerId } = useParams<{ routeId: string; customerId: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const executionContext = location.state as { executionId?: string; customerVisitId?: string; } | null;
+
+  const [customer, setCustomer] = useState<any>(null);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
+  const [existingOrder, setExistingOrder] = useState<any>(null);
+  const [lines, setLines] = useState<LineItem[]>([]);
+  const [remarks, setRemarks] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [previousOrders, setPreviousOrders] = useState<CustomerOrderHistoryDto[]>([]);
+  const [showPreviousModal, setShowPreviousModal] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [tempQuantities, setTempQuantities] = useState<Record<string, string>>({});
+  const [unitPrices, setUnitPrices] = useState<Record<string, ProductUnitPriceDto>>({});
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuthStore();
+
+  const isClosed = existingOrder?.status === OrderStatus.Closed;
+  const canEdit = !existingOrder || existingOrder.status === OrderStatus.Draft;
+  const totalAmount = lines.reduce((s, l) => s + l.qty * l.sellingPrice, 0);
+  const totalItems = lines.reduce((s, l) => s + l.qty, 0);
+
+  useEffect(() => {
+    if (!routeId || routeId.length < 30) setError('Invalid route. Please go back.');
+    if (!customerId) setError('Invalid customer. Please go back.');
+  }, [routeId, customerId]);
+
+  // Load unit prices for products
+  const loadUnitPrices = useCallback(async (products: any[]) => {
+    const priceMap: Record<string, ProductUnitPriceDto> = {};
+    for (const product of products) {
+      try {
+        const prices = await productsApi.getUnitPrices(product.id);
+        const defaultPrice = prices.find(p => p.isDefault) || prices[0];
+        if (defaultPrice) {
+          priceMap[product.id] = defaultPrice;
+        }
+      } catch {
+        // No unit prices configured, use base price
+      }
+    }
+    setUnitPrices(priceMap);
+    return priceMap;
+  }, []);
+
+  useEffect(() => {
+    if (!routeId || !customerId) return;
+    const cid = String(customerId);
+    const rid = routeId;
+
+    Promise.all([
+      customersApi.getById(cid),
+      productsApi.list({ isActive: true }),
+    ]).then(async ([c, p]) => {
+      setCustomer(c);
+      setAllProducts(p);
+      setFilteredProducts(p);
+      const loadedPriceMap = await loadUnitPrices(p);
+
+      try {
+        const orders = await ordersApi.listByRoute(rid);
+        const today = new Date().toISOString().slice(0, 10);
+        
+        const existing = orders
+          .filter(o => String(o.customerId) === cid && o.orderDate?.startsWith(today))
+          .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())[0];
+        
+        if (existing) {
+          setExistingOrder(existing);
+          const detail = await ordersApi.getById(existing.id);
+          setExistingOrder(detail);
+          setRemarks(detail.remarks ?? '');
+          
+          const reconstructed: LineItem[] = detail.items?.map((item: any) => {
+            const prod = p.find((pp: any) => String(pp.id) === String(item.productId));
+            if (!prod) return null;
+            const up = loadedPriceMap[prod.id];
+            return {
+              product: prod,
+              productId: String(prod.id),
+              qty: item.quantity,
+              sellingPrice: item.sellingPrice || (up?.salePrice ?? prod.basePrice),
+              unit: prod.productUnitName ?? 'Unit',
+            };
+          }).filter(Boolean) as LineItem[];
+          setLines(reconstructed);
+          return;
+        }
+      } catch { /* no existing order today */ }
+
+      try {
+        const history = await ordersApi.getCustomerHistory(cid, 10);
+        if (history?.length) {
+          setPreviousOrders(history);
+        }
+      } catch { /* no history */ }
+    }).finally(() => setLoading(false));
+  }, [customerId, routeId, loadUnitPrices]);
+
+  useEffect(() => {
+    if (!search.trim()) {
+      setFilteredProducts(allProducts);
+    } else {
+      const q = search.toLowerCase();
+      setFilteredProducts(allProducts.filter((p: any) =>
+        p.nameEnglish.toLowerCase().includes(q) ||
+        (p.nameMalayalam && p.nameMalayalam.toLowerCase().includes(q)) ||
+        (p.productGroupName && p.productGroupName.toLowerCase().includes(q))
+      ));
+    }
+  }, [search, allProducts]);
+
+  useEffect(() => {
+    if (isSidebarOpen && searchInputRef.current && canEdit) {
+      searchInputRef.current.focus();
+    }
+  }, [isSidebarOpen, canEdit]);
+
+  const addProduct = useCallback((product: any) => {
+    if (!canEdit) {
+      setError('Cannot edit this order.');
+      return;
+    }
+    const unitPrice = unitPrices[product.id];
+    const priceToUse = unitPrice?.salePrice ?? product.basePrice;
+    
+    setLines(prev => {
+      const existing = prev.find(l => l.product.id === product.id);
+      if (existing) {
+        return prev.map(l => l.product.id === product.id ? { ...l, qty: l.qty + 1 } : l);
+      }
+      return [...prev, {
+        product,
+        productId: String(product.id),
+        qty: 1,
+        sellingPrice: priceToUse,
+        unit: product.productUnitName ?? 'Unit',
+      }];
+    });
+  }, [canEdit, unitPrices]);
+
+  const handleQuantityInput = (productId: string, value: string) => {
+    if (!canEdit) return;
+    setTempQuantities(prev => ({ ...prev, [productId]: value }));
+  };
+
+  const handleQuantityBlur = (productId: string) => {
+    if (!canEdit) return;
+    const tempValue = tempQuantities[productId];
+    if (tempValue === undefined) return;
+    
+    setTempQuantities(prev => {
+      const newPrev = { ...prev };
+      delete newPrev[productId];
+      return newPrev;
+    });
+    
+    if (tempValue === '' || tempValue === '0') {
+      setLines(prev => prev.filter(l => l.product.id !== productId));
+      return;
+    }
+    
+    const numValue = parseInt(tempValue, 10);
+    if (isNaN(numValue) || numValue <= 0) {
+      setLines(prev => prev.filter(l => l.product.id !== productId));
+      return;
+    }
+    
+    setLines(prev => prev.map(l => l.product.id === productId ? { ...l, qty: numValue } : l));
+  };
+
+  const updateQty = (productId: string, delta: number) => {
+    if (!canEdit) return;
+    setLines(prev => {
+      const item = prev.find(l => l.product.id === productId);
+      if (!item) return prev;
+      const newQty = item.qty + delta;
+      if (newQty <= 0) {
+        return prev.filter(l => l.product.id !== productId);
+      }
+      return prev.map(l => l.product.id === productId ? { ...l, qty: newQty } : l);
+    });
+    setTempQuantities(prev => {
+      const newPrev = { ...prev };
+      delete newPrev[productId];
+      return newPrev;
+    });
+  };
+
+  const setPrice = (productId: string, val: string) => {
+    if (!canEdit) return;
+    const n = parseFloat(val);
+    if (isNaN(n)) return;
+    setLines(prev => prev.map(l => l.product.id === productId ? { ...l, sellingPrice: n } : l));
+    setError('');
+  };
+
+  const removeItem = (productId: string) => {
+    if (!canEdit) return;
+    setLines(prev => prev.filter(l => l.product.id !== productId));
+    setTempQuantities(prev => {
+      const newPrev = { ...prev };
+      delete newPrev[productId];
+      return newPrev;
+    });
+  };
+
+  const getDisplayQty = (productId: string, actualQty: number): string => {
+    const tempValue = tempQuantities[productId];
+    if (tempValue !== undefined) return tempValue;
+    return actualQty === 0 ? '' : String(actualQty);
+  };
+
+  const buildPayload = (): CreateOrderCommand => ({
+    customerId: String(customerId),
+    routeId: String(routeId),
+    orderDate: new Date().toISOString(),
+    items: lines.map(l => ({
+      productId: l.product.id,
+      quantity: l.qty,
+      unitId: l.product.productUnitId,
+      sellingPrice: l.sellingPrice,
+    })),
+    executionId: executionContext?.executionId ?? undefined,
+    customerVisitId: executionContext?.customerVisitId ?? undefined,
+    ...(remarks ? { remarks } : {}),
+  });
+
+  const handleSaveOrder = async () => {
+    if (!canEdit) {
+      setError('Cannot save this order.');
+      return;
+    }
+    
+    if (lines.length === 0 && !remarks.trim()) {
+      setError('Add at least one item before saving.');
+      return;
+    }
+    
+    setSaving(true); 
+    setError(''); 
+    setSuccessMsg('');
+    
+    try {
+      let result;
+      if (existingOrder) {
+        result = await ordersApi.update(existingOrder.id, { ...buildPayload(), id: existingOrder.id });
+        setSuccessMsg('Order updated successfully!');
+      } else {
+        result = await ordersApi.create(buildPayload());
+        setSuccessMsg('Order created and saved as draft!');
+      }
+      setExistingOrder(result);
+      
+      setTimeout(() => {
+        setSuccessMsg('');
+      }, 3000);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Save failed';
+      setError(errorMessage);
+    } finally { 
+      setSaving(false); 
+    }
+  };
+
+  const copyFromPreviousOrder = (order: CustomerOrderHistoryDto) => {
+    if (!canEdit) {
+      setError('Cannot load previous order. Current order cannot be edited.');
+      return;
+    }
+    const autofilled: LineItem[] = order.items.map(item => {
+      const prod = allProducts.find((pp: any) => String(pp.id) === String(item.productId));
+      if (!prod) return null;
+      const up = unitPrices[prod.id];
+      return {
+        product: prod,
+        productId: String(prod.id),
+        qty: item.quantity,
+        sellingPrice: item.sellingPrice || (up?.salePrice ?? prod.basePrice),
+        unit: prod.productUnitName ?? 'Unit',
+      };
+    }).filter(Boolean) as LineItem[];
+    setLines(autofilled);
+    setShowPreviousModal(false);
+    setSuccessMsg('Previous order loaded. Click Save to save.');
+    setTimeout(() => setSuccessMsg(''), 3000);
+  };
+
+  const handlePrintOrder = () => {
+    window.print();
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <Spinner size={40} />
+    </div>
+  );
+
+  const hasExistingOrder = !!existingOrder;
+  const orderStatus = existingOrder?.status;
+
+  return (
+    <div className="min-h-screen bg-slate-50 print:bg-white">
+      <div className={`transition-all duration-300 ${isSidebarOpen && canEdit ? 'mr-[340px]' : 'mr-0'}`}>
+        
+        {/* Header */}
+        <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-5 py-4 shadow-sm print:shadow-none print:border-0">
+          <div className="max-w-4xl mx-auto">
+            {/* ── Top row: back + action buttons ── */}
+            <div className="flex items-center justify-between mb-2">
+              <button
+                onClick={() => navigate(`/salesman/routes/${routeId}/orders`)}
+                className="flex items-center gap-2 text-slate-600 hover:text-blue-600 font-semibold text-sm print:hidden"
+              >
+                <ArrowLeft size={18} />
+                <span>Back to Orders</span>
+              </button>
+              <div className="flex gap-2 print:hidden">
+                {canEdit && (
+                  <button
+                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    {isSidebarOpen ? <X size={14} /> : <Package size={14} />}
+                    {isSidebarOpen ? 'Hide' : 'Products'}
+                  </button>
+                )}
+                {previousOrders.length > 0 && canEdit && (
+                  /* ── Page-flip style button — easy large tap target on tablet ── */
+                  <button
+                    onClick={() => setShowPreviousModal(true)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: '7px 12px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                      background: 'linear-gradient(135deg,#7C3AED 0%,#A855F7 100%)',
+                      color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+                      boxShadow: '0 2px 8px rgba(124,58,237,0.28)', minHeight: 38,
+                    }}
+                  >
+                    <ChevronLeft size={15} style={{ marginRight: -5 }} />
+                    <ChevronRight size={15} style={{ marginRight: 4 }} />
+                    Previous Orders
+                    <span style={{
+                      background: 'rgba(255,255,255,0.22)', borderRadius: 20,
+                      padding: '1px 7px', fontSize: 11, fontWeight: 800, marginLeft: 2,
+                    }}>
+                      {previousOrders.length}
+                    </span>
+                  </button>
+                )}
+                <button
+                  onClick={handlePrintOrder}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200"
+                >
+                  <Printer size={14} /> Print
+                </button>
+              </div>
+            </div>
+
+            {/* ── Date highlight bar — always visible so salesman knows today's date ── */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '8px 14px', borderRadius: 10, marginBottom: 10,
+              background: 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)',
+              boxShadow: '0 2px 8px rgba(37,99,235,0.20)',
+            }} className="print:hidden">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <CalendarDays size={15} color="rgba(255,255,255,0.85)" />
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>
+                  {new Date().toLocaleDateString('en-IN', {
+                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+                  })}
+                </span>
+              </div>
+              <span style={{
+                fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
+                background: 'rgba(255,255,255,0.18)', color: '#fff',
+                padding: '2px 8px', borderRadius: 20,
+              }}>TODAY</span>
+            </div>
+            
+            <div className="pb-2">
+              <h1 className="text-xl font-bold text-slate-800">{customer?.nameEnglish}</h1>
+              {customer?.nameMalayalam && (
+                <p className="text-sm text-slate-500 mt-0.5" lang="ml">{customer.nameMalayalam}</p>
+              )}
+              <div className="flex gap-3 mt-1 text-xs text-slate-500">
+                {customer?.phoneNumber && <span>📞 {customer.phoneNumber}</span>}
+                {customer?.address && <span>📍 {customer.address}</span>}
+              </div>
+            </div>
+
+            {/* Status Badge */}
+            {!existingOrder && (
+              <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-amber-100 text-amber-700 rounded-md text-xs">
+                <Edit3 size={12} /> New Order
+              </div>
+            )}
+            {orderStatus === OrderStatus.Draft && (
+              <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-amber-100 text-amber-700 rounded-md text-xs">
+                <Edit3 size={12} /> Draft - Editable
+              </div>
+            )}
+            {orderStatus === OrderStatus.PendingApproval && (
+              <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs">
+                <Edit3 size={12} /> Pending Approval - Waiting for admin
+              </div>
+            )}
+            {orderStatus === OrderStatus.Approved && (
+              <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-indigo-100 text-indigo-700 rounded-md text-xs">
+                <Edit3 size={12} /> Approved - Being prepared
+              </div>
+            )}
+            {orderStatus === OrderStatus.Packed && (
+              <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-purple-100 text-purple-700 rounded-md text-xs">
+                <Edit3 size={12} /> Packed - Ready for delivery
+              </div>
+            )}
+            {orderStatus === OrderStatus.Closed && (
+              <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-green-100 text-green-700 rounded-md text-xs">
+                <Lock size={12} /> Closed - Read only
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Main Bill Area */}
+        <div className="max-w-4xl mx-auto px-5 py-5">
+          {error && (
+            <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 flex justify-between">
+              <span>{error}</span>
+              <button onClick={() => setError('')} className="text-red-400 hover:text-red-600">✕</button>
+            </div>
+          )}
+          {successMsg && (
+            <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-emerald-700 flex justify-between">
+              <span>✓ {successMsg}</span>
+              <button onClick={() => setSuccessMsg('')} className="text-emerald-400 hover:text-emerald-600">✕</button>
+            </div>
+          )}
+
+          {!canEdit && (
+            <div className="mb-5 bg-blue-50 border border-blue-200 rounded-lg p-3 text-center text-sm text-blue-700">
+              <Lock size={16} className="inline mr-1" />
+              {orderStatus === OrderStatus.Closed
+                ? 'This order has been closed. No further edits allowed.'
+                : 'This order has been submitted and is waiting for admin approval. No further edits allowed.'}
+            </div>
+          )}
+
+          {/* Add Items Button - Only when no items */}
+          {canEdit && lines.length === 0 && !isSidebarOpen && (
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="w-full mb-5 flex items-center justify-center gap-2 py-3 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 text-blue-600 font-medium text-sm hover:bg-blue-100 transition-colors"
+            >
+              <Plus size={16} /> Add Wholesale Items
+            </button>
+          )}
+
+          <WholesaleItemsTable
+            lines={lines}
+            totalAmount={totalAmount}
+            totalItems={totalItems}
+            canEdit={canEdit}
+            isSidebarOpen={isSidebarOpen}
+            onAddItem={() => setIsSidebarOpen(true)}
+            onQuantityInput={handleQuantityInput}
+            onQuantityBlur={handleQuantityBlur}
+            onUpdateQty={updateQty}
+            onSetPrice={setPrice}
+            onRemoveItem={removeItem}
+            getDisplayQty={getDisplayQty}
+            fmtNum={fmtNum}
+          />
+
+          <RetailItemsSection
+            remarks={remarks}
+            canEdit={canEdit}
+            onRemarksChange={setRemarks}
+          />
+
+          <OrderSummary
+            linesCount={lines.length}
+            totalAmount={totalAmount}
+            remarks={remarks}
+            fmtNum={fmtNum}
+          />
+
+          {/* Save Button - Fixed Bottom */}
+          {canEdit && (
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 shadow-lg print:hidden z-30">
+              <div className="max-w-4xl mx-auto flex items-center justify-between">
+                <div className="text-sm text-slate-500">
+                  {lines.length} item{lines.length !== 1 ? 's' : ''} · {totalItems} units
+                </div>
+                <button
+                  onClick={handleSaveOrder}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  <Save size={16} />
+                  {saving ? 'Saving...' : hasExistingOrder ? 'Update Order' : 'Save as Draft'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <ProductSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        search={search}
+        onSearchChange={setSearch}
+        filteredProducts={filteredProducts}
+        lines={lines}
+        onAddProduct={addProduct}
+        canEdit={canEdit}
+        searchInputRef={searchInputRef}
+      />
+
+      <PreviousOrdersModal
+        isOpen={showPreviousModal}
+        onClose={() => setShowPreviousModal(false)}
+        previousOrders={previousOrders}
+        onUseOrder={copyFromPreviousOrder}
+      />
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Salesman/OrderEntry/types.tsx">
+// PATH: src/pages/Salesman/OrderEntry/types.tsx
+import { ProductDto, CustomerOrderHistoryDto } from '../../../types';
+import { AlertTriangle } from 'lucide-react';
+
+export interface LineItem {
+  product: ProductDto;
+  qty: number;
+  sellingPrice: number;
+  unit: string;
+  productId: string;
+}
+
+export function PriceVarianceBadge({ base, selling }: { base: number; selling: number }) {
+  if (!base || !selling) return null;
+  const diff = ((selling - base) / base) * 100;
+  const abs = Math.abs(diff).toFixed(1);
+  if (Math.abs(diff) < 0.1) return <span className="text-xs text-emerald-600">✓ At base price</span>;
+  if (diff < 0) {
+    return (
+      <span className="text-xs text-red-500 flex items-center gap-1">
+        <AlertTriangle size={11} /> {abs}% below base
+      </span>
+    );
+  }
+  return <span className="text-xs text-emerald-600">▲ +{abs}% above base</span>;
+}
+</file>
+
+<file path="src/pages/Salesman/ReviewOrdersPage.tsx">
+// PATH: src/pages/Salesman/ReviewOrdersPage.tsx
+// FIXED: After submit, navigate back to Routes page
+
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { 
+  ArrowLeft, Printer, Send, CheckCircle2, 
+  Package, Eye, Edit2, Home
+} from 'lucide-react';
+import { ordersApi, customersApi, routesApi } from '../../api/services';
+import { OrderDto, CustomerDto, RouteDto, OrderStatus, fmt } from '../../types';
+import { Spinner, ConfirmModal } from '../../components/ui';
+
+interface ConsolidatedItem {
+  productName: string;
+  quantity: number;
+  unit: string;
+  sellingPrice: number;
+  total: number;
+  customerName: string;
+  customerId: string;
+}
+
+export default function ReviewOrdersPage() {
+  const { routeId } = useParams<{ routeId: string }>();
+  const navigate = useNavigate();
+  const [route, setRoute] = useState<RouteDto | null>(null);
+  const [customers, setCustomers] = useState<CustomerDto[]>([]);
+  const [orders, setOrders] = useState<OrderDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  useEffect(() => {
+    if (!routeId) {
+      navigate('/salesman/routes');
+      return;
+    }
+    loadData();
+  }, [routeId]);
+
+  async function loadData() {
+    setLoading(true);
+    setError('');
+    try {
+      const [r, c, o] = await Promise.all([
+        routesApi.getById(routeId!),
+        customersApi.list(routeId!),
+        ordersApi.getByRoute(routeId!),
+      ]);
+      setRoute(r);
+      setCustomers(c);
+      
+      const todayOrders = o.filter(order => order.orderDate?.startsWith(today));
+      setOrders(todayOrders);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load orders');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const draftOrders = orders.filter(o => o.status === OrderStatus.Draft);
+  const hasUnsubmitted = draftOrders.length > 0;
+
+  const consolidatedItems = (): ConsolidatedItem[] => {
+    const itemsMap = new Map<string, ConsolidatedItem>();
+    
+    orders.forEach(order => {
+      order.items?.forEach(item => {
+        const key = `${item.productId}-${order.customerId}`;
+        const existing = itemsMap.get(key);
+        
+        if (existing) {
+          existing.quantity += item.quantity;
+          existing.total = existing.quantity * existing.sellingPrice;
+        } else {
+          itemsMap.set(key, {
+            productName: item.productName || 'Unknown',
+            quantity: item.quantity,
+            unit: item.unitSymbol || item.unitName || 'pc',
+            sellingPrice: item.sellingPrice,
+            total: item.sellingPrice * item.quantity,
+            customerName: order.customerName || 'Unknown',
+            customerId: String(order.customerId),
+          });
+        }
+      });
+    });
+    
+    return Array.from(itemsMap.values());
+  };
+
+  const items = consolidatedItems();
+  const totalAmount = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
+  const handleSubmitAll = async () => {
+    if (draftOrders.length === 0) {
+      setError('No draft orders to submit.');
+      return;
+    }
+    
+    setSubmitting(true);
+    setError('');
+    setSuccessMsg('');
+    
+    try {
+      let submitted = 0;
+      for (const order of draftOrders) {
+        await ordersApi.submit(String(order.id));
+        submitted++;
+      }
+      setSuccessMsg(`✅ ${submitted} order(s) submitted successfully! Redirecting to Routes...`);
+      
+      // Wait 2 seconds then go to Routes page
+      setTimeout(() => {
+        navigate('/salesman/routes');
+      }, 2000);
+      
+    } catch (err: any) {
+      setError(err.message || 'Submission failed');
+      setSubmitting(false);
+      setShowSubmitConfirm(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleEditOrder = (customerId: string) => {
+    navigate(`/salesman/routes/${routeId}/order/${customerId}`);
+  };
+
+  const handleBackToRoutes = () => {
+    navigate('/salesman/routes');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Spinner size={40} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 print:bg-white pb-10">
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-5 py-4 shadow-sm print:hidden">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <button
+              onClick={handleBackToRoutes}
+              className="flex items-center gap-2 text-slate-600 hover:text-blue-600 font-semibold text-sm"
+            >
+              <Home size={18} />
+              <span>My Routes</span>
+            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                <Printer size={16} /> Print Order Sheet
+              </button>
+              {hasUnsubmitted && (
+                <button
+                  onClick={() => setShowSubmitConfirm(true)}
+                  disabled={submitting}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                >
+                  <Send size={16} />
+                  {submitting ? 'Submitting...' : `Submit All (${draftOrders.length})`}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-5 py-5 print:px-0 print:py-0">
+        
+        {error && (
+          <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 print:hidden">
+            {error}
+          </div>
+        )}
+        {successMsg && (
+          <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-emerald-700 print:hidden">
+            {successMsg}
+          </div>
+        )}
+
+        {/* Header Section */}
+        <div className="text-center mb-6 border-b pb-4 print:border-b-2">
+          <h1 className="text-2xl font-bold text-slate-800">Order Summary Sheet</h1>
+          <p className="text-slate-500 mt-1">{route?.name}</p>
+          <p className="text-slate-400 text-sm">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 print:mb-4">
+          <div className="bg-white rounded-lg border border-slate-200 p-3 text-center shadow-sm">
+            <p className="text-xs text-slate-400 uppercase">Customers</p>
+            <p className="text-xl font-bold text-slate-800">{customers.length}</p>
+          </div>
+          <div className="bg-white rounded-lg border border-slate-200 p-3 text-center shadow-sm">
+            <p className="text-xs text-slate-400 uppercase">Orders</p>
+            <p className="text-xl font-bold text-slate-800">{orders.length}</p>
+          </div>
+          <div className="bg-white rounded-lg border border-slate-200 p-3 text-center shadow-sm">
+            <p className="text-xs text-slate-400 uppercase">Items</p>
+            <p className="text-xl font-bold text-slate-800">{items.length}</p>
+          </div>
+          <div className="bg-white rounded-lg border border-emerald-200 p-3 text-center shadow-sm bg-emerald-50/30">
+            <p className="text-xs text-slate-400 uppercase">Total Amount</p>
+            <p className="text-xl font-bold text-emerald-600">₹{fmt(totalAmount)}</p>
+          </div>
+        </div>
+
+        {/* Status Summary */}
+        <div className="grid grid-cols-3 gap-3 mb-6 print:mb-4">
+          <div className="bg-amber-50 rounded-lg p-2 text-center border border-amber-200">
+            <p className="text-xs text-amber-600">Draft</p>
+            <p className="text-lg font-bold text-amber-700">{draftOrders.length}</p>
+          </div>
+          <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+            <p className="text-xs text-blue-600">Submitted</p>
+            <p className="text-lg font-bold text-blue-700">{orders.length - draftOrders.length}</p>
+          </div>
+          <div className="bg-green-50 rounded-lg p-2 text-center border border-green-200">
+            <p className="text-xs text-green-600">Pending</p>
+            <p className="text-lg font-bold text-green-700">{draftOrders.length}</p>
+          </div>
+        </div>
+
+        {/* Consolidated Items List */}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6 print:border">
+          <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
+            <h2 className="font-semibold text-slate-700 flex items-center gap-2">
+              <Package size={18} /> All Items
+            </h2>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">#</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Customer</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Product</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-500 uppercase w-20">Qty</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-500 uppercase w-16">Unit</th>
+                  <th className="px-4 py-2 text-right text-xs font-semibold text-slate-500 uppercase w-24">Price</th>
+                  <th className="px-4 py-2 text-right text-xs font-semibold text-slate-500 uppercase w-28">Total</th>
+                  <th className="px-4 py-2 text-center w-10 print:hidden"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {items.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50">
+                    <td className="px-4 py-2 text-sm text-slate-500">{idx + 1}</td>
+                    <td className="px-4 py-2 text-sm font-medium text-slate-800">{item.customerName}</td>
+                    <td className="px-4 py-2 text-sm text-slate-700">{item.productName}</td>
+                    <td className="px-4 py-2 text-center text-sm font-semibold text-slate-700">{item.quantity}</td>
+                    <td className="px-4 py-2 text-center text-sm text-slate-500">{item.unit}</td>
+                    <td className="px-4 py-2 text-right text-sm text-slate-600">₹{fmt(item.sellingPrice)}</td>
+                    <td className="px-4 py-2 text-right font-semibold text-slate-800">₹{fmt(item.total)}</td>
+                    <td className="px-4 py-2 text-center print:hidden">
+                      <button onClick={() => handleEditOrder(item.customerId)} className="text-blue-500 hover:text-blue-700">
+                        <Edit2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-slate-50 border-t border-slate-200">
+                <tr>
+                  <td colSpan={6} className="px-4 py-3 text-right font-bold text-slate-700">GRAND TOTAL:</td>
+                  <td className="px-4 py-3 text-right font-bold text-xl text-emerald-600">₹{fmt(totalAmount)}</td>
+                  <td className="print:hidden"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        {/* Individual Orders */}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden print:border">
+          <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
+            <h2 className="font-semibold text-slate-700 flex items-center gap-2">
+              <Eye size={18} /> Orders by Customer
+            </h2>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {orders.map(order => (
+              <div key={order.id} className="p-4">
+                <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                  <div>
+                    <p className="font-semibold text-slate-800">{order.customerName}</p>
+                    <p className="text-xs text-slate-400">{order.items?.length || 0} items</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      order.status === OrderStatus.Draft ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {order.status === OrderStatus.Draft ? 'Draft' : 'Submitted'}
+                    </span>
+                    <p className="font-bold text-emerald-600">₹{fmt(order.totalAmount || 0)}</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {order.items?.slice(0, 4).map((item, i) => (
+                    <span key={i} className="text-xs bg-slate-100 px-2 py-1 rounded-full text-slate-600">
+                      {item.productName} ({item.quantity})
+                    </span>
+                  ))}
+                  {(order.items?.length || 0) > 4 && (
+                    <span className="text-xs text-blue-500">+{(order.items?.length || 0) - 4} more</span>
+                  )}
+                </div>
+                {order.remarks && (
+                  <div className="mt-2 text-xs text-slate-400 bg-slate-50 p-2 rounded">
+                    📝 {order.remarks}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center text-xs text-slate-400 mt-6 pt-4 border-t print:mt-4 print:pt-2">
+          <p>Generated on {new Date().toLocaleString()}</p>
+        </div>
+      </div>
+
+      <ConfirmModal
+        open={showSubmitConfirm}
+        title="Submit All Orders"
+        message={`Submit ${draftOrders.length} draft order(s) to admin? After submission, you will be redirected to the Routes page.`}
+        confirmLabel={`Submit ${draftOrders.length} Order${draftOrders.length > 1 ? 's' : ''}`}
+        onConfirm={handleSubmitAll}
+        onCancel={() => setShowSubmitConfirm(false)}
+        loading={submitting}
+      />
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Salesman/RouteExecution.tsx">
+// PATH: src/pages/Salesman/RouteExecution.tsx
+// UPDATED:
+//  • Order-taking mode: bottom CTA shows ONLY "Review & Submit Orders" (no "Complete Route")
+//  • Delivery mode: bottom CTA shows ONLY "Complete Delivery Route"
+//  • handleComplete validates orders are NOT in Draft before completing (unchanged logic)
+//  • Preserves full original layout, styles, skip modal, summary screen
+
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import {
+  ShoppingCart, ArrowLeft, Flag, FileDown, Home,
+  CheckCircle2, XCircle, Clock, Phone, MapPin,
+  AlertCircle, Eye, Truck, CalendarDays
+} from 'lucide-react';
+import { routesApi, reportsApi, triggerPdfDownload, ordersApi } from '../../api/services';
+import type { CurrentRouteExecutionDto, CustomerVisitDto, VisitStatus, CompleteRouteExecutionResponse, OrderItemDto } from '../../types';
+import { OrderStatus } from '../../types';
+import { Spinner } from '../../components/ui';
+
+const STATUS_META: Record<VisitStatus, { label: string; bg: string; color: string; border: string; icon: React.ReactNode }> = {
+  Pending:     { label: 'Pending',      bg: '#EFF6FF', color: '#2563EB', border: 'rgba(37,99,235,0.20)', icon: <Clock size={14} /> },
+  OrderPlaced: { label: 'For Delivery', bg: '#F0FDF4', color: '#16A34A', border: 'rgba(22,163,74,0.20)', icon: <CheckCircle2 size={14} /> },
+  Skipped:     { label: 'Skipped',      bg: '#FEF2F2', color: '#DC2626', border: 'rgba(220,38,38,0.20)', icon: <XCircle size={14} /> },
+  NoOrder:     { label: 'No Order',     bg: '#FFFBEB', color: '#D97706', border: 'rgba(217,119,6,0.20)',  icon: <AlertCircle size={14} /> },
+};
+
+interface GroupedItem {
+  productName:     string;
+  quantity:        number;
+  unitSymbol:      string;
+  loadingPriority: number;
+}
+
+function visitKey(v: CustomerVisitDto): string {
+  return (v as any).visitId ?? v.id ?? v.customerId;
+}
+
+function buildPayload(executionId: string, customerId: string, status: VisitStatus, opts?: { orderId?: string; skipReason?: string }) {
+  return {
+    executionId, customerId, status,
+    ...(opts?.orderId    ? { orderId:    opts.orderId }    : {}),
+    ...(opts?.skipReason ? { skipReason: opts.skipReason } : {}),
+  };
+}
+
+function GroupedItemsByPriority({ orderItems }: { orderItems: GroupedItem[] }) {
+  if (!orderItems || orderItems.length === 0) return null;
+
+  const grouped = orderItems.reduce((acc: Record<string, GroupedItem[]>, item: GroupedItem) => {
+    const priority = String(item.loadingPriority || 99);
+    if (!acc[priority]) acc[priority] = [];
+    acc[priority].push(item);
+    return acc;
+  }, {} as Record<string, GroupedItem[]>);
+
+  const sortedPriorities = Object.keys(grouped).sort((a, b) => Number(a) - Number(b));
+  const totalQuantity    = orderItems.reduce((sum, i) => sum + i.quantity, 0);
+
+  return (
+    <div className="mt-3 pt-3 border-t border-slate-100">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-sm font-semibold text-slate-700">📦 Items to Deliver:</p>
+        <span className="text-sm font-bold text-slate-800">Total: {totalQuantity} units</span>
+      </div>
+      {sortedPriorities.map(priority => (
+        <div key={priority} className="mb-3 last:mb-0">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-2 rounded-full bg-blue-500" />
+            <p className="text-sm font-bold text-blue-700">
+              Priority {priority}
+              {priority === "1"  && " — Load FIRST (bottom of van)"}
+              {priority === "99" && " — Load LAST (top of van)"}
+            </p>
+          </div>
+          <div className="space-y-1 pl-4">
+            {grouped[priority].map((item, idx) => (
+              <div key={idx} className="flex justify-between items-center py-1">
+                <span className="text-sm text-slate-700">{item.productName}</span>
+                <span className="text-sm font-semibold text-slate-800">
+                  {item.quantity} {item.unitSymbol || 'unit'}
+                </span>
+              </div>
+            ))}
+            <div className="flex justify-between pt-1 border-t border-slate-100 mt-1">
+              <span className="text-xs text-slate-400">Subtotal</span>
+              <span className="text-xs font-semibold text-slate-600">
+                {grouped[priority].reduce((s, i) => s + i.quantity, 0)} units
+              </span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function RouteExecution() {
+  const { routeId } = useParams<{ routeId: string }>();
+  const navigate    = useNavigate();
+  const location    = useLocation();
+
+  const executionMode = location.state?.mode as 'order-taking' | 'delivery' | undefined;
+
+  const [execution,   setExecution]   = useState<CurrentRouteExecutionDto | null>(null);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState('');
+  const [recording,   setRecording]   = useState<string | null>(null);
+  const [completing,  setCompleting]  = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [showSkip,    setShowSkip]    = useState<CustomerVisitDto | null>(null);
+  const [skipReason,  setSkipReason]  = useState('');
+  const [skipOther,   setSkipOther]   = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [summary,     setSummary]     = useState<CompleteRouteExecutionResponse | null>(null);
+  const [orderItems,  setOrderItems]  = useState<GroupedItem[]>([]);
+
+  async function load() {
+    if (!routeId || routeId === 'undefined') return;
+    setLoading(true); setError('');
+    try {
+      const exec = await routesApi.getCurrentExecution(routeId);
+      setExecution(exec);
+
+      if (exec?.customers) {
+        const items: GroupedItem[] = [];
+        for (const customer of exec.customers) {
+          if (customer.orderId) {
+            try {
+              const order = await ordersApi.getById(customer.orderId);
+              if (order?.items) {
+                for (const item of order.items) {
+                  items.push({
+                    productName:     item.productName || 'Unknown',
+                    quantity:        item.quantity,
+                    unitSymbol:      item.unitSymbol || item.unitName || 'unit',
+                    loadingPriority: (item as any).loadingPriority || 99,
+                  });
+                }
+              }
+            } catch { /* ignore per-order errors */ }
+          }
+        }
+        setOrderItems(items);
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load route');
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => {
+    if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
+      setError('Invalid route. Please go back and select a valid route.');
+      setLoading(false);
+      return;
+    }
+    load();
+  }, [routeId]);
+
+  async function handleComplete() {
+    if (!execution?.executionId) return;
+    // Guard: ensure no Draft orders remain before completing
+    const withOrders = (execution.customers ?? []).filter((v: CustomerVisitDto) => v.visitStatus === 'OrderPlaced' && v.orderId);
+    for (const v of withOrders) {
+      try {
+        const order = await ordersApi.getById(v.orderId!);
+        if (order.status === OrderStatus.Draft) {
+          setError(`Order for "${v.customerName}" is still Draft. Please submit it first.`);
+          setShowConfirm(false); return;
+        }
+      } catch { /* ignore */ }
+    }
+    setCompleting(true);
+    try {
+      const result = await routesApi.completeExecution(execution.executionId);
+      setSummary(result);
+      setShowConfirm(false);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to complete route');
+    } finally { setCompleting(false); }
+  }
+
+  async function handleDownload() {
+    if (!execution) return;
+    setDownloading(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const blob  = await reportsApi.downloadLoadingSheet(routeId, today);
+      triggerPdfDownload(blob, `DeliverySheet_${execution.routeName}_${today}.pdf`);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Download failed');
+    } finally { setDownloading(false); }
+  }
+
+  if (loading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC' }}>
+      <Spinner size={40} />
+    </div>
+  );
+
+  if (summary || execution?.status === 'Completed') {
+    const s = summary;
+    return (
+      <div style={{ minHeight: '100vh', background: '#F8FAFC', padding: '32px 20px' }}>
+        <div style={{ maxWidth: 520, margin: '0 auto' }}>
+          <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 20, padding: '36px 28px', textAlign: 'center', boxShadow: '0 4px 24px rgba(15,23,42,0.08)', marginBottom: 20 }}>
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#F0FDF4', border: '2px solid rgba(22,163,74,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
+              <CheckCircle2 size={36} color="#16A34A" />
+            </div>
+            <h2 style={{ fontSize: 22, fontWeight: 900, color: '#1E3A8A', margin: '0 0 6px', letterSpacing: '-0.04em' }}>
+              {executionMode === 'order-taking' ? 'Order Taking Complete! 🎉' : 'Delivery Complete! 🎉'}
+            </h2>
+            <p style={{ color: '#64748B', fontSize: 14, fontWeight: 500, margin: 0 }}>
+              {execution?.routeName} · {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </p>
+          </div>
+
+          {s && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+              {[
+                { label: executionMode === 'order-taking' ? 'Total Customers' : 'Total Deliveries', val: s.totalCustomers, color: '#1E3A8A', bg: '#EFF6FF', border: 'rgba(37,99,235,0.15)' },
+                { label: executionMode === 'order-taking' ? 'Orders Taken'    : 'Delivered',        val: s.ordersPlaced,  color: '#16A34A', bg: '#F0FDF4', border: 'rgba(22,163,74,0.15)' },
+                { label: 'No Order', val: s.noOrder, color: '#D97706', bg: '#FFFBEB', border: 'rgba(217,119,6,0.15)' },
+                { label: 'Skipped',  val: s.skipped, color: '#DC2626', bg: '#FEF2F2', border: 'rgba(220,38,38,0.15)' },
+              ].map(st => (
+                <div key={st.label} style={{ background: st.bg, border: `1px solid ${st.border}`, borderRadius: 14, padding: '18px 16px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: st.color, letterSpacing: '-0.04em' }}>{st.val}</div>
+                  <div style={{ fontSize: 14, color: st.color, fontWeight: 700, marginTop: 4 }}>{st.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {executionMode === 'delivery' && orderItems.length > 0 && (
+            <GroupedItemsByPriority orderItems={orderItems} />
+          )}
+
+          <button
+            onClick={() => navigate('/salesman/routes')}
+            style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 16px rgba(37,99,235,0.30)', fontFamily: 'inherit' }}
+          >
+            <Home size={18} /> Back to My Routes
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!execution?.hasActiveExecution) return (
+    <div style={{ minHeight: '100vh', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ textAlign: 'center', maxWidth: 360 }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#FFFBEB', border: '2px solid rgba(217,119,6,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
+          <Clock size={32} color="#D97706" />
+        </div>
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1E3A8A', margin: '0 0 8px' }}>
+          No Active {executionMode === 'order-taking' ? 'Order Taking' : 'Delivery'}
+        </h2>
+        <p style={{ color: '#64748B', fontSize: 14, marginBottom: 24 }}>
+          {error || `No pending ${executionMode === 'order-taking' ? 'order taking' : 'deliveries'} for today.`}
+        </p>
+        <button onClick={() => navigate('/salesman/routes')} style={{ padding: '12px 28px', borderRadius: 10, background: 'linear-gradient(135deg,#1E3A8A,#2563EB)', color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>← Back to Routes</button>
+      </div>
+    </div>
+  );
+
+  const allCustomers     = execution.customers ?? [];
+  const sortedCustomers  = [...allCustomers].sort((a, b) => a.sequenceOrder - b.sequenceOrder);
+  const totalCustomers   = sortedCustomers.length;
+  const completedCount   = sortedCustomers.filter(c => c.visitedAt).length;
+  const pendingCount     = sortedCustomers.filter(c => !c.visitedAt).length;
+  const progress         = totalCustomers > 0 ? Math.round((completedCount / totalCustomers) * 100) : 0;
+  const allDone          = pendingCount === 0 && totalCustomers > 0;
+  const ordersCount      = sortedCustomers.filter(v => v.visitStatus === 'OrderPlaced').length;
+
+  if (totalCustomers === 0) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div style={{ textAlign: 'center', maxWidth: 360 }}>
+          <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#EFF6FF', border: '2px solid rgba(37,99,235,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
+            {executionMode === 'order-taking' ? <ShoppingCart size={32} color="#2563EB" /> : <Truck size={32} color="#2563EB" />}
+          </div>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1E3A8A', margin: '0 0 8px' }}>
+            {executionMode === 'order-taking' ? 'No Customers on Route' : 'No Deliveries Today'}
+          </h2>
+          <p style={{ color: '#64748B', fontSize: 14, marginBottom: 24 }}>
+            {executionMode === 'order-taking'
+              ? 'No customers are assigned to this route. Please contact your admin.'
+              : 'No customers have placed orders for delivery on this route.'}
+          </p>
+          <button onClick={() => navigate('/salesman/routes')} style={{ padding: '12px 28px', borderRadius: 10, background: 'linear-gradient(135deg,#1E3A8A,#2563EB)', color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>← Back to Routes</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#F8FAFC', paddingBottom: allDone ? 120 : 32 }}>
+      {/* Sticky header */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: '#fff', borderBottom: '1px solid #E2E8F0', boxShadow: '0 2px 8px rgba(15,23,42,0.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px 10px' }}>
+          <button
+            onClick={() => navigate('/salesman/routes')}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, background: '#EFF6FF', border: '1px solid rgba(37,99,235,0.25)', color: '#2563EB', fontSize: 14, fontWeight: 700, cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
+          >
+            <ArrowLeft size={18} /> Back
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{execution.routeName}</div>
+            <div style={{ fontSize: 14, color: '#64748B', fontWeight: 500, marginTop: 1 }}>{completedCount} of {totalCustomers} {executionMode === 'order-taking' ? 'customers' : 'deliveries'} completed</div>
+          </div>
+          <button onClick={handleDownload} disabled={downloading} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 9, border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', cursor: 'pointer', flexShrink: 0 }} title="Download delivery sheet">
+            {downloading ? <Spinner size={14} /> : <FileDown size={16} />}
+          </button>
+        </div>
+        <div style={{ padding: '0 20px 14px' }}>
+          <div style={{ height: 6, background: '#E2E8F0', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ width: `${progress}%`, height: '100%', borderRadius: 3, background: 'linear-gradient(90deg,#1E3A8A,#2563EB)', transition: 'width 0.4s ease' }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#2563EB' }}>{progress}% complete</span>
+            <span style={{ fontSize: 12, color: '#94A3B8', fontWeight: 600 }}>{pendingCount} remaining</span>
+          </div>
+        </div>
+
+        {/* ── Date highlight bar — salesman always knows what day they are working ── */}
+        <div style={{
+          margin: '0 16px 12px',
+          padding: '9px 14px',
+          borderRadius: 10,
+          background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: '0 2px 8px rgba(37,99,235,0.22)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CalendarDays size={16} color="rgba(255,255,255,0.85)" />
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>
+              {new Date().toLocaleDateString('en-IN', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </span>
+          </div>
+          <span style={{
+            fontSize: 11, fontWeight: 800,
+            background: 'rgba(255,255,255,0.18)',
+            color: '#fff',
+            padding: '3px 10px',
+            borderRadius: 20,
+            letterSpacing: '0.06em',
+          }}>
+            TODAY
+          </span>
+        </div>
+      </div>
+
+      {error && (
+        <div style={{ margin: '12px 20px 0', padding: '12px 16px', borderRadius: 10, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.20)', color: '#B91C1C', fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+          <span style={{ flex: 1 }}>{error}</span>
+          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B91C1C', padding: 0 }}>✕</button>
+        </div>
+      )}
+
+      {/* Customer cards */}
+      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {sortedCustomers.map((visit, index) => {
+          const key        = visitKey(visit);
+          const meta       = STATUS_META[visit.visitStatus as VisitStatus] || STATUS_META.Pending;
+          const isCompleted = visit.visitedAt !== undefined && visit.visitedAt !== null;
+          const isBusy     = recording === key;
+          const nextStop   = index < sortedCustomers.length - 1 ? sortedCustomers[index + 1].customerName : null;
+          const isOrderPlaced = visit.visitStatus === 'OrderPlaced';
+          const isPending     = visit.visitStatus === 'Pending';
+
+          return (
+            <div key={key} style={{
+              background: '#fff',
+              border: !isCompleted && (executionMode === 'order-taking' ? isPending : !isOrderPlaced)
+                ? '2px solid #2563EB'
+                : `1px solid ${meta.border}`,
+              borderRadius: 16,
+              boxShadow: !isCompleted && (executionMode === 'order-taking' ? isPending : !isOrderPlaced)
+                ? '0 4px 20px rgba(37,99,235,0.12)'
+                : '0 1px 4px rgba(15,23,42,0.05)',
+              overflow: 'hidden', opacity: isBusy ? 0.7 : 1, transition: 'all 0.15s',
+            }}>
+              <div style={{ padding: '16px 18px 14px', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                <div style={{
+                  width: 50, height: 50, borderRadius: 12, flexShrink: 0,
+                  background: !isCompleted && (executionMode === 'order-taking' ? isPending : !isOrderPlaced)
+                    ? 'linear-gradient(135deg,#1E3A8A,#2563EB)' : meta.bg,
+                  border: !isCompleted && (executionMode === 'order-taking' ? isPending : !isOrderPlaced)
+                    ? 'none' : `1px solid ${meta.border}`,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: !isCompleted && (executionMode === 'order-taking' ? isPending : !isOrderPlaced)
+                    ? '0 3px 10px rgba(37,99,235,0.28)' : 'none',
+                }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: !isCompleted && (executionMode === 'order-taking' ? isPending : !isOrderPlaced) ? 'rgba(255,255,255,0.7)' : '#64748B' }}>STOP</span>
+                  <span style={{ fontSize: 22, fontWeight: 900, color: !isCompleted && (executionMode === 'order-taking' ? isPending : !isOrderPlaced) ? '#fff' : meta.color, lineHeight: 1 }}>{visit.sequenceOrder}</span>
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 5 }}>
+                    {visit.customerName}
+                  </div>
+                  {(visit as any).customerNameMalayalam && (
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#64748B', marginBottom: 5, fontFamily: "'Manjari', sans-serif" }}>
+                      {(visit as any).customerNameMalayalam}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {visit.phoneNumber && (
+                      <a href={`tel:${visit.phoneNumber}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 14, fontWeight: 700, color: '#2563EB', textDecoration: 'none' }}>
+                        <Phone size={14} /> {visit.phoneNumber}
+                      </a>
+                    )}
+                    {visit.address && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: '#64748B', fontWeight: 500 }}>
+                        <MapPin size={12} style={{ flexShrink: 0 }} /> {visit.address}
+                      </div>
+                    )}
+                  </div>
+                  {!isCompleted && nextStop && (
+                    <div style={{ marginTop: 6, fontSize: 12, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span>→ Next:</span>
+                      <span style={{ fontWeight: 600, color: '#2563EB' }}>{nextStop}</span>
+                    </div>
+                  )}
+                </div>
+
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 20, flexShrink: 0, fontSize: 12, fontWeight: 800, background: isCompleted ? '#EFF6FF' : meta.bg, color: isCompleted ? '#2563EB' : meta.color, border: `1px solid ${isCompleted ? 'rgba(37,99,235,0.20)' : meta.border}`, whiteSpace: 'nowrap' }}>
+                  {isCompleted ? <CheckCircle2 size={14} /> : meta.icon}
+                  {isCompleted ? (executionMode === 'order-taking' ? 'Completed' : 'Delivered') : meta.label}
+                </span>
+              </div>
+
+              <div style={{ borderTop: '1px solid #E2E8F0' }}>
+                <button
+                  onClick={() => navigate(`/salesman/routes/${routeId}/order/${visit.customerId}`, { state: { executionId: execution.executionId, customerVisitId: key, mode: executionMode } })}
+                  disabled={isBusy}
+                  style={{ width: '100%', padding: '14px 18px', background: !isCompleted ? 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)' : '#F0FDF4', border: 'none', color: !isCompleted ? '#fff' : '#16A34A', fontSize: 15, fontWeight: 800, cursor: isBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'inherit' }}
+                >
+                  <ShoppingCart size={18} />
+                  {!isCompleted
+                    ? (executionMode === 'order-taking' ? 'Take Order' : 'Complete Delivery')
+                    : 'View Order Details'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Fixed bottom CTA ─────────────────────────────────────────────────── */}
+      {allDone && !summary && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50, background: '#fff', borderTop: '1px solid #E2E8F0', padding: '16px 20px', boxShadow: '0 -4px 20px rgba(15,23,42,0.10)' }}>
+          <div style={{ marginBottom: 10, padding: '8px 14px', borderRadius: 10, background: '#F0FDF4', border: '1px solid rgba(22,163,74,0.20)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CheckCircle2 size={14} color="#16A34A" />
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#15803D' }}>
+              All {totalCustomers} {executionMode === 'order-taking' ? 'customers' : 'deliveries'} completed!
+            </span>
+          </div>
+
+          {/* ORDER-TAKING MODE: only "Review & Submit Orders" – NO "Complete Route" button */}
+          {executionMode === 'order-taking' && (
+            <button
+              onClick={() => navigate(`/salesman/routes/${routeId}/review-orders`)}
+              style={{
+                width: '100%', padding: '15px',
+                background: '#2563EB',
+                color: '#fff', border: 'none', borderRadius: 12,
+                fontSize: 15, fontWeight: 800, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                fontFamily: 'inherit',
+              }}
+            >
+              <Eye size={18} /> Review & Submit Orders ({ordersCount} order{ordersCount !== 1 ? 's' : ''})
+            </button>
+          )}
+
+          {/* DELIVERY MODE: only "Complete Delivery Route" */}
+          {(!executionMode || executionMode === 'delivery') && (
+            <button
+              onClick={() => setShowConfirm(true)}
+              disabled={completing}
+              style={{ width: '100%', padding: '15px', background: completing ? '#93C5FD' : 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, cursor: completing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 16px rgba(37,99,235,0.32)', fontFamily: 'inherit' }}
+            >
+              {completing ? <Spinner size={18} /> : <><Flag size={18} /> Complete Delivery Route</>}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Confirm sheet */}
+      {showConfirm && (
+        <>
+          <div onClick={() => !completing && setShowConfirm(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 100, backdropFilter: 'blur(2px)' }} />
+          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 110, background: '#fff', borderRadius: '20px 20px 0 0', padding: '0 0 32px', boxShadow: '0 -8px 40px rgba(15,23,42,0.18)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2E8F0' }} />
+            </div>
+            <div style={{ padding: '0 24px' }}>
+              <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#EFF6FF', border: '2px solid rgba(37,99,235,0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                <Flag size={24} color="#2563EB" />
+              </div>
+              <h3 style={{ fontSize: 20, fontWeight: 900, color: '#1E3A8A', margin: '0 0 8px', letterSpacing: '-0.03em' }}>
+                Complete Delivery Route?
+              </h3>
+              <p style={{ fontSize: 14, color: '#64748B', margin: '0 0 24px', lineHeight: 1.6 }}>
+                You have completed {completedCount} of {totalCustomers} deliveries.
+                Completing will lock all records and cannot be undone.
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setShowConfirm(false)} disabled={completing} style={{ flex: 1, padding: '13px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 11, fontSize: 14, fontWeight: 700, color: '#64748B', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                <button onClick={handleComplete} disabled={completing} style={{ flex: 2, padding: '13px', background: completing ? '#93C5FD' : 'linear-gradient(135deg,#1E3A8A,#2563EB)', border: 'none', borderRadius: 11, fontSize: 14, fontWeight: 800, color: '#fff', cursor: completing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: completing ? 'none' : '0 4px 14px rgba(37,99,235,0.30)' }}>
+                  {completing ? <Spinner size={16} /> : <><Flag size={15} /> Yes, Complete</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Salesman/SalesmanCustomers.tsx">
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Users, Phone, MapPin, ArrowLeft, Search } from 'lucide-react';
+import { customersApi } from '../../api/services';
+import { CustomerDto } from '../../types';
+import { Spinner, EmptyState } from '../../components/ui';
+
+export default function SalesmanCustomers() {
+  const { routeId } = useParams();
+  const navigate = useNavigate();
+  const [customers, setCustomers] = useState<CustomerDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    if (routeId) {
+      customersApi.list(routeId)
+        .then(setCustomers)
+        .finally(() => setLoading(false));
+    }
+  }, [routeId]);
+
+  const filteredCustomers = customers.filter(c =>
+    c.nameEnglish.toLowerCase().includes(search.toLowerCase()) ||
+    (c.nameMalayalam && c.nameMalayalam.includes(search))
+  );
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div className="min-h-screen bg-slate-50 pb-10">
+      <div className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-600 mb-3">
+          <ArrowLeft size={18} /> Back
+        </button>
+        <h1 className="text-xl font-bold text-slate-800">Customers</h1>
+        <p className="text-sm text-slate-500">{customers.length} customers on this route</p>
+        <div className="relative mt-3">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm"
+            placeholder="Search customers..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="p-4 space-y-3">
+        {filteredCustomers.length === 0 ? (
+          <EmptyState title="No customers found" icon={Users} />
+        ) : (
+          filteredCustomers.sort((a, b) => a.sequenceOrder - b.sequenceOrder).map(c => (
+            <div key={c.id} className="bg-white rounded-xl border p-4 shadow-sm">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-semibold text-slate-800">{c.nameEnglish}</h3>
+                  {c.nameMalayalam && <p className="text-sm text-slate-500">{c.nameMalayalam}</p>}
+                  {c.phoneNumber && (
+                    <p className="text-sm text-slate-600 flex items-center gap-1 mt-1">
+                      <Phone size={12} /> {c.phoneNumber}
+                    </p>
+                  )}
+                  {c.address && (
+                    <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
+                      <MapPin size={10} /> {c.address}
+                    </p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                    Stop {c.sequenceOrder || '?'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Salesman/SalesmanIncentives.tsx">
+import { useEffect, useState } from 'react';
+import { Gift, TrendingUp, Package } from 'lucide-react';
+import { incentivesApi } from '../../api/services';
+import { SalesmanIncentiveSummaryDto, fmtNum } from '../../types';
+import { Spinner, EmptyState } from '../../components/ui';
+import { useAuthStore } from '../../store/authStore';
+
+export default function SalesmanIncentives() {
+  const user = useAuthStore(s => s.user);
+  const [summary, setSummary] = useState<SalesmanIncentiveSummaryDto | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    incentivesApi.salesmanSummary()
+      .then(setSummary)
+      .catch(e => setError(e.message ?? 'Failed to load incentives'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div className="min-h-screen bg-[var(--bg)] pb-10">
+      <div className="px-4 pt-6 pb-4 border-b border-[var(--border)]">
+        <h1 className="text-xl font-bold text-white">My Incentives</h1>
+        <p className="text-sm text-[var(--muted)] mt-1">{user?.name}</p>
+      </div>
+
+      {error && (
+        <div className="mx-4 mt-4 alert alert-error">{error}</div>
+      )}
+
+      {!summary && !error && (
+        <EmptyState title="No incentive data" message="No incentives available for your account yet." />
+      )}
+
+      {summary && (
+        <div className="px-4 mt-6 space-y-6">
+          {/* KPI summary cards */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="card text-center">
+              <Gift size={24} className="mx-auto text-[var(--primary)] mb-2" />
+              <p className="text-2xl font-bold text-white">₹{fmtNum(summary.totalIncentiveEarned ?? 0)}</p>
+              <p className="text-xs text-[var(--muted)] mt-1">Total Earned</p>
+            </div>
+            <div className="card text-center">
+              <TrendingUp size={24} className="mx-auto text-green-400 mb-2" />
+              <p className="text-2xl font-bold text-white">₹{fmtNum(summary.pendingPayout ?? 0)}</p>
+              <p className="text-xs text-[var(--muted)] mt-1">Pending Payout</p>
+            </div>
+          </div>
+
+          {/* Per-product breakdown */}
+          {summary.productBreakdown && summary.productBreakdown.length > 0 && (
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-3">Product Breakdown</h2>
+              <div className="space-y-2">
+                {summary.productBreakdown.map((item, i) => (
+                  <div key={i} className="card flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-[var(--primary)]/10 flex items-center justify-center">
+                        <Package size={16} className="text-[var(--primary)]" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white">{item.productName}</p>
+                        <p className="text-xs text-[var(--muted)]">
+                          {item.unitsSold ?? 0} units ·{' '}
+                          {item.incentiveType === 'PerUnit'
+                            ? `₹${fmtNum(item.incentiveRate ?? 0)} / unit`
+                            : `${item.incentiveRate}%`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-white">₹{fmtNum(item.earned ?? 0)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Period info */}
+          {summary.periodStart && (
+            <div className="card">
+              <p className="text-xs text-[var(--muted)] mb-1">Incentive Period</p>
+              <p className="text-sm font-semibold text-white">
+                {new Date(summary.periodStart).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                {summary.periodEnd && ` – ${new Date(summary.periodEnd).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Salesman/SalesmanOrders.tsx">
+// PATH: src/pages/Salesman/SalesmanOrders.tsx
+// FIXED: Show only today's orders, improved submit all flow
+
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { 
+  ArrowLeft, Plus, ChevronRight, CheckCircle2, Clock, 
+  Calendar, Package, Eye, List, User, Search, Send, 
+  RefreshCw, AlertCircle, Edit2, ClipboardList, Truck
+} from 'lucide-react';
+import { customersApi, ordersApi, routesApi } from '../../api/services';
+import { CustomerDto, OrderDto, RouteDto, OrderStatus, fmt, OrderItemDto } from '../../types';
+import { Spinner, EmptyState, Badge, Alert, ConfirmModal } from '../../components/ui';
+import { useAuthStore } from '../../store/authStore';
+
+const statusMeta: Record<number, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
+  [OrderStatus.Draft]:           { label: 'Draft',           color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: <Clock size={14} /> },
+  [OrderStatus.PendingApproval]: { label: 'Pending Approval', color: 'text-blue-700',  bg: 'bg-blue-50', border: 'border-blue-200',   icon: <CheckCircle2 size={14} /> },
+  [OrderStatus.Approved]:        { label: 'Approved',        color: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-200', icon: <CheckCircle2 size={14} /> },
+  [OrderStatus.Packed]:          { label: 'Packed',          color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200', icon: <CheckCircle2 size={14} /> },
+  [OrderStatus.Closed]:          { label: 'Closed',          color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200', icon: <CheckCircle2 size={14} /> },
+};
+
+// Order item card component
+function OrderItemCard({ 
+  order, 
+  routeId, 
+  onNavigate,
+  onEdit 
+}: { 
+  order: OrderDto; 
+  routeId: string; 
+  onNavigate: (customerId: string) => void;
+  onEdit: (orderId: string, customerId: string) => void;
+}) {
+  const [showItems, setShowItems] = useState(false);
+  const itemCount = order.items?.length ?? 0;
+  const totalQuantity = order.items?.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
+  const status = statusMeta[order.status] || statusMeta[OrderStatus.Draft];
+  const isDraft = order.status === OrderStatus.Draft;
+
+  const getProductName = (item: OrderItemDto): string => {
+    return item.productName || item.productNameMl || 'Unknown';
+  };
+
+  const getUnitSymbol = (item: OrderItemDto): string => {
+    return item.unitSymbol || item.unitName || 'pc';
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden transition-all hover:shadow-md">
+      <div className="p-4 cursor-pointer" onClick={() => onNavigate(String(order.customerId))}>
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <User size={18} className="text-blue-600" />
+            </div>
+            <div>
+              <p className="text-base font-semibold text-slate-800">{order.customerName}</p>
+              {order.customerNameMalayalam && (
+                <p className="text-sm text-slate-500" lang="ml">{order.customerNameMalayalam}</p>
+              )}
+            </div>
+          </div>
+          <span className={`inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-full font-medium border ${status.bg} ${status.color} ${status.border} flex-shrink-0`}>
+            {status.icon} {status.label}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center gap-4 flex-wrap text-sm text-slate-500">
+            <span className="flex items-center gap-1.5">📦 {itemCount} item{itemCount !== 1 ? 's' : ''}</span>
+            <span className="flex items-center gap-1.5">📊 {totalQuantity} units</span>
+            <span className="flex items-center gap-1.5">🕐 {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+          <div className="text-right">
+            <p className="text-xl font-bold text-slate-800">{fmt(order.totalAmount ?? 0)}</p>
+          </div>
+        </div>
+        
+        {order.items && order.items.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-slate-100">
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowItems(!showItems); }}
+              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 transition-colors"
+            >
+              <Eye size={14} />
+              {showItems ? 'Hide items' : `View ${order.items.length} item(s)`}
+            </button>
+            {showItems && (
+              <div className="mt-2 space-y-2">
+                {order.items.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-sm bg-slate-50 p-3 rounded-lg">
+                    <div className="flex-1">
+                      <p className="text-slate-700 text-base font-medium">{getProductName(item)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-slate-700">{item.quantity} {getUnitSymbol(item)}</p>
+                      <p className="text-sm font-semibold text-slate-800">{fmt(item.sellingPrice * item.quantity)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {isDraft && (
+        <div className="border-t border-slate-100 bg-slate-50 px-4 py-2 flex justify-end">
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(String(order.id), String(order.customerId)); }}
+            className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            <Edit2 size={14} /> Edit Order
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Customer list item component
+function CustomerListItem({ customer, routeId, onNavigate }: {
+  customer: CustomerDto;
+  routeId: string;
+  onNavigate: (customerId: string) => void;
+}) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-4 transition-all hover:shadow-md">
+      <button
+        onClick={() => onNavigate(String(customer.id))}
+        className="w-full text-left"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <User size={20} className="text-blue-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-slate-800 text-base truncate">{customer.nameEnglish}</span>
+                {customer.nameMalayalam && (
+                  <span className="text-sm text-slate-500 truncate" lang="ml">{customer.nameMalayalam}</span>
+                )}
+              </div>
+              <p className="text-sm text-slate-500 mt-0.5">{customer.phoneNumber ?? customer.address ?? 'No contact'}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full font-medium bg-blue-50 text-blue-600 border border-blue-200">
+              <Plus size={14} /> New Order
+            </span>
+            <ChevronRight size={18} className="text-slate-400" />
+          </div>
+        </div>
+      </button>
+    </div>
+  );
+}
+
+export default function SalesmanOrders() {
+  const { routeId } = useParams<{ routeId: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuthStore();
+  const [route, setRoute] = useState<RouteDto | null>(null);
+  const [customers, setCustomers] = useState<CustomerDto[]>([]);
+  const [orders, setOrders] = useState<OrderDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [submittingAll, setSubmittingAll] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date().toISOString().slice(0, 10);
+
+  async function load() {
+    if (!routeId || routeId === 'NaN' || routeId === 'undefined') {
+      setError('Invalid route selected. Please go back and select a valid route.');
+      setLoading(false);
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      const id = routeId;
+      const [r, c, o] = await Promise.all([
+        routesApi.getById(id),
+        customersApi.list(id),
+        ordersApi.getByRoute(id),
+      ]);
+      setRoute(r);
+      setCustomers(c);
+      
+      // Filter orders to show only TODAY's orders
+      const todayOrders = o.filter(order => order.orderDate?.startsWith(today));
+      const sortedOrders = [...todayOrders].sort((a, b) => 
+        new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
+      );
+      setOrders(sortedOrders);
+    } catch (err: any) {
+      console.error('Error loading data:', err);
+      setError(err.message || 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, [routeId, location.state]);
+
+  // Submit all draft orders at once
+  const handleSubmitAllOrders = async () => {
+    const draftOrders = orders.filter(o => o.status === OrderStatus.Draft);
+    if (draftOrders.length === 0) {
+      setError('No draft orders to submit.');
+      return;
+    }
+    
+    setSubmittingAll(true);
+    setError('');
+    setSuccessMsg('');
+    
+    try {
+      let submitted = 0;
+      for (const order of draftOrders) {
+        await ordersApi.submit(String(order.id));
+        submitted++;
+      }
+      setSuccessMsg(`✅ ${submitted} order(s) submitted for admin approval! Redirecting to Routes...`);
+      
+      // Wait 2 seconds then go to Routes page
+      setTimeout(() => {
+        navigate('/salesman/routes');
+      }, 2000);
+      
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Submission failed';
+      setError(errorMessage);
+      setSubmittingAll(false);
+      setShowSubmitConfirm(false);
+    }
+  };
+
+  const customersWithOrders = new Set(orders.map(o => String(o.customerId)));
+  const customersWithoutOrders = customers.filter(c => !customersWithOrders.has(String(c.id)));
+
+  const filteredCustomers = customersWithoutOrders.filter(c =>
+    c.nameEnglish.toLowerCase().includes(search.toLowerCase()) ||    
+    (c.nameMalayalam && c.nameMalayalam.toLowerCase().includes(search.toLowerCase())) ||
+    (c.phoneNumber && c.phoneNumber.includes(search))
+  );
+
+  const filteredOrders = orders.filter(order =>
+    order.customerName?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const totalAmount = orders.reduce((s, o) => s + (o.totalAmount ?? 0), 0);
+  const draftCount = orders.filter(o => o.status === OrderStatus.Draft).length;
+  const pendingCount = orders.filter(o => o.status === OrderStatus.PendingApproval).length;
+  const closedCount = orders.filter(o => o.status === OrderStatus.Closed).length;
+  const allCustomersDone = customers.length > 0 && customersWithOrders.size === customers.length;
+
+  const handleNavigateToOrder = (customerId: string) => {
+    navigate(`/salesman/routes/${routeId}/order/${customerId}`);
+  };
+
+  const handleEditOrder = (orderId: string, customerId: string) => {
+    navigate(`/salesman/routes/${routeId}/order/${customerId}`);
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <Spinner size={40} />
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50 pb-24">
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 py-4 shadow-sm">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => navigate('/salesman/routes')} 
+                className="flex items-center gap-2 text-slate-600 hover:text-blue-600 font-semibold text-base transition-colors"
+              >
+                <ArrowLeft size={20} />
+                <span className="text-base">Routes</span>
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={load}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                title="Refresh"
+              >
+                <RefreshCw size={14} /> Refresh
+              </button>
+              {draftCount > 0 && (
+                <button
+                  onClick={() => setShowSubmitConfirm(true)}
+                  disabled={submittingAll}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 shadow-sm"
+                >
+                  {submittingAll ? <Spinner size={16} /> : <Send size={16} />}
+                  Submit All ({draftCount})
+                </button>
+              )}
+            </div>
+          </div>
+          
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">{route?.name ?? 'Route Orders'}</h1>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {customers.length} customers · {fmt(totalAmount)} total · {today}
+            </p>
+          </div>
+
+          {/* Stats chips */}
+          <div className="flex gap-3 mt-3 mb-3 overflow-x-auto pb-1">
+            <div className="shrink-0 bg-white border border-slate-200 rounded-lg px-4 py-2 shadow-sm">
+              <span className="text-sm text-slate-500">Orders Today</span>
+              <span className="ml-2 font-bold text-slate-800">{orders.length}/{customers.length}</span>
+            </div>
+            <div className="shrink-0 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
+              <span className="text-sm text-amber-600">Draft</span>
+              <span className="ml-2 font-bold text-amber-700">{draftCount}</span>
+            </div>
+            <div className="shrink-0 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
+              <span className="text-sm text-blue-600">Pending Approval</span>
+              <span className="ml-2 font-bold text-blue-700">{pendingCount}</span>
+            </div>
+            <div className="shrink-0 bg-green-50 border border-green-200 rounded-lg px-4 py-2">
+              <span className="text-sm text-green-600">Closed</span>
+              <span className="ml-2 font-bold text-green-700">{closedCount}</span>
+            </div>
+          </div>
+
+          {/* Progress indicator */}
+          {customers.length > 0 && (
+            <div className="mt-2 mb-3">
+              <div className="flex justify-between text-xs text-slate-500 mb-1">
+                <span>Order Progress</span>
+                <span>{orders.length} of {customers.length} customers</span>
+              </div>
+              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                  style={{ width: `${(orders.length / customers.length) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Completion message */}
+          {allCustomersDone && draftCount === 0 && (
+            <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-center text-sm text-emerald-700">
+              <CheckCircle2 size={16} className="inline mr-1" />
+              All customers have orders! Click "Submit All" to send to admin.
+            </div>
+          )}
+
+          {/* Search input */}
+          <div className="relative mt-3">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-base focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              placeholder="Search customer or order…"
+              lang="ml"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Error/Success messages */}
+      {error && (
+        <div className="max-w-7xl mx-auto px-4 mt-4">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center justify-between">
+            <span className="text-sm text-red-700">{error}</span>
+            <button onClick={() => setError('')} className="text-red-400 hover:text-red-600">✕</button>
+          </div>
+        </div>
+      )}
+      {successMsg && (
+        <div className="max-w-7xl mx-auto px-4 mt-4">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between">
+            <span className="text-sm text-emerald-700">{successMsg}</span>
+            <button onClick={() => setSuccessMsg('')} className="text-emerald-400 hover:text-emerald-600">✕</button>
+          </div>
+        </div>
+      )}
+
+      {/* Today's Orders */}
+      <div className="max-w-7xl mx-auto px-4 mt-4">
+        <h2 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
+          <ClipboardList size={16} /> Today's Orders
+        </h2>
+        
+        {filteredOrders.length === 0 && !search && (
+          <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
+            <Package size={48} className="mx-auto text-slate-300 mb-3 opacity-40" />
+            <p className="text-slate-500">No orders yet today</p>
+            <p className="text-sm text-slate-400 mt-1">Create orders from the customer list below</p>
+          </div>
+        )}
+        
+        {filteredOrders.length === 0 && search && (
+          <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
+            <p className="text-slate-500">No orders match "{search}"</p>
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {filteredOrders.map(order => (
+            <OrderItemCard 
+              key={order.id} 
+              order={order} 
+              routeId={routeId!} 
+              onNavigate={handleNavigateToOrder}
+              onEdit={handleEditOrder}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Customers without orders - New Order section */}
+      {filteredCustomers.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 mt-6 mb-8">
+          <h2 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
+            <Plus size={16} /> New Orders Needed
+          </h2>
+          <div className="space-y-3">
+            {filteredCustomers.map(customer => (
+              <CustomerListItem 
+                key={customer.id}
+                customer={customer}
+                routeId={routeId!}
+                onNavigate={handleNavigateToOrder}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Submit All Confirmation Modal */}
+      <ConfirmModal
+        open={showSubmitConfirm}
+        title="Submit All Orders"
+        message={`You are about to submit ${draftCount} draft order(s). Once submitted, they will be sent to the admin for approval and cannot be edited further. Do you want to continue?`}
+        confirmLabel={`Submit ${draftCount} Order${draftCount > 1 ? 's' : ''}`}
+        onConfirm={handleSubmitAllOrders}
+        onCancel={() => setShowSubmitConfirm(false)}
+        loading={submittingAll}
+      />
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Salesman/SalesmanRoutes.tsx">
+// PATH: src/pages/Salesman/SalesmanRoutes.tsx
+// UPDATED: Added day closure check to disable delivery button when day not closed
+
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Route, Users, ChevronRight, RefreshCw,
+  Play, Calendar, Info, CheckCircle2, MapPin,
+  ShoppingBag, Truck, Package, Lock
+} from 'lucide-react';
+import { routesApi, routeAssignmentsApi, settlementApi } from '../../api/services';
+import type { TodayRouteDto } from '../../types';
+import { PageLoader, Alert, EmptyState, Badge, Spinner } from '../../components/ui';
+import { useAuthStore } from '../../store/authStore';
+
+// ── Enriched route type (TodayRouteDto + execution state) ────
+interface EnrichedRoute extends TodayRouteDto {
+  customerCount?: number;
+  description?:   string;
+  executionStatus?: 'InProgress' | 'Completed' | null;
+}
+
+export function SalesmanRoutes() {
+  const [routes,   setRoutes]   = useState<EnrichedRoute[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState('');
+  const [starting, setStarting] = useState<string | null>(null);
+  const [activeMode, setActiveMode] = useState<'order' | 'delivery' | null>(null);
+  const [isDayClosed, setIsDayClosed] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+
+  async function load() {
+    setLoading(true);
+    setError('');
+    try {
+      const myRoutes = await routeAssignmentsApi.getMyRoutesToday();
+
+      // Check if day is closed for today
+      try {
+        const closureStatus = await settlementApi.getStatus();
+        setIsDayClosed(closureStatus?.isClosed ?? false);
+      } catch {
+        setIsDayClosed(false);
+      }
+
+      const enriched: EnrichedRoute[] = await Promise.all(
+        myRoutes.map(async (r) => {
+          let executionStatus: EnrichedRoute['executionStatus'] = null;
+          let customerCount: number | undefined;
+          let description: string | undefined;
+
+          try {
+            const detail = await routesApi.getById(r.routeId);
+            customerCount = detail.customers?.length ?? detail.customerCount;
+            description   = detail.description;
+          } catch {}
+
+          try {
+            const exec = await routesApi.getCurrentExecution(r.routeId);
+            if (exec?.executionId) {
+              executionStatus = exec.status === 'InProgress'  ? 'InProgress'
+                              : exec.status === 'Completed'   ? 'Completed'
+                              : null;
+            }
+          } catch {}
+
+          return { ...r, executionStatus, customerCount, description };
+        })
+      );
+
+      setRoutes(enriched);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load routes');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleStartOrderTaking(routeId: string) {
+    if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
+      setError('Invalid route selected. Please refresh and try again.');
+      return;
+    }
+    setStarting(routeId);
+    setActiveMode('order');
+    try {
+      await routesApi.startOrderTaking(routeId);
+      navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'order-taking' } });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to start order taking');
+    } finally {
+      setStarting(null);
+      setActiveMode(null);
+    }
+  }
+
+  async function handleStartDelivery(routeId: string) {
+    if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
+      setError('Invalid route selected. Please refresh and try again.');
+      return;
+    }
+    
+    // Check if day is closed before attempting delivery
+    if (!isDayClosed) {
+      setError('Cannot start delivery. The day has not been closed by Admin yet. Please wait for admin to close today\'s operations.');
+      return;
+    }
+    
+    setStarting(routeId);
+    setActiveMode('delivery');
+    try {
+      const execution = await routesApi.getCurrentExecution(routeId).catch(() => null);
+      if (execution?.executionId && execution.status === 'InProgress') {
+        navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'delivery' } });
+        return;
+      }
+      await routesApi.startExecution(routeId);
+      navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'delivery' } });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to start delivery');
+    } finally {
+      setStarting(null);
+      setActiveMode(null);
+    }
+  }
+
+  function handleViewCustomers(routeId: string) {
+    navigate(`/salesman/routes/${routeId}/customers`);
+  }
+
+  function handleViewOrders(routeId: string) {
+    navigate(`/salesman/routes/${routeId}/orders`);
+  }
+
+  const activeRoute    = routes.find(r => r.executionStatus === 'InProgress');
+  const overrides      = routes.filter(r => r.isOverride);
+  const permanentRoutes = routes.filter(r => !r.isOverride);
+
+  if (loading) return <PageLoader />;
+
+  return (
+    <div className="min-h-screen bg-slate-50 pb-10">
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-5 py-4 shadow-sm">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-2xl font-bold text-slate-800">My Routes</h1>
+          <p className="text-base text-slate-500 mt-1">
+            {activeRoute ? (
+              <span className="text-amber-600 font-semibold">⚠️ Complete your active route before starting another</span>
+            ) : routes.length > 0 ? (
+              <span>{routes.length} route{routes.length !== 1 ? 's' : ''} assigned for today</span>
+            ) : (
+              <span>No routes assigned for today. Contact your admin.</span>
+            )}
+          </p>
+          {/* Day closure status indicator */}
+          {!isDayClosed && (
+            <div className="mt-2 text-sm text-amber-600 bg-amber-50 inline-block px-3 py-1 rounded-full">
+              <Lock size={12} className="inline mr-1" /> Day not closed - Delivery disabled
+            </div>
+          )}
+          {isDayClosed && (
+            <div className="mt-2 text-sm text-green-600 bg-green-50 inline-block px-3 py-1 rounded-full">
+              ✓ Day closed - Delivery available
+            </div>
+          )}
+        </div>
+      </div>
+
+      {error && <Alert variant="error">{error}</Alert>}
+
+      <div className="max-w-7xl mx-auto px-5 py-5">
+        {routes.length === 0 ? (
+          <EmptyState
+            title="No routes assigned for today"
+            message="Your admin hasn't assigned any routes to you for today. Please contact them."
+            icon={Route}
+          />
+        ) : (
+          <div className="space-y-4">
+            {routes.map(route => (
+              <RouteCard
+                key={route.routeId}
+                route={route}
+                isActive={!!activeRoute && activeRoute.routeId !== route.routeId}
+                isInProgress={route.executionStatus === 'InProgress'}
+                isCompleted={route.executionStatus === 'Completed'}
+                onStartOrderTaking={() => handleStartOrderTaking(route.routeId)}
+                onStartDelivery={() => handleStartDelivery(route.routeId)}
+                onViewCustomers={() => handleViewCustomers(route.routeId)}
+                onViewOrders={() => handleViewOrders(route.routeId)}
+                starting={starting === route.routeId}
+                activeMode={activeMode}
+                isDayClosed={isDayClosed}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Route Card Component with Expandable Section ──
+function RouteCard({
+  route,
+  isActive,
+  isInProgress,
+  isCompleted,
+  onStartOrderTaking,
+  onStartDelivery,
+  onViewCustomers,
+  onViewOrders,
+  starting,
+  activeMode,
+  isDayClosed,
+}: {
+  route: EnrichedRoute;
+  isActive: boolean;
+  isInProgress: boolean;
+  isCompleted: boolean;
+  onStartOrderTaking: () => void;
+  onStartDelivery: () => void;
+  onViewCustomers: () => void;
+  onViewOrders: () => void;
+  starting: boolean;
+  activeMode: 'order' | 'delivery' | null;
+  isDayClosed: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const isDisabled = isActive && !isInProgress;
+  const isDeliveryDisabled = isDisabled || !isDayClosed;
+  const isTodayOverride = route.isOverride;
+
+  return (
+    <div className={`bg-white rounded-xl border transition-all ${isInProgress ? 'border-blue-400 shadow-md' : 'border-slate-200 hover:shadow-md'}`}>
+      {/* Main row - always visible */}
+      <div className="p-4">
+        <div className="flex items-start justify-between">
+          {/* Left section */}
+          <div className="flex items-start gap-3 flex-1">
+            {/* Icon */}
+            <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${
+              isInProgress ? 'bg-blue-500' : isCompleted ? 'bg-green-500' : 'bg-slate-100'
+            }`}>
+              {isCompleted ? (
+                <CheckCircle2 size={26} color="#fff" />
+              ) : isInProgress ? (
+                <Truck size={26} color="#fff" />
+              ) : (
+                <Route size={26} className="text-blue-500" />
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-slate-800 text-lg">{route.routeName}</h3>
+                {isInProgress && <Badge variant="primary">🟢 Active</Badge>}
+                {isCompleted && <Badge variant="green">✓ Completed</Badge>}
+                {isTodayOverride && !isInProgress && !isCompleted && <Badge variant="amber">📋 Today Only</Badge>}
+              </div>
+
+              {route.description && (
+                <p className="text-sm text-slate-500 mt-1">{route.description}</p>
+              )}
+
+              <div className="flex flex-wrap gap-4 mt-2 text-sm text-slate-500">
+                <span className="flex items-center gap-1.5">
+                  <Users size={14} /> {route.customerCount ?? 0} customers
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <MapPin size={14} /> {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                </span>
+              </div>
+
+              {isTodayOverride && route.notes && !isCompleted && (
+                <div className="mt-2 text-sm text-amber-600 bg-amber-50 inline-block px-2 py-1 rounded">
+                  📋 {route.notes}
+                </div>
+              )}
+
+              {/* Disabled warning */}
+              {isDisabled && (
+                <div className="mt-2 text-sm text-amber-600 bg-amber-50 inline-block px-2 py-1 rounded">
+                  ⚠️ Complete your active route first
+                </div>
+              )}
+              
+              {/* Day not closed warning for delivery */}
+              {!isDayClosed && !isCompleted && (
+                <div className="mt-2 text-sm text-amber-600 bg-amber-50 inline-block px-2 py-1 rounded">
+                  <Lock size={12} className="inline mr-1" /> Admin must close the day before delivery
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action buttons - horizontal layout */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {!isCompleted && (
+              <>
+                <button
+                  onClick={onStartOrderTaking}
+                  disabled={starting || isDisabled}
+                  className="flex items-center gap-2 px-4 py-2.5 text-base font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 active:scale-95 disabled:opacity-50 transition-all"
+                >
+                  {starting && activeMode === 'order' ? <Spinner size={16} /> : <ShoppingBag size={16} />}
+                  Take Orders
+                </button>
+                <button
+                  onClick={onStartDelivery}
+                  disabled={starting || isDeliveryDisabled}
+                  className="flex items-center gap-2 px-4 py-2.5 text-base font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 active:scale-95 disabled:opacity-50 transition-all"
+                  title={!isDayClosed ? "Day not closed by admin yet" : ""}
+                >
+                  {starting && activeMode === 'delivery' ? <Spinner size={16} /> : <Truck size={16} />}
+                  Start Delivery
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="p-2 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
+            >
+              <ChevronRight size={20} className={`transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded section - only shown when expanded */}
+      {expanded && (
+        <div className="border-t border-slate-100 px-4 py-3 bg-slate-50 rounded-b-xl">
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={onViewCustomers}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors"
+            >
+              <Users size={14} /> View Customers ({route.customerCount ?? 0})
+            </button>
+            <button
+              onClick={onViewOrders}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors"
+            >
+              <Package size={14} /> View Orders
+            </button>
+            {isTodayOverride && route.permanentSalesmanName && (
+              <div className="text-sm text-slate-400 bg-slate-100 px-3 py-2 rounded-lg">
+                Regular: {route.permanentSalesmanName}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Completed message - shown outside expanded section */}
+      {isCompleted && (
+        <div className="border-t border-green-100 px-4 py-2 bg-green-50 rounded-b-xl">
+          <div className="flex items-center gap-2 text-sm text-green-700">
+            <CheckCircle2 size={14} /> Route completed — Great job today! 🎉
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Warehouse/WarehouseDashboard.tsx">
+// PATH: src/pages/Warehouse/WarehouseDashboard.tsx
+// FIXED:
+//  1. Shows Approved, Packed, AND Closed orders (Closed tab answers "where did they go?")
+//  2. Proper status tabs: Pending Pack | Packed | Closed
+//  3. WarehouseController now targets OrderStatus.Approved for packing,
+//     but Closed orders are visible in history tab.
+//  4. Fixed empty-state text — no longer says "submitted", uses correct status names.
+
+import { useEffect, useState, useCallback } from 'react';
+import {
+  Package, CheckCircle2, Clock, Search, Filter,
+  RefreshCw, Loader2, CheckSquare, Square, Boxes, History,
+  XCircle, Eye, ChevronDown, ChevronUp,
+} from 'lucide-react';
+import { warehouseApi, routesApi } from '../../api/services';
+import type { WarehouseOrderDto, RouteDto } from '../../types';
+import { Spinner, Alert, EmptyState } from '../../components/ui';
+
+// ── Status helpers ────────────────────────────────────────────────────────────
+const PACKING_STATUS = {
+  0: { label: 'Pending',  color: 'text-amber-600 bg-amber-50 border border-amber-200', icon: <Clock size={12} /> },
+  1: { label: 'Packed',   color: 'text-green-600  bg-green-50  border border-green-200',  icon: <CheckCircle2 size={12} /> },
+  2: { label: 'Partial',  color: 'text-blue-600   bg-blue-50   border border-blue-200',   icon: <Package size={12} /> },
+} as const;
+
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function tomorrowStr() {
+  const d = new Date(); d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+// ── Order Detail Modal ────────────────────────────────────────────────────────
+function OrderDetailModal({
+  order, onClose, onPack,
+}: {
+  order: WarehouseOrderDto;
+  onClose: () => void;
+  onPack: (id: string, partial: boolean) => Promise<void>;
+}) {
+  const [packing, setPacking] = useState(false);
+  const meta = PACKING_STATUS[order.packingStatus as keyof typeof PACKING_STATUS] ?? PACKING_STATUS[0];
+
+  async function handlePack(partial: boolean) {
+    setPacking(true);
+    try { await onPack(order.id, partial); onClose(); }
+    finally { setPacking(false); }
+  }
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.50)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background: '#fff', borderRadius: 16, padding: 24, width: '100%', maxWidth: 520, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(15,23,42,0.20)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+          <div>
+            <h3 style={{ margin: 0, fontWeight: 800, fontSize: 16, color: '#0F172A' }}>{order.orderNumber}</h3>
+            <p style={{ color: '#64748B', fontSize: 13, marginTop: 3 }}>{order.customerName} · {order.routeName}</p>
+            <p style={{ color: '#94A3B8', fontSize: 12, marginTop: 2 }}>
+              Salesman: {order.salesmanName} · {new Date(order.orderDate).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </div>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '4px 10px', borderRadius: 20, fontWeight: 700 }} className={meta.color}>
+            {meta.icon} {meta.label}
+          </span>
+        </div>
+
+        {/* Items */}
+        <div style={{ border: '1px solid #E2E8F0', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC' }}>
+                {['Product', 'Qty', 'Bags', 'Boxes', 'Tins'].map(h => (
+                  <th key={h} style={{ padding: '8px 12px', textAlign: h === 'Product' ? 'left' : 'right', color: '#64748B', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {order.items.map((item, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                  <td style={{ padding: '8px 12px', fontWeight: 600 }}>{item.productName}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700 }}>{item.quantity}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{item.quantityBags ?? '—'}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{item.quantityBoxes ?? '—'}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{item.quantityTins ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button
+            onClick={onClose}
+            style={{ padding: '9px 18px', borderRadius: 9, border: '1px solid #E2E8F0', background: 'transparent', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#64748B', fontFamily: 'inherit' }}
+          >
+            Close
+          </button>
+          {order.packingStatus !== 1 && (
+            <>
+              <button
+                onClick={() => handlePack(true)}
+                disabled={packing}
+                style={{ padding: '9px 18px', borderRadius: 9, border: '1px solid #BFDBFE', background: '#EFF6FF', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#2563EB', fontFamily: 'inherit' }}
+              >
+                {packing ? <Spinner size={13} /> : 'Partial Pack'}
+              </button>
+              <button
+                onClick={() => handlePack(false)}
+                disabled={packing}
+                style={{ padding: '9px 20px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,#16A34A,#22C55E)', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 3px 10px rgba(22,163,74,0.28)' }}
+              >
+                {packing ? <Spinner size={13} /> : <><CheckCircle2 size={14} /> Mark Packed</>}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Dashboard ────────────────────────────────────────────────────────────
+type ActiveTab = 'pending' | 'packed' | 'closed';
+
+export default function WarehouseDashboard() {
+  const [orders,      setOrders]      = useState<WarehouseOrderDto[]>([]);
+  const [routes,      setRoutes]      = useState<RouteDto[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState('');
+  const [success,     setSuccess]     = useState('');
+  const [activeTab,   setActiveTab]   = useState<ActiveTab>('pending');
+
+  // Filters
+  const [fromDate,     setFromDate]     = useState(todayStr());
+  const [toDate,       setToDate]       = useState(tomorrowStr());
+  const [routeFilter,  setRouteFilter]  = useState('');
+  const [search,       setSearch]       = useState('');
+  const [showFilters,  setShowFilters]  = useState(false);
+
+  // Selection
+  const [selected,    setSelected]    = useState<Set<string>>(new Set());
+  const [bulkPacking, setBulkPacking] = useState(false);
+  const [detailOrder, setDetailOrder] = useState<WarehouseOrderDto | null>(null);
+
+  // We fetch ALL relevant orders (Pending + Packed) from the warehouse API,
+  // and Closed orders come from a separate all-status query on the ordersApi.
+  const [closedOrders, setClosedOrders] = useState<WarehouseOrderDto[]>([]);
+
+  const pendingOrders = orders.filter(o => o.packingStatus === 0);
+  const packedOrders  = orders.filter(o => o.packingStatus === 1);
+
+  const load = useCallback(async () => {
+    setLoading(true); setError('');
+    try {
+      const [o, r] = await Promise.all([
+        // Fetch pending+packed (Approved status)
+        warehouseApi.getPendingOrders({
+          fromDate,
+          toDate,
+          routeId: routeFilter || undefined,
+          search:  search || undefined,
+        }),
+        routesApi.getAll(),
+      ]);
+      setOrders(o);
+      setRoutes(r);
+
+      // Also fetch closed orders (packingStatus doesn't matter; these are done)
+      // We reuse the same endpoint but filter by packingStatus=1 (already packed+closed)
+      // The backend WarehouseController now also returns Closed orders when requested
+      try {
+        const closed = await warehouseApi.getClosedOrders({
+          fromDate,
+          toDate,
+          routeId: routeFilter || undefined,
+          search:  search || undefined,
+        });
+        setClosedOrders(closed);
+      } catch {
+        setClosedOrders([]);
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load orders');
+    } finally { setLoading(false); }
+  }, [fromDate, toDate, routeFilter, search]);
+
+  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const interval = setInterval(load, 30_000);
+    return () => clearInterval(interval);
+  }, [load]);
+
+  async function handlePackOne(orderId: string, partial: boolean) {
+    try {
+      await warehouseApi.packOrder(orderId, partial);
+      setSuccess(partial ? 'Order marked as partially packed.' : 'Order marked as packed! ✓');
+      await load();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Pack failed');
+    }
+  }
+
+  async function handleBulkPack() {
+    if (!selected.size) return;
+    setBulkPacking(true);
+    try {
+      const count = await warehouseApi.bulkPack([...selected]);
+      setSuccess(`${count} order(s) marked as Packed. ✓`);
+      setSelected(new Set());
+      await load();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Bulk pack failed');
+    } finally { setBulkPacking(false); }
+  }
+
+  function toggleSelect(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    const ids = pendingOrders.map(o => o.id);
+    if (selected.size === ids.length && selected.size > 0) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(ids));
+    }
+  }
+
+  const allPendingSelected = pendingOrders.length > 0 &&
+    pendingOrders.every(o => selected.has(o.id));
+
+  // Filter search client-side
+  const filterBySearch = (list: WarehouseOrderDto[]) => {
+    if (!search.trim()) return list;
+    const q = search.toLowerCase();
+    return list.filter(o =>
+      o.customerName.toLowerCase().includes(q) ||
+      o.salesmanName.toLowerCase().includes(q) ||
+      o.orderNumber.toLowerCase().includes(q) ||
+      o.routeName.toLowerCase().includes(q)
+    );
+  };
+
+  const tabs: { id: ActiveTab; label: string; count: number; color: string }[] = [
+    { id: 'pending', label: '⏳ Pending Pack', count: pendingOrders.length, color: 'amber' },
+    { id: 'packed',  label: '✅ Packed',        count: packedOrders.length,  color: 'green' },
+    { id: 'closed',  label: '📦 Closed',         count: closedOrders.length,  color: 'slate' },
+  ];
+
+  const tabOrders: Record<ActiveTab, WarehouseOrderDto[]> = {
+    pending: filterBySearch(pendingOrders),
+    packed:  filterBySearch(packedOrders),
+    closed:  filterBySearch(closedOrders),
+  };
+
+  const visibleOrders = tabOrders[activeTab];
+
+  return (
+    <div className="page-content">
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: 'var(--text)', letterSpacing: '-0.03em', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Boxes size={22} color="var(--primary)" />
+            Pack Orders
+          </h1>
+          <p style={{ color: 'var(--text-sub)', fontSize: 13, marginTop: 4 }}>
+            {pendingOrders.length} pending · {packedOrders.length} packed · {closedOrders.length} closed
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setShowFilters(f => !f)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: '1px solid var(--border)', background: showFilters ? 'var(--ice)' : '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: showFilters ? 'var(--primary)' : 'var(--text-sub)', fontFamily: 'inherit' }}
+          >
+            <Filter size={14} />
+            Filters
+            {showFilters ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+          <button
+            onClick={load}
+            disabled={loading}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 9, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', color: 'var(--text-sub)' }}
+          >
+            {loading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <RefreshCw size={14} />}
+          </button>
+        </div>
+      </div>
+
+      {error   && <Alert variant="error">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
+
+      {/* ── Filters ──────────────────────────────────────────────────────────── */}
+      {showFilters && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: 11, color: 'var(--text-sub)', display: 'block', marginBottom: 4, fontWeight: 600 }}>From Date</label>
+              <input type="date" className="input" value={fromDate} onChange={e => setFromDate(e.target.value)} />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: 'var(--text-sub)', display: 'block', marginBottom: 4, fontWeight: 600 }}>To Date</label>
+              <input type="date" className="input" value={toDate} onChange={e => setToDate(e.target.value)} />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: 'var(--text-sub)', display: 'block', marginBottom: 4, fontWeight: 600 }}>Route</label>
+              <select className="input" value={routeFilter} onChange={e => setRouteFilter(e.target.value)}>
+                <option value="">All Routes</option>
+                {routes.map(r => <option key={String(r.id)} value={String(r.id)}>{r.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: 'var(--text-sub)', display: 'block', marginBottom: 4, fontWeight: 600 }}>Search</label>
+              <input
+                className="input"
+                placeholder="Customer, salesman, order…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+          <button
+            className="btn btn-primary btn-sm"
+            style={{ marginTop: 12 }}
+            onClick={load}
+          >
+            Apply Filters
+          </button>
+        </div>
+      )}
+
+      {/* ── Tabs ─────────────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 4, borderBottom: '2px solid var(--border)', marginBottom: 20 }}>
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '10px 18px', borderRadius: '10px 10px 0 0',
+              border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 13, fontWeight: 700,
+              background: activeTab === tab.id ? '#fff' : 'transparent',
+              color: activeTab === tab.id ? 'var(--primary)' : 'var(--text-sub)',
+              borderBottom: activeTab === tab.id ? '2px solid var(--primary)' : '2px solid transparent',
+              marginBottom: -2,
+            }}
+          >
+            {tab.label}
+            {tab.count > 0 && (
+              <span style={{
+                fontSize: 11, fontWeight: 800,
+                background: tab.id === 'pending' && tab.count > 0 ? 'var(--amber-bg)' : 'var(--ice)',
+                color: tab.id === 'pending' && tab.count > 0 ? 'var(--amber)' : 'var(--primary)',
+                padding: '1px 7px', borderRadius: 20,
+              }}>
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Closed orders notice ───────────────────────────────────────────────── */}
+      {activeTab === 'closed' && closedOrders.length > 0 && (
+        <div style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--text-sub)' }}>
+          <History size={15} />
+          <span>These orders were <strong>approved → packed → closed</strong> by Admin. They are read-only and shown for reference.</span>
+        </div>
+      )}
+
+      {/* ── Bulk Actions ────────────────────────────────────────────────────── */}
+      {activeTab === 'pending' && selected.size > 0 && (
+        <div style={{
+          background: 'var(--primary-glow)', border: '1px solid var(--primary)',
+          borderRadius: 10, padding: '10px 16px', marginBottom: 12,
+          display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>
+            {selected.size} order{selected.size > 1 ? 's' : ''} selected
+          </span>
+          <button
+            onClick={handleBulkPack}
+            disabled={bulkPacking}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}
+          >
+            {bulkPacking
+              ? <><Spinner size={13} /> Packing…</>
+              : <><CheckCircle2 size={13} /> Mark All as Packed</>
+            }
+          </button>
+          <button
+            onClick={() => setSelected(new Set())}
+            style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-sub)', fontFamily: 'inherit' }}
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
+      {/* ── Orders Table ────────────────────────────────────────────────────── */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 60 }}><Spinner size={32} /></div>
+      ) : visibleOrders.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            {activeTab === 'closed' ? <History size={28} color="#94A3B8" /> : <Package size={28} color="#94A3B8" />}
+          </div>
+          <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+            {activeTab === 'pending' ? 'No orders pending packing'
+              : activeTab === 'packed' ? 'No packed orders'
+              : 'No closed orders for this period'}
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--text-sub)' }}>
+            {activeTab === 'pending'
+              ? 'Orders appear here once Admin approves them.'
+              : activeTab === 'packed'
+              ? 'Pack orders from the Pending tab to see them here.'
+              : 'Closed orders from Admin will appear here. Try adjusting the date range.'}
+          </p>
+        </div>
+      ) : (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC' }}>
+                {activeTab === 'pending' && (
+                  <th style={{ width: 40, padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+                    <button
+                      onClick={toggleAll}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-sub)', padding: 0 }}
+                    >
+                      {allPendingSelected
+                        ? <CheckSquare size={15} color="var(--primary)" />
+                        : <Square size={15} />
+                      }
+                    </button>
+                  </th>
+                )}
+                {['Order #', 'Date', 'Salesman', 'Customer', 'Route', 'Items', 'Qty', 'Status', ''].map(h => (
+                  <th key={h} style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', textAlign: h === 'Items' || h === 'Qty' ? 'right' : 'left', color: '#64748B', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {visibleOrders.map(order => {
+                const meta       = PACKING_STATUS[order.packingStatus as keyof typeof PACKING_STATUS] ?? PACKING_STATUS[0];
+                const isPending  = order.packingStatus === 0;
+                const isSelected = selected.has(order.id);
+                const isClosed   = activeTab === 'closed';
+
+                return (
+                  <tr
+                    key={order.id}
+                    style={{
+                      background: isSelected ? 'var(--primary-glow)' : isClosed ? '#FAFBFD' : 'transparent',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid var(--border-lite)',
+                    }}
+                    onClick={() => setDetailOrder(order)}
+                    onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = '#FAFBFD'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isSelected ? 'var(--primary-glow)' : isClosed ? '#FAFBFD' : 'transparent'; }}
+                  >
+                    {activeTab === 'pending' && (
+                      <td onClick={e => e.stopPropagation()} style={{ padding: '10px 14px' }}>
+                        {isPending && (
+                          <button
+                            onClick={() => toggleSelect(order.id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-sub)' }}
+                          >
+                            {isSelected
+                              ? <CheckSquare size={14} color="var(--primary)" />
+                              : <Square size={14} />
+                            }
+                          </button>
+                        )}
+                      </td>
+                    )}
+                    <td style={{ padding: '10px 14px', fontWeight: 700, fontSize: 12, color: 'var(--primary)' }}>{order.orderNumber}</td>
+                    <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text-sub)' }}>
+                      {new Date(order.orderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      <span style={{ display: 'block', fontSize: 11, color: '#94A3B8' }}>
+                        {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 14px', fontWeight: 600 }}>{order.salesmanName}</td>
+                    <td style={{ padding: '10px 14px' }}>{order.customerName}</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-sub)', fontSize: 12 }}>{order.routeName}</td>
+                    <td style={{ padding: '10px 14px', textAlign: 'right' }}>{order.itemCount}</td>
+                    <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700 }}>{order.totalQty.toFixed(0)}</td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '3px 8px', borderRadius: 12, fontWeight: 700 }} className={meta.color}>
+                        {meta.icon} {meta.label}
+                      </span>
+                    </td>
+                    <td onClick={e => e.stopPropagation()} style={{ padding: '8px 14px' }}>
+                      {isPending && activeTab === 'pending' && (
+                        <button
+                          style={{ padding: '5px 12px', borderRadius: 7, border: 'none', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', boxShadow: '0 2px 6px rgba(22,163,74,0.25)' }}
+                          onClick={() => handlePackOne(order.id, false)}
+                        >
+                          Pack ✓
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── Detail Modal ──────────────────────────────────────────────────────── */}
+      {detailOrder && (
+        <OrderDetailModal
+          order={detailOrder}
+          onClose={() => setDetailOrder(null)}
+          onPack={handlePackOne}
+        />
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/Warehouse/WarehouseLoading.tsx">
+// PATH: src/pages/Warehouse/WarehouseLoading.tsx
+// FIXED:
+//  1. NaN warning on <select value> — routeId state is now always string, never number
+//  2. "Loading Sheet" heading was white-on-white — now uses --text (dark slate)
+//  3. Full-width layout using page-content class so it fills the page properly
+//  4. Better colour palette: teal accent for warehouse, clear section hierarchy
+
+import { useEffect, useState } from 'react';
+import { Truck, Download, Loader2, Package, CheckCircle2 } from 'lucide-react';
+import { reportsApi, routesApi } from '../../api/services';
+import type { RouteDto } from '../../types';
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export default function WarehouseLoading() {
+  const [routes,      setRoutes]      = useState<RouteDto[]>([]);
+  const [date,        setDate]        = useState(today());
+  // ── FIXED: always string so <select value> never receives NaN ─────────────
+  const [routeId,     setRouteId]     = useState<string>('');
+  const [downloading, setDownloading] = useState(false);
+  const [error,       setError]       = useState('');
+  const [success,     setSuccess]     = useState(false);
+
+  useEffect(() => {
+    routesApi.list().then(r => {
+      setRoutes(r);
+      // auto-select only route if exactly one exists
+      if (r.length === 1) setRouteId(String(r[0].id));
+    }).catch(() => {});
+  }, []);
+
+  const download = async () => {
+    setError('');
+    setSuccess(false);
+    if (!routeId) { setError('Please select a route first.'); return; }
+    setDownloading(true);
+    try {
+      const blob = await reportsApi.loadingSheet(date, Number(routeId));
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `loading-sheet-${date}-route${routeId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 4000);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Download failed. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <div className="page-content">
+      {/* ── Page Header ──────────────────────────────────────────────────── */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14,
+            background: 'linear-gradient(135deg,#0E7490 0%,#06B6D4 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(6,182,212,0.30)',
+            flexShrink: 0,
+          }}>
+            <Truck size={22} color="#fff" />
+          </div>
+          <div>
+            {/* FIXED: was text-white (invisible on white bg) — now slate heading */}
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text)', margin: 0, letterSpacing: '-0.03em' }}>
+              Loading Sheet
+            </h1>
+            <p style={{ color: 'var(--text-sub)', fontSize: 14, marginTop: 2 }}>
+              Warehouse Portal — Generate & download route PDF
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
+        {/* ── Left: What is a Loading Sheet ──────────────────────────────── */}
+        <div className="card" style={{ borderLeft: '4px solid #06B6D4' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: 'rgba(6,182,212,0.10)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <Package size={18} color="#0E7490" />
+            </div>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+                What is a Loading Sheet?
+              </p>
+              <p style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.7 }}>
+                The loading sheet lists all products and quantities to be loaded onto the vehicle
+                for a route on a given day. Select the date and route, then download the PDF to
+                hand off to the loading team.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Right: Generate Report form ─────────────────────────────────── */}
+        <div className="card">
+          <h2 style={{
+            fontSize: 12, fontWeight: 700, color: 'var(--text-sub)',
+            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 20,
+          }}>
+            Generate Report
+          </h2>
+
+          {/* Date */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
+              Date
+            </label>
+            <input
+              type="date"
+              className="input"
+              style={{ width: '100%' }}
+              value={date}
+              onChange={e => setDate(e.target.value)}
+            />
+          </div>
+
+          {/* Route */}
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
+              Route
+            </label>
+            {/* FIXED: value is always string, never number — eliminates NaN warning */}
+            <select
+              className="input"
+              style={{ width: '100%' }}
+              value={routeId}
+              onChange={e => setRouteId(e.target.value)}
+            >
+              <option value="">Select a route…</option>
+              {routes.map(r => (
+                <option key={String(r.id)} value={String(r.id)}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Error / Success */}
+          {error && (
+            <div style={{
+              background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)',
+              borderRadius: 8, padding: '10px 14px', marginBottom: 14,
+              fontSize: 13, color: '#DC2626',
+            }}>
+              {error}
+            </div>
+          )}
+          {success && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.25)',
+              borderRadius: 8, padding: '10px 14px', marginBottom: 14,
+              fontSize: 13, color: '#16A34A',
+            }}>
+              <CheckCircle2 size={15} />
+              Loading sheet downloaded successfully!
+            </div>
+          )}
+
+          {/* Download Button */}
+          <button
+            onClick={download}
+            disabled={downloading || !routeId}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              gap: 8, padding: '12px 20px', borderRadius: 10, border: 'none',
+              background: routeId
+                ? 'linear-gradient(135deg,#0E7490 0%,#06B6D4 100%)'
+                : '#E2E8F0',
+              color: routeId ? '#fff' : '#94A3B8',
+              fontSize: 14, fontWeight: 700, cursor: routeId ? 'pointer' : 'not-allowed',
+              fontFamily: 'inherit',
+              boxShadow: routeId ? '0 4px 14px rgba(6,182,212,0.30)' : 'none',
+              transition: 'all 0.15s',
+            }}
+          >
+            {downloading
+              ? <><Loader2 size={17} style={{ animation: 'spin 1s linear infinite' }} /> Generating PDF…</>
+              : <><Download size={17} /> Download Loading Sheet</>
+            }
+          </button>
+        </div>
+      </div>
+
+      {/* ── Quick-Select Route Grid ──────────────────────────────────────── */}
+      {routes.length > 1 && (
+        <div style={{ marginTop: 32 }}>
+          <h2 style={{
+            fontSize: 12, fontWeight: 700, color: 'var(--text-sub)',
+            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14,
+          }}>
+            Quick Select Route
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+            {routes.map(r => {
+              const isActive = routeId === String(r.id);
+              return (
+                <button
+                  key={String(r.id)}
+                  onClick={() => setRouteId(String(r.id))}
+                  style={{
+                    background: isActive ? 'rgba(6,182,212,0.08)' : '#fff',
+                    border: isActive ? '2px solid #06B6D4' : '1px solid var(--border)',
+                    borderRadius: 12, padding: '14px 16px', cursor: 'pointer',
+                    textAlign: 'left', transition: 'all 0.15s', fontFamily: 'inherit',
+                    boxShadow: isActive ? '0 0 0 3px rgba(6,182,212,0.12)' : 'var(--shadow-sm)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 9,
+                      background: isActive ? 'rgba(6,182,212,0.15)' : '#F1F5F9',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <Truck size={16} color={isActive ? '#0E7490' : '#94A3B8'} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: isActive ? '#0E7490' : 'var(--text)', margin: 0 }}>
+                        {r.name}
+                      </p>
+                      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                        {(r as any).salesman ?? r.assignedSalesmanName ?? 'Unassigned'}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/store/authStore.ts">
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { AuthUser, UserRole } from '../types';
+
+interface AuthState {
+  user:            AuthUser | null;
+  token:           string | null;
+  isAuthenticated: boolean;
+  setUser:         (user: AuthUser) => void;
+  logout:          () => void;
+  loadFromStorage: () => void;
+}
+
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      user:            null,
+      token:           null,
+      isAuthenticated: false,
+
+      setUser: (user) => set({ user, token: user.token, isAuthenticated: true }),
+
+      logout: () => set({ user: null, token: null, isAuthenticated: false }),
+
+      loadFromStorage: () => {
+        const stored = localStorage.getItem('fmcg_auth');
+        if (stored && !get().user) {
+          try {
+            const parsed = JSON.parse(stored);
+            const { state } = parsed;
+            if (state?.user) set({ user: state.user, token: state.token ?? state.user.token ?? null, isAuthenticated: true });
+          } catch {
+            localStorage.removeItem('fmcg_auth');
+          }
+        }
+      },
+    }),
+    {
+      name:       'fmcg_auth',
+      partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated }),
+    },
+  ),
+);
+
+// ── Role guards ────────────────────────────────────────────────────────────────
+export function useRole(): UserRole | null {
+  return useAuthStore((s) => s.user?.role ?? null);
+}
+
+export function useIsAdmin(): boolean {
+  const role = useRole();
+  return role === 'Admin' || role === 'SuperAdmin';
+}
+
+export function useIsSalesman(): boolean {
+  return useRole() === 'Salesman';
+}
+
+export function useIsAccounts(): boolean {
+  const role = useRole();
+  return role === 'Accounts' || role === 'Admin' || role === 'SuperAdmin';
+}
+
+export function useIsWarehouse(): boolean {
+  const role = useRole();
+  return role === 'Warehouse' || role === 'Admin' || role === 'SuperAdmin';
+}
+
+// ── Default redirect by role ───────────────────────────────────────────────────
+export function getRoleHome(role: UserRole): string {
+  switch (role) {
+    case 'SuperAdmin': return '/admin/dashboard';
+    case 'Admin':      return '/admin/dashboard';
+    case 'Salesman':   return '/salesman/routes';
+    case 'Accounts':   return '/accounts/settlement';
+    case 'Warehouse':  return '/warehouse/loading';
+    default:           return '/login';
+  }
+}
+</file>
+
+<file path="src/types/index.ts">
+// PATH: src/types/index.ts
+// UPDATED: OrderStatus enum expanded to 5 values, ORDER_STATUS_LABELS/BADGE updated,
+//          RoutePackingStatusDto added, OrderDetailDto gets approvedAt,
+//          OrderDto gets approvedAt field
+
+// ── Route Execution (Salesman daily flow) ─────────────────────────────────────
+export type VisitStatus = 'Pending' | 'OrderPlaced' | 'Skipped' | 'NoOrder';
+export type ExecutionStatus = 'InProgress' | 'Completed' | 'Cancelled';
+
+export interface CustomerVisitDto {
+  visitId:         string;
+  id:              string;
+  customerId:      string;
+  customerName:    string;
+  customerNameMalayalam?: string;
+  customerNameMl?: string;
+  phoneNumber?:    string;
+  address?:        string;
+  sequenceOrder:   number;
+  visitStatus:     VisitStatus;
+  orderId?:        string;
+  skipReason?:     string;
+  visitedAt?:      string;
+}
+
+export interface CurrentRouteExecutionDto {
+  hasActiveExecution?: boolean;
+  executionId?:     string;
+  routeId?:         string;
+  routeName?:       string;
+  executionDate?:   string;
+  status?:          string;
+  totalCustomers?:  number;
+  completedCount?:  number;
+  pendingCount?:    number;
+  customers?:       CustomerVisitDto[];
+}
+
+export interface StartRouteExecutionResponse {
+  executionId:    string;
+  routeId:        string;
+  routeName:      string;
+  executionDate:  string;
+  totalCustomers: number;
+  customers:      CustomerVisitDto[];
+}
+
+export interface RecordVisitBody {
+  executionId?:     string;
+  customerVisitId?: string;
+  customerId:       string;
+  visitStatus?:     VisitStatus;
+  status?:          VisitStatus;
+  orderId?:         string;
+  skipReason?:      string;
+}
+
+export interface RecordCustomerVisitResponse {
+  customerVisitId: string;
+  customerId:      string;
+  visitStatus:     VisitStatus;
+  updatedAt:       string;
+}
+
+export interface CompleteRouteExecutionResponse {
+  executionId:     string;
+  status:          ExecutionStatus;
+  completedAt:     string;
+  totalCustomers:  number;
+  ordersPlaced:    number;
+  skipped:         number;
+  noOrder:         number;
+}
+
+// ── RBAC Roles ────────────────────────────────────────────────────────────────
+export type UserRole = 'SuperAdmin' | 'Admin' | 'Salesman' | 'Accounts' | 'Warehouse';
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+export interface AuthUser {
+  id:    string;
+  email: string;
+  name:  string;
+  role:  UserRole;
+  token: string;
+}
+
+export interface UserDto {
+  id:       string;
+  email:    string;
+  fullName: string;
+  role:     string;
+  isActive: boolean;
+}
+
+export interface LoginResponse {
+  token:        string;
+  refreshToken: string;
+  userId:       string;
+  email:        string;
+  fullName:     string;
+  role:         string;
+}
+
+// ── API Envelope ──────────────────────────────────────────────────────────────
+export interface ApiResult<T> {
+  isSuccess: boolean;
+  data?:     T;
+  value?:    T;
+  error?:    string;
+  message?:  string;
+}
+
+// ── Route ─────────────────────────────────────────────────────────────────────
+export interface RouteDto {
+    id:                    string;
+    name:                  string;
+    description?:          string;
+    isActive:              boolean;
+    assignedSalesmanId?:   string | null;
+    assignedSalesmanName?: string | null;
+    salesmanName?:         string | null;
+    salesman?:             string | null;
+    customerCount?:        number;
+    createdAt:             string;
+    isTodayOverride?:      boolean;
+    overrideNotes?:        string | null;
+    hasOverrideToday?:     boolean;
+}
+
+export interface RouteDetailDto extends RouteDto {
+  customers: CustomerDto[];
+}
+
+export interface CreateRouteCommand {
+  name:                string;
+  description?:        string;
+  assignedSalesmanId?: string;
+}
+
+export interface UpdateRouteCommand extends CreateRouteCommand {
+  id: string;
+}
+
+// ── Customer ──────────────────────────────────────────────────────────────────
+export interface CustomerDto {
+  id:            string;
+  nameEnglish:   string;
+  nameMalayalam: string;
+  phoneNumber:   string;
+  address?:      string;
+  routeId:       string;
+  routeName?:    string;
+  isActive:      boolean;
+  sequenceOrder: number;
+  createdAt:     string;
+}
+
+export interface CustomerDetailDto extends CustomerDto {
+  routeDescription?: string;
+  totalOrdersCount?: number;
+}
+
+export interface CreateCustomerCommand {
+  nameEnglish:    string;
+  nameMalayalam?: string;
+  phoneNumber?:   string;
+  address?:       string;
+  routeId:        string;
+}
+
+export interface UpdateCustomerCommand extends CreateCustomerCommand {
+  id: string;
+}
+
+export interface ReorderCustomersRequest {
+  routeId: string;
+  customerId: string;
+  newSequenceOrder: number;
+}
+
+// ── Product Group ─────────────────────────────────────────────────────────────
+export interface ProductGroupDto {
+  id:           string;
+  name:         string;
+  nameMl?:      string;
+  description?: string;
+  isActive:     boolean;
+  productCount?: number;
+  createdDate:  string;
+}
+
+// ── Product ───────────────────────────────────────────────────────────────────
+export interface ProductDto {
+    id: string;
+    nameEnglish: string;
+    nameMalayalam: string;
+    productGroupId: string;
+    productGroupName?: string;
+    productUnitId?: string;
+    productUnitName?: string;
+    productUnitSymbol?: string;
+    basePrice: number;
+    isActive: boolean;
+    createdAt: string;
+    
+    // ── NEW fields ──────────────────────────────────────────────────────────
+    itemCode?: string;
+    hsnCode?: string;
+    supplier?: string;
+    closingStock?: number;
+    minOrderQty?: number;
+    maxOrderQty?: number;
+    defaultUnitId?: string;
+}
+
+export interface ProductDetailDto extends ProductDto {
+  productGroupDescription?: string;
+}
+
+export interface ProductSearchDto {
+  id:               string;
+  nameEnglish:      string;
+  nameMalayalam:    string;
+  productGroupId:   string;
+  productGroupName: string;
+  productUnitId?:   string;
+  unitName:         string;
+  unitSymbol:       string;
+  basePrice:        number;
+  isActive:         boolean;
+}
+
+// Add to existing types in src/types/index.ts
+
+// ── Product Unit Price Types ────────────────────────────────────────────────
+export interface ProductUnitPriceDto {
+    id: string;
+    productId: string;
+    productUnitId: string;
+    unitName: string;
+    unitSymbol: string;
+    unitSize: number;
+    unitSizeLabel?: string;
+    salePrice: number;
+    salePrice2: number;
+    salePrice3: number;
+    salePrice4: number;
+    purchaseRate: number;
+    landingCost: number;
+    mrp: number;
+    mop: number;
+    discount1: number;
+    discount2: number;
+    discount3: number;
+    discount4: number;
+    vat: number;
+    floodCost: number;
+    isDefault: boolean;
+    isActive: boolean;
+}
+
+export interface CreateProductUnitPriceDto {
+    productId: string;
+    productUnitId: string;
+    unitSize: number;
+    unitSizeLabel?: string;
+    salePrice: number;
+    salePrice2?: number;
+    salePrice3?: number;
+    salePrice4?: number;
+    purchaseRate: number;
+    landingCost: number;
+    mrp: number;
+    mop?: number;
+    discount1?: number;
+    discount2?: number;
+    discount3?: number;
+    discount4?: number;
+    vat?: number;
+    floodCost?: number;
+    isDefault: boolean;
+}
+
+export interface UpdateProductUnitPriceDto extends CreateProductUnitPriceDto {
+    id: string;
+    isActive: boolean;
+}
+
+export interface CreateProductCommand {
+  nameEnglish:    string;
+  nameMalayalam?: string;
+  sku?:           string;
+  productGroupId: string;
+  productUnitId?: string;
+  basePrice:      number;
+  defaultPackSize?: number;
+}
+
+export interface UpdateProductCommand extends CreateProductCommand {
+  id:       string;
+  isActive: boolean;
+}
+
+// ── Unit ──────────────────────────────────────────────────────────────────────
+export interface UnitDto {
+  id:             string;
+  name:           string;
+  abbreviation?:  string;
+  createdDate:    string;
+  loadingPriority?: number;
+  measurementType?: 'weight' | 'volume' | 'count';
+  baseUnitValue?: number;
+  baseUnitName?: string;
+}
+
+export interface UnitPriorityDto {
+  id:              string;
+  name:            string;
+  symbol?:         string;
+  loadingPriority: number;
+}
+
+export interface LoadingSheetItemDto {
+  productName:        string;
+  productNameMalayalam?: string;
+  unitSymbol:         string;
+  totalQuantity:      number;
+  loadingPriority:    number;
+  unitTypeLabel:      string;
+  quantityBags?:      number;
+  quantityBoxes?:     number;
+  quantityTins?:      number;
+}
+
+export interface LoadingSheetStopDto {
+  customerId:         string;
+  customerName:       string;
+  customerNameMalayalam?: string;
+  sequenceOrder:      number;
+  loadingPosition:    number;
+  isFirstDelivery:    boolean;
+  isLastDelivery:     boolean;
+  visitStatus:        string;
+  items:              LoadingSheetItemDto[];
+  stopTotalQuantity:  number;
+}
+
+// ── Order ─────────────────────────────────────────────────────────────────────
+// UPDATED: 5 values matching backend OrderStatus enum
+export enum OrderStatus {
+  Draft           = 1,
+  PendingApproval = 2,
+  Approved        = 3,
+  Packed          = 4,
+  Closed          = 5,
+}
+
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  [OrderStatus.Draft]:           'Draft',
+  [OrderStatus.PendingApproval]: 'Pending Approval',
+  [OrderStatus.Approved]:        'Approved',
+  [OrderStatus.Packed]:          'Packed',
+  [OrderStatus.Closed]:          'Closed',
+};
+
+export const ORDER_STATUS_BADGE: Record<OrderStatus, string> = {
+  [OrderStatus.Draft]:           'badge-muted',
+  [OrderStatus.PendingApproval]: 'badge-amber',
+  [OrderStatus.Approved]:        'badge-blue',
+  [OrderStatus.Packed]:          'badge-blue',
+  [OrderStatus.Closed]:          'badge-green',
+};
+
+export interface OrderItemDto {
+  id?:            string | number;
+  productId:      string | number;
+  productName?:   string;
+  productNameMl?: string;
+  productNameMalayalam?: string;
+  unitId?:        string | number;
+  unitName?:      string;
+  unitSymbol?:    string;
+  quantity:       number;
+  basePrice?:     number;
+  sellingPrice:   number;
+  variance?:      number;
+  variancePct?:   number;
+  lineTotal?:     number;
+  remarks?:       string;
+  quantityBags?:  number;
+  quantityBoxes?: number;
+  quantityTins?:  number;
+}
+
+export interface OrderDto {
+  id:             string | number;
+  customerId:     string | number;
+  customerName?:  string;
+  customerNameMalayalam?: string;
+  routeId:        string | number;
+  routeName?:     string;
+  salesmanId?:    string | number;
+  salesmanName?:  string;
+  status:         OrderStatus;
+  orderDate:      string;
+  totalAmount:    number;
+  totalVariance?: number;
+  totalQuantity?: number;
+  itemCount?:     number;
+  items?:         OrderItemDto[];
+  createdDate?:   string;
+  remarks?:       string;
+  approvedAt?:    string;   // ← NEW
+}
+
+export interface OrderDetailDto extends OrderDto {
+  items:           OrderItemDto[];
+  totalBasePrice:  number;
+  totalSelling:    number;
+  totalVariance:   number;
+  variancePct:     number;
+  approvedAt?:     string;  // ← NEW
+}
+
+export interface CreateOrderItemDto {
+  productId:    string | number;
+  quantity:     number;
+  sellingPrice: number;
+  unitId?:      string | number;
+  remarks?:     string;
+}
+
+export interface CreateOrderCommand {
+  customerId:      string | number;
+  routeId:         string | number;
+  orderDate:       string;
+  items:           CreateOrderItemDto[];
+  executionId?:    string;
+  customerVisitId?: string;
+  remarks?:        string;
+}
+
+export interface CustomerOrderHistoryDto {
+  orderId:     string;
+  orderNumber: string;
+  orderDate:   string;
+  status:      string;
+  totalAmount: number;
+  itemCount:   number;
+  remarks?:    string;
+  items: {
+    productId:            string;
+    productName:          string;
+    productNameMalayalam?: string;
+    quantity:             number;
+    unitSymbol:           string;
+    sellingPrice:         number;
+    quantityBags?:        number;
+    quantityBoxes?:       number;
+    quantityTins?:        number;
+  }[];
+}
+
+// ── Settlement ────────────────────────────────────────────────────────────────
+export interface SettlementSummaryDto {
+  totalBilled:        number;
+  totalCollected:     number;
+  totalOutstanding:   number;
+  customersWithDues:  number;
+  date?:              string;
+}
+
+export interface ExpectedCashDto {
+  routeId?:           string;
+  routeName?:         string;
+  totalOrderValue:    number;
+  paidAmount:         number;
+  outstandingAmount:  number;
+  orderCount:         number;
+  settledOrderCount:  number;
+  pendingOrderCount:  number;
+  asOfDate:           string;
+}
+
+export interface OutstandingCustomerDto {
+  customerId:       number | string;
+  customerName:     string;
+  routeName?:       string;
+  totalBilled:      number;
+  totalPaid:        number;
+  outstanding:      number;
+  lastOrderDate?:   string;
+  lastPaymentDate?: string;
+}
+
+export interface OutstandingSummaryDto {
+  totalOutstanding:  number;
+  customerCount:     number;
+  customers:         OutstandingCustomerDto[];
+}
+
+export interface DailyClosureStatusDto {
+  date:             string;
+  isClosed:         boolean;
+  closedAt?:        string;
+  closedBy?:        string;
+  notes?:           string;
+  totalOrders:      number;
+  closedOrders:     number;
+  submittedOrders:  number;
+  totalRevenue:     number;
+}
+
+export interface DailyClosureResultDto {
+  closureDate:   string;
+  ordersLocked:  number;
+  totalRevenue:  number;
+  message:       string;
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+export interface DashboardKpisDto {
+  todayRevenue:       number;
+  todayOrders:        number;
+  todayVariance:      number;
+  activeRoutes:       number;
+  activeCustomers:    number;
+  pendingSettlement:  number;
+  topRouteRevenue:    number;
+  topRouteName?:      string;
+  mtdRevenue:         number;
+  mtdOrders:          number;
+}
+
+export interface ProductProfitabilityDto {
+  productId:             string;
+  productName:           string;
+  productNameMalayalam?: string;
+  productGroupId:        string;
+  productGroupName:      string;
+  totalQuantity:         number;
+  totalSales:            number;
+  totalVariance:         number;
+  marginPercentage:      number;
+  orderCount:            number;
+  isProfitable:          boolean;
+}
+
+export interface RouteProfitabilityDto {
+  routeId:          string;
+  routeName:        string;
+  totalSales:       number;
+  totalVariance:    number;
+  marginPercentage: number;
+  orderCount:       number;
+  customerCount:    number;
+  isProfitable:     boolean;
+}
+
+export interface TopProductDto {
+  productId:             string;
+  productName:           string;
+  productNameMalayalam?: string;
+  totalQuantity:         number;
+  totalSales:            number;
+  totalVariance:         number;
+  orderCount:            number;
+}
+
+export interface PriceHistoryDto {
+  id:             string;
+  price:          number;
+  previousPrice?: number;
+  effectiveDate:  string;
+  isActive:       boolean;
+  reason?:        string;
+  createdAt:      string;
+}
+
+export interface WarehouseOrderDto {
+  id:            string;
+  orderNumber:   string;
+  orderDate:     string;
+  customerName:  string;
+  salesmanName:  string;
+  routeName:     string;
+  routeId:       string;
+  itemCount:     number;
+  totalQty:      number;
+  packingStatus: number;
+  packedAt?:     string;
+  items: {
+    productId:     string;
+    productName:   string;
+    quantity:      number;
+    unitName:      string;
+    quantityBags?:  number;
+    quantityBoxes?: number;
+    quantityTins?:  number;
+  }[];
+}
+
+export interface WarehouseSummaryDto {
+  date?:         string;
+  totalOrders:   number;
+  pendingPack?:  number;
+  packed?:       number;
+  partialPacked?: number;
+  // New fields from updated WarehouseController
+  packedCount?:   number;
+  pendingCount?:  number;
+  partialCount?:  number;
+}
+
+// ── NEW: Packing status for delivery button gate ──────────────────────────────
+export interface RoutePackingStatusDto {
+  totalOrders:  number;
+  packedCount:  number;
+  pendingCount: number;
+  allPacked:    boolean;
+  orders: {
+    id:            string;
+    orderNumber:   string;
+    packingStatus: number;
+  }[];
+}
+
+export interface RouteAssignmentDto {
+  id:             string;
+  routeId:        string;
+  routeName:      string;
+  salesmanId:     string;
+  salesmanName:   string;
+  assignmentDate: string;
+  notes?:         string;
+  isPermanent:    boolean;
+}
+
+export interface TodayRouteDto {
+    routeId:       string;
+    routeName:     string;
+    isOverride:    boolean;
+    notes?:        string;
+    permanentSalesmanName?: string;
+}
+
+export interface RoutePerformanceResponseDto {
+  routes:   RoutePerformanceItemDto[];
+  fromDate: string;
+  toDate:   string;
+}
+
+export interface RoutePerformanceItemDto {
+  routeId:            string;
+  routeName:          string;
+  salesmanName?:      string;
+  orderCount:         number;
+  customerCount:      number;
+  totalRevenue:       number;
+  averageOrderValue:  number;
+  variance:           number;
+}
+
+export interface ProductPerformanceResponseDto {
+  products:   ProductPerformanceItemDto[];
+  totalCount: number;
+}
+
+export interface ProductPerformanceItemDto {
+  productId:   string;
+  productName: string;
+  groupName?:  string;
+  quantity:    number;
+  revenue:     number;
+  variance:    number;
+  orderCount:  number;
+}
+
+export interface PeriodComparisonResponseDto {
+  currentPeriod:  PeriodDataDto;
+  previousPeriod: PeriodDataDto;
+  revenueGrowth:  number;
+  orderGrowth:    number;
+}
+
+export interface PeriodDataDto {
+  fromDate:       string;
+  toDate:         string;
+  totalRevenue:   number;
+  totalOrders:    number;
+  avgOrderValue:  number;
+}
+
+export interface OrderMarginDto {
+  orderId:         string;
+  totalBasePrice:  number;
+  totalSelling:    number;
+  totalVariance:   number;
+  variancePct:     number;
+  isNegative:      boolean;
+}
+
+export interface PricingAuditLogDto {
+  id:             string;
+  productId:      string;
+  productName?:   string;
+  action:         string;
+  oldPrice?:      number;
+  newPrice:       number;
+  changedByName?: string;
+  reason?:        string;
+  createdDate:    string;
+}
+
+// ── Incentives ────────────────────────────────────────────────────────────────
+export interface ProductIncentiveDto {
+  id:             string;
+  productId:      string;
+  productName?:   string;
+  incentiveType:  number;
+  incentiveValue: number;
+  minQuantity?:   number;
+  isActive:       boolean;
+  validFrom?:     string;
+  validTo?:       string;
+  description?:   string;
+  createdDate:    string;
+}
+
+export interface SalesmanIncentiveSummaryDto {
+  salesmanId:            string;
+  salesmanName?:         string;
+  fromDate?:             string;
+  toDate?:               string;
+  periodStart?:          string;
+  periodEnd?:            string;
+  totalIncentive?:       number;
+  totalIncentiveEarned?: number;
+  pendingPayout?:        number;
+  qualifiedOrders?:      number;
+  breakdown?:            IncentiveBreakdownDto[];
+  productBreakdown?:     ProductIncentiveBreakdownDto[];
+}
+
+export interface ProductIncentiveBreakdownDto {
+  productId?:      string;
+  productName:     string;
+  unitsSold?:      number;
+  incentiveType?:  string;
+  incentiveRate?:  number;
+  earned?:         number;
+}
+
+export interface IncentiveBreakdownDto {
+  productId:   string;
+  productName: string;
+  quantity:    number;
+  incentive:   number;
+}
+
+// ── Currency Formatter ────────────────────────────────────────────────────────
+export function fmt(n: number): string {
+  if (isNaN(n)) return '0.00';
+  // Returns formatted number WITHOUT ₹ symbol — call sites write ₹{fmt(x)} themselves
+  return new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+
+export function fmtNum(n: number): string {
+  if (isNaN(n)) return '0';
+  return new Intl.NumberFormat('en-IN').format(n);
+}
+
+export function fmtPct(n: number): string {
+  if (isNaN(n)) return '0.00%';
+  return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
+}
+
+export function fmtDate(d: string | Date): string {
+  if (!d) return '-';
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return 'Invalid Date';
+  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+</file>
+
+<file path="src/vite-env.d.ts">
+/// <reference types="vite/client" />
+</file>
+
+<file path="tailwind.config.js">
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  theme: {
+    extend: {
+      fontFamily: {
+        display: ['"DM Sans"', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
+      },
+      colors: {
+        brand: {
+          50:  '#fff7ed',
+          100: '#ffedd5',
+          200: '#fed7aa',
+          300: '#fdba74',
+          400: '#fb923c',
+          500: '#f97316',
+          600: '#ea580c',
+          700: '#c2410c',
+          800: '#9a3412',
+          900: '#7c2d12',
+        },
+        surface: '#0f1117',
+        card:    '#1a1d26',
+        border:  '#2a2d3a',
+        muted:   '#6b7280',
+      },
+    },
+  },
+  plugins: [],
+};
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+    "types": ["vite/client"]
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
+</file>
+
+<file path="tsconfig.node.json">
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["vite.config.ts"]
+}
+</file>
+
+<file path="vite.config.ts">
+// PATH: vite.config.ts
+// UPDATED: Added vite-plugin-pwa so the app installs on any Android/Apple
+//          tablet or phone directly from the browser (no app store needed).
+//
+// Before running: npm install vite-plugin-pwa -D
+// Also place icon-192.png and icon-512.png inside /public/
+
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
+
+export default defineConfig({
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png'],
+      manifest: {
+        name: 'FMCG Distribution',
+        short_name: 'FMCGDist',
+        description: 'FMCG Distribution Management — Orders, Routes, Warehouse',
+        start_url: '/',
+        display: 'standalone',       // ← full screen, no browser bar on tablet/phone
+        background_color: '#F1F5F9',
+        theme_color: '#2563EB',
+        orientation: 'any',
+        icons: [
+          {
+            src: '/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: '/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+          },
+          {
+            src: '/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+        ],
+      },
+      workbox: {
+        // Cache all app pages so the shell loads even on weak connections
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Don't cache API calls — always fetch fresh data from server
+        runtimeCaching: [
+          {
+            urlPattern: /^https?:\/\/.*\/api\//,
+            handler: 'NetworkOnly',
+          },
+        ],
+      },
+    }),
+  ],
+  server: {
+    port: 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+      },
+    },
+  },
+});
+</file>
+
+</files>

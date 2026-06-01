@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FMCG.Distribution.API/FMCG.Distribution.API.csproj" />
+    <Project Path="src/FMCG.Distribution.Application/FMCG.Distribution.Application.csproj" />
+    <Project Path="src/FMCG.Distribution.Domain/FMCG.Distribution.Domain.csproj" />
+    <Project Path="src/FMCG.Distribution.Infrastructure/FMCG.Distribution.Infrastructure.csproj" />
+    <Project Path="src/FMCG.Distribution.Shared/FMCG.Distribution.Shared.csproj" />
+  </Folder>
+</Solution>

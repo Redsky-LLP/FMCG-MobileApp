@@ -1,0 +1,56 @@
+﻿# Visual Studio / IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.sln.docstates
+
+# Build outputs
+**/bin/
+**/obj/
+**/Debug/
+**/Release/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Backend - compiled files
+fmcg-backend/src/**/bin/
+fmcg-backend/src/**/obj/
+fmcg-backend/.vs/
+
+# Frontend - node modules and build
+fmcg-frontend/node_modules/
+fmcg-frontend/dist/
+fmcg-frontend/dist-ssr/
+fmcg-frontend/.vite/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+*.pid
+*.seed
+
+# Database files
+*.mdf
+*.ldf
+*.db
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Package files (lock files are OK but keep them)
+package-lock.json
+yarn.lock
+
+# Temporary files
+*.tmp
+*.temp
+*.cache

@@ -1,0 +1,2 @@
+// Re-export the main component
+export { default } from './OrderEntry';

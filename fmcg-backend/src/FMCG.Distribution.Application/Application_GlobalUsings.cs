@@ -1,0 +1,1 @@
+﻿global using FMCG.Distribution.Domain.Enums;
