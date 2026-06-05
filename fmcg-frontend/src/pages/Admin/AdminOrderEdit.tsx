@@ -1,4 +1,10 @@
 // PATH: src/pages/Admin/AdminOrderEdit.tsx
+// FIXED: Admin edit no longer clears order items
+// Bug: itemId was not stored during reconstruction, and productId was
+// incorrectly sent as item.id in payload. Server treated all items as new,
+// deleted existing ones, then failed to create new ones correctly → 0 items.
+
+// PATH: src/pages/Admin/AdminOrderEdit.tsx
 // UPDATED: Allow editing Approved orders
 
 import { useEffect, useState, useCallback } from 'react';
@@ -21,6 +27,7 @@ interface LineItem {
   sellingPrice: number;
   unit: string;
   productId: string;
+  itemId?: string;   // OrderItem.Id — needed to update existing items correctly
   isNew?: boolean;
 }
 
@@ -97,6 +104,7 @@ export function AdminOrderEdit() {
         return {
           product: prod,
           productId: String(prod.id),
+          itemId: String(item.id),   // store OrderItem.Id for correct update
           qty: item.quantity,
           sellingPrice: item.sellingPrice,
           unit: prod.productUnitName ?? 'Unit',
@@ -183,7 +191,7 @@ export function AdminOrderEdit() {
       orderDate: order?.orderDate || new Date().toISOString(),
       remarks: remarks || undefined,
       items: lines.map(l => ({
-        id: l.isNew ? undefined : l.productId,
+        id: l.isNew ? undefined : l.itemId,   // use OrderItem.Id not productId
         productId: l.productId,
         quantity: l.qty,
         unitId: l.product.productUnitId,
