@@ -1,6 +1,5 @@
 ﻿// PATH: src/FMCG.Distribution.Application/Features/Orders/Commands/UpdateOrderCommandHandler.cs
-// FIXED: Removed duplicate UpdateOrderCommand class definition that was at the top of this file.
-//        The command is defined exclusively in UpdateOrderCommand.cs.
+// UPDATED: Allow Admin to edit Approved orders (not just Draft/PendingApproval)
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -54,14 +53,16 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
         // ── Permission matrix ──────────────────────────────────────────────────
         if (request.IsAdmin)
         {
-            var adminEditableStatuses = new[] { OrderStatus.Draft, OrderStatus.PendingApproval };
+            // Admin can edit: Draft, PendingApproval, OR Approved orders
+            var adminEditableStatuses = new[] { OrderStatus.Draft, OrderStatus.PendingApproval, OrderStatus.Approved };
             if (!adminEditableStatuses.Contains(order.Status))
                 return Result<OrderDetailDto>.Failure(
                     $"Cannot modify an order in '{order.Status}' status. " +
-                    "Admin can only edit Draft or PendingApproval orders.");
+                    "Admin can only edit Draft, Pending Approval, or Approved orders.");
         }
         else
         {
+            // Salesman can only edit Draft orders
             if (order.Status != OrderStatus.Draft)
                 return Result<OrderDetailDto>.Failure(
                     $"Cannot edit order in '{order.Status}' status. " +

@@ -1,5 +1,5 @@
 // PATH: src/pages/Admin/AdminOrderEdit.tsx
-// Updated: Back button top-left, numbered remarks lines
+// UPDATED: Allow editing Approved orders
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -225,7 +225,6 @@ export function AdminOrderEdit() {
     }).filter(line => line !== '').join('\n');
   };
 
-  // Handle remarks change - preserve raw input but show numbered preview
   const handleRemarksChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setRemarks(e.target.value);
   };
@@ -251,16 +250,17 @@ export function AdminOrderEdit() {
 
   const orderStatus = order.status;
   const isClosed = orderStatus === OrderStatus.Closed;
-  const canEdit = orderStatus === OrderStatus.Draft || 
-                  orderStatus === OrderStatus.PendingApproval || 
-                  orderStatus === OrderStatus.Approved;
+  
+  // UPDATED: Admin can edit Draft, PendingApproval, or Approved orders
+  // Only Closed orders cannot be edited
+  const canEdit = orderStatus !== OrderStatus.Closed;
 
   if (!canEdit) {
     return (
       <div className="min-h-screen bg-slate-50 p-6">
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 mb-4">
           Cannot edit order in '{ORDER_STATUS_LABELS[orderStatus]}' status. 
-          Only Draft, Pending Approval, or Approved orders can be edited.
+          Only Draft, Pending Approval, or Approved orders can be edited. Closed orders are locked.
         </div>
         <button className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50" onClick={() => navigate('/admin/orders')}>
           ← Back to Orders
@@ -577,7 +577,8 @@ Sugar - 50 kg`}
 
       {/* Fixed bottom footer */}
       {lines.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg px-6 py-4 z-30">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg px-6"
+        style={{ zIndex: 55, padding: '16px 24px', paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px) + 70px)' }}>
           <div className="max-w-5xl mx-auto flex items-center justify-between flex-wrap gap-3">
             <div>
               <p className="text-sm text-slate-500">{lines.length} products · {totalItems} units</p>

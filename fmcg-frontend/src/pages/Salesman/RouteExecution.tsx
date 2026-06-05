@@ -456,7 +456,7 @@ export default function RouteExecution() {
 
       {/* ── Fixed bottom CTA ─────────────────────────────────────────────────── */}
       {allDone && !summary && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50, background: '#fff', borderTop: '1px solid #E2E8F0', padding: '16px 20px', boxShadow: '0 -4px 20px rgba(15,23,42,0.10)' }}>
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 55, background: '#fff', borderTop: '1px solid #E2E8F0', padding: '16px 20px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px) + 70px)', boxShadow: '0 -4px 20px rgba(15,23,42,0.10)' }}>
           <div style={{ marginBottom: 10, padding: '8px 14px', borderRadius: 10, background: '#F0FDF4', border: '1px solid rgba(22,163,74,0.20)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <CheckCircle2 size={14} color="#16A34A" />
             <span style={{ fontSize: 14, fontWeight: 700, color: '#15803D' }}>

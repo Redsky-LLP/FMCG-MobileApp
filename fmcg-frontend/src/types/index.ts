@@ -737,7 +737,7 @@ export interface SalesmanIncentiveSummaryDto {
   totalIncentive?:       number;
   totalIncentiveEarned?: number;
   pendingPayout?:        number;
-  qualifiedOrders?:      number;
+  qualifiedOrders?:      number;          // ← ADD THIS
   breakdown?:            IncentiveBreakdownDto[];
   productBreakdown?:     ProductIncentiveBreakdownDto[];
 }

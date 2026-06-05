@@ -10,7 +10,7 @@ interface ReportCard {
   description: string;
   needsRoute: boolean;
   needsDate: boolean;
-  fn: (date: string, routeId?: number) => Promise<Blob>;
+  fn: (date: string, routeId?: string) => Promise<Blob>;
   filename: (date: string) => string;
 }
 
@@ -58,7 +58,7 @@ export default function AccountsReports() {
     setErrors(e => ({ ...e, [report.key]: '' }));
     setDownloading(report.key);
     try {
-      const blob = await report.fn(date, routeId ? Number(routeId) : undefined);
+      const blob = await report.fn(date, routeId ? String(routeId) : undefined);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

@@ -1,5 +1,6 @@
 // PATH: src/pages/Auth/PinLoginPage.tsx
 // Redesigned — White & Blue design system
+// ENHANCED: Added inputMode="email" and safe area padding for mobile
 
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -126,7 +127,9 @@ export default function PinLoginPage() {
       minHeight: '100vh',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: 'linear-gradient(135deg, #EFF6FF 0%, #F1F5F9 50%, #E0F2FE 100%)',
-      padding: 20, position: 'relative', overflow: 'hidden',
+      padding: 20,
+      paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
+      position: 'relative', overflow: 'hidden',
     }}>
 
       {/* Decorative blobs */}
@@ -205,6 +208,7 @@ export default function PinLoginPage() {
                 }} />
                 <input
                   type="email"
+                  inputMode="email"
                   placeholder="salesman@example.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}

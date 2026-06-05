@@ -1,13 +1,13 @@
 // PATH: src/pages/Admin/AdminUsers.tsx
-// NEW FILE — Admin User Management: list, activate/deactivate, set salesman PIN
+// UPDATED: Mobile card view replaces table on small screens
 
 import { useEffect, useState } from 'react';
 import { RefreshCw, UserCheck, UserX, KeyRound, Search } from 'lucide-react';
 import { usersApi, authApi } from '../../api/services';
 import type { UserDto } from '../../types';
 import { PageLoader, Spinner, Alert, Badge, EmptyState, ConfirmModal } from '../../components/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
-// Badge only accepts: 'green' | 'amber' | 'red' | 'blue' | 'muted' | 'primary'
 const ROLE_BADGE: Record<string, 'primary' | 'blue' | 'green' | 'muted' | 'amber'> = {
   SuperAdmin: 'primary',
   Admin:      'primary',
@@ -20,6 +20,7 @@ type RoleFilter = 'All' | 'Salesman' | 'Admin' | 'Accounts' | 'Warehouse';
 const ROLE_FILTERS: RoleFilter[] = ['All', 'Salesman', 'Admin', 'Accounts', 'Warehouse'];
 
 export function AdminUsers() {
+  const isMobile = useIsMobile();
   const [users,        setUsers]        = useState<UserDto[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState('');
@@ -27,11 +28,9 @@ export function AdminUsers() {
   const [search,       setSearch]       = useState('');
   const [roleFilter,   setRoleFilter]   = useState<RoleFilter>('All');
 
-  // Toggle active state
   const [toggling,     setToggling]     = useState<string | null>(null);
   const [toggleTarget, setToggleTarget] = useState<UserDto | null>(null);
 
-  // Set PIN modal
   const [pinModal,     setPinModal]     = useState<UserDto | null>(null);
   const [pinValue,     setPinValue]     = useState('');
   const [pinSaving,    setPinSaving]    = useState(false);
@@ -51,7 +50,6 @@ export function AdminUsers() {
 
   useEffect(() => { load(); }, [roleFilter]);
 
-  // ── Toggle active ─────────────────────────────────────────────────────────
   async function handleToggleConfirm() {
     if (!toggleTarget) return;
     setToggling(toggleTarget.id);
@@ -69,7 +67,6 @@ export function AdminUsers() {
     } finally { setToggling(null); }
   }
 
-  // ── Set PIN ───────────────────────────────────────────────────────────────
   function openPinModal(u: UserDto) {
     setPinModal(u);
     setPinValue('');
@@ -92,7 +89,6 @@ export function AdminUsers() {
     } finally { setPinSaving(false); }
   }
 
-  // ── Filter ────────────────────────────────────────────────────────────────
   const filtered = users.filter(u => {
     const q = search.toLowerCase();
     return u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
@@ -103,7 +99,7 @@ export function AdminUsers() {
   return (
     <div className="page-content">
       {/* Header */}
-      <div className="section-header">
+      <div className="section-header" style={{ flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Users</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
@@ -115,13 +111,11 @@ export function AdminUsers() {
         </button>
       </div>
 
-      {/* Alerts — Alert only accepts variant + children, no style/onClose */}
       {error   && <Alert variant="error">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        {/* Search */}
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
           <Search size={14} style={{
             position: 'absolute', left: 10, top: '50%',
@@ -136,8 +130,7 @@ export function AdminUsers() {
           />
         </div>
 
-        {/* Role filter pills */}
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
           {ROLE_FILTERS.map(r => (
             <button
               key={r}
@@ -156,98 +149,145 @@ export function AdminUsers() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Content */}
       {filtered.length === 0 ? (
         <EmptyState title="No users found" message="Try adjusting your filters." icon={UserCheck} />
+      ) : isMobile ? (
+        /* ── Mobile: card list ──────────────────────────────────────────────── */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {filtered.map(u => (
+            <div
+              key={u.id}
+              style={{
+                background: '#fff',
+                border: '1px solid var(--border)',
+                borderRadius: 14,
+                padding: '14px 16px',
+                opacity: u.isActive ? 1 : 0.6,
+                boxShadow: '0 1px 4px rgba(15,23,42,0.06)',
+              }}
+            >
+              {/* Row 1: avatar + name + role */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                  background: u.isActive ? 'var(--primary-glow)' : 'var(--border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 15, fontWeight: 700,
+                  color: u.isActive ? 'var(--primary)' : 'var(--text-muted)',
+                }}>
+                  {u.fullName.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{u.fullName}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                  <Badge variant={ROLE_BADGE[u.role] ?? 'muted'}>{u.role}</Badge>
+                  <Badge variant={u.isActive ? 'green' : 'muted'}>{u.isActive ? 'Active' : 'Inactive'}</Badge>
+                </div>
+              </div>
+
+              {/* Row 2: action buttons */}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {u.role === 'Salesman' && u.isActive && (
+                  <button
+                    className="btn btn-outline btn-sm"
+                    style={{ flex: 1, justifyContent: 'center', minWidth: 100 }}
+                    onClick={() => openPinModal(u)}
+                  >
+                    <KeyRound size={13} /> Set PIN
+                  </button>
+                )}
+                <button
+                  className={`btn btn-sm ${u.isActive ? 'btn-danger' : 'btn-outline'}`}
+                  style={{ flex: 1, justifyContent: 'center', minWidth: 100 }}
+                  onClick={() => setToggleTarget(u)}
+                  disabled={toggling === u.id}
+                >
+                  {toggling === u.id
+                    ? <Spinner size={13} />
+                    : u.isActive
+                      ? <><UserX size={13} /> Deactivate</>
+                      : <><UserCheck size={13} /> Activate</>
+                  }
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
+        /* ── Desktop: table ─────────────────────────────────────────────────── */
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(u => (
-                <tr key={u.id} style={{ opacity: u.isActive ? 1 : 0.55 }}>
-                  {/* Name */}
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-                        background: u.isActive ? 'var(--primary-glow)' : 'var(--border)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 13, fontWeight: 700,
-                        color: u.isActive ? 'var(--primary)' : 'var(--text-muted)',
-                      }}>
-                        {u.fullName.charAt(0).toUpperCase()}
-                      </div>
-                      <span style={{ fontWeight: 600, fontSize: 14 }}>{u.fullName}</span>
-                    </div>
-                  </td>
-
-                  {/* Email */}
-                  <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{u.email}</td>
-
-                  {/* Role — only valid BadgeVariant values used */}
-                  <td>
-                    <Badge variant={ROLE_BADGE[u.role] ?? 'muted'}>{u.role}</Badge>
-                  </td>
-
-                  {/* Status */}
-                  <td>
-                    <Badge variant={u.isActive ? 'green' : 'muted'}>
-                      {u.isActive ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </td>
-
-                  {/* Actions */}
-                  <td>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      {/* Set PIN — Salesman only */}
-                      {u.role === 'Salesman' && u.isActive && (
-                        <button
-                          className="btn btn-outline btn-sm"
-                          style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
-                          onClick={() => openPinModal(u)}
-                          title="Set PIN for this salesman"
-                        >
-                          <KeyRound size={12} /> Set PIN
-                        </button>
-                      )}
-
-                      {/* Activate / Deactivate */}
-                      <button
-                        className={`btn btn-sm ${u.isActive ? 'btn-danger' : 'btn-outline'}`}
-                        style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
-                        onClick={() => setToggleTarget(u)}
-                        disabled={toggling === u.id}
-                        title={u.isActive ? 'Deactivate account' : 'Activate account'}
-                      >
-                        {toggling === u.id
-                          ? <Spinner size={12} />
-                          : u.isActive
-                            ? <><UserX size={12} /> Deactivate</>
-                            : <><UserCheck size={12} /> Activate</>
-                        }
-                      </button>
-                    </div>
-                  </td>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table className="tbl" style={{ minWidth: 520 }}>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.map(u => (
+                  <tr key={u.id} style={{ opacity: u.isActive ? 1 : 0.55 }}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{
+                          width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                          background: u.isActive ? 'var(--primary-glow)' : 'var(--border)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 13, fontWeight: 700,
+                          color: u.isActive ? 'var(--primary)' : 'var(--text-muted)',
+                        }}>
+                          {u.fullName.charAt(0).toUpperCase()}
+                        </div>
+                        <span style={{ fontWeight: 600, fontSize: 14 }}>{u.fullName}</span>
+                      </div>
+                    </td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{u.email}</td>
+                    <td><Badge variant={ROLE_BADGE[u.role] ?? 'muted'}>{u.role}</Badge></td>
+                    <td><Badge variant={u.isActive ? 'green' : 'muted'}>{u.isActive ? 'Active' : 'Inactive'}</Badge></td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        {u.role === 'Salesman' && u.isActive && (
+                          <button
+                            className="btn btn-outline btn-sm"
+                            style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+                            onClick={() => openPinModal(u)}
+                          >
+                            <KeyRound size={12} /> Set PIN
+                          </button>
+                        )}
+                        <button
+                          className={`btn btn-sm ${u.isActive ? 'btn-danger' : 'btn-outline'}`}
+                          style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+                          onClick={() => setToggleTarget(u)}
+                          disabled={toggling === u.id}
+                        >
+                          {toggling === u.id
+                            ? <Spinner size={12} />
+                            : u.isActive
+                              ? <><UserX size={12} /> Deactivate</>
+                              : <><UserCheck size={12} /> Activate</>
+                          }
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* ── Set PIN Modal ──────────────────────────────────────────────────── */}
+      {/* Set PIN Modal */}
       {pinModal && (
         <div className="modal-overlay" onClick={() => setPinModal(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380, width: 'min(calc(100vw - 32px), 380px)' }}>
             <h3 style={{ marginTop: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
               <KeyRound size={18} color="var(--primary)" /> Set PIN
             </h3>
@@ -256,7 +296,6 @@ export function AdminUsers() {
               The salesman uses this 4–6 digit PIN to log in from their mobile device.
             </p>
 
-            {/* pinError shown inline — no Alert needed here */}
             {pinError && (
               <div style={{
                 background: 'var(--red-dim, rgba(239,68,68,0.12))',
@@ -301,17 +340,12 @@ export function AdminUsers() {
         </div>
       )}
 
-      {/* ── Toggle Active Confirm — ConfirmModal accepts open prop ────────── */}
       <ConfirmModal
         open={!!toggleTarget}
         title={toggleTarget?.isActive ? 'Deactivate User' : 'Activate User'}
-        message={
-          toggleTarget?.isActive
-            ? `Deactivating ${toggleTarget.fullName} will immediately block their login. Continue?`
-            : `Reactivate ${toggleTarget?.fullName ?? ''}? They will be able to log in again immediately.`
-        }
+        message={`Are you sure you want to ${toggleTarget?.isActive ? 'deactivate' : 'activate'} ${toggleTarget?.fullName}?`}
         confirmLabel={toggleTarget?.isActive ? 'Deactivate' : 'Activate'}
-        danger={toggleTarget?.isActive ?? false}
+        danger={toggleTarget?.isActive}
         loading={!!toggling}
         onConfirm={handleToggleConfirm}
         onCancel={() => setToggleTarget(null)}

@@ -51,7 +51,7 @@ public class ProductsController(IMediator mediator, IApplicationDbContext contex
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin,SuperAdmin,Salesman,Accounts,Warehouse")]  // ← Add Salesman
+    [Authorize(Roles = "Admin,SuperAdmin,Salesman,Accounts,Warehouse")]
     public async Task<ActionResult<Result<List<ProductDto>>>> GetAll(
         [FromQuery] Guid? productGroupId,
         [FromQuery] bool? isActive)
@@ -65,7 +65,7 @@ public class ProductsController(IMediator mediator, IApplicationDbContext contex
     }
 
     [HttpGet("{id}")]
-    [Authorize(Roles = "Admin,SuperAdmin,Salesman,Accounts,Warehouse")]  // ← Add Salesman
+    [Authorize(Roles = "Admin,SuperAdmin,Salesman,Accounts,Warehouse")]
     public async Task<ActionResult<Result<ProductDetailDto>>> GetById(Guid id)
     {
         var result = await mediator.Send(new GetProductByIdQuery { Id = id });
@@ -73,7 +73,7 @@ public class ProductsController(IMediator mediator, IApplicationDbContext contex
     }
 
     [HttpGet("search")]
-    [Authorize(Roles = "Admin,SuperAdmin,Salesman,Accounts,Warehouse")]  // ← Add Salesman
+    [Authorize(Roles = "Admin,SuperAdmin,Salesman,Accounts,Warehouse")]
     public async Task<ActionResult<Result<List<ProductSearchDto>>>> Search(
         [FromQuery] string? searchTerm,
         [FromQuery] Guid? productGroupId,
@@ -104,7 +104,7 @@ public class ProductsController(IMediator mediator, IApplicationDbContext contex
     }
 
     [HttpGet("{id}/price-history")]
-    [Authorize(Roles = "Admin,SuperAdmin")]  // ← Keep admin only
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<Result<List<ProductPriceHistoryDto>>>> GetPriceHistory(
         Guid id,
         [FromQuery] int? limit)
@@ -118,12 +118,12 @@ public class ProductsController(IMediator mediator, IApplicationDbContext contex
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // NEW: Per-Unit Pricing Endpoints
+    // Per-Unit Pricing Endpoints - Salesman can view unit prices for orders
     // ─────────────────────────────────────────────────────────────────────────
 
     // GET /api/v1/products/{productId}/unit-prices
     [HttpGet("{productId}/unit-prices")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Admin,SuperAdmin,Salesman")]
     public async Task<ActionResult<Result<List<ProductUnitPriceDto>>>> GetProductUnitPrices(Guid productId)
     {
         var unitPrices = await context.ProductUnitPrices

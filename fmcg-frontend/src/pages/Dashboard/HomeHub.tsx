@@ -508,7 +508,7 @@ export function HomeHub() {
         onClick={() => setFabOpen(true)}
         style={{
           position:       'fixed',
-          bottom:          28,
+          bottom:          'calc(28px + 70px)',
           right:           24,
           width:           58,
           height:          58,
@@ -563,6 +563,7 @@ export function HomeHub() {
               left:           0,
               right:          0,
               zIndex:         170,
+              paddingBottom:  'env(safe-area-inset-bottom, 0px)',
               background:     '#FFFFFF',
               borderRadius:   '20px 20px 0 0',
               padding:        '0 0 32px',

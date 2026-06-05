@@ -1,5 +1,12 @@
+// PATH: src/store/authStore.ts
+// UPDATED: Added useHasHydrated() hook so pages can wait for Zustand
+// to finish rehydrating from localStorage before making redirect decisions.
+// Without this, token/user briefly appear null on first paint even when
+// the user IS logged in — causing spurious redirects to /login.
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useEffect, useState } from 'react';
 import type { AuthUser, UserRole } from '../types';
 
 interface AuthState {
@@ -41,6 +48,33 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 );
+
+// ── Hydration guard ────────────────────────────────────────────────────────────
+// Returns true once Zustand has finished rehydrating state from localStorage.
+// Use this in any component that makes routing decisions based on auth state,
+// so they wait for the real value instead of the initial null.
+export function useHasHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(
+    // Synchronously true if already hydrated (e.g. on subsequent renders)
+    useAuthStore.persist.hasHydrated()
+  );
+
+  useEffect(() => {
+    // If not already hydrated, subscribe to the onFinishHydration event
+    if (!hydrated) {
+      const unsub = useAuthStore.persist.onFinishHydration(() => {
+        setHydrated(true);
+      });
+      // Re-check in case hydration completed between the useState call and here
+      if (useAuthStore.persist.hasHydrated()) {
+        setHydrated(true);
+      }
+      return unsub;
+    }
+  }, [hydrated]);
+
+  return hydrated;
+}
 
 // ── Role guards ────────────────────────────────────────────────────────────────
 export function useRole(): UserRole | null {

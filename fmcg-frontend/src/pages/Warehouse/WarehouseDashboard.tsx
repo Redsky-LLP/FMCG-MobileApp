@@ -1,10 +1,5 @@
 // PATH: src/pages/Warehouse/WarehouseDashboard.tsx
-// FIXED:
-//  1. Shows Approved, Packed, AND Closed orders (Closed tab answers "where did they go?")
-//  2. Proper status tabs: Pending Pack | Packed | Closed
-//  3. WarehouseController now targets OrderStatus.Approved for packing,
-//     but Closed orders are visible in history tab.
-//  4. Fixed empty-state text — no longer says "submitted", uses correct status names.
+// UPDATED: Mobile card view for orders list + overflow-x on modal item table
 
 import { useEffect, useState, useCallback } from 'react';
 import {
@@ -15,6 +10,7 @@ import {
 import { warehouseApi, routesApi } from '../../api/services';
 import type { WarehouseOrderDto, RouteDto } from '../../types';
 import { Spinner, Alert, EmptyState } from '../../components/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 const PACKING_STATUS = {
@@ -64,37 +60,39 @@ function OrderDetailModal({
               Salesman: {order.salesmanName} · {new Date(order.orderDate).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
             </p>
           </div>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '4px 10px', borderRadius: 20, fontWeight: 700 }} className={meta.color}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '4px 10px', borderRadius: 20, fontWeight: 700, flexShrink: 0 }} className={meta.color}>
             {meta.icon} {meta.label}
           </span>
         </div>
 
-        {/* Items */}
+        {/* Items — overflow-x-auto so it scrolls on narrow screens */}
         <div style={{ border: '1px solid #E2E8F0', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: '#F8FAFC' }}>
-                {['Product', 'Qty', 'Bags', 'Boxes', 'Tins'].map(h => (
-                  <th key={h} style={{ padding: '8px 12px', textAlign: h === 'Product' ? 'left' : 'right', color: '#64748B', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {order.items.map((item, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ padding: '8px 12px', fontWeight: 600 }}>{item.productName}</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700 }}>{item.quantity}</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{item.quantityBags ?? '—'}</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{item.quantityBoxes ?? '—'}</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{item.quantityTins ?? '—'}</td>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', minWidth: 340, borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: '#F8FAFC' }}>
+                  {['Product', 'Qty', 'Bags', 'Boxes', 'Tins'].map(h => (
+                    <th key={h} style={{ padding: '8px 12px', textAlign: h === 'Product' ? 'left' : 'right', color: '#64748B', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {order.items.map((item, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                    <td style={{ padding: '8px 12px', fontWeight: 600 }}>{item.productName}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700 }}>{item.quantity}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{item.quantityBags ?? '—'}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{item.quantityBoxes ?? '—'}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{item.quantityTins ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <button
             onClick={onClose}
             style={{ padding: '9px 18px', borderRadius: 9, border: '1px solid #E2E8F0', background: 'transparent', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#64748B', fontFamily: 'inherit' }}
@@ -129,6 +127,7 @@ function OrderDetailModal({
 type ActiveTab = 'pending' | 'packed' | 'closed';
 
 export default function WarehouseDashboard() {
+  const isMobile = useIsMobile();
   const [orders,      setOrders]      = useState<WarehouseOrderDto[]>([]);
   const [routes,      setRoutes]      = useState<RouteDto[]>([]);
   const [loading,     setLoading]     = useState(true);
@@ -136,20 +135,16 @@ export default function WarehouseDashboard() {
   const [success,     setSuccess]     = useState('');
   const [activeTab,   setActiveTab]   = useState<ActiveTab>('pending');
 
-  // Filters
   const [fromDate,     setFromDate]     = useState(todayStr());
   const [toDate,       setToDate]       = useState(tomorrowStr());
   const [routeFilter,  setRouteFilter]  = useState('');
   const [search,       setSearch]       = useState('');
   const [showFilters,  setShowFilters]  = useState(false);
 
-  // Selection
   const [selected,    setSelected]    = useState<Set<string>>(new Set());
   const [bulkPacking, setBulkPacking] = useState(false);
   const [detailOrder, setDetailOrder] = useState<WarehouseOrderDto | null>(null);
 
-  // We fetch ALL relevant orders (Pending + Packed) from the warehouse API,
-  // and Closed orders come from a separate all-status query on the ordersApi.
   const [closedOrders, setClosedOrders] = useState<WarehouseOrderDto[]>([]);
 
   const pendingOrders = orders.filter(o => o.packingStatus === 0);
@@ -159,28 +154,13 @@ export default function WarehouseDashboard() {
     setLoading(true); setError('');
     try {
       const [o, r] = await Promise.all([
-        // Fetch pending+packed (Approved status)
-        warehouseApi.getPendingOrders({
-          fromDate,
-          toDate,
-          routeId: routeFilter || undefined,
-          search:  search || undefined,
-        }),
+        warehouseApi.getPendingOrders({ fromDate, toDate, routeId: routeFilter || undefined, search: search || undefined }),
         routesApi.getAll(),
       ]);
       setOrders(o);
       setRoutes(r);
-
-      // Also fetch closed orders (packingStatus doesn't matter; these are done)
-      // We reuse the same endpoint but filter by packingStatus=1 (already packed+closed)
-      // The backend WarehouseController now also returns Closed orders when requested
       try {
-        const closed = await warehouseApi.getClosedOrders({
-          fromDate,
-          toDate,
-          routeId: routeFilter || undefined,
-          search:  search || undefined,
-        });
+        const closed = await warehouseApi.getClosedOrders({ fromDate, toDate, routeId: routeFilter || undefined, search: search || undefined });
         setClosedOrders(closed);
       } catch {
         setClosedOrders([]);
@@ -238,10 +218,8 @@ export default function WarehouseDashboard() {
     }
   }
 
-  const allPendingSelected = pendingOrders.length > 0 &&
-    pendingOrders.every(o => selected.has(o.id));
+  const allPendingSelected = pendingOrders.length > 0 && pendingOrders.every(o => selected.has(o.id));
 
-  // Filter search client-side
   const filterBySearch = (list: WarehouseOrderDto[]) => {
     if (!search.trim()) return list;
     const q = search.toLowerCase();
@@ -254,9 +232,9 @@ export default function WarehouseDashboard() {
   };
 
   const tabs: { id: ActiveTab; label: string; count: number; color: string }[] = [
-    { id: 'pending', label: '⏳ Pending Pack', count: pendingOrders.length, color: 'amber' },
-    { id: 'packed',  label: '✅ Packed',        count: packedOrders.length,  color: 'green' },
-    { id: 'closed',  label: '📦 Closed',         count: closedOrders.length,  color: 'slate' },
+    { id: 'pending', label: '⏳ Pending', count: pendingOrders.length, color: 'amber' },
+    { id: 'packed',  label: '✅ Packed',  count: packedOrders.length,  color: 'green' },
+    { id: 'closed',  label: '📦 Closed',  count: closedOrders.length,  color: 'slate' },
   ];
 
   const tabOrders: Record<ActiveTab, WarehouseOrderDto[]> = {
@@ -269,7 +247,7 @@ export default function WarehouseDashboard() {
 
   return (
     <div className="page-content">
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: 'var(--text)', letterSpacing: '-0.03em', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -302,10 +280,10 @@ export default function WarehouseDashboard() {
       {error   && <Alert variant="error">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
 
-      {/* ── Filters ──────────────────────────────────────────────────────────── */}
+      {/* Filters */}
       {showFilters && (
         <div className="card" style={{ marginBottom: 20 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
             <div>
               <label style={{ fontSize: 11, color: 'var(--text-sub)', display: 'block', marginBottom: 4, fontWeight: 600 }}>From Date</label>
               <input type="date" className="input" value={fromDate} onChange={e => setFromDate(e.target.value)} />
@@ -323,35 +301,24 @@ export default function WarehouseDashboard() {
             </div>
             <div>
               <label style={{ fontSize: 11, color: 'var(--text-sub)', display: 'block', marginBottom: 4, fontWeight: 600 }}>Search</label>
-              <input
-                className="input"
-                placeholder="Customer, salesman, order…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
+              <input className="input" placeholder="Customer, salesman…" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
           </div>
-          <button
-            className="btn btn-primary btn-sm"
-            style={{ marginTop: 12 }}
-            onClick={load}
-          >
-            Apply Filters
-          </button>
+          <button className="btn btn-primary btn-sm" style={{ marginTop: 12 }} onClick={load}>Apply Filters</button>
         </div>
       )}
 
-      {/* ── Tabs ─────────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 4, borderBottom: '2px solid var(--border)', marginBottom: 20 }}>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 4, borderBottom: '2px solid var(--border)', marginBottom: 20, overflowX: 'auto' }}>
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '10px 18px', borderRadius: '10px 10px 0 0',
+              padding: '10px 14px', borderRadius: '10px 10px 0 0',
               border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              fontSize: 13, fontWeight: 700,
+              fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
               background: activeTab === tab.id ? '#fff' : 'transparent',
               color: activeTab === tab.id ? 'var(--primary)' : 'var(--text-sub)',
               borderBottom: activeTab === tab.id ? '2px solid var(--primary)' : '2px solid transparent',
@@ -373,21 +340,17 @@ export default function WarehouseDashboard() {
         ))}
       </div>
 
-      {/* ── Closed orders notice ───────────────────────────────────────────────── */}
+      {/* Closed notice */}
       {activeTab === 'closed' && closedOrders.length > 0 && (
         <div style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--text-sub)' }}>
           <History size={15} />
-          <span>These orders were <strong>approved → packed → closed</strong> by Admin. They are read-only and shown for reference.</span>
+          <span>These orders were <strong>approved → packed → closed</strong> by Admin. Read-only reference.</span>
         </div>
       )}
 
-      {/* ── Bulk Actions ────────────────────────────────────────────────────── */}
+      {/* Bulk Actions */}
       {activeTab === 'pending' && selected.size > 0 && (
-        <div style={{
-          background: 'var(--primary-glow)', border: '1px solid var(--primary)',
-          borderRadius: 10, padding: '10px 16px', marginBottom: 12,
-          display: 'flex', alignItems: 'center', gap: 12,
-        }}>
+        <div style={{ background: 'var(--primary-glow)', border: '1px solid var(--primary)', borderRadius: 10, padding: '10px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>
             {selected.size} order{selected.size > 1 ? 's' : ''} selected
           </span>
@@ -396,10 +359,7 @@ export default function WarehouseDashboard() {
             disabled={bulkPacking}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}
           >
-            {bulkPacking
-              ? <><Spinner size={13} /> Packing…</>
-              : <><CheckCircle2 size={13} /> Mark All as Packed</>
-            }
+            {bulkPacking ? <><Spinner size={13} /> Packing…</> : <><CheckCircle2 size={13} /> Mark All as Packed</>}
           </button>
           <button
             onClick={() => setSelected(new Set())}
@@ -410,7 +370,7 @@ export default function WarehouseDashboard() {
         </div>
       )}
 
-      {/* ── Orders Table ────────────────────────────────────────────────────── */}
+      {/* Orders */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 60 }}><Spinner size={32} /></div>
       ) : visibleOrders.length === 0 ? (
@@ -419,113 +379,165 @@ export default function WarehouseDashboard() {
             {activeTab === 'closed' ? <History size={28} color="#94A3B8" /> : <Package size={28} color="#94A3B8" />}
           </div>
           <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-            {activeTab === 'pending' ? 'No orders pending packing'
-              : activeTab === 'packed' ? 'No packed orders'
-              : 'No closed orders for this period'}
+            {activeTab === 'pending' ? 'No orders pending packing' : activeTab === 'packed' ? 'No packed orders' : 'No closed orders for this period'}
           </p>
           <p style={{ fontSize: 13, color: 'var(--text-sub)' }}>
-            {activeTab === 'pending'
-              ? 'Orders appear here once Admin approves them.'
-              : activeTab === 'packed'
-              ? 'Pack orders from the Pending tab to see them here.'
-              : 'Closed orders from Admin will appear here. Try adjusting the date range.'}
+            {activeTab === 'pending' ? 'Orders appear here once Admin approves them.' : activeTab === 'packed' ? 'Pack orders from the Pending tab.' : 'Try adjusting the date range.'}
           </p>
         </div>
-      ) : (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: '#F8FAFC' }}>
-                {activeTab === 'pending' && (
-                  <th style={{ width: 40, padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
-                    <button
-                      onClick={toggleAll}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-sub)', padding: 0 }}
-                    >
-                      {allPendingSelected
-                        ? <CheckSquare size={15} color="var(--primary)" />
-                        : <Square size={15} />
-                      }
-                    </button>
-                  </th>
-                )}
-                {['Order #', 'Date', 'Salesman', 'Customer', 'Route', 'Items', 'Qty', 'Status', ''].map(h => (
-                  <th key={h} style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', textAlign: h === 'Items' || h === 'Qty' ? 'right' : 'left', color: '#64748B', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {visibleOrders.map(order => {
-                const meta       = PACKING_STATUS[order.packingStatus as keyof typeof PACKING_STATUS] ?? PACKING_STATUS[0];
-                const isPending  = order.packingStatus === 0;
-                const isSelected = selected.has(order.id);
-                const isClosed   = activeTab === 'closed';
+      ) : isMobile ? (
+        /* ── Mobile: card list ──────────────────────────────────────────────── */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {visibleOrders.map(order => {
+            const meta      = PACKING_STATUS[order.packingStatus as keyof typeof PACKING_STATUS] ?? PACKING_STATUS[0];
+            const isPending = order.packingStatus === 0;
+            const isSelected = selected.has(order.id);
+            const isClosed  = activeTab === 'closed';
 
-                return (
-                  <tr
-                    key={order.id}
-                    style={{
-                      background: isSelected ? 'var(--primary-glow)' : isClosed ? '#FAFBFD' : 'transparent',
-                      cursor: 'pointer',
-                      borderBottom: '1px solid var(--border-lite)',
-                    }}
-                    onClick={() => setDetailOrder(order)}
-                    onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = '#FAFBFD'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isSelected ? 'var(--primary-glow)' : isClosed ? '#FAFBFD' : 'transparent'; }}
-                  >
-                    {activeTab === 'pending' && (
-                      <td onClick={e => e.stopPropagation()} style={{ padding: '10px 14px' }}>
-                        {isPending && (
+            return (
+              <div
+                key={order.id}
+                onClick={() => setDetailOrder(order)}
+                style={{
+                  background: isSelected ? 'var(--primary-glow)' : '#fff',
+                  border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
+                  borderRadius: 14, padding: '14px 16px',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 4px rgba(15,23,42,0.06)',
+                  opacity: isClosed ? 0.75 : 1,
+                }}
+              >
+                {/* Row 1: order # + status */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {activeTab === 'pending' && isPending && (
+                      <button
+                        onClick={e => { e.stopPropagation(); toggleSelect(order.id); }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-sub)' }}
+                      >
+                        {isSelected ? <CheckSquare size={16} color="var(--primary)" /> : <Square size={16} />}
+                      </button>
+                    )}
+                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--primary)' }}>{order.orderNumber}</span>
+                  </div>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '3px 9px', borderRadius: 20, fontWeight: 700 }} className={meta.color}>
+                    {meta.icon} {meta.label}
+                  </span>
+                </div>
+
+                {/* Row 2: customer + route */}
+                <div style={{ marginBottom: 6 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{order.customerName}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 2 }}>
+                    {order.routeName} · {order.salesmanName}
+                  </div>
+                </div>
+
+                {/* Row 3: date + items + qty + pack button */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--text-sub)' }}>
+                    <span>{new Date(order.orderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                    <span>{order.itemCount} items · {order.totalQty.toFixed(0)} units</span>
+                  </div>
+                  {isPending && activeTab === 'pending' && (
+                    <button
+                      style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}
+                      onClick={e => { e.stopPropagation(); handlePackOne(order.id, false); }}
+                    >
+                      Pack ✓
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* ── Desktop: table ─────────────────────────────────────────────────── */
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: '#F8FAFC' }}>
+                  {activeTab === 'pending' && (
+                    <th style={{ width: 40, padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+                      <button onClick={toggleAll} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-sub)', padding: 0 }}>
+                        {allPendingSelected ? <CheckSquare size={15} color="var(--primary)" /> : <Square size={15} />}
+                      </button>
+                    </th>
+                  )}
+                  {['Order #', 'Date', 'Salesman', 'Customer', 'Route', 'Items', 'Qty', 'Status', ''].map(h => (
+                    <th key={h} style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', textAlign: h === 'Items' || h === 'Qty' ? 'right' : 'left', color: '#64748B', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {visibleOrders.map(order => {
+                  const meta       = PACKING_STATUS[order.packingStatus as keyof typeof PACKING_STATUS] ?? PACKING_STATUS[0];
+                  const isPending  = order.packingStatus === 0;
+                  const isSelected = selected.has(order.id);
+                  const isClosed   = activeTab === 'closed';
+
+                  return (
+                    <tr
+                      key={order.id}
+                      style={{
+                        background: isSelected ? 'var(--primary-glow)' : isClosed ? '#FAFBFD' : 'transparent',
+                        cursor: 'pointer',
+                        borderBottom: '1px solid var(--border-lite)',
+                      }}
+                      onClick={() => setDetailOrder(order)}
+                      onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = '#FAFBFD'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isSelected ? 'var(--primary-glow)' : isClosed ? '#FAFBFD' : 'transparent'; }}
+                    >
+                      {activeTab === 'pending' && (
+                        <td onClick={e => e.stopPropagation()} style={{ padding: '10px 14px' }}>
+                          {isPending && (
+                            <button onClick={() => toggleSelect(order.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-sub)' }}>
+                              {isSelected ? <CheckSquare size={14} color="var(--primary)" /> : <Square size={14} />}
+                            </button>
+                          )}
+                        </td>
+                      )}
+                      <td style={{ padding: '10px 14px', fontWeight: 700, fontSize: 12, color: 'var(--primary)' }}>{order.orderNumber}</td>
+                      <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text-sub)' }}>
+                        {new Date(order.orderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        <span style={{ display: 'block', fontSize: 11, color: '#94A3B8' }}>
+                          {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 14px', fontWeight: 600 }}>{order.salesmanName}</td>
+                      <td style={{ padding: '10px 14px' }}>{order.customerName}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-sub)', fontSize: 12 }}>{order.routeName}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right' }}>{order.itemCount}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700 }}>{order.totalQty.toFixed(0)}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '3px 8px', borderRadius: 12, fontWeight: 700 }} className={meta.color}>
+                          {meta.icon} {meta.label}
+                        </span>
+                      </td>
+                      <td onClick={e => e.stopPropagation()} style={{ padding: '8px 14px' }}>
+                        {isPending && activeTab === 'pending' && (
                           <button
-                            onClick={() => toggleSelect(order.id)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-sub)' }}
+                            style={{ padding: '5px 12px', borderRadius: 7, border: 'none', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', boxShadow: '0 2px 6px rgba(22,163,74,0.25)' }}
+                            onClick={() => handlePackOne(order.id, false)}
                           >
-                            {isSelected
-                              ? <CheckSquare size={14} color="var(--primary)" />
-                              : <Square size={14} />
-                            }
+                            Pack ✓
                           </button>
                         )}
                       </td>
-                    )}
-                    <td style={{ padding: '10px 14px', fontWeight: 700, fontSize: 12, color: 'var(--primary)' }}>{order.orderNumber}</td>
-                    <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text-sub)' }}>
-                      {new Date(order.orderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                      <span style={{ display: 'block', fontSize: 11, color: '#94A3B8' }}>
-                        {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 14px', fontWeight: 600 }}>{order.salesmanName}</td>
-                    <td style={{ padding: '10px 14px' }}>{order.customerName}</td>
-                    <td style={{ padding: '10px 14px', color: 'var(--text-sub)', fontSize: 12 }}>{order.routeName}</td>
-                    <td style={{ padding: '10px 14px', textAlign: 'right' }}>{order.itemCount}</td>
-                    <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700 }}>{order.totalQty.toFixed(0)}</td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '3px 8px', borderRadius: 12, fontWeight: 700 }} className={meta.color}>
-                        {meta.icon} {meta.label}
-                      </span>
-                    </td>
-                    <td onClick={e => e.stopPropagation()} style={{ padding: '8px 14px' }}>
-                      {isPending && activeTab === 'pending' && (
-                        <button
-                          style={{ padding: '5px 12px', borderRadius: 7, border: 'none', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', boxShadow: '0 2px 6px rgba(22,163,74,0.25)' }}
-                          onClick={() => handlePackOne(order.id, false)}
-                        >
-                          Pack ✓
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* ── Detail Modal ──────────────────────────────────────────────────────── */}
+      {/* Detail Modal */}
       {detailOrder && (
         <OrderDetailModal
           order={detailOrder}

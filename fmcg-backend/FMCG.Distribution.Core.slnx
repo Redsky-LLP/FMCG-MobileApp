@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="proxy-server.js" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/FMCG.Distribution.API/FMCG.Distribution.API.csproj" />
     <Project Path="src/FMCG.Distribution.Application/FMCG.Distribution.Application.csproj" />

@@ -4,10 +4,12 @@ import { incentivesApi, productsApi } from '../../api/services';
 import type { ProductIncentiveDto, ProductSearchDto } from '../../types';
 import { fmt, fmtDate } from '../../types';
 import { PageLoader, Spinner, Alert, Badge, EmptyState, Field, ConfirmModal } from '../../components/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const INCENTIVE_TYPES = { 1: 'Per Unit (₹)', 2: 'Percentage (%)' };
 
 export function AdminIncentives() {
+  const isMobile = useIsMobile();
   const [incentives, setIncentives] = useState<ProductIncentiveDto[]>([]);
   const [products,   setProducts]   = useState<ProductSearchDto[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -93,7 +95,7 @@ export function AdminIncentives() {
 
   return (
     <div className="page-content">
-      <div className="section-header">
+      <div className="section-header" style={{ flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Incentives</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>SKU-level salesman incentive configuration</p>
@@ -108,41 +110,89 @@ export function AdminIncentives() {
 
       {incentives.length === 0 ? (
         <EmptyState title="No incentives configured" message="Add product incentives to motivate your salesmen." icon={Gift} />
-      ) : (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table className="tbl">
-            <thead>
-              <tr><th>Product</th><th>Type</th><th>Value</th><th>Min Qty</th><th>Valid</th><th>Status</th><th></th></tr>
-            </thead>
-            <tbody>
-              {incentives.map((inc) => (
-                <tr key={inc.id}>
-                  <td style={{ fontWeight: 600 }}>{inc.productName ?? inc.productId.slice(0, 8)}</td>
-                  <td style={{ fontSize: 13 }}>{INCENTIVE_TYPES[inc.incentiveType as 1 | 2] ?? '—'}</td>
-                  <td style={{ fontWeight: 700, color: 'var(--primary)' }}>
+      ) : isMobile ? (
+        /* Mobile card view */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {incentives.map((inc) => (
+            <div key={inc.id} style={{
+              background: '#fff', border: '1px solid var(--border)',
+              borderRadius: 14, padding: '14px 16px',
+              boxShadow: '0 1px 4px rgba(15,23,42,0.06)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)', marginBottom: 2 }}>
+                    {inc.productName ?? inc.productId.slice(0, 8)}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    {INCENTIVE_TYPES[inc.incentiveType as 1 | 2] ?? '—'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--primary)' }}>
                     {inc.incentiveType === 1 ? fmt(inc.incentiveValue) : `${inc.incentiveValue}%`}
-                  </td>
-                  <td style={{ fontSize: 13 }}>{inc.minQuantity ?? '—'}</td>
-                  <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    {inc.validFrom ? fmtDate(inc.validFrom) : '∞'} – {inc.validTo ? fmtDate(inc.validTo) : '∞'}
-                  </td>
-                  <td><Badge variant={inc.isActive ? 'green' : 'muted'}>{inc.isActive ? 'Active' : 'Inactive'}</Badge></td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openEdit(inc)}><Edit2 size={14} /></button>
-                      <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setConfirm(inc.id)}><Trash2 size={14} color="var(--red)" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                  <Badge variant={inc.isActive ? 'green' : 'muted'}>{inc.isActive ? 'Active' : 'Inactive'}</Badge>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 12, fontSize: 12, color: 'var(--text-muted)' }}>
+                {inc.minQuantity != null && (
+                  <span>Min Qty: <strong style={{ color: 'var(--text)' }}>{inc.minQuantity}</strong></span>
+                )}
+                <span>
+                  Valid: {inc.validFrom ? fmtDate(inc.validFrom) : '∞'} – {inc.validTo ? fmtDate(inc.validTo) : '∞'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-outline btn-sm" style={{ flex: 1, justifyContent: 'center' }} onClick={() => openEdit(inc)}>
+                  <Edit2 size={13} /> Edit
+                </button>
+                <button className="btn btn-outline btn-sm" style={{ flex: 1, justifyContent: 'center', color: 'var(--red)', borderColor: 'var(--red)' }} onClick={() => setConfirm(inc.id)}>
+                  <Trash2 size={13} /> Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Desktop table */
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table className="tbl" style={{ minWidth: 580 }}>
+              <thead>
+                <tr><th>Product</th><th>Type</th><th>Value</th><th>Min Qty</th><th>Valid</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody>
+                {incentives.map((inc) => (
+                  <tr key={inc.id}>
+                    <td style={{ fontWeight: 600 }}>{inc.productName ?? inc.productId.slice(0, 8)}</td>
+                    <td style={{ fontSize: 13 }}>{INCENTIVE_TYPES[inc.incentiveType as 1 | 2] ?? '—'}</td>
+                    <td style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                      {inc.incentiveType === 1 ? fmt(inc.incentiveValue) : `${inc.incentiveValue}%`}
+                    </td>
+                    <td style={{ fontSize: 13 }}>{inc.minQuantity ?? '—'}</td>
+                    <td style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      {inc.validFrom ? fmtDate(inc.validFrom) : '∞'} – {inc.validTo ? fmtDate(inc.validTo) : '∞'}
+                    </td>
+                    <td><Badge variant={inc.isActive ? 'green' : 'muted'}>{inc.isActive ? 'Active' : 'Inactive'}</Badge></td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openEdit(inc)}><Edit2 size={14} /></button>
+                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setConfirm(inc.id)}><Trash2 size={14} color="var(--red)" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
+      {/* Add/Edit Modal */}
       {modal && (
         <div className="modal-overlay" onClick={() => setModal(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ width: 'min(calc(100vw - 32px), 480px)' }}>
             <h3 style={{ marginTop: 0, fontWeight: 700 }}>{modal === 'add' ? 'Add Incentive' : 'Edit Incentive'}</h3>
             {error && <Alert variant="error">{error}</Alert>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 16 }}>

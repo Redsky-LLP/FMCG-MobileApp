@@ -40,17 +40,40 @@ The content is organized as follows:
 </file_summary>
 
 <directory_structure>
+dev-dist/registerSW.js
+dev-dist/sw.js
+dev-dist/workbox-f389b5da.js
+generate-icons.js
 index.html
 package.json
 postcss.config.js
+public/icons/generate-icons.sh
+public/icons/icon-128.png
+public/icons/icon-144.png
+public/icons/icon-152.png
+public/icons/icon-16.png
+public/icons/icon-167.png
+public/icons/icon-180.png
+public/icons/icon-192.png
+public/icons/icon-32.png
+public/icons/icon-384.png
+public/icons/icon-512-maskable.png
+public/icons/icon-512.png
+public/icons/icon-72.png
+public/icons/icon-96.png
+public/icons/icon.svg
 src/api/client.ts
 src/api/services.ts
 src/App.tsx
 src/components/admin/AdminSearchBar.tsx
 src/components/admin/ProductUnitPriceManager.tsx
 src/components/dashboard/HeaderSearch.tsx
+src/components/layout/MobileLayout.tsx
 src/components/layout/Navbar.tsx
+src/components/PWAInstallPrompt.tsx
+src/components/salesman/SubmitAllOrdersModal.tsx
 src/components/ui/index.tsx
+src/hooks/useIsMobile.ts
 src/index.css
 src/main.tsx
 src/pages/Accounts/AccountsReports.tsx
@@ -84,7 +107,7 @@ src/pages/Auth/PinLoginPage.tsx
 src/pages/Auth/RegisterPage.tsx
 src/pages/Dashboard/HomeHub.tsx
 src/pages/Dashboard/MainHub.tsx
-src/pages/Landing/LandingPage.tsx
+src/pages/Landing/LandingPage_live.tsx
 src/pages/Salesman/OrderEntry/components/OrderSummary.tsx
 src/pages/Salesman/OrderEntry/components/PreviousOrdersModal.tsx
 src/pages/Salesman/OrderEntry/components/PriceVarianceBadge.tsx
@@ -114,24 +137,5257 @@ vite.config.ts
 <files>
 This section contains the contents of the repository's files.
 
+<file path="dev-dist/registerSW.js">
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/dev-sw.js?dev-sw', { scope: '/', type: 'classic' })
+</file>
+
+<file path="dev-dist/sw.js">
+/**
+ * Copyright 2018 Google Inc. All Rights Reserved.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// If the loader is already loaded, just stop.
+if (!self.define) {
+  let registry = {};
+
+  // Used for `eval` and `importScripts` where we can't get script URL by other means.
+  // In both cases, it's safe to use a global var because those functions are synchronous.
+  let nextDefineUri;
+
+  const singleRequire = (uri, parentUri) => {
+    uri = new URL(uri + ".js", parentUri).href;
+    return registry[uri] || (
+      
+        new Promise(resolve => {
+          if ("document" in self) {
+            const script = document.createElement("script");
+            script.src = uri;
+            script.onload = resolve;
+            document.head.appendChild(script);
+          } else {
+            nextDefineUri = uri;
+            importScripts(uri);
+            resolve();
+          }
+        })
+      
+      .then(() => {
+        let promise = registry[uri];
+        if (!promise) {
+          throw new Error(`Module ${uri} didn’t register its module`);
+        }
+        return promise;
+      })
+    );
+  };
+
+  self.define = (depsNames, factory) => {
+    const uri = nextDefineUri || ("document" in self ? document.currentScript.src : "") || location.href;
+    if (registry[uri]) {
+      // Module is already loading or loaded.
+      return;
+    }
+    let exports = {};
+    const require = depUri => singleRequire(depUri, uri);
+    const specialDeps = {
+      module: { uri },
+      exports,
+      require
+    };
+    registry[uri] = Promise.all(depsNames.map(
+      depName => specialDeps[depName] || require(depName)
+    )).then(deps => {
+      factory(...deps);
+      return exports;
+    });
+  };
+}
+define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
+
+  self.skipWaiting();
+  workbox.clientsClaim();
+  /**
+   * The precacheAndRoute() method efficiently caches and responds to
+   * requests for URLs in the manifest.
+   * See https://goo.gl/S9QRab
+   */
+  workbox.precacheAndRoute([{
+    "url": "registerSW.js",
+    "revision": "3ca0b8505b4bec776b69afdba2768812"
+  }, {
+    "url": "/index.html",
+    "revision": "0.g620fnasra4"
+  }], {});
+  workbox.cleanupOutdatedCaches();
+  workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
+    allowlist: [/^\/$/],
+    denylist: [/^\/api\//, /^\/icons\//]
+  }));
+  workbox.registerRoute(/\/api\//, new workbox.NetworkOnly(), 'GET');
+  workbox.registerRoute(/^https:\/\/fonts\.googleapis\.com\/.*/, new workbox.StaleWhileRevalidate({
+    "cacheName": "google-fonts-stylesheets",
+    plugins: []
+  }), 'GET');
+  workbox.registerRoute(/^https:\/\/fonts\.gstatic\.com\/.*/, new workbox.CacheFirst({
+    "cacheName": "google-fonts-webfonts",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 30,
+      maxAgeSeconds: 31536000
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    })]
+  }), 'GET');
+  workbox.registerRoute(({
+    request
+  }) => request.mode === "navigate", new workbox.NetworkFirst({
+    "cacheName": "pages",
+    "networkTimeoutSeconds": 5,
+    plugins: [new workbox.CacheableResponsePlugin({
+      statuses: [200]
+    })]
+  }), 'GET');
+
+}));
+</file>
+
+<file path="dev-dist/workbox-f389b5da.js">
+define(['exports'], (function (exports) { 'use strict';
+
+    // @ts-ignore
+    try {
+      self['workbox:core:7.4.0'] && _();
+    } catch (e) {}
+
+    /*
+      Copyright 2019 Google LLC
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    const logger = (() => {
+      // Don't overwrite this value if it's already set.
+      // See https://github.com/GoogleChrome/workbox/pull/2284#issuecomment-560470923
+      if (!('__WB_DISABLE_DEV_LOGS' in globalThis)) {
+        self.__WB_DISABLE_DEV_LOGS = false;
+      }
+      let inGroup = false;
+      const methodToColorMap = {
+        debug: `#7f8c8d`,
+        log: `#2ecc71`,
+        warn: `#f39c12`,
+        error: `#c0392b`,
+        groupCollapsed: `#3498db`,
+        groupEnd: null // No colored prefix on groupEnd
+      };
+      const print = function (method, args) {
+        if (self.__WB_DISABLE_DEV_LOGS) {
+          return;
+        }
+        if (method === 'groupCollapsed') {
+          // Safari doesn't print all console.groupCollapsed() arguments:
+          // https://bugs.webkit.org/show_bug.cgi?id=182754
+          if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+            console[method](...args);
+            return;
+          }
+        }
+        const styles = [`background: ${methodToColorMap[method]}`, `border-radius: 0.5em`, `color: white`, `font-weight: bold`, `padding: 2px 0.5em`];
+        // When in a group, the workbox prefix is not displayed.
+        const logPrefix = inGroup ? [] : ['%cworkbox', styles.join(';')];
+        console[method](...logPrefix, ...args);
+        if (method === 'groupCollapsed') {
+          inGroup = true;
+        }
+        if (method === 'groupEnd') {
+          inGroup = false;
+        }
+      };
+      // eslint-disable-next-line @typescript-eslint/ban-types
+      const api = {};
+      const loggerMethods = Object.keys(methodToColorMap);
+      for (const key of loggerMethods) {
+        const method = key;
+        api[method] = (...args) => {
+          print(method, args);
+        };
+      }
+      return api;
+    })();
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    const messages$1 = {
+      'invalid-value': ({
+        paramName,
+        validValueDescription,
+        value
+      }) => {
+        if (!paramName || !validValueDescription) {
+          throw new Error(`Unexpected input to 'invalid-value' error.`);
+        }
+        return `The '${paramName}' parameter was given a value with an ` + `unexpected value. ${validValueDescription} Received a value of ` + `${JSON.stringify(value)}.`;
+      },
+      'not-an-array': ({
+        moduleName,
+        className,
+        funcName,
+        paramName
+      }) => {
+        if (!moduleName || !className || !funcName || !paramName) {
+          throw new Error(`Unexpected input to 'not-an-array' error.`);
+        }
+        return `The parameter '${paramName}' passed into ` + `'${moduleName}.${className}.${funcName}()' must be an array.`;
+      },
+      'incorrect-type': ({
+        expectedType,
+        paramName,
+        moduleName,
+        className,
+        funcName
+      }) => {
+        if (!expectedType || !paramName || !moduleName || !funcName) {
+          throw new Error(`Unexpected input to 'incorrect-type' error.`);
+        }
+        const classNameStr = className ? `${className}.` : '';
+        return `The parameter '${paramName}' passed into ` + `'${moduleName}.${classNameStr}` + `${funcName}()' must be of type ${expectedType}.`;
+      },
+      'incorrect-class': ({
+        expectedClassName,
+        paramName,
+        moduleName,
+        className,
+        funcName,
+        isReturnValueProblem
+      }) => {
+        if (!expectedClassName || !moduleName || !funcName) {
+          throw new Error(`Unexpected input to 'incorrect-class' error.`);
+        }
+        const classNameStr = className ? `${className}.` : '';
+        if (isReturnValueProblem) {
+          return `The return value from ` + `'${moduleName}.${classNameStr}${funcName}()' ` + `must be an instance of class ${expectedClassName}.`;
+        }
+        return `The parameter '${paramName}' passed into ` + `'${moduleName}.${classNameStr}${funcName}()' ` + `must be an instance of class ${expectedClassName}.`;
+      },
+      'missing-a-method': ({
+        expectedMethod,
+        paramName,
+        moduleName,
+        className,
+        funcName
+      }) => {
+        if (!expectedMethod || !paramName || !moduleName || !className || !funcName) {
+          throw new Error(`Unexpected input to 'missing-a-method' error.`);
+        }
+        return `${moduleName}.${className}.${funcName}() expected the ` + `'${paramName}' parameter to expose a '${expectedMethod}' method.`;
+      },
+      'add-to-cache-list-unexpected-type': ({
+        entry
+      }) => {
+        return `An unexpected entry was passed to ` + `'workbox-precaching.PrecacheController.addToCacheList()' The entry ` + `'${JSON.stringify(entry)}' isn't supported. You must supply an array of ` + `strings with one or more characters, objects with a url property or ` + `Request objects.`;
+      },
+      'add-to-cache-list-conflicting-entries': ({
+        firstEntry,
+        secondEntry
+      }) => {
+        if (!firstEntry || !secondEntry) {
+          throw new Error(`Unexpected input to ` + `'add-to-cache-list-duplicate-entries' error.`);
+        }
+        return `Two of the entries passed to ` + `'workbox-precaching.PrecacheController.addToCacheList()' had the URL ` + `${firstEntry} but different revision details. Workbox is ` + `unable to cache and version the asset correctly. Please remove one ` + `of the entries.`;
+      },
+      'plugin-error-request-will-fetch': ({
+        thrownErrorMessage
+      }) => {
+        if (!thrownErrorMessage) {
+          throw new Error(`Unexpected input to ` + `'plugin-error-request-will-fetch', error.`);
+        }
+        return `An error was thrown by a plugins 'requestWillFetch()' method. ` + `The thrown error message was: '${thrownErrorMessage}'.`;
+      },
+      'invalid-cache-name': ({
+        cacheNameId,
+        value
+      }) => {
+        if (!cacheNameId) {
+          throw new Error(`Expected a 'cacheNameId' for error 'invalid-cache-name'`);
+        }
+        return `You must provide a name containing at least one character for ` + `setCacheDetails({${cacheNameId}: '...'}). Received a value of ` + `'${JSON.stringify(value)}'`;
+      },
+      'unregister-route-but-not-found-with-method': ({
+        method
+      }) => {
+        if (!method) {
+          throw new Error(`Unexpected input to ` + `'unregister-route-but-not-found-with-method' error.`);
+        }
+        return `The route you're trying to unregister was not  previously ` + `registered for the method type '${method}'.`;
+      },
+      'unregister-route-route-not-registered': () => {
+        return `The route you're trying to unregister was not previously ` + `registered.`;
+      },
+      'queue-replay-failed': ({
+        name
+      }) => {
+        return `Replaying the background sync queue '${name}' failed.`;
+      },
+      'duplicate-queue-name': ({
+        name
+      }) => {
+        return `The Queue name '${name}' is already being used. ` + `All instances of backgroundSync.Queue must be given unique names.`;
+      },
+      'expired-test-without-max-age': ({
+        methodName,
+        paramName
+      }) => {
+        return `The '${methodName}()' method can only be used when the ` + `'${paramName}' is used in the constructor.`;
+      },
+      'unsupported-route-type': ({
+        moduleName,
+        className,
+        funcName,
+        paramName
+      }) => {
+        return `The supplied '${paramName}' parameter was an unsupported type. ` + `Please check the docs for ${moduleName}.${className}.${funcName} for ` + `valid input types.`;
+      },
+      'not-array-of-class': ({
+        value,
+        expectedClass,
+        moduleName,
+        className,
+        funcName,
+        paramName
+      }) => {
+        return `The supplied '${paramName}' parameter must be an array of ` + `'${expectedClass}' objects. Received '${JSON.stringify(value)},'. ` + `Please check the call to ${moduleName}.${className}.${funcName}() ` + `to fix the issue.`;
+      },
+      'max-entries-or-age-required': ({
+        moduleName,
+        className,
+        funcName
+      }) => {
+        return `You must define either config.maxEntries or config.maxAgeSeconds` + `in ${moduleName}.${className}.${funcName}`;
+      },
+      'statuses-or-headers-required': ({
+        moduleName,
+        className,
+        funcName
+      }) => {
+        return `You must define either config.statuses or config.headers` + `in ${moduleName}.${className}.${funcName}`;
+      },
+      'invalid-string': ({
+        moduleName,
+        funcName,
+        paramName
+      }) => {
+        if (!paramName || !moduleName || !funcName) {
+          throw new Error(`Unexpected input to 'invalid-string' error.`);
+        }
+        return `When using strings, the '${paramName}' parameter must start with ` + `'http' (for cross-origin matches) or '/' (for same-origin matches). ` + `Please see the docs for ${moduleName}.${funcName}() for ` + `more info.`;
+      },
+      'channel-name-required': () => {
+        return `You must provide a channelName to construct a ` + `BroadcastCacheUpdate instance.`;
+      },
+      'invalid-responses-are-same-args': () => {
+        return `The arguments passed into responsesAreSame() appear to be ` + `invalid. Please ensure valid Responses are used.`;
+      },
+      'expire-custom-caches-only': () => {
+        return `You must provide a 'cacheName' property when using the ` + `expiration plugin with a runtime caching strategy.`;
+      },
+      'unit-must-be-bytes': ({
+        normalizedRangeHeader
+      }) => {
+        if (!normalizedRangeHeader) {
+          throw new Error(`Unexpected input to 'unit-must-be-bytes' error.`);
+        }
+        return `The 'unit' portion of the Range header must be set to 'bytes'. ` + `The Range header provided was "${normalizedRangeHeader}"`;
+      },
+      'single-range-only': ({
+        normalizedRangeHeader
+      }) => {
+        if (!normalizedRangeHeader) {
+          throw new Error(`Unexpected input to 'single-range-only' error.`);
+        }
+        return `Multiple ranges are not supported. Please use a  single start ` + `value, and optional end value. The Range header provided was ` + `"${normalizedRangeHeader}"`;
+      },
+      'invalid-range-values': ({
+        normalizedRangeHeader
+      }) => {
+        if (!normalizedRangeHeader) {
+          throw new Error(`Unexpected input to 'invalid-range-values' error.`);
+        }
+        return `The Range header is missing both start and end values. At least ` + `one of those values is needed. The Range header provided was ` + `"${normalizedRangeHeader}"`;
+      },
+      'no-range-header': () => {
+        return `No Range header was found in the Request provided.`;
+      },
+      'range-not-satisfiable': ({
+        size,
+        start,
+        end
+      }) => {
+        return `The start (${start}) and end (${end}) values in the Range are ` + `not satisfiable by the cached response, which is ${size} bytes.`;
+      },
+      'attempt-to-cache-non-get-request': ({
+        url,
+        method
+      }) => {
+        return `Unable to cache '${url}' because it is a '${method}' request and ` + `only 'GET' requests can be cached.`;
+      },
+      'cache-put-with-no-response': ({
+        url
+      }) => {
+        return `There was an attempt to cache '${url}' but the response was not ` + `defined.`;
+      },
+      'no-response': ({
+        url,
+        error
+      }) => {
+        let message = `The strategy could not generate a response for '${url}'.`;
+        if (error) {
+          message += ` The underlying error is ${error}.`;
+        }
+        return message;
+      },
+      'bad-precaching-response': ({
+        url,
+        status
+      }) => {
+        return `The precaching request for '${url}' failed` + (status ? ` with an HTTP status of ${status}.` : `.`);
+      },
+      'non-precached-url': ({
+        url
+      }) => {
+        return `createHandlerBoundToURL('${url}') was called, but that URL is ` + `not precached. Please pass in a URL that is precached instead.`;
+      },
+      'add-to-cache-list-conflicting-integrities': ({
+        url
+      }) => {
+        return `Two of the entries passed to ` + `'workbox-precaching.PrecacheController.addToCacheList()' had the URL ` + `${url} with different integrity values. Please remove one of them.`;
+      },
+      'missing-precache-entry': ({
+        cacheName,
+        url
+      }) => {
+        return `Unable to find a precached response in ${cacheName} for ${url}.`;
+      },
+      'cross-origin-copy-response': ({
+        origin
+      }) => {
+        return `workbox-core.copyResponse() can only be used with same-origin ` + `responses. It was passed a response with origin ${origin}.`;
+      },
+      'opaque-streams-source': ({
+        type
+      }) => {
+        const message = `One of the workbox-streams sources resulted in an ` + `'${type}' response.`;
+        if (type === 'opaqueredirect') {
+          return `${message} Please do not use a navigation request that results ` + `in a redirect as a source.`;
+        }
+        return `${message} Please ensure your sources are CORS-enabled.`;
+      }
+    };
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    const generatorFunction = (code, details = {}) => {
+      const message = messages$1[code];
+      if (!message) {
+        throw new Error(`Unable to find message for code '${code}'.`);
+      }
+      return message(details);
+    };
+    const messageGenerator = generatorFunction;
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * Workbox errors should be thrown with this class.
+     * This allows use to ensure the type easily in tests,
+     * helps developers identify errors from workbox
+     * easily and allows use to optimise error
+     * messages correctly.
+     *
+     * @private
+     */
+    class WorkboxError extends Error {
+      /**
+       *
+       * @param {string} errorCode The error code that
+       * identifies this particular error.
+       * @param {Object=} details Any relevant arguments
+       * that will help developers identify issues should
+       * be added as a key on the context object.
+       */
+      constructor(errorCode, details) {
+        const message = messageGenerator(errorCode, details);
+        super(message);
+        this.name = errorCode;
+        this.details = details;
+      }
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /*
+     * This method throws if the supplied value is not an array.
+     * The destructed values are required to produce a meaningful error for users.
+     * The destructed and restructured object is so it's clear what is
+     * needed.
+     */
+    const isArray = (value, details) => {
+      if (!Array.isArray(value)) {
+        throw new WorkboxError('not-an-array', details);
+      }
+    };
+    const hasMethod = (object, expectedMethod, details) => {
+      const type = typeof object[expectedMethod];
+      if (type !== 'function') {
+        details['expectedMethod'] = expectedMethod;
+        throw new WorkboxError('missing-a-method', details);
+      }
+    };
+    const isType = (object, expectedType, details) => {
+      if (typeof object !== expectedType) {
+        details['expectedType'] = expectedType;
+        throw new WorkboxError('incorrect-type', details);
+      }
+    };
+    const isInstance = (object,
+    // Need the general type to do the check later.
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    expectedClass, details) => {
+      if (!(object instanceof expectedClass)) {
+        details['expectedClassName'] = expectedClass.name;
+        throw new WorkboxError('incorrect-class', details);
+      }
+    };
+    const isOneOf = (value, validValues, details) => {
+      if (!validValues.includes(value)) {
+        details['validValueDescription'] = `Valid values are ${JSON.stringify(validValues)}.`;
+        throw new WorkboxError('invalid-value', details);
+      }
+    };
+    const isArrayOfClass = (value,
+    // Need general type to do check later.
+    expectedClass,
+    // eslint-disable-line
+    details) => {
+      const error = new WorkboxError('not-array-of-class', details);
+      if (!Array.isArray(value)) {
+        throw error;
+      }
+      for (const item of value) {
+        if (!(item instanceof expectedClass)) {
+          throw error;
+        }
+      }
+    };
+    const finalAssertExports = {
+      hasMethod,
+      isArray,
+      isInstance,
+      isOneOf,
+      isType,
+      isArrayOfClass
+    };
+
+    // @ts-ignore
+    try {
+      self['workbox:routing:7.4.0'] && _();
+    } catch (e) {}
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * The default HTTP method, 'GET', used when there's no specific method
+     * configured for a route.
+     *
+     * @type {string}
+     *
+     * @private
+     */
+    const defaultMethod = 'GET';
+    /**
+     * The list of valid HTTP methods associated with requests that could be routed.
+     *
+     * @type {Array<string>}
+     *
+     * @private
+     */
+    const validMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT'];
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * @param {function()|Object} handler Either a function, or an object with a
+     * 'handle' method.
+     * @return {Object} An object with a handle method.
+     *
+     * @private
+     */
+    const normalizeHandler = handler => {
+      if (handler && typeof handler === 'object') {
+        {
+          finalAssertExports.hasMethod(handler, 'handle', {
+            moduleName: 'workbox-routing',
+            className: 'Route',
+            funcName: 'constructor',
+            paramName: 'handler'
+          });
+        }
+        return handler;
+      } else {
+        {
+          finalAssertExports.isType(handler, 'function', {
+            moduleName: 'workbox-routing',
+            className: 'Route',
+            funcName: 'constructor',
+            paramName: 'handler'
+          });
+        }
+        return {
+          handle: handler
+        };
+      }
+    };
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * A `Route` consists of a pair of callback functions, "match" and "handler".
+     * The "match" callback determine if a route should be used to "handle" a
+     * request by returning a non-falsy value if it can. The "handler" callback
+     * is called when there is a match and should return a Promise that resolves
+     * to a `Response`.
+     *
+     * @memberof workbox-routing
+     */
+    class Route {
+      /**
+       * Constructor for Route class.
+       *
+       * @param {workbox-routing~matchCallback} match
+       * A callback function that determines whether the route matches a given
+       * `fetch` event by returning a non-falsy value.
+       * @param {workbox-routing~handlerCallback} handler A callback
+       * function that returns a Promise resolving to a Response.
+       * @param {string} [method='GET'] The HTTP method to match the Route
+       * against.
+       */
+      constructor(match, handler, method = defaultMethod) {
+        {
+          finalAssertExports.isType(match, 'function', {
+            moduleName: 'workbox-routing',
+            className: 'Route',
+            funcName: 'constructor',
+            paramName: 'match'
+          });
+          if (method) {
+            finalAssertExports.isOneOf(method, validMethods, {
+              paramName: 'method'
+            });
+          }
+        }
+        // These values are referenced directly by Router so cannot be
+        // altered by minificaton.
+        this.handler = normalizeHandler(handler);
+        this.match = match;
+        this.method = method;
+      }
+      /**
+       *
+       * @param {workbox-routing-handlerCallback} handler A callback
+       * function that returns a Promise resolving to a Response
+       */
+      setCatchHandler(handler) {
+        this.catchHandler = normalizeHandler(handler);
+      }
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * RegExpRoute makes it easy to create a regular expression based
+     * {@link workbox-routing.Route}.
+     *
+     * For same-origin requests the RegExp only needs to match part of the URL. For
+     * requests against third-party servers, you must define a RegExp that matches
+     * the start of the URL.
+     *
+     * @memberof workbox-routing
+     * @extends workbox-routing.Route
+     */
+    class RegExpRoute extends Route {
+      /**
+       * If the regular expression contains
+       * [capture groups]{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp#grouping-back-references},
+       * the captured values will be passed to the
+       * {@link workbox-routing~handlerCallback} `params`
+       * argument.
+       *
+       * @param {RegExp} regExp The regular expression to match against URLs.
+       * @param {workbox-routing~handlerCallback} handler A callback
+       * function that returns a Promise resulting in a Response.
+       * @param {string} [method='GET'] The HTTP method to match the Route
+       * against.
+       */
+      constructor(regExp, handler, method) {
+        {
+          finalAssertExports.isInstance(regExp, RegExp, {
+            moduleName: 'workbox-routing',
+            className: 'RegExpRoute',
+            funcName: 'constructor',
+            paramName: 'pattern'
+          });
+        }
+        const match = ({
+          url
+        }) => {
+          const result = regExp.exec(url.href);
+          // Return immediately if there's no match.
+          if (!result) {
+            return;
+          }
+          // Require that the match start at the first character in the URL string
+          // if it's a cross-origin request.
+          // See https://github.com/GoogleChrome/workbox/issues/281 for the context
+          // behind this behavior.
+          if (url.origin !== location.origin && result.index !== 0) {
+            {
+              logger.debug(`The regular expression '${regExp.toString()}' only partially matched ` + `against the cross-origin URL '${url.toString()}'. RegExpRoute's will only ` + `handle cross-origin requests if they match the entire URL.`);
+            }
+            return;
+          }
+          // If the route matches, but there aren't any capture groups defined, then
+          // this will return [], which is truthy and therefore sufficient to
+          // indicate a match.
+          // If there are capture groups, then it will return their values.
+          return result.slice(1);
+        };
+        super(match, handler, method);
+      }
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    const getFriendlyURL = url => {
+      const urlObj = new URL(String(url), location.href);
+      // See https://github.com/GoogleChrome/workbox/issues/2323
+      // We want to include everything, except for the origin if it's same-origin.
+      return urlObj.href.replace(new RegExp(`^${location.origin}`), '');
+    };
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * The Router can be used to process a `FetchEvent` using one or more
+     * {@link workbox-routing.Route}, responding with a `Response` if
+     * a matching route exists.
+     *
+     * If no route matches a given a request, the Router will use a "default"
+     * handler if one is defined.
+     *
+     * Should the matching Route throw an error, the Router will use a "catch"
+     * handler if one is defined to gracefully deal with issues and respond with a
+     * Request.
+     *
+     * If a request matches multiple routes, the **earliest** registered route will
+     * be used to respond to the request.
+     *
+     * @memberof workbox-routing
+     */
+    class Router {
+      /**
+       * Initializes a new Router.
+       */
+      constructor() {
+        this._routes = new Map();
+        this._defaultHandlerMap = new Map();
+      }
+      /**
+       * @return {Map<string, Array<workbox-routing.Route>>} routes A `Map` of HTTP
+       * method name ('GET', etc.) to an array of all the corresponding `Route`
+       * instances that are registered.
+       */
+      get routes() {
+        return this._routes;
+      }
+      /**
+       * Adds a fetch event listener to respond to events when a route matches
+       * the event's request.
+       */
+      addFetchListener() {
+        // See https://github.com/Microsoft/TypeScript/issues/28357#issuecomment-436484705
+        self.addEventListener('fetch', event => {
+          const {
+            request
+          } = event;
+          const responsePromise = this.handleRequest({
+            request,
+            event
+          });
+          if (responsePromise) {
+            event.respondWith(responsePromise);
+          }
+        });
+      }
+      /**
+       * Adds a message event listener for URLs to cache from the window.
+       * This is useful to cache resources loaded on the page prior to when the
+       * service worker started controlling it.
+       *
+       * The format of the message data sent from the window should be as follows.
+       * Where the `urlsToCache` array may consist of URL strings or an array of
+       * URL string + `requestInit` object (the same as you'd pass to `fetch()`).
+       *
+       * ```
+       * {
+       *   type: 'CACHE_URLS',
+       *   payload: {
+       *     urlsToCache: [
+       *       './script1.js',
+       *       './script2.js',
+       *       ['./script3.js', {mode: 'no-cors'}],
+       *     ],
+       *   },
+       * }
+       * ```
+       */
+      addCacheListener() {
+        // See https://github.com/Microsoft/TypeScript/issues/28357#issuecomment-436484705
+        self.addEventListener('message', event => {
+          // event.data is type 'any'
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          if (event.data && event.data.type === 'CACHE_URLS') {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            const {
+              payload
+            } = event.data;
+            {
+              logger.debug(`Caching URLs from the window`, payload.urlsToCache);
+            }
+            const requestPromises = Promise.all(payload.urlsToCache.map(entry => {
+              if (typeof entry === 'string') {
+                entry = [entry];
+              }
+              const request = new Request(...entry);
+              return this.handleRequest({
+                request,
+                event
+              });
+              // TODO(philipwalton): TypeScript errors without this typecast for
+              // some reason (probably a bug). The real type here should work but
+              // doesn't: `Array<Promise<Response> | undefined>`.
+            })); // TypeScript
+            event.waitUntil(requestPromises);
+            // If a MessageChannel was used, reply to the message on success.
+            if (event.ports && event.ports[0]) {
+              void requestPromises.then(() => event.ports[0].postMessage(true));
+            }
+          }
+        });
+      }
+      /**
+       * Apply the routing rules to a FetchEvent object to get a Response from an
+       * appropriate Route's handler.
+       *
+       * @param {Object} options
+       * @param {Request} options.request The request to handle.
+       * @param {ExtendableEvent} options.event The event that triggered the
+       *     request.
+       * @return {Promise<Response>|undefined} A promise is returned if a
+       *     registered route can handle the request. If there is no matching
+       *     route and there's no `defaultHandler`, `undefined` is returned.
+       */
+      handleRequest({
+        request,
+        event
+      }) {
+        {
+          finalAssertExports.isInstance(request, Request, {
+            moduleName: 'workbox-routing',
+            className: 'Router',
+            funcName: 'handleRequest',
+            paramName: 'options.request'
+          });
+        }
+        const url = new URL(request.url, location.href);
+        if (!url.protocol.startsWith('http')) {
+          {
+            logger.debug(`Workbox Router only supports URLs that start with 'http'.`);
+          }
+          return;
+        }
+        const sameOrigin = url.origin === location.origin;
+        const {
+          params,
+          route
+        } = this.findMatchingRoute({
+          event,
+          request,
+          sameOrigin,
+          url
+        });
+        let handler = route && route.handler;
+        const debugMessages = [];
+        {
+          if (handler) {
+            debugMessages.push([`Found a route to handle this request:`, route]);
+            if (params) {
+              debugMessages.push([`Passing the following params to the route's handler:`, params]);
+            }
+          }
+        }
+        // If we don't have a handler because there was no matching route, then
+        // fall back to defaultHandler if that's defined.
+        const method = request.method;
+        if (!handler && this._defaultHandlerMap.has(method)) {
+          {
+            debugMessages.push(`Failed to find a matching route. Falling ` + `back to the default handler for ${method}.`);
+          }
+          handler = this._defaultHandlerMap.get(method);
+        }
+        if (!handler) {
+          {
+            // No handler so Workbox will do nothing. If logs is set of debug
+            // i.e. verbose, we should print out this information.
+            logger.debug(`No route found for: ${getFriendlyURL(url)}`);
+          }
+          return;
+        }
+        {
+          // We have a handler, meaning Workbox is going to handle the route.
+          // print the routing details to the console.
+          logger.groupCollapsed(`Router is responding to: ${getFriendlyURL(url)}`);
+          debugMessages.forEach(msg => {
+            if (Array.isArray(msg)) {
+              logger.log(...msg);
+            } else {
+              logger.log(msg);
+            }
+          });
+          logger.groupEnd();
+        }
+        // Wrap in try and catch in case the handle method throws a synchronous
+        // error. It should still callback to the catch handler.
+        let responsePromise;
+        try {
+          responsePromise = handler.handle({
+            url,
+            request,
+            event,
+            params
+          });
+        } catch (err) {
+          responsePromise = Promise.reject(err);
+        }
+        // Get route's catch handler, if it exists
+        const catchHandler = route && route.catchHandler;
+        if (responsePromise instanceof Promise && (this._catchHandler || catchHandler)) {
+          responsePromise = responsePromise.catch(async err => {
+            // If there's a route catch handler, process that first
+            if (catchHandler) {
+              {
+                // Still include URL here as it will be async from the console group
+                // and may not make sense without the URL
+                logger.groupCollapsed(`Error thrown when responding to: ` + ` ${getFriendlyURL(url)}. Falling back to route's Catch Handler.`);
+                logger.error(`Error thrown by:`, route);
+                logger.error(err);
+                logger.groupEnd();
+              }
+              try {
+                return await catchHandler.handle({
+                  url,
+                  request,
+                  event,
+                  params
+                });
+              } catch (catchErr) {
+                if (catchErr instanceof Error) {
+                  err = catchErr;
+                }
+              }
+            }
+            if (this._catchHandler) {
+              {
+                // Still include URL here as it will be async from the console group
+                // and may not make sense without the URL
+                logger.groupCollapsed(`Error thrown when responding to: ` + ` ${getFriendlyURL(url)}. Falling back to global Catch Handler.`);
+                logger.error(`Error thrown by:`, route);
+                logger.error(err);
+                logger.groupEnd();
+              }
+              return this._catchHandler.handle({
+                url,
+                request,
+                event
+              });
+            }
+            throw err;
+          });
+        }
+        return responsePromise;
+      }
+      /**
+       * Checks a request and URL (and optionally an event) against the list of
+       * registered routes, and if there's a match, returns the corresponding
+       * route along with any params generated by the match.
+       *
+       * @param {Object} options
+       * @param {URL} options.url
+       * @param {boolean} options.sameOrigin The result of comparing `url.origin`
+       *     against the current origin.
+       * @param {Request} options.request The request to match.
+       * @param {Event} options.event The corresponding event.
+       * @return {Object} An object with `route` and `params` properties.
+       *     They are populated if a matching route was found or `undefined`
+       *     otherwise.
+       */
+      findMatchingRoute({
+        url,
+        sameOrigin,
+        request,
+        event
+      }) {
+        const routes = this._routes.get(request.method) || [];
+        for (const route of routes) {
+          let params;
+          // route.match returns type any, not possible to change right now.
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          const matchResult = route.match({
+            url,
+            sameOrigin,
+            request,
+            event
+          });
+          if (matchResult) {
+            {
+              // Warn developers that using an async matchCallback is almost always
+              // not the right thing to do.
+              if (matchResult instanceof Promise) {
+                logger.warn(`While routing ${getFriendlyURL(url)}, an async ` + `matchCallback function was used. Please convert the ` + `following route to use a synchronous matchCallback function:`, route);
+              }
+            }
+            // See https://github.com/GoogleChrome/workbox/issues/2079
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            params = matchResult;
+            if (Array.isArray(params) && params.length === 0) {
+              // Instead of passing an empty array in as params, use undefined.
+              params = undefined;
+            } else if (matchResult.constructor === Object &&
+            // eslint-disable-line
+            Object.keys(matchResult).length === 0) {
+              // Instead of passing an empty object in as params, use undefined.
+              params = undefined;
+            } else if (typeof matchResult === 'boolean') {
+              // For the boolean value true (rather than just something truth-y),
+              // don't set params.
+              // See https://github.com/GoogleChrome/workbox/pull/2134#issuecomment-513924353
+              params = undefined;
+            }
+            // Return early if have a match.
+            return {
+              route,
+              params
+            };
+          }
+        }
+        // If no match was found above, return and empty object.
+        return {};
+      }
+      /**
+       * Define a default `handler` that's called when no routes explicitly
+       * match the incoming request.
+       *
+       * Each HTTP method ('GET', 'POST', etc.) gets its own default handler.
+       *
+       * Without a default handler, unmatched requests will go against the
+       * network as if there were no service worker present.
+       *
+       * @param {workbox-routing~handlerCallback} handler A callback
+       * function that returns a Promise resulting in a Response.
+       * @param {string} [method='GET'] The HTTP method to associate with this
+       * default handler. Each method has its own default.
+       */
+      setDefaultHandler(handler, method = defaultMethod) {
+        this._defaultHandlerMap.set(method, normalizeHandler(handler));
+      }
+      /**
+       * If a Route throws an error while handling a request, this `handler`
+       * will be called and given a chance to provide a response.
+       *
+       * @param {workbox-routing~handlerCallback} handler A callback
+       * function that returns a Promise resulting in a Response.
+       */
+      setCatchHandler(handler) {
+        this._catchHandler = normalizeHandler(handler);
+      }
+      /**
+       * Registers a route with the router.
+       *
+       * @param {workbox-routing.Route} route The route to register.
+       */
+      registerRoute(route) {
+        {
+          finalAssertExports.isType(route, 'object', {
+            moduleName: 'workbox-routing',
+            className: 'Router',
+            funcName: 'registerRoute',
+            paramName: 'route'
+          });
+          finalAssertExports.hasMethod(route, 'match', {
+            moduleName: 'workbox-routing',
+            className: 'Router',
+            funcName: 'registerRoute',
+            paramName: 'route'
+          });
+          finalAssertExports.isType(route.handler, 'object', {
+            moduleName: 'workbox-routing',
+            className: 'Router',
+            funcName: 'registerRoute',
+            paramName: 'route'
+          });
+          finalAssertExports.hasMethod(route.handler, 'handle', {
+            moduleName: 'workbox-routing',
+            className: 'Router',
+            funcName: 'registerRoute',
+            paramName: 'route.handler'
+          });
+          finalAssertExports.isType(route.method, 'string', {
+            moduleName: 'workbox-routing',
+            className: 'Router',
+            funcName: 'registerRoute',
+            paramName: 'route.method'
+          });
+        }
+        if (!this._routes.has(route.method)) {
+          this._routes.set(route.method, []);
+        }
+        // Give precedence to all of the earlier routes by adding this additional
+        // route to the end of the array.
+        this._routes.get(route.method).push(route);
+      }
+      /**
+       * Unregisters a route with the router.
+       *
+       * @param {workbox-routing.Route} route The route to unregister.
+       */
+      unregisterRoute(route) {
+        if (!this._routes.has(route.method)) {
+          throw new WorkboxError('unregister-route-but-not-found-with-method', {
+            method: route.method
+          });
+        }
+        const routeIndex = this._routes.get(route.method).indexOf(route);
+        if (routeIndex > -1) {
+          this._routes.get(route.method).splice(routeIndex, 1);
+        } else {
+          throw new WorkboxError('unregister-route-route-not-registered');
+        }
+      }
+    }
+
+    /*
+      Copyright 2019 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    let defaultRouter;
+    /**
+     * Creates a new, singleton Router instance if one does not exist. If one
+     * does already exist, that instance is returned.
+     *
+     * @private
+     * @return {Router}
+     */
+    const getOrCreateDefaultRouter = () => {
+      if (!defaultRouter) {
+        defaultRouter = new Router();
+        // The helpers that use the default Router assume these listeners exist.
+        defaultRouter.addFetchListener();
+        defaultRouter.addCacheListener();
+      }
+      return defaultRouter;
+    };
+
+    /*
+      Copyright 2019 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * Easily register a RegExp, string, or function with a caching
+     * strategy to a singleton Router instance.
+     *
+     * This method will generate a Route for you if needed and
+     * call {@link workbox-routing.Router#registerRoute}.
+     *
+     * @param {RegExp|string|workbox-routing.Route~matchCallback|workbox-routing.Route} capture
+     * If the capture param is a `Route`, all other arguments will be ignored.
+     * @param {workbox-routing~handlerCallback} [handler] A callback
+     * function that returns a Promise resulting in a Response. This parameter
+     * is required if `capture` is not a `Route` object.
+     * @param {string} [method='GET'] The HTTP method to match the Route
+     * against.
+     * @return {workbox-routing.Route} The generated `Route`.
+     *
+     * @memberof workbox-routing
+     */
+    function registerRoute(capture, handler, method) {
+      let route;
+      if (typeof capture === 'string') {
+        const captureUrl = new URL(capture, location.href);
+        {
+          if (!(capture.startsWith('/') || capture.startsWith('http'))) {
+            throw new WorkboxError('invalid-string', {
+              moduleName: 'workbox-routing',
+              funcName: 'registerRoute',
+              paramName: 'capture'
+            });
+          }
+          // We want to check if Express-style wildcards are in the pathname only.
+          // TODO: Remove this log message in v4.
+          const valueToCheck = capture.startsWith('http') ? captureUrl.pathname : capture;
+          // See https://github.com/pillarjs/path-to-regexp#parameters
+          const wildcards = '[*:?+]';
+          if (new RegExp(`${wildcards}`).exec(valueToCheck)) {
+            logger.debug(`The '$capture' parameter contains an Express-style wildcard ` + `character (${wildcards}). Strings are now always interpreted as ` + `exact matches; use a RegExp for partial or wildcard matches.`);
+          }
+        }
+        const matchCallback = ({
+          url
+        }) => {
+          {
+            if (url.pathname === captureUrl.pathname && url.origin !== captureUrl.origin) {
+              logger.debug(`${capture} only partially matches the cross-origin URL ` + `${url.toString()}. This route will only handle cross-origin requests ` + `if they match the entire URL.`);
+            }
+          }
+          return url.href === captureUrl.href;
+        };
+        // If `capture` is a string then `handler` and `method` must be present.
+        route = new Route(matchCallback, handler, method);
+      } else if (capture instanceof RegExp) {
+        // If `capture` is a `RegExp` then `handler` and `method` must be present.
+        route = new RegExpRoute(capture, handler, method);
+      } else if (typeof capture === 'function') {
+        // If `capture` is a function then `handler` and `method` must be present.
+        route = new Route(capture, handler, method);
+      } else if (capture instanceof Route) {
+        route = capture;
+      } else {
+        throw new WorkboxError('unsupported-route-type', {
+          moduleName: 'workbox-routing',
+          funcName: 'registerRoute',
+          paramName: 'capture'
+        });
+      }
+      const defaultRouter = getOrCreateDefaultRouter();
+      defaultRouter.registerRoute(route);
+      return route;
+    }
+
+    /*
+      Copyright 2019 Google LLC
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * Returns a promise that resolves and the passed number of milliseconds.
+     * This utility is an async/await-friendly version of `setTimeout`.
+     *
+     * @param {number} ms
+     * @return {Promise}
+     * @private
+     */
+    function timeout(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    const _cacheNameDetails = {
+      googleAnalytics: 'googleAnalytics',
+      precache: 'precache-v2',
+      prefix: 'workbox',
+      runtime: 'runtime',
+      suffix: typeof registration !== 'undefined' ? registration.scope : ''
+    };
+    const _createCacheName = cacheName => {
+      return [_cacheNameDetails.prefix, cacheName, _cacheNameDetails.suffix].filter(value => value && value.length > 0).join('-');
+    };
+    const eachCacheNameDetail = fn => {
+      for (const key of Object.keys(_cacheNameDetails)) {
+        fn(key);
+      }
+    };
+    const cacheNames = {
+      updateDetails: details => {
+        eachCacheNameDetail(key => {
+          if (typeof details[key] === 'string') {
+            _cacheNameDetails[key] = details[key];
+          }
+        });
+      },
+      getGoogleAnalyticsName: userCacheName => {
+        return userCacheName || _createCacheName(_cacheNameDetails.googleAnalytics);
+      },
+      getPrecacheName: userCacheName => {
+        return userCacheName || _createCacheName(_cacheNameDetails.precache);
+      },
+      getPrefix: () => {
+        return _cacheNameDetails.prefix;
+      },
+      getRuntimeName: userCacheName => {
+        return userCacheName || _createCacheName(_cacheNameDetails.runtime);
+      },
+      getSuffix: () => {
+        return _cacheNameDetails.suffix;
+      }
+    };
+
+    /*
+      Copyright 2020 Google LLC
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    function stripParams(fullURL, ignoreParams) {
+      const strippedURL = new URL(fullURL);
+      for (const param of ignoreParams) {
+        strippedURL.searchParams.delete(param);
+      }
+      return strippedURL.href;
+    }
+    /**
+     * Matches an item in the cache, ignoring specific URL params. This is similar
+     * to the `ignoreSearch` option, but it allows you to ignore just specific
+     * params (while continuing to match on the others).
+     *
+     * @private
+     * @param {Cache} cache
+     * @param {Request} request
+     * @param {Object} matchOptions
+     * @param {Array<string>} ignoreParams
+     * @return {Promise<Response|undefined>}
+     */
+    async function cacheMatchIgnoreParams(cache, request, ignoreParams, matchOptions) {
+      const strippedRequestURL = stripParams(request.url, ignoreParams);
+      // If the request doesn't include any ignored params, match as normal.
+      if (request.url === strippedRequestURL) {
+        return cache.match(request, matchOptions);
+      }
+      // Otherwise, match by comparing keys
+      const keysOptions = Object.assign(Object.assign({}, matchOptions), {
+        ignoreSearch: true
+      });
+      const cacheKeys = await cache.keys(request, keysOptions);
+      for (const cacheKey of cacheKeys) {
+        const strippedCacheKeyURL = stripParams(cacheKey.url, ignoreParams);
+        if (strippedRequestURL === strippedCacheKeyURL) {
+          return cache.match(cacheKey, matchOptions);
+        }
+      }
+      return;
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * The Deferred class composes Promises in a way that allows for them to be
+     * resolved or rejected from outside the constructor. In most cases promises
+     * should be used directly, but Deferreds can be necessary when the logic to
+     * resolve a promise must be separate.
+     *
+     * @private
+     */
+    class Deferred {
+      /**
+       * Creates a promise and exposes its resolve and reject functions as methods.
+       */
+      constructor() {
+        this.promise = new Promise((resolve, reject) => {
+          this.resolve = resolve;
+          this.reject = reject;
+        });
+      }
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    // Callbacks to be executed whenever there's a quota error.
+    // Can't change Function type right now.
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    const quotaErrorCallbacks = new Set();
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * Runs all of the callback functions, one at a time sequentially, in the order
+     * in which they were registered.
+     *
+     * @memberof workbox-core
+     * @private
+     */
+    async function executeQuotaErrorCallbacks() {
+      {
+        logger.log(`About to run ${quotaErrorCallbacks.size} ` + `callbacks to clean up caches.`);
+      }
+      for (const callback of quotaErrorCallbacks) {
+        await callback();
+        {
+          logger.log(callback, 'is complete.');
+        }
+      }
+      {
+        logger.log('Finished running callbacks.');
+      }
+    }
+
+    // @ts-ignore
+    try {
+      self['workbox:strategies:7.4.0'] && _();
+    } catch (e) {}
+
+    /*
+      Copyright 2020 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    function toRequest(input) {
+      return typeof input === 'string' ? new Request(input) : input;
+    }
+    /**
+     * A class created every time a Strategy instance calls
+     * {@link workbox-strategies.Strategy~handle} or
+     * {@link workbox-strategies.Strategy~handleAll} that wraps all fetch and
+     * cache actions around plugin callbacks and keeps track of when the strategy
+     * is "done" (i.e. all added `event.waitUntil()` promises have resolved).
+     *
+     * @memberof workbox-strategies
+     */
+    class StrategyHandler {
+      /**
+       * Creates a new instance associated with the passed strategy and event
+       * that's handling the request.
+       *
+       * The constructor also initializes the state that will be passed to each of
+       * the plugins handling this request.
+       *
+       * @param {workbox-strategies.Strategy} strategy
+       * @param {Object} options
+       * @param {Request|string} options.request A request to run this strategy for.
+       * @param {ExtendableEvent} options.event The event associated with the
+       *     request.
+       * @param {URL} [options.url]
+       * @param {*} [options.params] The return value from the
+       *     {@link workbox-routing~matchCallback} (if applicable).
+       */
+      constructor(strategy, options) {
+        this._cacheKeys = {};
+        /**
+         * The request the strategy is performing (passed to the strategy's
+         * `handle()` or `handleAll()` method).
+         * @name request
+         * @instance
+         * @type {Request}
+         * @memberof workbox-strategies.StrategyHandler
+         */
+        /**
+         * The event associated with this request.
+         * @name event
+         * @instance
+         * @type {ExtendableEvent}
+         * @memberof workbox-strategies.StrategyHandler
+         */
+        /**
+         * A `URL` instance of `request.url` (if passed to the strategy's
+         * `handle()` or `handleAll()` method).
+         * Note: the `url` param will be present if the strategy was invoked
+         * from a workbox `Route` object.
+         * @name url
+         * @instance
+         * @type {URL|undefined}
+         * @memberof workbox-strategies.StrategyHandler
+         */
+        /**
+         * A `param` value (if passed to the strategy's
+         * `handle()` or `handleAll()` method).
+         * Note: the `param` param will be present if the strategy was invoked
+         * from a workbox `Route` object and the
+         * {@link workbox-routing~matchCallback} returned
+         * a truthy value (it will be that value).
+         * @name params
+         * @instance
+         * @type {*|undefined}
+         * @memberof workbox-strategies.StrategyHandler
+         */
+        {
+          finalAssertExports.isInstance(options.event, ExtendableEvent, {
+            moduleName: 'workbox-strategies',
+            className: 'StrategyHandler',
+            funcName: 'constructor',
+            paramName: 'options.event'
+          });
+        }
+        Object.assign(this, options);
+        this.event = options.event;
+        this._strategy = strategy;
+        this._handlerDeferred = new Deferred();
+        this._extendLifetimePromises = [];
+        // Copy the plugins list (since it's mutable on the strategy),
+        // so any mutations don't affect this handler instance.
+        this._plugins = [...strategy.plugins];
+        this._pluginStateMap = new Map();
+        for (const plugin of this._plugins) {
+          this._pluginStateMap.set(plugin, {});
+        }
+        this.event.waitUntil(this._handlerDeferred.promise);
+      }
+      /**
+       * Fetches a given request (and invokes any applicable plugin callback
+       * methods) using the `fetchOptions` (for non-navigation requests) and
+       * `plugins` defined on the `Strategy` object.
+       *
+       * The following plugin lifecycle methods are invoked when using this method:
+       * - `requestWillFetch()`
+       * - `fetchDidSucceed()`
+       * - `fetchDidFail()`
+       *
+       * @param {Request|string} input The URL or request to fetch.
+       * @return {Promise<Response>}
+       */
+      async fetch(input) {
+        const {
+          event
+        } = this;
+        let request = toRequest(input);
+        if (request.mode === 'navigate' && event instanceof FetchEvent && event.preloadResponse) {
+          const possiblePreloadResponse = await event.preloadResponse;
+          if (possiblePreloadResponse) {
+            {
+              logger.log(`Using a preloaded navigation response for ` + `'${getFriendlyURL(request.url)}'`);
+            }
+            return possiblePreloadResponse;
+          }
+        }
+        // If there is a fetchDidFail plugin, we need to save a clone of the
+        // original request before it's either modified by a requestWillFetch
+        // plugin or before the original request's body is consumed via fetch().
+        const originalRequest = this.hasCallback('fetchDidFail') ? request.clone() : null;
+        try {
+          for (const cb of this.iterateCallbacks('requestWillFetch')) {
+            request = await cb({
+              request: request.clone(),
+              event
+            });
+          }
+        } catch (err) {
+          if (err instanceof Error) {
+            throw new WorkboxError('plugin-error-request-will-fetch', {
+              thrownErrorMessage: err.message
+            });
+          }
+        }
+        // The request can be altered by plugins with `requestWillFetch` making
+        // the original request (most likely from a `fetch` event) different
+        // from the Request we make. Pass both to `fetchDidFail` to aid debugging.
+        const pluginFilteredRequest = request.clone();
+        try {
+          let fetchResponse;
+          // See https://github.com/GoogleChrome/workbox/issues/1796
+          fetchResponse = await fetch(request, request.mode === 'navigate' ? undefined : this._strategy.fetchOptions);
+          if ("development" !== 'production') {
+            logger.debug(`Network request for ` + `'${getFriendlyURL(request.url)}' returned a response with ` + `status '${fetchResponse.status}'.`);
+          }
+          for (const callback of this.iterateCallbacks('fetchDidSucceed')) {
+            fetchResponse = await callback({
+              event,
+              request: pluginFilteredRequest,
+              response: fetchResponse
+            });
+          }
+          return fetchResponse;
+        } catch (error) {
+          {
+            logger.log(`Network request for ` + `'${getFriendlyURL(request.url)}' threw an error.`, error);
+          }
+          // `originalRequest` will only exist if a `fetchDidFail` callback
+          // is being used (see above).
+          if (originalRequest) {
+            await this.runCallbacks('fetchDidFail', {
+              error: error,
+              event,
+              originalRequest: originalRequest.clone(),
+              request: pluginFilteredRequest.clone()
+            });
+          }
+          throw error;
+        }
+      }
+      /**
+       * Calls `this.fetch()` and (in the background) runs `this.cachePut()` on
+       * the response generated by `this.fetch()`.
+       *
+       * The call to `this.cachePut()` automatically invokes `this.waitUntil()`,
+       * so you do not have to manually call `waitUntil()` on the event.
+       *
+       * @param {Request|string} input The request or URL to fetch and cache.
+       * @return {Promise<Response>}
+       */
+      async fetchAndCachePut(input) {
+        const response = await this.fetch(input);
+        const responseClone = response.clone();
+        void this.waitUntil(this.cachePut(input, responseClone));
+        return response;
+      }
+      /**
+       * Matches a request from the cache (and invokes any applicable plugin
+       * callback methods) using the `cacheName`, `matchOptions`, and `plugins`
+       * defined on the strategy object.
+       *
+       * The following plugin lifecycle methods are invoked when using this method:
+       * - cacheKeyWillBeUsed()
+       * - cachedResponseWillBeUsed()
+       *
+       * @param {Request|string} key The Request or URL to use as the cache key.
+       * @return {Promise<Response|undefined>} A matching response, if found.
+       */
+      async cacheMatch(key) {
+        const request = toRequest(key);
+        let cachedResponse;
+        const {
+          cacheName,
+          matchOptions
+        } = this._strategy;
+        const effectiveRequest = await this.getCacheKey(request, 'read');
+        const multiMatchOptions = Object.assign(Object.assign({}, matchOptions), {
+          cacheName
+        });
+        cachedResponse = await caches.match(effectiveRequest, multiMatchOptions);
+        {
+          if (cachedResponse) {
+            logger.debug(`Found a cached response in '${cacheName}'.`);
+          } else {
+            logger.debug(`No cached response found in '${cacheName}'.`);
+          }
+        }
+        for (const callback of this.iterateCallbacks('cachedResponseWillBeUsed')) {
+          cachedResponse = (await callback({
+            cacheName,
+            matchOptions,
+            cachedResponse,
+            request: effectiveRequest,
+            event: this.event
+          })) || undefined;
+        }
+        return cachedResponse;
+      }
+      /**
+       * Puts a request/response pair in the cache (and invokes any applicable
+       * plugin callback methods) using the `cacheName` and `plugins` defined on
+       * the strategy object.
+       *
+       * The following plugin lifecycle methods are invoked when using this method:
+       * - cacheKeyWillBeUsed()
+       * - cacheWillUpdate()
+       * - cacheDidUpdate()
+       *
+       * @param {Request|string} key The request or URL to use as the cache key.
+       * @param {Response} response The response to cache.
+       * @return {Promise<boolean>} `false` if a cacheWillUpdate caused the response
+       * not be cached, and `true` otherwise.
+       */
+      async cachePut(key, response) {
+        const request = toRequest(key);
+        // Run in the next task to avoid blocking other cache reads.
+        // https://github.com/w3c/ServiceWorker/issues/1397
+        await timeout(0);
+        const effectiveRequest = await this.getCacheKey(request, 'write');
+        {
+          if (effectiveRequest.method && effectiveRequest.method !== 'GET') {
+            throw new WorkboxError('attempt-to-cache-non-get-request', {
+              url: getFriendlyURL(effectiveRequest.url),
+              method: effectiveRequest.method
+            });
+          }
+          // See https://github.com/GoogleChrome/workbox/issues/2818
+          const vary = response.headers.get('Vary');
+          if (vary) {
+            logger.debug(`The response for ${getFriendlyURL(effectiveRequest.url)} ` + `has a 'Vary: ${vary}' header. ` + `Consider setting the {ignoreVary: true} option on your strategy ` + `to ensure cache matching and deletion works as expected.`);
+          }
+        }
+        if (!response) {
+          {
+            logger.error(`Cannot cache non-existent response for ` + `'${getFriendlyURL(effectiveRequest.url)}'.`);
+          }
+          throw new WorkboxError('cache-put-with-no-response', {
+            url: getFriendlyURL(effectiveRequest.url)
+          });
+        }
+        const responseToCache = await this._ensureResponseSafeToCache(response);
+        if (!responseToCache) {
+          {
+            logger.debug(`Response '${getFriendlyURL(effectiveRequest.url)}' ` + `will not be cached.`, responseToCache);
+          }
+          return false;
+        }
+        const {
+          cacheName,
+          matchOptions
+        } = this._strategy;
+        const cache = await self.caches.open(cacheName);
+        const hasCacheUpdateCallback = this.hasCallback('cacheDidUpdate');
+        const oldResponse = hasCacheUpdateCallback ? await cacheMatchIgnoreParams(
+        // TODO(philipwalton): the `__WB_REVISION__` param is a precaching
+        // feature. Consider into ways to only add this behavior if using
+        // precaching.
+        cache, effectiveRequest.clone(), ['__WB_REVISION__'], matchOptions) : null;
+        {
+          logger.debug(`Updating the '${cacheName}' cache with a new Response ` + `for ${getFriendlyURL(effectiveRequest.url)}.`);
+        }
+        try {
+          await cache.put(effectiveRequest, hasCacheUpdateCallback ? responseToCache.clone() : responseToCache);
+        } catch (error) {
+          if (error instanceof Error) {
+            // See https://developer.mozilla.org/en-US/docs/Web/API/DOMException#exception-QuotaExceededError
+            if (error.name === 'QuotaExceededError') {
+              await executeQuotaErrorCallbacks();
+            }
+            throw error;
+          }
+        }
+        for (const callback of this.iterateCallbacks('cacheDidUpdate')) {
+          await callback({
+            cacheName,
+            oldResponse,
+            newResponse: responseToCache.clone(),
+            request: effectiveRequest,
+            event: this.event
+          });
+        }
+        return true;
+      }
+      /**
+       * Checks the list of plugins for the `cacheKeyWillBeUsed` callback, and
+       * executes any of those callbacks found in sequence. The final `Request`
+       * object returned by the last plugin is treated as the cache key for cache
+       * reads and/or writes. If no `cacheKeyWillBeUsed` plugin callbacks have
+       * been registered, the passed request is returned unmodified
+       *
+       * @param {Request} request
+       * @param {string} mode
+       * @return {Promise<Request>}
+       */
+      async getCacheKey(request, mode) {
+        const key = `${request.url} | ${mode}`;
+        if (!this._cacheKeys[key]) {
+          let effectiveRequest = request;
+          for (const callback of this.iterateCallbacks('cacheKeyWillBeUsed')) {
+            effectiveRequest = toRequest(await callback({
+              mode,
+              request: effectiveRequest,
+              event: this.event,
+              // params has a type any can't change right now.
+              params: this.params // eslint-disable-line
+            }));
+          }
+          this._cacheKeys[key] = effectiveRequest;
+        }
+        return this._cacheKeys[key];
+      }
+      /**
+       * Returns true if the strategy has at least one plugin with the given
+       * callback.
+       *
+       * @param {string} name The name of the callback to check for.
+       * @return {boolean}
+       */
+      hasCallback(name) {
+        for (const plugin of this._strategy.plugins) {
+          if (name in plugin) {
+            return true;
+          }
+        }
+        return false;
+      }
+      /**
+       * Runs all plugin callbacks matching the given name, in order, passing the
+       * given param object (merged ith the current plugin state) as the only
+       * argument.
+       *
+       * Note: since this method runs all plugins, it's not suitable for cases
+       * where the return value of a callback needs to be applied prior to calling
+       * the next callback. See
+       * {@link workbox-strategies.StrategyHandler#iterateCallbacks}
+       * below for how to handle that case.
+       *
+       * @param {string} name The name of the callback to run within each plugin.
+       * @param {Object} param The object to pass as the first (and only) param
+       *     when executing each callback. This object will be merged with the
+       *     current plugin state prior to callback execution.
+       */
+      async runCallbacks(name, param) {
+        for (const callback of this.iterateCallbacks(name)) {
+          // TODO(philipwalton): not sure why `any` is needed. It seems like
+          // this should work with `as WorkboxPluginCallbackParam[C]`.
+          await callback(param);
+        }
+      }
+      /**
+       * Accepts a callback and returns an iterable of matching plugin callbacks,
+       * where each callback is wrapped with the current handler state (i.e. when
+       * you call each callback, whatever object parameter you pass it will
+       * be merged with the plugin's current state).
+       *
+       * @param {string} name The name fo the callback to run
+       * @return {Array<Function>}
+       */
+      *iterateCallbacks(name) {
+        for (const plugin of this._strategy.plugins) {
+          if (typeof plugin[name] === 'function') {
+            const state = this._pluginStateMap.get(plugin);
+            const statefulCallback = param => {
+              const statefulParam = Object.assign(Object.assign({}, param), {
+                state
+              });
+              // TODO(philipwalton): not sure why `any` is needed. It seems like
+              // this should work with `as WorkboxPluginCallbackParam[C]`.
+              return plugin[name](statefulParam);
+            };
+            yield statefulCallback;
+          }
+        }
+      }
+      /**
+       * Adds a promise to the
+       * [extend lifetime promises]{@link https://w3c.github.io/ServiceWorker/#extendableevent-extend-lifetime-promises}
+       * of the event associated with the request being handled (usually a
+       * `FetchEvent`).
+       *
+       * Note: you can await
+       * {@link workbox-strategies.StrategyHandler~doneWaiting}
+       * to know when all added promises have settled.
+       *
+       * @param {Promise} promise A promise to add to the extend lifetime promises
+       *     of the event that triggered the request.
+       */
+      waitUntil(promise) {
+        this._extendLifetimePromises.push(promise);
+        return promise;
+      }
+      /**
+       * Returns a promise that resolves once all promises passed to
+       * {@link workbox-strategies.StrategyHandler~waitUntil}
+       * have settled.
+       *
+       * Note: any work done after `doneWaiting()` settles should be manually
+       * passed to an event's `waitUntil()` method (not this handler's
+       * `waitUntil()` method), otherwise the service worker thread may be killed
+       * prior to your work completing.
+       */
+      async doneWaiting() {
+        while (this._extendLifetimePromises.length) {
+          const promises = this._extendLifetimePromises.splice(0);
+          const result = await Promise.allSettled(promises);
+          const firstRejection = result.find(i => i.status === 'rejected');
+          if (firstRejection) {
+            throw firstRejection.reason;
+          }
+        }
+      }
+      /**
+       * Stops running the strategy and immediately resolves any pending
+       * `waitUntil()` promises.
+       */
+      destroy() {
+        this._handlerDeferred.resolve(null);
+      }
+      /**
+       * This method will call cacheWillUpdate on the available plugins (or use
+       * status === 200) to determine if the Response is safe and valid to cache.
+       *
+       * @param {Request} options.request
+       * @param {Response} options.response
+       * @return {Promise<Response|undefined>}
+       *
+       * @private
+       */
+      async _ensureResponseSafeToCache(response) {
+        let responseToCache = response;
+        let pluginsUsed = false;
+        for (const callback of this.iterateCallbacks('cacheWillUpdate')) {
+          responseToCache = (await callback({
+            request: this.request,
+            response: responseToCache,
+            event: this.event
+          })) || undefined;
+          pluginsUsed = true;
+          if (!responseToCache) {
+            break;
+          }
+        }
+        if (!pluginsUsed) {
+          if (responseToCache && responseToCache.status !== 200) {
+            responseToCache = undefined;
+          }
+          {
+            if (responseToCache) {
+              if (responseToCache.status !== 200) {
+                if (responseToCache.status === 0) {
+                  logger.warn(`The response for '${this.request.url}' ` + `is an opaque response. The caching strategy that you're ` + `using will not cache opaque responses by default.`);
+                } else {
+                  logger.debug(`The response for '${this.request.url}' ` + `returned a status code of '${response.status}' and won't ` + `be cached as a result.`);
+                }
+              }
+            }
+          }
+        }
+        return responseToCache;
+      }
+    }
+
+    /*
+      Copyright 2020 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * An abstract base class that all other strategy classes must extend from:
+     *
+     * @memberof workbox-strategies
+     */
+    class Strategy {
+      /**
+       * Creates a new instance of the strategy and sets all documented option
+       * properties as public instance properties.
+       *
+       * Note: if a custom strategy class extends the base Strategy class and does
+       * not need more than these properties, it does not need to define its own
+       * constructor.
+       *
+       * @param {Object} [options]
+       * @param {string} [options.cacheName] Cache name to store and retrieve
+       * requests. Defaults to the cache names provided by
+       * {@link workbox-core.cacheNames}.
+       * @param {Array<Object>} [options.plugins] [Plugins]{@link https://developers.google.com/web/tools/workbox/guides/using-plugins}
+       * to use in conjunction with this caching strategy.
+       * @param {Object} [options.fetchOptions] Values passed along to the
+       * [`init`](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch#Parameters)
+       * of [non-navigation](https://github.com/GoogleChrome/workbox/issues/1796)
+       * `fetch()` requests made by this strategy.
+       * @param {Object} [options.matchOptions] The
+       * [`CacheQueryOptions`]{@link https://w3c.github.io/ServiceWorker/#dictdef-cachequeryoptions}
+       * for any `cache.match()` or `cache.put()` calls made by this strategy.
+       */
+      constructor(options = {}) {
+        /**
+         * Cache name to store and retrieve
+         * requests. Defaults to the cache names provided by
+         * {@link workbox-core.cacheNames}.
+         *
+         * @type {string}
+         */
+        this.cacheName = cacheNames.getRuntimeName(options.cacheName);
+        /**
+         * The list
+         * [Plugins]{@link https://developers.google.com/web/tools/workbox/guides/using-plugins}
+         * used by this strategy.
+         *
+         * @type {Array<Object>}
+         */
+        this.plugins = options.plugins || [];
+        /**
+         * Values passed along to the
+         * [`init`]{@link https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch#Parameters}
+         * of all fetch() requests made by this strategy.
+         *
+         * @type {Object}
+         */
+        this.fetchOptions = options.fetchOptions;
+        /**
+         * The
+         * [`CacheQueryOptions`]{@link https://w3c.github.io/ServiceWorker/#dictdef-cachequeryoptions}
+         * for any `cache.match()` or `cache.put()` calls made by this strategy.
+         *
+         * @type {Object}
+         */
+        this.matchOptions = options.matchOptions;
+      }
+      /**
+       * Perform a request strategy and returns a `Promise` that will resolve with
+       * a `Response`, invoking all relevant plugin callbacks.
+       *
+       * When a strategy instance is registered with a Workbox
+       * {@link workbox-routing.Route}, this method is automatically
+       * called when the route matches.
+       *
+       * Alternatively, this method can be used in a standalone `FetchEvent`
+       * listener by passing it to `event.respondWith()`.
+       *
+       * @param {FetchEvent|Object} options A `FetchEvent` or an object with the
+       *     properties listed below.
+       * @param {Request|string} options.request A request to run this strategy for.
+       * @param {ExtendableEvent} options.event The event associated with the
+       *     request.
+       * @param {URL} [options.url]
+       * @param {*} [options.params]
+       */
+      handle(options) {
+        const [responseDone] = this.handleAll(options);
+        return responseDone;
+      }
+      /**
+       * Similar to {@link workbox-strategies.Strategy~handle}, but
+       * instead of just returning a `Promise` that resolves to a `Response` it
+       * it will return an tuple of `[response, done]` promises, where the former
+       * (`response`) is equivalent to what `handle()` returns, and the latter is a
+       * Promise that will resolve once any promises that were added to
+       * `event.waitUntil()` as part of performing the strategy have completed.
+       *
+       * You can await the `done` promise to ensure any extra work performed by
+       * the strategy (usually caching responses) completes successfully.
+       *
+       * @param {FetchEvent|Object} options A `FetchEvent` or an object with the
+       *     properties listed below.
+       * @param {Request|string} options.request A request to run this strategy for.
+       * @param {ExtendableEvent} options.event The event associated with the
+       *     request.
+       * @param {URL} [options.url]
+       * @param {*} [options.params]
+       * @return {Array<Promise>} A tuple of [response, done]
+       *     promises that can be used to determine when the response resolves as
+       *     well as when the handler has completed all its work.
+       */
+      handleAll(options) {
+        // Allow for flexible options to be passed.
+        if (options instanceof FetchEvent) {
+          options = {
+            event: options,
+            request: options.request
+          };
+        }
+        const event = options.event;
+        const request = typeof options.request === 'string' ? new Request(options.request) : options.request;
+        const params = 'params' in options ? options.params : undefined;
+        const handler = new StrategyHandler(this, {
+          event,
+          request,
+          params
+        });
+        const responseDone = this._getResponse(handler, request, event);
+        const handlerDone = this._awaitComplete(responseDone, handler, request, event);
+        // Return an array of promises, suitable for use with Promise.all().
+        return [responseDone, handlerDone];
+      }
+      async _getResponse(handler, request, event) {
+        await handler.runCallbacks('handlerWillStart', {
+          event,
+          request
+        });
+        let response = undefined;
+        try {
+          response = await this._handle(request, handler);
+          // The "official" Strategy subclasses all throw this error automatically,
+          // but in case a third-party Strategy doesn't, ensure that we have a
+          // consistent failure when there's no response or an error response.
+          if (!response || response.type === 'error') {
+            throw new WorkboxError('no-response', {
+              url: request.url
+            });
+          }
+        } catch (error) {
+          if (error instanceof Error) {
+            for (const callback of handler.iterateCallbacks('handlerDidError')) {
+              response = await callback({
+                error,
+                event,
+                request
+              });
+              if (response) {
+                break;
+              }
+            }
+          }
+          if (!response) {
+            throw error;
+          } else {
+            logger.log(`While responding to '${getFriendlyURL(request.url)}', ` + `an ${error instanceof Error ? error.toString() : ''} error occurred. Using a fallback response provided by ` + `a handlerDidError plugin.`);
+          }
+        }
+        for (const callback of handler.iterateCallbacks('handlerWillRespond')) {
+          response = await callback({
+            event,
+            request,
+            response
+          });
+        }
+        return response;
+      }
+      async _awaitComplete(responseDone, handler, request, event) {
+        let response;
+        let error;
+        try {
+          response = await responseDone;
+        } catch (error) {
+          // Ignore errors, as response errors should be caught via the `response`
+          // promise above. The `done` promise will only throw for errors in
+          // promises passed to `handler.waitUntil()`.
+        }
+        try {
+          await handler.runCallbacks('handlerDidRespond', {
+            event,
+            request,
+            response
+          });
+          await handler.doneWaiting();
+        } catch (waitUntilError) {
+          if (waitUntilError instanceof Error) {
+            error = waitUntilError;
+          }
+        }
+        await handler.runCallbacks('handlerDidComplete', {
+          event,
+          request,
+          response,
+          error: error
+        });
+        handler.destroy();
+        if (error) {
+          throw error;
+        }
+      }
+    }
+    /**
+     * Classes extending the `Strategy` based class should implement this method,
+     * and leverage the {@link workbox-strategies.StrategyHandler}
+     * arg to perform all fetching and cache logic, which will ensure all relevant
+     * cache, cache options, fetch options and plugins are used (per the current
+     * strategy instance).
+     *
+     * @name _handle
+     * @instance
+     * @abstract
+     * @function
+     * @param {Request} request
+     * @param {workbox-strategies.StrategyHandler} handler
+     * @return {Promise<Response>}
+     *
+     * @memberof workbox-strategies.Strategy
+     */
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    const messages = {
+      strategyStart: (strategyName, request) => `Using ${strategyName} to respond to '${getFriendlyURL(request.url)}'`,
+      printFinalResponse: response => {
+        if (response) {
+          logger.groupCollapsed(`View the final response here.`);
+          logger.log(response || '[No response returned]');
+          logger.groupEnd();
+        }
+      }
+    };
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * An implementation of a
+     * [network-only](https://developer.chrome.com/docs/workbox/caching-strategies-overview/#network-only)
+     * request strategy.
+     *
+     * This class is useful if you want to take advantage of any
+     * [Workbox plugins](https://developer.chrome.com/docs/workbox/using-plugins/).
+     *
+     * If the network request fails, this will throw a `WorkboxError` exception.
+     *
+     * @extends workbox-strategies.Strategy
+     * @memberof workbox-strategies
+     */
+    class NetworkOnly extends Strategy {
+      /**
+       * @param {Object} [options]
+       * @param {Array<Object>} [options.plugins] [Plugins]{@link https://developers.google.com/web/tools/workbox/guides/using-plugins}
+       * to use in conjunction with this caching strategy.
+       * @param {Object} [options.fetchOptions] Values passed along to the
+       * [`init`](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch#Parameters)
+       * of [non-navigation](https://github.com/GoogleChrome/workbox/issues/1796)
+       * `fetch()` requests made by this strategy.
+       * @param {number} [options.networkTimeoutSeconds] If set, any network requests
+       * that fail to respond within the timeout will result in a network error.
+       */
+      constructor(options = {}) {
+        super(options);
+        this._networkTimeoutSeconds = options.networkTimeoutSeconds || 0;
+      }
+      /**
+       * @private
+       * @param {Request|string} request A request to run this strategy for.
+       * @param {workbox-strategies.StrategyHandler} handler The event that
+       *     triggered the request.
+       * @return {Promise<Response>}
+       */
+      async _handle(request, handler) {
+        {
+          finalAssertExports.isInstance(request, Request, {
+            moduleName: 'workbox-strategies',
+            className: this.constructor.name,
+            funcName: '_handle',
+            paramName: 'request'
+          });
+        }
+        let error = undefined;
+        let response;
+        try {
+          const promises = [handler.fetch(request)];
+          if (this._networkTimeoutSeconds) {
+            const timeoutPromise = timeout(this._networkTimeoutSeconds * 1000);
+            promises.push(timeoutPromise);
+          }
+          response = await Promise.race(promises);
+          if (!response) {
+            throw new Error(`Timed out the network response after ` + `${this._networkTimeoutSeconds} seconds.`);
+          }
+        } catch (err) {
+          if (err instanceof Error) {
+            error = err;
+          }
+        }
+        {
+          logger.groupCollapsed(messages.strategyStart(this.constructor.name, request));
+          if (response) {
+            logger.log(`Got response from network.`);
+          } else {
+            logger.log(`Unable to get a response from the network.`);
+          }
+          messages.printFinalResponse(response);
+          logger.groupEnd();
+        }
+        if (!response) {
+          throw new WorkboxError('no-response', {
+            url: request.url,
+            error
+          });
+        }
+        return response;
+      }
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    const cacheOkAndOpaquePlugin = {
+      /**
+       * Returns a valid response (to allow caching) if the status is 200 (OK) or
+       * 0 (opaque).
+       *
+       * @param {Object} options
+       * @param {Response} options.response
+       * @return {Response|null}
+       *
+       * @private
+       */
+      cacheWillUpdate: async ({
+        response
+      }) => {
+        if (response.status === 200 || response.status === 0) {
+          return response;
+        }
+        return null;
+      }
+    };
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * An implementation of a
+     * [stale-while-revalidate](https://developer.chrome.com/docs/workbox/caching-strategies-overview/#stale-while-revalidate)
+     * request strategy.
+     *
+     * Resources are requested from both the cache and the network in parallel.
+     * The strategy will respond with the cached version if available, otherwise
+     * wait for the network response. The cache is updated with the network response
+     * with each successful request.
+     *
+     * By default, this strategy will cache responses with a 200 status code as
+     * well as [opaque responses](https://developer.chrome.com/docs/workbox/caching-resources-during-runtime/#opaque-responses).
+     * Opaque responses are cross-origin requests where the response doesn't
+     * support [CORS](https://enable-cors.org/).
+     *
+     * If the network request fails, and there is no cache match, this will throw
+     * a `WorkboxError` exception.
+     *
+     * @extends workbox-strategies.Strategy
+     * @memberof workbox-strategies
+     */
+    class StaleWhileRevalidate extends Strategy {
+      /**
+       * @param {Object} [options]
+       * @param {string} [options.cacheName] Cache name to store and retrieve
+       * requests. Defaults to cache names provided by
+       * {@link workbox-core.cacheNames}.
+       * @param {Array<Object>} [options.plugins] [Plugins]{@link https://developers.google.com/web/tools/workbox/guides/using-plugins}
+       * to use in conjunction with this caching strategy.
+       * @param {Object} [options.fetchOptions] Values passed along to the
+       * [`init`](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch#Parameters)
+       * of [non-navigation](https://github.com/GoogleChrome/workbox/issues/1796)
+       * `fetch()` requests made by this strategy.
+       * @param {Object} [options.matchOptions] [`CacheQueryOptions`](https://w3c.github.io/ServiceWorker/#dictdef-cachequeryoptions)
+       */
+      constructor(options = {}) {
+        super(options);
+        // If this instance contains no plugins with a 'cacheWillUpdate' callback,
+        // prepend the `cacheOkAndOpaquePlugin` plugin to the plugins list.
+        if (!this.plugins.some(p => 'cacheWillUpdate' in p)) {
+          this.plugins.unshift(cacheOkAndOpaquePlugin);
+        }
+      }
+      /**
+       * @private
+       * @param {Request|string} request A request to run this strategy for.
+       * @param {workbox-strategies.StrategyHandler} handler The event that
+       *     triggered the request.
+       * @return {Promise<Response>}
+       */
+      async _handle(request, handler) {
+        const logs = [];
+        {
+          finalAssertExports.isInstance(request, Request, {
+            moduleName: 'workbox-strategies',
+            className: this.constructor.name,
+            funcName: 'handle',
+            paramName: 'request'
+          });
+        }
+        const fetchAndCachePromise = handler.fetchAndCachePut(request).catch(() => {
+          // Swallow this error because a 'no-response' error will be thrown in
+          // main handler return flow. This will be in the `waitUntil()` flow.
+        });
+        void handler.waitUntil(fetchAndCachePromise);
+        let response = await handler.cacheMatch(request);
+        let error;
+        if (response) {
+          {
+            logs.push(`Found a cached response in the '${this.cacheName}'` + ` cache. Will update with the network response in the background.`);
+          }
+        } else {
+          {
+            logs.push(`No response found in the '${this.cacheName}' cache. ` + `Will wait for the network response.`);
+          }
+          try {
+            // NOTE(philipwalton): Really annoying that we have to type cast here.
+            // https://github.com/microsoft/TypeScript/issues/20006
+            response = await fetchAndCachePromise;
+          } catch (err) {
+            if (err instanceof Error) {
+              error = err;
+            }
+          }
+        }
+        {
+          logger.groupCollapsed(messages.strategyStart(this.constructor.name, request));
+          for (const log of logs) {
+            logger.log(log);
+          }
+          messages.printFinalResponse(response);
+          logger.groupEnd();
+        }
+        if (!response) {
+          throw new WorkboxError('no-response', {
+            url: request.url,
+            error
+          });
+        }
+        return response;
+      }
+    }
+
+    /*
+      Copyright 2019 Google LLC
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * A helper function that prevents a promise from being flagged as unused.
+     *
+     * @private
+     **/
+    function dontWaitFor(promise) {
+      // Effective no-op.
+      void promise.then(() => {});
+    }
+
+    /*
+      Copyright 2019 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * Adds a function to the set of quotaErrorCallbacks that will be executed if
+     * there's a quota error.
+     *
+     * @param {Function} callback
+     * @memberof workbox-core
+     */
+    // Can't change Function type
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    function registerQuotaErrorCallback(callback) {
+      {
+        finalAssertExports.isType(callback, 'function', {
+          moduleName: 'workbox-core',
+          funcName: 'register',
+          paramName: 'callback'
+        });
+      }
+      quotaErrorCallbacks.add(callback);
+      {
+        logger.log('Registered a callback to respond to quota errors.', callback);
+      }
+    }
+
+    function _extends() {
+      return _extends = Object.assign ? Object.assign.bind() : function (n) {
+        for (var e = 1; e < arguments.length; e++) {
+          var t = arguments[e];
+          for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]);
+        }
+        return n;
+      }, _extends.apply(null, arguments);
+    }
+
+    const instanceOfAny = (object, constructors) => constructors.some(c => object instanceof c);
+    let idbProxyableTypes;
+    let cursorAdvanceMethods;
+    // This is a function to prevent it throwing up in node environments.
+    function getIdbProxyableTypes() {
+      return idbProxyableTypes || (idbProxyableTypes = [IDBDatabase, IDBObjectStore, IDBIndex, IDBCursor, IDBTransaction]);
+    }
+    // This is a function to prevent it throwing up in node environments.
+    function getCursorAdvanceMethods() {
+      return cursorAdvanceMethods || (cursorAdvanceMethods = [IDBCursor.prototype.advance, IDBCursor.prototype.continue, IDBCursor.prototype.continuePrimaryKey]);
+    }
+    const cursorRequestMap = new WeakMap();
+    const transactionDoneMap = new WeakMap();
+    const transactionStoreNamesMap = new WeakMap();
+    const transformCache = new WeakMap();
+    const reverseTransformCache = new WeakMap();
+    function promisifyRequest(request) {
+      const promise = new Promise((resolve, reject) => {
+        const unlisten = () => {
+          request.removeEventListener('success', success);
+          request.removeEventListener('error', error);
+        };
+        const success = () => {
+          resolve(wrap(request.result));
+          unlisten();
+        };
+        const error = () => {
+          reject(request.error);
+          unlisten();
+        };
+        request.addEventListener('success', success);
+        request.addEventListener('error', error);
+      });
+      promise.then(value => {
+        // Since cursoring reuses the IDBRequest (*sigh*), we cache it for later retrieval
+        // (see wrapFunction).
+        if (value instanceof IDBCursor) {
+          cursorRequestMap.set(value, request);
+        }
+        // Catching to avoid "Uncaught Promise exceptions"
+      }).catch(() => {});
+      // This mapping exists in reverseTransformCache but doesn't doesn't exist in transformCache. This
+      // is because we create many promises from a single IDBRequest.
+      reverseTransformCache.set(promise, request);
+      return promise;
+    }
+    function cacheDonePromiseForTransaction(tx) {
+      // Early bail if we've already created a done promise for this transaction.
+      if (transactionDoneMap.has(tx)) return;
+      const done = new Promise((resolve, reject) => {
+        const unlisten = () => {
+          tx.removeEventListener('complete', complete);
+          tx.removeEventListener('error', error);
+          tx.removeEventListener('abort', error);
+        };
+        const complete = () => {
+          resolve();
+          unlisten();
+        };
+        const error = () => {
+          reject(tx.error || new DOMException('AbortError', 'AbortError'));
+          unlisten();
+        };
+        tx.addEventListener('complete', complete);
+        tx.addEventListener('error', error);
+        tx.addEventListener('abort', error);
+      });
+      // Cache it for later retrieval.
+      transactionDoneMap.set(tx, done);
+    }
+    let idbProxyTraps = {
+      get(target, prop, receiver) {
+        if (target instanceof IDBTransaction) {
+          // Special handling for transaction.done.
+          if (prop === 'done') return transactionDoneMap.get(target);
+          // Polyfill for objectStoreNames because of Edge.
+          if (prop === 'objectStoreNames') {
+            return target.objectStoreNames || transactionStoreNamesMap.get(target);
+          }
+          // Make tx.store return the only store in the transaction, or undefined if there are many.
+          if (prop === 'store') {
+            return receiver.objectStoreNames[1] ? undefined : receiver.objectStore(receiver.objectStoreNames[0]);
+          }
+        }
+        // Else transform whatever we get back.
+        return wrap(target[prop]);
+      },
+      set(target, prop, value) {
+        target[prop] = value;
+        return true;
+      },
+      has(target, prop) {
+        if (target instanceof IDBTransaction && (prop === 'done' || prop === 'store')) {
+          return true;
+        }
+        return prop in target;
+      }
+    };
+    function replaceTraps(callback) {
+      idbProxyTraps = callback(idbProxyTraps);
+    }
+    function wrapFunction(func) {
+      // Due to expected object equality (which is enforced by the caching in `wrap`), we
+      // only create one new func per func.
+      // Edge doesn't support objectStoreNames (booo), so we polyfill it here.
+      if (func === IDBDatabase.prototype.transaction && !('objectStoreNames' in IDBTransaction.prototype)) {
+        return function (storeNames, ...args) {
+          const tx = func.call(unwrap(this), storeNames, ...args);
+          transactionStoreNamesMap.set(tx, storeNames.sort ? storeNames.sort() : [storeNames]);
+          return wrap(tx);
+        };
+      }
+      // Cursor methods are special, as the behaviour is a little more different to standard IDB. In
+      // IDB, you advance the cursor and wait for a new 'success' on the IDBRequest that gave you the
+      // cursor. It's kinda like a promise that can resolve with many values. That doesn't make sense
+      // with real promises, so each advance methods returns a new promise for the cursor object, or
+      // undefined if the end of the cursor has been reached.
+      if (getCursorAdvanceMethods().includes(func)) {
+        return function (...args) {
+          // Calling the original function with the proxy as 'this' causes ILLEGAL INVOCATION, so we use
+          // the original object.
+          func.apply(unwrap(this), args);
+          return wrap(cursorRequestMap.get(this));
+        };
+      }
+      return function (...args) {
+        // Calling the original function with the proxy as 'this' causes ILLEGAL INVOCATION, so we use
+        // the original object.
+        return wrap(func.apply(unwrap(this), args));
+      };
+    }
+    function transformCachableValue(value) {
+      if (typeof value === 'function') return wrapFunction(value);
+      // This doesn't return, it just creates a 'done' promise for the transaction,
+      // which is later returned for transaction.done (see idbObjectHandler).
+      if (value instanceof IDBTransaction) cacheDonePromiseForTransaction(value);
+      if (instanceOfAny(value, getIdbProxyableTypes())) return new Proxy(value, idbProxyTraps);
+      // Return the same value back if we're not going to transform it.
+      return value;
+    }
+    function wrap(value) {
+      // We sometimes generate multiple promises from a single IDBRequest (eg when cursoring), because
+      // IDB is weird and a single IDBRequest can yield many responses, so these can't be cached.
+      if (value instanceof IDBRequest) return promisifyRequest(value);
+      // If we've already transformed this value before, reuse the transformed value.
+      // This is faster, but it also provides object equality.
+      if (transformCache.has(value)) return transformCache.get(value);
+      const newValue = transformCachableValue(value);
+      // Not all types are transformed.
+      // These may be primitive types, so they can't be WeakMap keys.
+      if (newValue !== value) {
+        transformCache.set(value, newValue);
+        reverseTransformCache.set(newValue, value);
+      }
+      return newValue;
+    }
+    const unwrap = value => reverseTransformCache.get(value);
+
+    /**
+     * Open a database.
+     *
+     * @param name Name of the database.
+     * @param version Schema version.
+     * @param callbacks Additional callbacks.
+     */
+    function openDB(name, version, {
+      blocked,
+      upgrade,
+      blocking,
+      terminated
+    } = {}) {
+      const request = indexedDB.open(name, version);
+      const openPromise = wrap(request);
+      if (upgrade) {
+        request.addEventListener('upgradeneeded', event => {
+          upgrade(wrap(request.result), event.oldVersion, event.newVersion, wrap(request.transaction), event);
+        });
+      }
+      if (blocked) {
+        request.addEventListener('blocked', event => blocked(
+        // Casting due to https://github.com/microsoft/TypeScript-DOM-lib-generator/pull/1405
+        event.oldVersion, event.newVersion, event));
+      }
+      openPromise.then(db => {
+        if (terminated) db.addEventListener('close', () => terminated());
+        if (blocking) {
+          db.addEventListener('versionchange', event => blocking(event.oldVersion, event.newVersion, event));
+        }
+      }).catch(() => {});
+      return openPromise;
+    }
+    /**
+     * Delete a database.
+     *
+     * @param name Name of the database.
+     */
+    function deleteDB(name, {
+      blocked
+    } = {}) {
+      const request = indexedDB.deleteDatabase(name);
+      if (blocked) {
+        request.addEventListener('blocked', event => blocked(
+        // Casting due to https://github.com/microsoft/TypeScript-DOM-lib-generator/pull/1405
+        event.oldVersion, event));
+      }
+      return wrap(request).then(() => undefined);
+    }
+    const readMethods = ['get', 'getKey', 'getAll', 'getAllKeys', 'count'];
+    const writeMethods = ['put', 'add', 'delete', 'clear'];
+    const cachedMethods = new Map();
+    function getMethod(target, prop) {
+      if (!(target instanceof IDBDatabase && !(prop in target) && typeof prop === 'string')) {
+        return;
+      }
+      if (cachedMethods.get(prop)) return cachedMethods.get(prop);
+      const targetFuncName = prop.replace(/FromIndex$/, '');
+      const useIndex = prop !== targetFuncName;
+      const isWrite = writeMethods.includes(targetFuncName);
+      if (
+      // Bail if the target doesn't exist on the target. Eg, getAll isn't in Edge.
+      !(targetFuncName in (useIndex ? IDBIndex : IDBObjectStore).prototype) || !(isWrite || readMethods.includes(targetFuncName))) {
+        return;
+      }
+      const method = async function (storeName, ...args) {
+        // isWrite ? 'readwrite' : undefined gzipps better, but fails in Edge :(
+        const tx = this.transaction(storeName, isWrite ? 'readwrite' : 'readonly');
+        let target = tx.store;
+        if (useIndex) target = target.index(args.shift());
+        // Must reject if op rejects.
+        // If it's a write operation, must reject if tx.done rejects.
+        // Must reject with op rejection first.
+        // Must resolve with op value.
+        // Must handle both promises (no unhandled rejections)
+        return (await Promise.all([target[targetFuncName](...args), isWrite && tx.done]))[0];
+      };
+      cachedMethods.set(prop, method);
+      return method;
+    }
+    replaceTraps(oldTraps => _extends({}, oldTraps, {
+      get: (target, prop, receiver) => getMethod(target, prop) || oldTraps.get(target, prop, receiver),
+      has: (target, prop) => !!getMethod(target, prop) || oldTraps.has(target, prop)
+    }));
+
+    // @ts-ignore
+    try {
+      self['workbox:expiration:7.4.0'] && _();
+    } catch (e) {}
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    const DB_NAME = 'workbox-expiration';
+    const CACHE_OBJECT_STORE = 'cache-entries';
+    const normalizeURL = unNormalizedUrl => {
+      const url = new URL(unNormalizedUrl, location.href);
+      url.hash = '';
+      return url.href;
+    };
+    /**
+     * Returns the timestamp model.
+     *
+     * @private
+     */
+    class CacheTimestampsModel {
+      /**
+       *
+       * @param {string} cacheName
+       *
+       * @private
+       */
+      constructor(cacheName) {
+        this._db = null;
+        this._cacheName = cacheName;
+      }
+      /**
+       * Performs an upgrade of indexedDB.
+       *
+       * @param {IDBPDatabase<CacheDbSchema>} db
+       *
+       * @private
+       */
+      _upgradeDb(db) {
+        // TODO(philipwalton): EdgeHTML doesn't support arrays as a keyPath, so we
+        // have to use the `id` keyPath here and create our own values (a
+        // concatenation of `url + cacheName`) instead of simply using
+        // `keyPath: ['url', 'cacheName']`, which is supported in other browsers.
+        const objStore = db.createObjectStore(CACHE_OBJECT_STORE, {
+          keyPath: 'id'
+        });
+        // TODO(philipwalton): once we don't have to support EdgeHTML, we can
+        // create a single index with the keyPath `['cacheName', 'timestamp']`
+        // instead of doing both these indexes.
+        objStore.createIndex('cacheName', 'cacheName', {
+          unique: false
+        });
+        objStore.createIndex('timestamp', 'timestamp', {
+          unique: false
+        });
+      }
+      /**
+       * Performs an upgrade of indexedDB and deletes deprecated DBs.
+       *
+       * @param {IDBPDatabase<CacheDbSchema>} db
+       *
+       * @private
+       */
+      _upgradeDbAndDeleteOldDbs(db) {
+        this._upgradeDb(db);
+        if (this._cacheName) {
+          void deleteDB(this._cacheName);
+        }
+      }
+      /**
+       * @param {string} url
+       * @param {number} timestamp
+       *
+       * @private
+       */
+      async setTimestamp(url, timestamp) {
+        url = normalizeURL(url);
+        const entry = {
+          url,
+          timestamp,
+          cacheName: this._cacheName,
+          // Creating an ID from the URL and cache name won't be necessary once
+          // Edge switches to Chromium and all browsers we support work with
+          // array keyPaths.
+          id: this._getId(url)
+        };
+        const db = await this.getDb();
+        const tx = db.transaction(CACHE_OBJECT_STORE, 'readwrite', {
+          durability: 'relaxed'
+        });
+        await tx.store.put(entry);
+        await tx.done;
+      }
+      /**
+       * Returns the timestamp stored for a given URL.
+       *
+       * @param {string} url
+       * @return {number | undefined}
+       *
+       * @private
+       */
+      async getTimestamp(url) {
+        const db = await this.getDb();
+        const entry = await db.get(CACHE_OBJECT_STORE, this._getId(url));
+        return entry === null || entry === void 0 ? void 0 : entry.timestamp;
+      }
+      /**
+       * Iterates through all the entries in the object store (from newest to
+       * oldest) and removes entries once either `maxCount` is reached or the
+       * entry's timestamp is less than `minTimestamp`.
+       *
+       * @param {number} minTimestamp
+       * @param {number} maxCount
+       * @return {Array<string>}
+       *
+       * @private
+       */
+      async expireEntries(minTimestamp, maxCount) {
+        const db = await this.getDb();
+        let cursor = await db.transaction(CACHE_OBJECT_STORE).store.index('timestamp').openCursor(null, 'prev');
+        const entriesToDelete = [];
+        let entriesNotDeletedCount = 0;
+        while (cursor) {
+          const result = cursor.value;
+          // TODO(philipwalton): once we can use a multi-key index, we
+          // won't have to check `cacheName` here.
+          if (result.cacheName === this._cacheName) {
+            // Delete an entry if it's older than the max age or
+            // if we already have the max number allowed.
+            if (minTimestamp && result.timestamp < minTimestamp || maxCount && entriesNotDeletedCount >= maxCount) {
+              // TODO(philipwalton): we should be able to delete the
+              // entry right here, but doing so causes an iteration
+              // bug in Safari stable (fixed in TP). Instead we can
+              // store the keys of the entries to delete, and then
+              // delete the separate transactions.
+              // https://github.com/GoogleChrome/workbox/issues/1978
+              // cursor.delete();
+              // We only need to return the URL, not the whole entry.
+              entriesToDelete.push(cursor.value);
+            } else {
+              entriesNotDeletedCount++;
+            }
+          }
+          cursor = await cursor.continue();
+        }
+        // TODO(philipwalton): once the Safari bug in the following issue is fixed,
+        // we should be able to remove this loop and do the entry deletion in the
+        // cursor loop above:
+        // https://github.com/GoogleChrome/workbox/issues/1978
+        const urlsDeleted = [];
+        for (const entry of entriesToDelete) {
+          await db.delete(CACHE_OBJECT_STORE, entry.id);
+          urlsDeleted.push(entry.url);
+        }
+        return urlsDeleted;
+      }
+      /**
+       * Takes a URL and returns an ID that will be unique in the object store.
+       *
+       * @param {string} url
+       * @return {string}
+       *
+       * @private
+       */
+      _getId(url) {
+        // Creating an ID from the URL and cache name won't be necessary once
+        // Edge switches to Chromium and all browsers we support work with
+        // array keyPaths.
+        return this._cacheName + '|' + normalizeURL(url);
+      }
+      /**
+       * Returns an open connection to the database.
+       *
+       * @private
+       */
+      async getDb() {
+        if (!this._db) {
+          this._db = await openDB(DB_NAME, 1, {
+            upgrade: this._upgradeDbAndDeleteOldDbs.bind(this)
+          });
+        }
+        return this._db;
+      }
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * The `CacheExpiration` class allows you define an expiration and / or
+     * limit on the number of responses stored in a
+     * [`Cache`](https://developer.mozilla.org/en-US/docs/Web/API/Cache).
+     *
+     * @memberof workbox-expiration
+     */
+    class CacheExpiration {
+      /**
+       * To construct a new CacheExpiration instance you must provide at least
+       * one of the `config` properties.
+       *
+       * @param {string} cacheName Name of the cache to apply restrictions to.
+       * @param {Object} config
+       * @param {number} [config.maxEntries] The maximum number of entries to cache.
+       * Entries used the least will be removed as the maximum is reached.
+       * @param {number} [config.maxAgeSeconds] The maximum age of an entry before
+       * it's treated as stale and removed.
+       * @param {Object} [config.matchOptions] The [`CacheQueryOptions`](https://developer.mozilla.org/en-US/docs/Web/API/Cache/delete#Parameters)
+       * that will be used when calling `delete()` on the cache.
+       */
+      constructor(cacheName, config = {}) {
+        this._isRunning = false;
+        this._rerunRequested = false;
+        {
+          finalAssertExports.isType(cacheName, 'string', {
+            moduleName: 'workbox-expiration',
+            className: 'CacheExpiration',
+            funcName: 'constructor',
+            paramName: 'cacheName'
+          });
+          if (!(config.maxEntries || config.maxAgeSeconds)) {
+            throw new WorkboxError('max-entries-or-age-required', {
+              moduleName: 'workbox-expiration',
+              className: 'CacheExpiration',
+              funcName: 'constructor'
+            });
+          }
+          if (config.maxEntries) {
+            finalAssertExports.isType(config.maxEntries, 'number', {
+              moduleName: 'workbox-expiration',
+              className: 'CacheExpiration',
+              funcName: 'constructor',
+              paramName: 'config.maxEntries'
+            });
+          }
+          if (config.maxAgeSeconds) {
+            finalAssertExports.isType(config.maxAgeSeconds, 'number', {
+              moduleName: 'workbox-expiration',
+              className: 'CacheExpiration',
+              funcName: 'constructor',
+              paramName: 'config.maxAgeSeconds'
+            });
+          }
+        }
+        this._maxEntries = config.maxEntries;
+        this._maxAgeSeconds = config.maxAgeSeconds;
+        this._matchOptions = config.matchOptions;
+        this._cacheName = cacheName;
+        this._timestampModel = new CacheTimestampsModel(cacheName);
+      }
+      /**
+       * Expires entries for the given cache and given criteria.
+       */
+      async expireEntries() {
+        if (this._isRunning) {
+          this._rerunRequested = true;
+          return;
+        }
+        this._isRunning = true;
+        const minTimestamp = this._maxAgeSeconds ? Date.now() - this._maxAgeSeconds * 1000 : 0;
+        const urlsExpired = await this._timestampModel.expireEntries(minTimestamp, this._maxEntries);
+        // Delete URLs from the cache
+        const cache = await self.caches.open(this._cacheName);
+        for (const url of urlsExpired) {
+          await cache.delete(url, this._matchOptions);
+        }
+        {
+          if (urlsExpired.length > 0) {
+            logger.groupCollapsed(`Expired ${urlsExpired.length} ` + `${urlsExpired.length === 1 ? 'entry' : 'entries'} and removed ` + `${urlsExpired.length === 1 ? 'it' : 'them'} from the ` + `'${this._cacheName}' cache.`);
+            logger.log(`Expired the following ${urlsExpired.length === 1 ? 'URL' : 'URLs'}:`);
+            urlsExpired.forEach(url => logger.log(`    ${url}`));
+            logger.groupEnd();
+          } else {
+            logger.debug(`Cache expiration ran and found no entries to remove.`);
+          }
+        }
+        this._isRunning = false;
+        if (this._rerunRequested) {
+          this._rerunRequested = false;
+          dontWaitFor(this.expireEntries());
+        }
+      }
+      /**
+       * Update the timestamp for the given URL. This ensures the when
+       * removing entries based on maximum entries, most recently used
+       * is accurate or when expiring, the timestamp is up-to-date.
+       *
+       * @param {string} url
+       */
+      async updateTimestamp(url) {
+        {
+          finalAssertExports.isType(url, 'string', {
+            moduleName: 'workbox-expiration',
+            className: 'CacheExpiration',
+            funcName: 'updateTimestamp',
+            paramName: 'url'
+          });
+        }
+        await this._timestampModel.setTimestamp(url, Date.now());
+      }
+      /**
+       * Can be used to check if a URL has expired or not before it's used.
+       *
+       * This requires a look up from IndexedDB, so can be slow.
+       *
+       * Note: This method will not remove the cached entry, call
+       * `expireEntries()` to remove indexedDB and Cache entries.
+       *
+       * @param {string} url
+       * @return {boolean}
+       */
+      async isURLExpired(url) {
+        if (!this._maxAgeSeconds) {
+          {
+            throw new WorkboxError(`expired-test-without-max-age`, {
+              methodName: 'isURLExpired',
+              paramName: 'maxAgeSeconds'
+            });
+          }
+        } else {
+          const timestamp = await this._timestampModel.getTimestamp(url);
+          const expireOlderThan = Date.now() - this._maxAgeSeconds * 1000;
+          return timestamp !== undefined ? timestamp < expireOlderThan : true;
+        }
+      }
+      /**
+       * Removes the IndexedDB object store used to keep track of cache expiration
+       * metadata.
+       */
+      async delete() {
+        // Make sure we don't attempt another rerun if we're called in the middle of
+        // a cache expiration.
+        this._rerunRequested = false;
+        await this._timestampModel.expireEntries(Infinity); // Expires all.
+      }
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * This plugin can be used in a `workbox-strategy` to regularly enforce a
+     * limit on the age and / or the number of cached requests.
+     *
+     * It can only be used with `workbox-strategy` instances that have a
+     * [custom `cacheName` property set](/web/tools/workbox/guides/configure-workbox#custom_cache_names_in_strategies).
+     * In other words, it can't be used to expire entries in strategy that uses the
+     * default runtime cache name.
+     *
+     * Whenever a cached response is used or updated, this plugin will look
+     * at the associated cache and remove any old or extra responses.
+     *
+     * When using `maxAgeSeconds`, responses may be used *once* after expiring
+     * because the expiration clean up will not have occurred until *after* the
+     * cached response has been used. If the response has a "Date" header, then
+     * a light weight expiration check is performed and the response will not be
+     * used immediately.
+     *
+     * When using `maxEntries`, the entry least-recently requested will be removed
+     * from the cache first.
+     *
+     * @memberof workbox-expiration
+     */
+    class ExpirationPlugin {
+      /**
+       * @param {ExpirationPluginOptions} config
+       * @param {number} [config.maxEntries] The maximum number of entries to cache.
+       * Entries used the least will be removed as the maximum is reached.
+       * @param {number} [config.maxAgeSeconds] The maximum age of an entry before
+       * it's treated as stale and removed.
+       * @param {Object} [config.matchOptions] The [`CacheQueryOptions`](https://developer.mozilla.org/en-US/docs/Web/API/Cache/delete#Parameters)
+       * that will be used when calling `delete()` on the cache.
+       * @param {boolean} [config.purgeOnQuotaError] Whether to opt this cache in to
+       * automatic deletion if the available storage quota has been exceeded.
+       */
+      constructor(config = {}) {
+        /**
+         * A "lifecycle" callback that will be triggered automatically by the
+         * `workbox-strategies` handlers when a `Response` is about to be returned
+         * from a [Cache](https://developer.mozilla.org/en-US/docs/Web/API/Cache) to
+         * the handler. It allows the `Response` to be inspected for freshness and
+         * prevents it from being used if the `Response`'s `Date` header value is
+         * older than the configured `maxAgeSeconds`.
+         *
+         * @param {Object} options
+         * @param {string} options.cacheName Name of the cache the response is in.
+         * @param {Response} options.cachedResponse The `Response` object that's been
+         *     read from a cache and whose freshness should be checked.
+         * @return {Response} Either the `cachedResponse`, if it's
+         *     fresh, or `null` if the `Response` is older than `maxAgeSeconds`.
+         *
+         * @private
+         */
+        this.cachedResponseWillBeUsed = async ({
+          event,
+          request,
+          cacheName,
+          cachedResponse
+        }) => {
+          if (!cachedResponse) {
+            return null;
+          }
+          const isFresh = this._isResponseDateFresh(cachedResponse);
+          // Expire entries to ensure that even if the expiration date has
+          // expired, it'll only be used once.
+          const cacheExpiration = this._getCacheExpiration(cacheName);
+          dontWaitFor(cacheExpiration.expireEntries());
+          // Update the metadata for the request URL to the current timestamp,
+          // but don't `await` it as we don't want to block the response.
+          const updateTimestampDone = cacheExpiration.updateTimestamp(request.url);
+          if (event) {
+            try {
+              event.waitUntil(updateTimestampDone);
+            } catch (error) {
+              {
+                // The event may not be a fetch event; only log the URL if it is.
+                if ('request' in event) {
+                  logger.warn(`Unable to ensure service worker stays alive when ` + `updating cache entry for ` + `'${getFriendlyURL(event.request.url)}'.`);
+                }
+              }
+            }
+          }
+          return isFresh ? cachedResponse : null;
+        };
+        /**
+         * A "lifecycle" callback that will be triggered automatically by the
+         * `workbox-strategies` handlers when an entry is added to a cache.
+         *
+         * @param {Object} options
+         * @param {string} options.cacheName Name of the cache that was updated.
+         * @param {string} options.request The Request for the cached entry.
+         *
+         * @private
+         */
+        this.cacheDidUpdate = async ({
+          cacheName,
+          request
+        }) => {
+          {
+            finalAssertExports.isType(cacheName, 'string', {
+              moduleName: 'workbox-expiration',
+              className: 'Plugin',
+              funcName: 'cacheDidUpdate',
+              paramName: 'cacheName'
+            });
+            finalAssertExports.isInstance(request, Request, {
+              moduleName: 'workbox-expiration',
+              className: 'Plugin',
+              funcName: 'cacheDidUpdate',
+              paramName: 'request'
+            });
+          }
+          const cacheExpiration = this._getCacheExpiration(cacheName);
+          await cacheExpiration.updateTimestamp(request.url);
+          await cacheExpiration.expireEntries();
+        };
+        {
+          if (!(config.maxEntries || config.maxAgeSeconds)) {
+            throw new WorkboxError('max-entries-or-age-required', {
+              moduleName: 'workbox-expiration',
+              className: 'Plugin',
+              funcName: 'constructor'
+            });
+          }
+          if (config.maxEntries) {
+            finalAssertExports.isType(config.maxEntries, 'number', {
+              moduleName: 'workbox-expiration',
+              className: 'Plugin',
+              funcName: 'constructor',
+              paramName: 'config.maxEntries'
+            });
+          }
+          if (config.maxAgeSeconds) {
+            finalAssertExports.isType(config.maxAgeSeconds, 'number', {
+              moduleName: 'workbox-expiration',
+              className: 'Plugin',
+              funcName: 'constructor',
+              paramName: 'config.maxAgeSeconds'
+            });
+          }
+        }
+        this._config = config;
+        this._maxAgeSeconds = config.maxAgeSeconds;
+        this._cacheExpirations = new Map();
+        if (config.purgeOnQuotaError) {
+          registerQuotaErrorCallback(() => this.deleteCacheAndMetadata());
+        }
+      }
+      /**
+       * A simple helper method to return a CacheExpiration instance for a given
+       * cache name.
+       *
+       * @param {string} cacheName
+       * @return {CacheExpiration}
+       *
+       * @private
+       */
+      _getCacheExpiration(cacheName) {
+        if (cacheName === cacheNames.getRuntimeName()) {
+          throw new WorkboxError('expire-custom-caches-only');
+        }
+        let cacheExpiration = this._cacheExpirations.get(cacheName);
+        if (!cacheExpiration) {
+          cacheExpiration = new CacheExpiration(cacheName, this._config);
+          this._cacheExpirations.set(cacheName, cacheExpiration);
+        }
+        return cacheExpiration;
+      }
+      /**
+       * @param {Response} cachedResponse
+       * @return {boolean}
+       *
+       * @private
+       */
+      _isResponseDateFresh(cachedResponse) {
+        if (!this._maxAgeSeconds) {
+          // We aren't expiring by age, so return true, it's fresh
+          return true;
+        }
+        // Check if the 'date' header will suffice a quick expiration check.
+        // See https://github.com/GoogleChromeLabs/sw-toolbox/issues/164 for
+        // discussion.
+        const dateHeaderTimestamp = this._getDateHeaderTimestamp(cachedResponse);
+        if (dateHeaderTimestamp === null) {
+          // Unable to parse date, so assume it's fresh.
+          return true;
+        }
+        // If we have a valid headerTime, then our response is fresh iff the
+        // headerTime plus maxAgeSeconds is greater than the current time.
+        const now = Date.now();
+        return dateHeaderTimestamp >= now - this._maxAgeSeconds * 1000;
+      }
+      /**
+       * This method will extract the data header and parse it into a useful
+       * value.
+       *
+       * @param {Response} cachedResponse
+       * @return {number|null}
+       *
+       * @private
+       */
+      _getDateHeaderTimestamp(cachedResponse) {
+        if (!cachedResponse.headers.has('date')) {
+          return null;
+        }
+        const dateHeader = cachedResponse.headers.get('date');
+        const parsedDate = new Date(dateHeader);
+        const headerTime = parsedDate.getTime();
+        // If the Date header was invalid for some reason, parsedDate.getTime()
+        // will return NaN.
+        if (isNaN(headerTime)) {
+          return null;
+        }
+        return headerTime;
+      }
+      /**
+       * This is a helper method that performs two operations:
+       *
+       * - Deletes *all* the underlying Cache instances associated with this plugin
+       * instance, by calling caches.delete() on your behalf.
+       * - Deletes the metadata from IndexedDB used to keep track of expiration
+       * details for each Cache instance.
+       *
+       * When using cache expiration, calling this method is preferable to calling
+       * `caches.delete()` directly, since this will ensure that the IndexedDB
+       * metadata is also cleanly removed and open IndexedDB instances are deleted.
+       *
+       * Note that if you're *not* using cache expiration for a given cache, calling
+       * `caches.delete()` and passing in the cache's name should be sufficient.
+       * There is no Workbox-specific method needed for cleanup in that case.
+       */
+      async deleteCacheAndMetadata() {
+        // Do this one at a time instead of all at once via `Promise.all()` to
+        // reduce the chance of inconsistency if a promise rejects.
+        for (const [cacheName, cacheExpiration] of this._cacheExpirations) {
+          await self.caches.delete(cacheName);
+          await cacheExpiration.delete();
+        }
+        // Reset this._cacheExpirations to its initial state.
+        this._cacheExpirations = new Map();
+      }
+    }
+
+    // @ts-ignore
+    try {
+      self['workbox:cacheable-response:7.4.0'] && _();
+    } catch (e) {}
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * This class allows you to set up rules determining what
+     * status codes and/or headers need to be present in order for a
+     * [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response)
+     * to be considered cacheable.
+     *
+     * @memberof workbox-cacheable-response
+     */
+    class CacheableResponse {
+      /**
+       * To construct a new CacheableResponse instance you must provide at least
+       * one of the `config` properties.
+       *
+       * If both `statuses` and `headers` are specified, then both conditions must
+       * be met for the `Response` to be considered cacheable.
+       *
+       * @param {Object} config
+       * @param {Array<number>} [config.statuses] One or more status codes that a
+       * `Response` can have and be considered cacheable.
+       * @param {Object<string,string>} [config.headers] A mapping of header names
+       * and expected values that a `Response` can have and be considered cacheable.
+       * If multiple headers are provided, only one needs to be present.
+       */
+      constructor(config = {}) {
+        {
+          if (!(config.statuses || config.headers)) {
+            throw new WorkboxError('statuses-or-headers-required', {
+              moduleName: 'workbox-cacheable-response',
+              className: 'CacheableResponse',
+              funcName: 'constructor'
+            });
+          }
+          if (config.statuses) {
+            finalAssertExports.isArray(config.statuses, {
+              moduleName: 'workbox-cacheable-response',
+              className: 'CacheableResponse',
+              funcName: 'constructor',
+              paramName: 'config.statuses'
+            });
+          }
+          if (config.headers) {
+            finalAssertExports.isType(config.headers, 'object', {
+              moduleName: 'workbox-cacheable-response',
+              className: 'CacheableResponse',
+              funcName: 'constructor',
+              paramName: 'config.headers'
+            });
+          }
+        }
+        this._statuses = config.statuses;
+        this._headers = config.headers;
+      }
+      /**
+       * Checks a response to see whether it's cacheable or not, based on this
+       * object's configuration.
+       *
+       * @param {Response} response The response whose cacheability is being
+       * checked.
+       * @return {boolean} `true` if the `Response` is cacheable, and `false`
+       * otherwise.
+       */
+      isResponseCacheable(response) {
+        {
+          finalAssertExports.isInstance(response, Response, {
+            moduleName: 'workbox-cacheable-response',
+            className: 'CacheableResponse',
+            funcName: 'isResponseCacheable',
+            paramName: 'response'
+          });
+        }
+        let cacheable = true;
+        if (this._statuses) {
+          cacheable = this._statuses.includes(response.status);
+        }
+        if (this._headers && cacheable) {
+          cacheable = Object.keys(this._headers).some(headerName => {
+            return response.headers.get(headerName) === this._headers[headerName];
+          });
+        }
+        {
+          if (!cacheable) {
+            logger.groupCollapsed(`The request for ` + `'${getFriendlyURL(response.url)}' returned a response that does ` + `not meet the criteria for being cached.`);
+            logger.groupCollapsed(`View cacheability criteria here.`);
+            logger.log(`Cacheable statuses: ` + JSON.stringify(this._statuses));
+            logger.log(`Cacheable headers: ` + JSON.stringify(this._headers, null, 2));
+            logger.groupEnd();
+            const logFriendlyHeaders = {};
+            response.headers.forEach((value, key) => {
+              logFriendlyHeaders[key] = value;
+            });
+            logger.groupCollapsed(`View response status and headers here.`);
+            logger.log(`Response status: ${response.status}`);
+            logger.log(`Response headers: ` + JSON.stringify(logFriendlyHeaders, null, 2));
+            logger.groupEnd();
+            logger.groupCollapsed(`View full response details here.`);
+            logger.log(response.headers);
+            logger.log(response);
+            logger.groupEnd();
+            logger.groupEnd();
+          }
+        }
+        return cacheable;
+      }
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * A class implementing the `cacheWillUpdate` lifecycle callback. This makes it
+     * easier to add in cacheability checks to requests made via Workbox's built-in
+     * strategies.
+     *
+     * @memberof workbox-cacheable-response
+     */
+    class CacheableResponsePlugin {
+      /**
+       * To construct a new CacheableResponsePlugin instance you must provide at
+       * least one of the `config` properties.
+       *
+       * If both `statuses` and `headers` are specified, then both conditions must
+       * be met for the `Response` to be considered cacheable.
+       *
+       * @param {Object} config
+       * @param {Array<number>} [config.statuses] One or more status codes that a
+       * `Response` can have and be considered cacheable.
+       * @param {Object<string,string>} [config.headers] A mapping of header names
+       * and expected values that a `Response` can have and be considered cacheable.
+       * If multiple headers are provided, only one needs to be present.
+       */
+      constructor(config) {
+        /**
+         * @param {Object} options
+         * @param {Response} options.response
+         * @return {Response|null}
+         * @private
+         */
+        this.cacheWillUpdate = async ({
+          response
+        }) => {
+          if (this._cacheableResponse.isResponseCacheable(response)) {
+            return response;
+          }
+          return null;
+        };
+        this._cacheableResponse = new CacheableResponse(config);
+      }
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * An implementation of a [cache-first](https://developer.chrome.com/docs/workbox/caching-strategies-overview/#cache-first-falling-back-to-network)
+     * request strategy.
+     *
+     * A cache first strategy is useful for assets that have been revisioned,
+     * such as URLs like `/styles/example.a8f5f1.css`, since they
+     * can be cached for long periods of time.
+     *
+     * If the network request fails, and there is no cache match, this will throw
+     * a `WorkboxError` exception.
+     *
+     * @extends workbox-strategies.Strategy
+     * @memberof workbox-strategies
+     */
+    class CacheFirst extends Strategy {
+      /**
+       * @private
+       * @param {Request|string} request A request to run this strategy for.
+       * @param {workbox-strategies.StrategyHandler} handler The event that
+       *     triggered the request.
+       * @return {Promise<Response>}
+       */
+      async _handle(request, handler) {
+        const logs = [];
+        {
+          finalAssertExports.isInstance(request, Request, {
+            moduleName: 'workbox-strategies',
+            className: this.constructor.name,
+            funcName: 'makeRequest',
+            paramName: 'request'
+          });
+        }
+        let response = await handler.cacheMatch(request);
+        let error = undefined;
+        if (!response) {
+          {
+            logs.push(`No response found in the '${this.cacheName}' cache. ` + `Will respond with a network request.`);
+          }
+          try {
+            response = await handler.fetchAndCachePut(request);
+          } catch (err) {
+            if (err instanceof Error) {
+              error = err;
+            }
+          }
+          {
+            if (response) {
+              logs.push(`Got response from network.`);
+            } else {
+              logs.push(`Unable to get a response from the network.`);
+            }
+          }
+        } else {
+          {
+            logs.push(`Found a cached response in the '${this.cacheName}' cache.`);
+          }
+        }
+        {
+          logger.groupCollapsed(messages.strategyStart(this.constructor.name, request));
+          for (const log of logs) {
+            logger.log(log);
+          }
+          messages.printFinalResponse(response);
+          logger.groupEnd();
+        }
+        if (!response) {
+          throw new WorkboxError('no-response', {
+            url: request.url,
+            error
+          });
+        }
+        return response;
+      }
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * An implementation of a
+     * [network first](https://developer.chrome.com/docs/workbox/caching-strategies-overview/#network-first-falling-back-to-cache)
+     * request strategy.
+     *
+     * By default, this strategy will cache responses with a 200 status code as
+     * well as [opaque responses](https://developer.chrome.com/docs/workbox/caching-resources-during-runtime/#opaque-responses).
+     * Opaque responses are are cross-origin requests where the response doesn't
+     * support [CORS](https://enable-cors.org/).
+     *
+     * If the network request fails, and there is no cache match, this will throw
+     * a `WorkboxError` exception.
+     *
+     * @extends workbox-strategies.Strategy
+     * @memberof workbox-strategies
+     */
+    class NetworkFirst extends Strategy {
+      /**
+       * @param {Object} [options]
+       * @param {string} [options.cacheName] Cache name to store and retrieve
+       * requests. Defaults to cache names provided by
+       * {@link workbox-core.cacheNames}.
+       * @param {Array<Object>} [options.plugins] [Plugins]{@link https://developers.google.com/web/tools/workbox/guides/using-plugins}
+       * to use in conjunction with this caching strategy.
+       * @param {Object} [options.fetchOptions] Values passed along to the
+       * [`init`](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch#Parameters)
+       * of [non-navigation](https://github.com/GoogleChrome/workbox/issues/1796)
+       * `fetch()` requests made by this strategy.
+       * @param {Object} [options.matchOptions] [`CacheQueryOptions`](https://w3c.github.io/ServiceWorker/#dictdef-cachequeryoptions)
+       * @param {number} [options.networkTimeoutSeconds] If set, any network requests
+       * that fail to respond within the timeout will fallback to the cache.
+       *
+       * This option can be used to combat
+       * "[lie-fi]{@link https://developers.google.com/web/fundamentals/performance/poor-connectivity/#lie-fi}"
+       * scenarios.
+       */
+      constructor(options = {}) {
+        super(options);
+        // If this instance contains no plugins with a 'cacheWillUpdate' callback,
+        // prepend the `cacheOkAndOpaquePlugin` plugin to the plugins list.
+        if (!this.plugins.some(p => 'cacheWillUpdate' in p)) {
+          this.plugins.unshift(cacheOkAndOpaquePlugin);
+        }
+        this._networkTimeoutSeconds = options.networkTimeoutSeconds || 0;
+        {
+          if (this._networkTimeoutSeconds) {
+            finalAssertExports.isType(this._networkTimeoutSeconds, 'number', {
+              moduleName: 'workbox-strategies',
+              className: this.constructor.name,
+              funcName: 'constructor',
+              paramName: 'networkTimeoutSeconds'
+            });
+          }
+        }
+      }
+      /**
+       * @private
+       * @param {Request|string} request A request to run this strategy for.
+       * @param {workbox-strategies.StrategyHandler} handler The event that
+       *     triggered the request.
+       * @return {Promise<Response>}
+       */
+      async _handle(request, handler) {
+        const logs = [];
+        {
+          finalAssertExports.isInstance(request, Request, {
+            moduleName: 'workbox-strategies',
+            className: this.constructor.name,
+            funcName: 'handle',
+            paramName: 'makeRequest'
+          });
+        }
+        const promises = [];
+        let timeoutId;
+        if (this._networkTimeoutSeconds) {
+          const {
+            id,
+            promise
+          } = this._getTimeoutPromise({
+            request,
+            logs,
+            handler
+          });
+          timeoutId = id;
+          promises.push(promise);
+        }
+        const networkPromise = this._getNetworkPromise({
+          timeoutId,
+          request,
+          logs,
+          handler
+        });
+        promises.push(networkPromise);
+        const response = await handler.waitUntil((async () => {
+          // Promise.race() will resolve as soon as the first promise resolves.
+          return (await handler.waitUntil(Promise.race(promises))) || (
+          // If Promise.race() resolved with null, it might be due to a network
+          // timeout + a cache miss. If that were to happen, we'd rather wait until
+          // the networkPromise resolves instead of returning null.
+          // Note that it's fine to await an already-resolved promise, so we don't
+          // have to check to see if it's still "in flight".
+          await networkPromise);
+        })());
+        {
+          logger.groupCollapsed(messages.strategyStart(this.constructor.name, request));
+          for (const log of logs) {
+            logger.log(log);
+          }
+          messages.printFinalResponse(response);
+          logger.groupEnd();
+        }
+        if (!response) {
+          throw new WorkboxError('no-response', {
+            url: request.url
+          });
+        }
+        return response;
+      }
+      /**
+       * @param {Object} options
+       * @param {Request} options.request
+       * @param {Array} options.logs A reference to the logs array
+       * @param {Event} options.event
+       * @return {Promise<Response>}
+       *
+       * @private
+       */
+      _getTimeoutPromise({
+        request,
+        logs,
+        handler
+      }) {
+        let timeoutId;
+        const timeoutPromise = new Promise(resolve => {
+          const onNetworkTimeout = async () => {
+            {
+              logs.push(`Timing out the network response at ` + `${this._networkTimeoutSeconds} seconds.`);
+            }
+            resolve(await handler.cacheMatch(request));
+          };
+          timeoutId = setTimeout(onNetworkTimeout, this._networkTimeoutSeconds * 1000);
+        });
+        return {
+          promise: timeoutPromise,
+          id: timeoutId
+        };
+      }
+      /**
+       * @param {Object} options
+       * @param {number|undefined} options.timeoutId
+       * @param {Request} options.request
+       * @param {Array} options.logs A reference to the logs Array.
+       * @param {Event} options.event
+       * @return {Promise<Response>}
+       *
+       * @private
+       */
+      async _getNetworkPromise({
+        timeoutId,
+        request,
+        logs,
+        handler
+      }) {
+        let error;
+        let response;
+        try {
+          response = await handler.fetchAndCachePut(request);
+        } catch (fetchError) {
+          if (fetchError instanceof Error) {
+            error = fetchError;
+          }
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        {
+          if (response) {
+            logs.push(`Got response from network.`);
+          } else {
+            logs.push(`Unable to get a response from the network. Will respond ` + `with a cached response.`);
+          }
+        }
+        if (error || !response) {
+          response = await handler.cacheMatch(request);
+          {
+            if (response) {
+              logs.push(`Found a cached response in the '${this.cacheName}'` + ` cache.`);
+            } else {
+              logs.push(`No response found in the '${this.cacheName}' cache.`);
+            }
+          }
+        }
+        return response;
+      }
+    }
+
+    /*
+      Copyright 2019 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * Claim any currently available clients once the service worker
+     * becomes active. This is normally used in conjunction with `skipWaiting()`.
+     *
+     * @memberof workbox-core
+     */
+    function clientsClaim() {
+      self.addEventListener('activate', () => self.clients.claim());
+    }
+
+    /*
+      Copyright 2020 Google LLC
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * A utility method that makes it easier to use `event.waitUntil` with
+     * async functions and return the result.
+     *
+     * @param {ExtendableEvent} event
+     * @param {Function} asyncFn
+     * @return {Function}
+     * @private
+     */
+    function waitUntil(event, asyncFn) {
+      const returnPromise = asyncFn();
+      event.waitUntil(returnPromise);
+      return returnPromise;
+    }
+
+    // @ts-ignore
+    try {
+      self['workbox:precaching:7.4.0'] && _();
+    } catch (e) {}
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    // Name of the search parameter used to store revision info.
+    const REVISION_SEARCH_PARAM = '__WB_REVISION__';
+    /**
+     * Converts a manifest entry into a versioned URL suitable for precaching.
+     *
+     * @param {Object|string} entry
+     * @return {string} A URL with versioning info.
+     *
+     * @private
+     * @memberof workbox-precaching
+     */
+    function createCacheKey(entry) {
+      if (!entry) {
+        throw new WorkboxError('add-to-cache-list-unexpected-type', {
+          entry
+        });
+      }
+      // If a precache manifest entry is a string, it's assumed to be a versioned
+      // URL, like '/app.abcd1234.js'. Return as-is.
+      if (typeof entry === 'string') {
+        const urlObject = new URL(entry, location.href);
+        return {
+          cacheKey: urlObject.href,
+          url: urlObject.href
+        };
+      }
+      const {
+        revision,
+        url
+      } = entry;
+      if (!url) {
+        throw new WorkboxError('add-to-cache-list-unexpected-type', {
+          entry
+        });
+      }
+      // If there's just a URL and no revision, then it's also assumed to be a
+      // versioned URL.
+      if (!revision) {
+        const urlObject = new URL(url, location.href);
+        return {
+          cacheKey: urlObject.href,
+          url: urlObject.href
+        };
+      }
+      // Otherwise, construct a properly versioned URL using the custom Workbox
+      // search parameter along with the revision info.
+      const cacheKeyURL = new URL(url, location.href);
+      const originalURL = new URL(url, location.href);
+      cacheKeyURL.searchParams.set(REVISION_SEARCH_PARAM, revision);
+      return {
+        cacheKey: cacheKeyURL.href,
+        url: originalURL.href
+      };
+    }
+
+    /*
+      Copyright 2020 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * A plugin, designed to be used with PrecacheController, to determine the
+     * of assets that were updated (or not updated) during the install event.
+     *
+     * @private
+     */
+    class PrecacheInstallReportPlugin {
+      constructor() {
+        this.updatedURLs = [];
+        this.notUpdatedURLs = [];
+        this.handlerWillStart = async ({
+          request,
+          state
+        }) => {
+          // TODO: `state` should never be undefined...
+          if (state) {
+            state.originalRequest = request;
+          }
+        };
+        this.cachedResponseWillBeUsed = async ({
+          event,
+          state,
+          cachedResponse
+        }) => {
+          if (event.type === 'install') {
+            if (state && state.originalRequest && state.originalRequest instanceof Request) {
+              // TODO: `state` should never be undefined...
+              const url = state.originalRequest.url;
+              if (cachedResponse) {
+                this.notUpdatedURLs.push(url);
+              } else {
+                this.updatedURLs.push(url);
+              }
+            }
+          }
+          return cachedResponse;
+        };
+      }
+    }
+
+    /*
+      Copyright 2020 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * A plugin, designed to be used with PrecacheController, to translate URLs into
+     * the corresponding cache key, based on the current revision info.
+     *
+     * @private
+     */
+    class PrecacheCacheKeyPlugin {
+      constructor({
+        precacheController
+      }) {
+        this.cacheKeyWillBeUsed = async ({
+          request,
+          params
+        }) => {
+          // Params is type any, can't change right now.
+          /* eslint-disable */
+          const cacheKey = (params === null || params === void 0 ? void 0 : params.cacheKey) || this._precacheController.getCacheKeyForURL(request.url);
+          /* eslint-enable */
+          return cacheKey ? new Request(cacheKey, {
+            headers: request.headers
+          }) : request;
+        };
+        this._precacheController = precacheController;
+      }
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * @param {string} groupTitle
+     * @param {Array<string>} deletedURLs
+     *
+     * @private
+     */
+    const logGroup = (groupTitle, deletedURLs) => {
+      logger.groupCollapsed(groupTitle);
+      for (const url of deletedURLs) {
+        logger.log(url);
+      }
+      logger.groupEnd();
+    };
+    /**
+     * @param {Array<string>} deletedURLs
+     *
+     * @private
+     * @memberof workbox-precaching
+     */
+    function printCleanupDetails(deletedURLs) {
+      const deletionCount = deletedURLs.length;
+      if (deletionCount > 0) {
+        logger.groupCollapsed(`During precaching cleanup, ` + `${deletionCount} cached ` + `request${deletionCount === 1 ? ' was' : 's were'} deleted.`);
+        logGroup('Deleted Cache Requests', deletedURLs);
+        logger.groupEnd();
+      }
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * @param {string} groupTitle
+     * @param {Array<string>} urls
+     *
+     * @private
+     */
+    function _nestedGroup(groupTitle, urls) {
+      if (urls.length === 0) {
+        return;
+      }
+      logger.groupCollapsed(groupTitle);
+      for (const url of urls) {
+        logger.log(url);
+      }
+      logger.groupEnd();
+    }
+    /**
+     * @param {Array<string>} urlsToPrecache
+     * @param {Array<string>} urlsAlreadyPrecached
+     *
+     * @private
+     * @memberof workbox-precaching
+     */
+    function printInstallDetails(urlsToPrecache, urlsAlreadyPrecached) {
+      const precachedCount = urlsToPrecache.length;
+      const alreadyPrecachedCount = urlsAlreadyPrecached.length;
+      if (precachedCount || alreadyPrecachedCount) {
+        let message = `Precaching ${precachedCount} file${precachedCount === 1 ? '' : 's'}.`;
+        if (alreadyPrecachedCount > 0) {
+          message += ` ${alreadyPrecachedCount} ` + `file${alreadyPrecachedCount === 1 ? ' is' : 's are'} already cached.`;
+        }
+        logger.groupCollapsed(message);
+        _nestedGroup(`View newly precached URLs.`, urlsToPrecache);
+        _nestedGroup(`View previously precached URLs.`, urlsAlreadyPrecached);
+        logger.groupEnd();
+      }
+    }
+
+    /*
+      Copyright 2019 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    let supportStatus;
+    /**
+     * A utility function that determines whether the current browser supports
+     * constructing a new `Response` from a `response.body` stream.
+     *
+     * @return {boolean} `true`, if the current browser can successfully
+     *     construct a `Response` from a `response.body` stream, `false` otherwise.
+     *
+     * @private
+     */
+    function canConstructResponseFromBodyStream() {
+      if (supportStatus === undefined) {
+        const testResponse = new Response('');
+        if ('body' in testResponse) {
+          try {
+            new Response(testResponse.body);
+            supportStatus = true;
+          } catch (error) {
+            supportStatus = false;
+          }
+        }
+        supportStatus = false;
+      }
+      return supportStatus;
+    }
+
+    /*
+      Copyright 2019 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * Allows developers to copy a response and modify its `headers`, `status`,
+     * or `statusText` values (the values settable via a
+     * [`ResponseInit`]{@link https://developer.mozilla.org/en-US/docs/Web/API/Response/Response#Syntax}
+     * object in the constructor).
+     * To modify these values, pass a function as the second argument. That
+     * function will be invoked with a single object with the response properties
+     * `{headers, status, statusText}`. The return value of this function will
+     * be used as the `ResponseInit` for the new `Response`. To change the values
+     * either modify the passed parameter(s) and return it, or return a totally
+     * new object.
+     *
+     * This method is intentionally limited to same-origin responses, regardless of
+     * whether CORS was used or not.
+     *
+     * @param {Response} response
+     * @param {Function} modifier
+     * @memberof workbox-core
+     */
+    async function copyResponse(response, modifier) {
+      let origin = null;
+      // If response.url isn't set, assume it's cross-origin and keep origin null.
+      if (response.url) {
+        const responseURL = new URL(response.url);
+        origin = responseURL.origin;
+      }
+      if (origin !== self.location.origin) {
+        throw new WorkboxError('cross-origin-copy-response', {
+          origin
+        });
+      }
+      const clonedResponse = response.clone();
+      // Create a fresh `ResponseInit` object by cloning the headers.
+      const responseInit = {
+        headers: new Headers(clonedResponse.headers),
+        status: clonedResponse.status,
+        statusText: clonedResponse.statusText
+      };
+      // Apply any user modifications.
+      const modifiedResponseInit = responseInit;
+      // Create the new response from the body stream and `ResponseInit`
+      // modifications. Note: not all browsers support the Response.body stream,
+      // so fall back to reading the entire body into memory as a blob.
+      const body = canConstructResponseFromBodyStream() ? clonedResponse.body : await clonedResponse.blob();
+      return new Response(body, modifiedResponseInit);
+    }
+
+    /*
+      Copyright 2020 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * A {@link workbox-strategies.Strategy} implementation
+     * specifically designed to work with
+     * {@link workbox-precaching.PrecacheController}
+     * to both cache and fetch precached assets.
+     *
+     * Note: an instance of this class is created automatically when creating a
+     * `PrecacheController`; it's generally not necessary to create this yourself.
+     *
+     * @extends workbox-strategies.Strategy
+     * @memberof workbox-precaching
+     */
+    class PrecacheStrategy extends Strategy {
+      /**
+       *
+       * @param {Object} [options]
+       * @param {string} [options.cacheName] Cache name to store and retrieve
+       * requests. Defaults to the cache names provided by
+       * {@link workbox-core.cacheNames}.
+       * @param {Array<Object>} [options.plugins] {@link https://developers.google.com/web/tools/workbox/guides/using-plugins|Plugins}
+       * to use in conjunction with this caching strategy.
+       * @param {Object} [options.fetchOptions] Values passed along to the
+       * {@link https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch#Parameters|init}
+       * of all fetch() requests made by this strategy.
+       * @param {Object} [options.matchOptions] The
+       * {@link https://w3c.github.io/ServiceWorker/#dictdef-cachequeryoptions|CacheQueryOptions}
+       * for any `cache.match()` or `cache.put()` calls made by this strategy.
+       * @param {boolean} [options.fallbackToNetwork=true] Whether to attempt to
+       * get the response from the network if there's a precache miss.
+       */
+      constructor(options = {}) {
+        options.cacheName = cacheNames.getPrecacheName(options.cacheName);
+        super(options);
+        this._fallbackToNetwork = options.fallbackToNetwork === false ? false : true;
+        // Redirected responses cannot be used to satisfy a navigation request, so
+        // any redirected response must be "copied" rather than cloned, so the new
+        // response doesn't contain the `redirected` flag. See:
+        // https://bugs.chromium.org/p/chromium/issues/detail?id=669363&desc=2#c1
+        this.plugins.push(PrecacheStrategy.copyRedirectedCacheableResponsesPlugin);
+      }
+      /**
+       * @private
+       * @param {Request|string} request A request to run this strategy for.
+       * @param {workbox-strategies.StrategyHandler} handler The event that
+       *     triggered the request.
+       * @return {Promise<Response>}
+       */
+      async _handle(request, handler) {
+        const response = await handler.cacheMatch(request);
+        if (response) {
+          return response;
+        }
+        // If this is an `install` event for an entry that isn't already cached,
+        // then populate the cache.
+        if (handler.event && handler.event.type === 'install') {
+          return await this._handleInstall(request, handler);
+        }
+        // Getting here means something went wrong. An entry that should have been
+        // precached wasn't found in the cache.
+        return await this._handleFetch(request, handler);
+      }
+      async _handleFetch(request, handler) {
+        let response;
+        const params = handler.params || {};
+        // Fall back to the network if we're configured to do so.
+        if (this._fallbackToNetwork) {
+          {
+            logger.warn(`The precached response for ` + `${getFriendlyURL(request.url)} in ${this.cacheName} was not ` + `found. Falling back to the network.`);
+          }
+          const integrityInManifest = params.integrity;
+          const integrityInRequest = request.integrity;
+          const noIntegrityConflict = !integrityInRequest || integrityInRequest === integrityInManifest;
+          // Do not add integrity if the original request is no-cors
+          // See https://github.com/GoogleChrome/workbox/issues/3096
+          response = await handler.fetch(new Request(request, {
+            integrity: request.mode !== 'no-cors' ? integrityInRequest || integrityInManifest : undefined
+          }));
+          // It's only "safe" to repair the cache if we're using SRI to guarantee
+          // that the response matches the precache manifest's expectations,
+          // and there's either a) no integrity property in the incoming request
+          // or b) there is an integrity, and it matches the precache manifest.
+          // See https://github.com/GoogleChrome/workbox/issues/2858
+          // Also if the original request users no-cors we don't use integrity.
+          // See https://github.com/GoogleChrome/workbox/issues/3096
+          if (integrityInManifest && noIntegrityConflict && request.mode !== 'no-cors') {
+            this._useDefaultCacheabilityPluginIfNeeded();
+            const wasCached = await handler.cachePut(request, response.clone());
+            {
+              if (wasCached) {
+                logger.log(`A response for ${getFriendlyURL(request.url)} ` + `was used to "repair" the precache.`);
+              }
+            }
+          }
+        } else {
+          // This shouldn't normally happen, but there are edge cases:
+          // https://github.com/GoogleChrome/workbox/issues/1441
+          throw new WorkboxError('missing-precache-entry', {
+            cacheName: this.cacheName,
+            url: request.url
+          });
+        }
+        {
+          const cacheKey = params.cacheKey || (await handler.getCacheKey(request, 'read'));
+          // Workbox is going to handle the route.
+          // print the routing details to the console.
+          logger.groupCollapsed(`Precaching is responding to: ` + getFriendlyURL(request.url));
+          logger.log(`Serving the precached url: ${getFriendlyURL(cacheKey instanceof Request ? cacheKey.url : cacheKey)}`);
+          logger.groupCollapsed(`View request details here.`);
+          logger.log(request);
+          logger.groupEnd();
+          logger.groupCollapsed(`View response details here.`);
+          logger.log(response);
+          logger.groupEnd();
+          logger.groupEnd();
+        }
+        return response;
+      }
+      async _handleInstall(request, handler) {
+        this._useDefaultCacheabilityPluginIfNeeded();
+        const response = await handler.fetch(request);
+        // Make sure we defer cachePut() until after we know the response
+        // should be cached; see https://github.com/GoogleChrome/workbox/issues/2737
+        const wasCached = await handler.cachePut(request, response.clone());
+        if (!wasCached) {
+          // Throwing here will lead to the `install` handler failing, which
+          // we want to do if *any* of the responses aren't safe to cache.
+          throw new WorkboxError('bad-precaching-response', {
+            url: request.url,
+            status: response.status
+          });
+        }
+        return response;
+      }
+      /**
+       * This method is complex, as there a number of things to account for:
+       *
+       * The `plugins` array can be set at construction, and/or it might be added to
+       * to at any time before the strategy is used.
+       *
+       * At the time the strategy is used (i.e. during an `install` event), there
+       * needs to be at least one plugin that implements `cacheWillUpdate` in the
+       * array, other than `copyRedirectedCacheableResponsesPlugin`.
+       *
+       * - If this method is called and there are no suitable `cacheWillUpdate`
+       * plugins, we need to add `defaultPrecacheCacheabilityPlugin`.
+       *
+       * - If this method is called and there is exactly one `cacheWillUpdate`, then
+       * we don't have to do anything (this might be a previously added
+       * `defaultPrecacheCacheabilityPlugin`, or it might be a custom plugin).
+       *
+       * - If this method is called and there is more than one `cacheWillUpdate`,
+       * then we need to check if one is `defaultPrecacheCacheabilityPlugin`. If so,
+       * we need to remove it. (This situation is unlikely, but it could happen if
+       * the strategy is used multiple times, the first without a `cacheWillUpdate`,
+       * and then later on after manually adding a custom `cacheWillUpdate`.)
+       *
+       * See https://github.com/GoogleChrome/workbox/issues/2737 for more context.
+       *
+       * @private
+       */
+      _useDefaultCacheabilityPluginIfNeeded() {
+        let defaultPluginIndex = null;
+        let cacheWillUpdatePluginCount = 0;
+        for (const [index, plugin] of this.plugins.entries()) {
+          // Ignore the copy redirected plugin when determining what to do.
+          if (plugin === PrecacheStrategy.copyRedirectedCacheableResponsesPlugin) {
+            continue;
+          }
+          // Save the default plugin's index, in case it needs to be removed.
+          if (plugin === PrecacheStrategy.defaultPrecacheCacheabilityPlugin) {
+            defaultPluginIndex = index;
+          }
+          if (plugin.cacheWillUpdate) {
+            cacheWillUpdatePluginCount++;
+          }
+        }
+        if (cacheWillUpdatePluginCount === 0) {
+          this.plugins.push(PrecacheStrategy.defaultPrecacheCacheabilityPlugin);
+        } else if (cacheWillUpdatePluginCount > 1 && defaultPluginIndex !== null) {
+          // Only remove the default plugin; multiple custom plugins are allowed.
+          this.plugins.splice(defaultPluginIndex, 1);
+        }
+        // Nothing needs to be done if cacheWillUpdatePluginCount is 1
+      }
+    }
+    PrecacheStrategy.defaultPrecacheCacheabilityPlugin = {
+      async cacheWillUpdate({
+        response
+      }) {
+        if (!response || response.status >= 400) {
+          return null;
+        }
+        return response;
+      }
+    };
+    PrecacheStrategy.copyRedirectedCacheableResponsesPlugin = {
+      async cacheWillUpdate({
+        response
+      }) {
+        return response.redirected ? await copyResponse(response) : response;
+      }
+    };
+
+    /*
+      Copyright 2019 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * Performs efficient precaching of assets.
+     *
+     * @memberof workbox-precaching
+     */
+    class PrecacheController {
+      /**
+       * Create a new PrecacheController.
+       *
+       * @param {Object} [options]
+       * @param {string} [options.cacheName] The cache to use for precaching.
+       * @param {string} [options.plugins] Plugins to use when precaching as well
+       * as responding to fetch events for precached assets.
+       * @param {boolean} [options.fallbackToNetwork=true] Whether to attempt to
+       * get the response from the network if there's a precache miss.
+       */
+      constructor({
+        cacheName,
+        plugins = [],
+        fallbackToNetwork = true
+      } = {}) {
+        this._urlsToCacheKeys = new Map();
+        this._urlsToCacheModes = new Map();
+        this._cacheKeysToIntegrities = new Map();
+        this._strategy = new PrecacheStrategy({
+          cacheName: cacheNames.getPrecacheName(cacheName),
+          plugins: [...plugins, new PrecacheCacheKeyPlugin({
+            precacheController: this
+          })],
+          fallbackToNetwork
+        });
+        // Bind the install and activate methods to the instance.
+        this.install = this.install.bind(this);
+        this.activate = this.activate.bind(this);
+      }
+      /**
+       * @type {workbox-precaching.PrecacheStrategy} The strategy created by this controller and
+       * used to cache assets and respond to fetch events.
+       */
+      get strategy() {
+        return this._strategy;
+      }
+      /**
+       * Adds items to the precache list, removing any duplicates and
+       * stores the files in the
+       * {@link workbox-core.cacheNames|"precache cache"} when the service
+       * worker installs.
+       *
+       * This method can be called multiple times.
+       *
+       * @param {Array<Object|string>} [entries=[]] Array of entries to precache.
+       */
+      precache(entries) {
+        this.addToCacheList(entries);
+        if (!this._installAndActiveListenersAdded) {
+          self.addEventListener('install', this.install);
+          self.addEventListener('activate', this.activate);
+          this._installAndActiveListenersAdded = true;
+        }
+      }
+      /**
+       * This method will add items to the precache list, removing duplicates
+       * and ensuring the information is valid.
+       *
+       * @param {Array<workbox-precaching.PrecacheController.PrecacheEntry|string>} entries
+       *     Array of entries to precache.
+       */
+      addToCacheList(entries) {
+        {
+          finalAssertExports.isArray(entries, {
+            moduleName: 'workbox-precaching',
+            className: 'PrecacheController',
+            funcName: 'addToCacheList',
+            paramName: 'entries'
+          });
+        }
+        const urlsToWarnAbout = [];
+        for (const entry of entries) {
+          // See https://github.com/GoogleChrome/workbox/issues/2259
+          if (typeof entry === 'string') {
+            urlsToWarnAbout.push(entry);
+          } else if (entry && entry.revision === undefined) {
+            urlsToWarnAbout.push(entry.url);
+          }
+          const {
+            cacheKey,
+            url
+          } = createCacheKey(entry);
+          const cacheMode = typeof entry !== 'string' && entry.revision ? 'reload' : 'default';
+          if (this._urlsToCacheKeys.has(url) && this._urlsToCacheKeys.get(url) !== cacheKey) {
+            throw new WorkboxError('add-to-cache-list-conflicting-entries', {
+              firstEntry: this._urlsToCacheKeys.get(url),
+              secondEntry: cacheKey
+            });
+          }
+          if (typeof entry !== 'string' && entry.integrity) {
+            if (this._cacheKeysToIntegrities.has(cacheKey) && this._cacheKeysToIntegrities.get(cacheKey) !== entry.integrity) {
+              throw new WorkboxError('add-to-cache-list-conflicting-integrities', {
+                url
+              });
+            }
+            this._cacheKeysToIntegrities.set(cacheKey, entry.integrity);
+          }
+          this._urlsToCacheKeys.set(url, cacheKey);
+          this._urlsToCacheModes.set(url, cacheMode);
+          if (urlsToWarnAbout.length > 0) {
+            const warningMessage = `Workbox is precaching URLs without revision ` + `info: ${urlsToWarnAbout.join(', ')}\nThis is generally NOT safe. ` + `Learn more at https://bit.ly/wb-precache`;
+            {
+              logger.warn(warningMessage);
+            }
+          }
+        }
+      }
+      /**
+       * Precaches new and updated assets. Call this method from the service worker
+       * install event.
+       *
+       * Note: this method calls `event.waitUntil()` for you, so you do not need
+       * to call it yourself in your event handlers.
+       *
+       * @param {ExtendableEvent} event
+       * @return {Promise<workbox-precaching.InstallResult>}
+       */
+      install(event) {
+        // waitUntil returns Promise<any>
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return waitUntil(event, async () => {
+          const installReportPlugin = new PrecacheInstallReportPlugin();
+          this.strategy.plugins.push(installReportPlugin);
+          // Cache entries one at a time.
+          // See https://github.com/GoogleChrome/workbox/issues/2528
+          for (const [url, cacheKey] of this._urlsToCacheKeys) {
+            const integrity = this._cacheKeysToIntegrities.get(cacheKey);
+            const cacheMode = this._urlsToCacheModes.get(url);
+            const request = new Request(url, {
+              integrity,
+              cache: cacheMode,
+              credentials: 'same-origin'
+            });
+            await Promise.all(this.strategy.handleAll({
+              params: {
+                cacheKey
+              },
+              request,
+              event
+            }));
+          }
+          const {
+            updatedURLs,
+            notUpdatedURLs
+          } = installReportPlugin;
+          {
+            printInstallDetails(updatedURLs, notUpdatedURLs);
+          }
+          return {
+            updatedURLs,
+            notUpdatedURLs
+          };
+        });
+      }
+      /**
+       * Deletes assets that are no longer present in the current precache manifest.
+       * Call this method from the service worker activate event.
+       *
+       * Note: this method calls `event.waitUntil()` for you, so you do not need
+       * to call it yourself in your event handlers.
+       *
+       * @param {ExtendableEvent} event
+       * @return {Promise<workbox-precaching.CleanupResult>}
+       */
+      activate(event) {
+        // waitUntil returns Promise<any>
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return waitUntil(event, async () => {
+          const cache = await self.caches.open(this.strategy.cacheName);
+          const currentlyCachedRequests = await cache.keys();
+          const expectedCacheKeys = new Set(this._urlsToCacheKeys.values());
+          const deletedURLs = [];
+          for (const request of currentlyCachedRequests) {
+            if (!expectedCacheKeys.has(request.url)) {
+              await cache.delete(request);
+              deletedURLs.push(request.url);
+            }
+          }
+          {
+            printCleanupDetails(deletedURLs);
+          }
+          return {
+            deletedURLs
+          };
+        });
+      }
+      /**
+       * Returns a mapping of a precached URL to the corresponding cache key, taking
+       * into account the revision information for the URL.
+       *
+       * @return {Map<string, string>} A URL to cache key mapping.
+       */
+      getURLsToCacheKeys() {
+        return this._urlsToCacheKeys;
+      }
+      /**
+       * Returns a list of all the URLs that have been precached by the current
+       * service worker.
+       *
+       * @return {Array<string>} The precached URLs.
+       */
+      getCachedURLs() {
+        return [...this._urlsToCacheKeys.keys()];
+      }
+      /**
+       * Returns the cache key used for storing a given URL. If that URL is
+       * unversioned, like `/index.html', then the cache key will be the original
+       * URL with a search parameter appended to it.
+       *
+       * @param {string} url A URL whose cache key you want to look up.
+       * @return {string} The versioned URL that corresponds to a cache key
+       * for the original URL, or undefined if that URL isn't precached.
+       */
+      getCacheKeyForURL(url) {
+        const urlObject = new URL(url, location.href);
+        return this._urlsToCacheKeys.get(urlObject.href);
+      }
+      /**
+       * @param {string} url A cache key whose SRI you want to look up.
+       * @return {string} The subresource integrity associated with the cache key,
+       * or undefined if it's not set.
+       */
+      getIntegrityForCacheKey(cacheKey) {
+        return this._cacheKeysToIntegrities.get(cacheKey);
+      }
+      /**
+       * This acts as a drop-in replacement for
+       * [`cache.match()`](https://developer.mozilla.org/en-US/docs/Web/API/Cache/match)
+       * with the following differences:
+       *
+       * - It knows what the name of the precache is, and only checks in that cache.
+       * - It allows you to pass in an "original" URL without versioning parameters,
+       * and it will automatically look up the correct cache key for the currently
+       * active revision of that URL.
+       *
+       * E.g., `matchPrecache('index.html')` will find the correct precached
+       * response for the currently active service worker, even if the actual cache
+       * key is `'/index.html?__WB_REVISION__=1234abcd'`.
+       *
+       * @param {string|Request} request The key (without revisioning parameters)
+       * to look up in the precache.
+       * @return {Promise<Response|undefined>}
+       */
+      async matchPrecache(request) {
+        const url = request instanceof Request ? request.url : request;
+        const cacheKey = this.getCacheKeyForURL(url);
+        if (cacheKey) {
+          const cache = await self.caches.open(this.strategy.cacheName);
+          return cache.match(cacheKey);
+        }
+        return undefined;
+      }
+      /**
+       * Returns a function that looks up `url` in the precache (taking into
+       * account revision information), and returns the corresponding `Response`.
+       *
+       * @param {string} url The precached URL which will be used to lookup the
+       * `Response`.
+       * @return {workbox-routing~handlerCallback}
+       */
+      createHandlerBoundToURL(url) {
+        const cacheKey = this.getCacheKeyForURL(url);
+        if (!cacheKey) {
+          throw new WorkboxError('non-precached-url', {
+            url
+          });
+        }
+        return options => {
+          options.request = new Request(url);
+          options.params = Object.assign({
+            cacheKey
+          }, options.params);
+          return this.strategy.handle(options);
+        };
+      }
+    }
+
+    /*
+      Copyright 2019 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    let precacheController;
+    /**
+     * @return {PrecacheController}
+     * @private
+     */
+    const getOrCreatePrecacheController = () => {
+      if (!precacheController) {
+        precacheController = new PrecacheController();
+      }
+      return precacheController;
+    };
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * Removes any URL search parameters that should be ignored.
+     *
+     * @param {URL} urlObject The original URL.
+     * @param {Array<RegExp>} ignoreURLParametersMatching RegExps to test against
+     * each search parameter name. Matches mean that the search parameter should be
+     * ignored.
+     * @return {URL} The URL with any ignored search parameters removed.
+     *
+     * @private
+     * @memberof workbox-precaching
+     */
+    function removeIgnoredSearchParams(urlObject, ignoreURLParametersMatching = []) {
+      // Convert the iterable into an array at the start of the loop to make sure
+      // deletion doesn't mess up iteration.
+      for (const paramName of [...urlObject.searchParams.keys()]) {
+        if (ignoreURLParametersMatching.some(regExp => regExp.test(paramName))) {
+          urlObject.searchParams.delete(paramName);
+        }
+      }
+      return urlObject;
+    }
+
+    /*
+      Copyright 2019 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * Generator function that yields possible variations on the original URL to
+     * check, one at a time.
+     *
+     * @param {string} url
+     * @param {Object} options
+     *
+     * @private
+     * @memberof workbox-precaching
+     */
+    function* generateURLVariations(url, {
+      ignoreURLParametersMatching = [/^utm_/, /^fbclid$/],
+      directoryIndex = 'index.html',
+      cleanURLs = true,
+      urlManipulation
+    } = {}) {
+      const urlObject = new URL(url, location.href);
+      urlObject.hash = '';
+      yield urlObject.href;
+      const urlWithoutIgnoredParams = removeIgnoredSearchParams(urlObject, ignoreURLParametersMatching);
+      yield urlWithoutIgnoredParams.href;
+      if (directoryIndex && urlWithoutIgnoredParams.pathname.endsWith('/')) {
+        const directoryURL = new URL(urlWithoutIgnoredParams.href);
+        directoryURL.pathname += directoryIndex;
+        yield directoryURL.href;
+      }
+      if (cleanURLs) {
+        const cleanURL = new URL(urlWithoutIgnoredParams.href);
+        cleanURL.pathname += '.html';
+        yield cleanURL.href;
+      }
+      if (urlManipulation) {
+        const additionalURLs = urlManipulation({
+          url: urlObject
+        });
+        for (const urlToAttempt of additionalURLs) {
+          yield urlToAttempt.href;
+        }
+      }
+    }
+
+    /*
+      Copyright 2020 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * A subclass of {@link workbox-routing.Route} that takes a
+     * {@link workbox-precaching.PrecacheController}
+     * instance and uses it to match incoming requests and handle fetching
+     * responses from the precache.
+     *
+     * @memberof workbox-precaching
+     * @extends workbox-routing.Route
+     */
+    class PrecacheRoute extends Route {
+      /**
+       * @param {PrecacheController} precacheController A `PrecacheController`
+       * instance used to both match requests and respond to fetch events.
+       * @param {Object} [options] Options to control how requests are matched
+       * against the list of precached URLs.
+       * @param {string} [options.directoryIndex=index.html] The `directoryIndex` will
+       * check cache entries for a URLs ending with '/' to see if there is a hit when
+       * appending the `directoryIndex` value.
+       * @param {Array<RegExp>} [options.ignoreURLParametersMatching=[/^utm_/, /^fbclid$/]] An
+       * array of regex's to remove search params when looking for a cache match.
+       * @param {boolean} [options.cleanURLs=true] The `cleanURLs` option will
+       * check the cache for the URL with a `.html` added to the end of the end.
+       * @param {workbox-precaching~urlManipulation} [options.urlManipulation]
+       * This is a function that should take a URL and return an array of
+       * alternative URLs that should be checked for precache matches.
+       */
+      constructor(precacheController, options) {
+        const match = ({
+          request
+        }) => {
+          const urlsToCacheKeys = precacheController.getURLsToCacheKeys();
+          for (const possibleURL of generateURLVariations(request.url, options)) {
+            const cacheKey = urlsToCacheKeys.get(possibleURL);
+            if (cacheKey) {
+              const integrity = precacheController.getIntegrityForCacheKey(cacheKey);
+              return {
+                cacheKey,
+                integrity
+              };
+            }
+          }
+          {
+            logger.debug(`Precaching did not find a match for ` + getFriendlyURL(request.url));
+          }
+          return;
+        };
+        super(match, precacheController.strategy);
+      }
+    }
+
+    /*
+      Copyright 2019 Google LLC
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * Add a `fetch` listener to the service worker that will
+     * respond to
+     * [network requests]{@link https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers#Custom_responses_to_requests}
+     * with precached assets.
+     *
+     * Requests for assets that aren't precached, the `FetchEvent` will not be
+     * responded to, allowing the event to fall through to other `fetch` event
+     * listeners.
+     *
+     * @param {Object} [options] See the {@link workbox-precaching.PrecacheRoute}
+     * options.
+     *
+     * @memberof workbox-precaching
+     */
+    function addRoute(options) {
+      const precacheController = getOrCreatePrecacheController();
+      const precacheRoute = new PrecacheRoute(precacheController, options);
+      registerRoute(precacheRoute);
+    }
+
+    /*
+      Copyright 2019 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * Adds items to the precache list, removing any duplicates and
+     * stores the files in the
+     * {@link workbox-core.cacheNames|"precache cache"} when the service
+     * worker installs.
+     *
+     * This method can be called multiple times.
+     *
+     * Please note: This method **will not** serve any of the cached files for you.
+     * It only precaches files. To respond to a network request you call
+     * {@link workbox-precaching.addRoute}.
+     *
+     * If you have a single array of files to precache, you can just call
+     * {@link workbox-precaching.precacheAndRoute}.
+     *
+     * @param {Array<Object|string>} [entries=[]] Array of entries to precache.
+     *
+     * @memberof workbox-precaching
+     */
+    function precache(entries) {
+      const precacheController = getOrCreatePrecacheController();
+      precacheController.precache(entries);
+    }
+
+    /*
+      Copyright 2019 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * This method will add entries to the precache list and add a route to
+     * respond to fetch events.
+     *
+     * This is a convenience method that will call
+     * {@link workbox-precaching.precache} and
+     * {@link workbox-precaching.addRoute} in a single call.
+     *
+     * @param {Array<Object|string>} entries Array of entries to precache.
+     * @param {Object} [options] See the
+     * {@link workbox-precaching.PrecacheRoute} options.
+     *
+     * @memberof workbox-precaching
+     */
+    function precacheAndRoute(entries, options) {
+      precache(entries);
+      addRoute(options);
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    const SUBSTRING_TO_FIND = '-precache-';
+    /**
+     * Cleans up incompatible precaches that were created by older versions of
+     * Workbox, by a service worker registered under the current scope.
+     *
+     * This is meant to be called as part of the `activate` event.
+     *
+     * This should be safe to use as long as you don't include `substringToFind`
+     * (defaulting to `-precache-`) in your non-precache cache names.
+     *
+     * @param {string} currentPrecacheName The cache name currently in use for
+     * precaching. This cache won't be deleted.
+     * @param {string} [substringToFind='-precache-'] Cache names which include this
+     * substring will be deleted (excluding `currentPrecacheName`).
+     * @return {Array<string>} A list of all the cache names that were deleted.
+     *
+     * @private
+     * @memberof workbox-precaching
+     */
+    const deleteOutdatedCaches = async (currentPrecacheName, substringToFind = SUBSTRING_TO_FIND) => {
+      const cacheNames = await self.caches.keys();
+      const cacheNamesToDelete = cacheNames.filter(cacheName => {
+        return cacheName.includes(substringToFind) && cacheName.includes(self.registration.scope) && cacheName !== currentPrecacheName;
+      });
+      await Promise.all(cacheNamesToDelete.map(cacheName => self.caches.delete(cacheName)));
+      return cacheNamesToDelete;
+    };
+
+    /*
+      Copyright 2019 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * Adds an `activate` event listener which will clean up incompatible
+     * precaches that were created by older versions of Workbox.
+     *
+     * @memberof workbox-precaching
+     */
+    function cleanupOutdatedCaches() {
+      // See https://github.com/Microsoft/TypeScript/issues/28357#issuecomment-436484705
+      self.addEventListener('activate', event => {
+        const cacheName = cacheNames.getPrecacheName();
+        event.waitUntil(deleteOutdatedCaches(cacheName).then(cachesDeleted => {
+          {
+            if (cachesDeleted.length > 0) {
+              logger.log(`The following out-of-date precaches were cleaned up ` + `automatically:`, cachesDeleted);
+            }
+          }
+        }));
+      });
+    }
+
+    /*
+      Copyright 2018 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * NavigationRoute makes it easy to create a
+     * {@link workbox-routing.Route} that matches for browser
+     * [navigation requests]{@link https://developers.google.com/web/fundamentals/primers/service-workers/high-performance-loading#first_what_are_navigation_requests}.
+     *
+     * It will only match incoming Requests whose
+     * {@link https://fetch.spec.whatwg.org/#concept-request-mode|mode}
+     * is set to `navigate`.
+     *
+     * You can optionally only apply this route to a subset of navigation requests
+     * by using one or both of the `denylist` and `allowlist` parameters.
+     *
+     * @memberof workbox-routing
+     * @extends workbox-routing.Route
+     */
+    class NavigationRoute extends Route {
+      /**
+       * If both `denylist` and `allowlist` are provided, the `denylist` will
+       * take precedence and the request will not match this route.
+       *
+       * The regular expressions in `allowlist` and `denylist`
+       * are matched against the concatenated
+       * [`pathname`]{@link https://developer.mozilla.org/en-US/docs/Web/API/HTMLHyperlinkElementUtils/pathname}
+       * and [`search`]{@link https://developer.mozilla.org/en-US/docs/Web/API/HTMLHyperlinkElementUtils/search}
+       * portions of the requested URL.
+       *
+       * *Note*: These RegExps may be evaluated against every destination URL during
+       * a navigation. Avoid using
+       * [complex RegExps](https://github.com/GoogleChrome/workbox/issues/3077),
+       * or else your users may see delays when navigating your site.
+       *
+       * @param {workbox-routing~handlerCallback} handler A callback
+       * function that returns a Promise resulting in a Response.
+       * @param {Object} options
+       * @param {Array<RegExp>} [options.denylist] If any of these patterns match,
+       * the route will not handle the request (even if a allowlist RegExp matches).
+       * @param {Array<RegExp>} [options.allowlist=[/./]] If any of these patterns
+       * match the URL's pathname and search parameter, the route will handle the
+       * request (assuming the denylist doesn't match).
+       */
+      constructor(handler, {
+        allowlist = [/./],
+        denylist = []
+      } = {}) {
+        {
+          finalAssertExports.isArrayOfClass(allowlist, RegExp, {
+            moduleName: 'workbox-routing',
+            className: 'NavigationRoute',
+            funcName: 'constructor',
+            paramName: 'options.allowlist'
+          });
+          finalAssertExports.isArrayOfClass(denylist, RegExp, {
+            moduleName: 'workbox-routing',
+            className: 'NavigationRoute',
+            funcName: 'constructor',
+            paramName: 'options.denylist'
+          });
+        }
+        super(options => this._match(options), handler);
+        this._allowlist = allowlist;
+        this._denylist = denylist;
+      }
+      /**
+       * Routes match handler.
+       *
+       * @param {Object} options
+       * @param {URL} options.url
+       * @param {Request} options.request
+       * @return {boolean}
+       *
+       * @private
+       */
+      _match({
+        url,
+        request
+      }) {
+        if (request && request.mode !== 'navigate') {
+          return false;
+        }
+        const pathnameAndSearch = url.pathname + url.search;
+        for (const regExp of this._denylist) {
+          if (regExp.test(pathnameAndSearch)) {
+            {
+              logger.log(`The navigation route ${pathnameAndSearch} is not ` + `being used, since the URL matches this denylist pattern: ` + `${regExp.toString()}`);
+            }
+            return false;
+          }
+        }
+        if (this._allowlist.some(regExp => regExp.test(pathnameAndSearch))) {
+          {
+            logger.debug(`The navigation route ${pathnameAndSearch} ` + `is being used.`);
+          }
+          return true;
+        }
+        {
+          logger.log(`The navigation route ${pathnameAndSearch} is not ` + `being used, since the URL being navigated to doesn't ` + `match the allowlist.`);
+        }
+        return false;
+      }
+    }
+
+    /*
+      Copyright 2019 Google LLC
+
+      Use of this source code is governed by an MIT-style
+      license that can be found in the LICENSE file or at
+      https://opensource.org/licenses/MIT.
+    */
+    /**
+     * Helper function that calls
+     * {@link PrecacheController#createHandlerBoundToURL} on the default
+     * {@link PrecacheController} instance.
+     *
+     * If you are creating your own {@link PrecacheController}, then call the
+     * {@link PrecacheController#createHandlerBoundToURL} on that instance,
+     * instead of using this function.
+     *
+     * @param {string} url The precached URL which will be used to lookup the
+     * `Response`.
+     * @param {boolean} [fallbackToNetwork=true] Whether to attempt to get the
+     * response from the network if there's a precache miss.
+     * @return {workbox-routing~handlerCallback}
+     *
+     * @memberof workbox-precaching
+     */
+    function createHandlerBoundToURL(url) {
+      const precacheController = getOrCreatePrecacheController();
+      return precacheController.createHandlerBoundToURL(url);
+    }
+
+    exports.CacheFirst = CacheFirst;
+    exports.CacheableResponsePlugin = CacheableResponsePlugin;
+    exports.ExpirationPlugin = ExpirationPlugin;
+    exports.NavigationRoute = NavigationRoute;
+    exports.NetworkFirst = NetworkFirst;
+    exports.NetworkOnly = NetworkOnly;
+    exports.StaleWhileRevalidate = StaleWhileRevalidate;
+    exports.cleanupOutdatedCaches = cleanupOutdatedCaches;
+    exports.clientsClaim = clientsClaim;
+    exports.createHandlerBoundToURL = createHandlerBoundToURL;
+    exports.precacheAndRoute = precacheAndRoute;
+    exports.registerRoute = registerRoute;
+
+}));
+</file>
+
+<file path="generate-icons.js">
+// generate-icons.js - ES Module version (since package.json has "type": "module")
+import sharp from 'sharp';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Make sure the icons directory exists
+const iconsDir = path.join(__dirname, 'public', 'icons');
+if (!fs.existsSync(iconsDir)) {
+    fs.mkdirSync(iconsDir, { recursive: true });
+}
+
+const svgPath = path.join(iconsDir, 'icon.svg');
+
+// Check if SVG exists
+if (!fs.existsSync(svgPath)) {
+    console.error('❌ icon.svg not found at:', svgPath);
+    console.error('Please create public/icons/icon.svg first');
+    process.exit(1);
+}
+
+const svgBuffer = fs.readFileSync(svgPath);
+
+const sizes = [16, 32, 72, 96, 128, 144, 152, 167, 180, 192, 384, 512];
+
+async function generateIcons() {
+    console.log('📱 Generating PWA icons from icon.svg...\n');
+    
+    for (const size of sizes) {
+        const outputPath = path.join(iconsDir, `icon-${size}.png`);
+        console.log(`  Creating icon-${size}.png...`);
+        await sharp(svgBuffer)
+            .resize(size, size)
+            .png()
+            .toFile(outputPath);
+    }
+    
+    // Generate maskable icon (512x512 with padding)
+    console.log(`\n  Creating maskable icon (icon-512-maskable.png)...`);
+    await sharp(svgBuffer)
+        .resize(370, 370)
+        .png()
+        .toBuffer()
+        .then(data => {
+            return sharp({
+                create: {
+                    width: 512,
+                    height: 512,
+                    channels: 4,
+                    background: { r: 37, g: 99, b: 235, alpha: 1 }
+                }
+            })
+            .composite([{ input: data, gravity: 'center' }])
+            .png()
+            .toFile(path.join(iconsDir, 'icon-512-maskable.png'));
+        });
+    
+    console.log('\n✅ All icons generated successfully!');
+    console.log(`📍 Location: ${iconsDir}`);
+    
+    // List generated files
+    const files = fs.readdirSync(iconsDir).filter(f => f.startsWith('icon-') && f.endsWith('.png'));
+    console.log('\nGenerated files:');
+    files.forEach(f => console.log(`  📁 ${f}`));
+}
+
+generateIcons().catch(err => {
+    console.error('❌ Error generating icons:', err.message);
+    process.exit(1);
+});
+</file>
+
 <file path="index.html">
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FMCG Distribution Platform</title>
+
+    <!-- ── Viewport ───────────────────────────────────────────────────────── -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- ── PWA manifest ──────────────────────────────────────────────────── -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- ── Theme colours (matched to --primary / --bg in index.css) ──────── -->
+    <!-- Android Chrome toolbar -->
+    <meta name="theme-color" content="#2563EB" />
+    <!-- iOS Safari status bar -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="FMCGDist" />
+
+    <!-- ── Apple touch icons (Safari "Add to Home Screen") ───────────────── -->
+    <!-- vite-plugin-pwa doesn't auto-inject apple-touch-icon, so we do it here -->
+    <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-167.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png" />
+
+    <!-- ── Splash screens for iOS (optional but polished) ────────────────── -->
+    <!-- iPhone SE / 8 -->
+    <link rel="apple-touch-startup-image"
+      media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)"
+      href="/icons/splash-750x1334.png" />
+    <!-- iPhone 14 Pro -->
+    <link rel="apple-touch-startup-image"
+      media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)"
+      href="/icons/splash-1170x2532.png" />
+
+    <!-- ── Favicon ────────────────────────────────────────────────────────── -->
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16.png" />
+
+    <!-- ── SEO / Social ───────────────────────────────────────────────────── -->
+    <meta name="description" content="FMCG Distribution — Routes, Orders, Warehouse, Settlement" />
+    <meta name="application-name" content="FMCGDist" />
+
+    <!-- ── Title ─────────────────────────────────────────────────────────── -->
+    <title>FMCG Distribution</title>
+
+    <!-- ── Fonts ──────────────────────────────────────────────────────────── -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <!-- Malayalam script support — Manjari renders Kh/Mal glyphs cleanly -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Malayalam script support -->
     <link
       href="https://fonts.googleapis.com/css2?family=Manjari:wght@400;700&display=swap"
       rel="stylesheet"
-    >
+    />
   </head>
   <body>
     <div id="root"></div>
@@ -167,6 +5423,7 @@ This section contains the contents of the repository's files.
     "@vitejs/plugin-react": "^4.3.0",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
+    "sharp": "^0.34.5",
     "tailwindcss": "^3.4.3",
     "typescript": "^5.4.5",
     "vite": "^5.2.12",
@@ -182,6 +5439,106 @@ export default {
     autoprefixer: {},
   },
 };
+</file>
+
+<file path="public/icons/generate-icons.sh">
+#!/bin/bash
+# PATH: public/icons/generate-icons.sh
+# Run this once after editing icon.svg to produce all required PNG sizes.
+#
+# Requires ImageMagick (magick) OR Inkscape.
+# Install ImageMagick: brew install imagemagick  (Mac)
+#                      sudo apt install imagemagick  (Ubuntu)
+
+set -e
+cd "$(dirname "$0")"
+
+echo "Generating PNG icons from icon.svg..."
+
+SIZES=(16 32 72 96 128 144 152 167 180 192 384 512)
+
+for size in "${SIZES[@]}"; do
+  if command -v magick &>/dev/null; then
+    magick icon.svg -resize "${size}x${size}" "icon-${size}.png"
+  elif command -v inkscape &>/dev/null; then
+    inkscape icon.svg --export-png="icon-${size}.png" --export-width="$size" --export-height="$size" 2>/dev/null
+  elif command -v rsvg-convert &>/dev/null; then
+    rsvg-convert -w "$size" -h "$size" icon.svg -o "icon-${size}.png"
+  else
+    echo "ERROR: Install ImageMagick (magick), Inkscape, or librsvg (rsvg-convert)"
+    exit 1
+  fi
+  echo "  ✓ icon-${size}.png"
+done
+
+# ── Maskable icon (512x512 with safe-zone padding) ────────────────────────────
+# Maskable icons need ~20% padding on each side so the logo isn't clipped
+# by Android's circular/rounded-square adaptive icon mask.
+# We create a 512x512 canvas with the logo scaled to 72% (centered).
+if command -v magick &>/dev/null; then
+  magick icon.svg \
+    -resize 370x370 \
+    -gravity center \
+    -background "#2563EB" \
+    -extent 512x512 \
+    icon-512-maskable.png
+  echo "  ✓ icon-512-maskable.png (maskable)"
+fi
+
+echo ""
+echo "All icons generated. Copy this folder to public/icons/ in your project."
+echo ""
+echo "For splash screens, use https://appsco.pe/developer/splash-screens"
+echo "or https://progressier.com/pwa-icons-and-screenshots-generator"
+</file>
+
+<file path="public/icons/icon.svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background: FMCG primary blue gradient -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#1E3A8A"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Distribution truck body -->
+  <rect x="80" y="220" width="240" height="130" rx="16" fill="white" opacity="0.95"/>
+  <!-- Truck cab -->
+  <rect x="320" y="260" width="110" height="90" rx="14" fill="white" opacity="0.95"/>
+  <!-- Windshield -->
+  <rect x="330" y="272" width="88" height="52" rx="8" fill="#2563EB" opacity="0.5"/>
+  <!-- Truck wheels -->
+  <circle cx="150" cy="365" r="32" fill="#1E3A8A"/>
+  <circle cx="150" cy="365" r="16" fill="white" opacity="0.3"/>
+  <circle cx="310" cy="365" r="32" fill="#1E3A8A"/>
+  <circle cx="310" cy="365" r="16" fill="white" opacity="0.3"/>
+  <circle cx="390" cy="365" r="32" fill="#1E3A8A"/>
+  <circle cx="390" cy="365" r="16" fill="white" opacity="0.3"/>
+
+  <!-- Route path / road lines (dashed) -->
+  <line x1="80" y1="140" x2="432" y2="140" stroke="white" stroke-width="8" stroke-dasharray="28 16" opacity="0.35"/>
+
+  <!-- Three stack boxes (warehouse icon) -->
+  <!-- Box 1 -->
+  <rect x="110" y="238" width="68" height="50" rx="8" fill="#2563EB" opacity="0.18"/>
+  <rect x="113" y="241" width="62" height="44" rx="6" fill="white" opacity="0.90"/>
+  <!-- Box 2 -->
+  <rect x="190" y="238" width="68" height="50" rx="8" fill="#2563EB" opacity="0.18"/>
+  <rect x="193" y="241" width="62" height="44" rx="6" fill="white" opacity="0.90"/>
+  <!-- Box 3 -->
+  <rect x="150" y="180" width="68" height="50" rx="8" fill="#2563EB" opacity="0.18"/>
+  <rect x="153" y="183" width="62" height="44" rx="6" fill="white" opacity="0.90"/>
+
+  <!-- "F" lettermark on lead box -->
+  <text x="214" y="273" font-family="system-ui, sans-serif" font-weight="800"
+        font-size="26" fill="#1E3A8A" text-anchor="middle" dominant-baseline="central">F</text>
+  <text x="174" y="213" font-family="system-ui, sans-serif" font-weight="800"
+        font-size="26" fill="#1E3A8A" text-anchor="middle" dominant-baseline="central">D</text>
+</svg>
 </file>
 
 <file path="src/api/client.ts">
@@ -569,63 +5926,98 @@ export const settlementApi = {
 
 // ── Reports (PDF) ─────────────────────────────────────────────────────────────
 export const reportsApi = {
-  loadingSheet: async (date: string, routeId?: number) => {
+  // FIXED: routeId accepts string (GUID) or undefined
+  loadingSheet: async (date: string, routeId?: string) => {
+    const params: Record<string, string> = { date };
+    if (routeId) params.routeId = routeId;
     const res = await apiClient.get('/api/v1/reports/loading-sheet', {
-      params: { routeId, date }, responseType: 'blob',
+      params,
+      responseType: 'blob',
     });
     return res.data as Blob;
   },
-  billingSheet: async (date: string, routeId?: number) => {
+  billingSheet: async (date: string, routeId?: string) => {
+    const params: Record<string, string> = { date };
+    if (routeId) params.routeId = routeId;
     const res = await apiClient.get('/api/v1/reports/billing-sheet', {
-      params: { routeId, date }, responseType: 'blob',
+      params,
+      responseType: 'blob',
     });
     return res.data as Blob;
   },
-  routeSummary: async (date: string, routeId?: number) => {
+  routeSummary: async (fromDate: string, toDate: string, routeId?: string) => {
+    const params: Record<string, string> = { fromDate, toDate };
+    if (routeId) params.routeId = routeId;
     const res = await apiClient.get('/api/v1/reports/route-summary', {
-      params: { routeId, fromDate: date, toDate: date }, responseType: 'blob',
+      params,
+      responseType: 'blob',
     });
     return res.data as Blob;
   },
-  productSummary: async (date: string) => {
+  productSummary: async (fromDate: string, toDate: string, productGroupId?: string) => {
+    const params: Record<string, string> = { fromDate, toDate };
+    if (productGroupId) params.productGroupId = productGroupId;
     const res = await apiClient.get('/api/v1/reports/product-summary', {
-      params: { fromDate: date, toDate: date }, responseType: 'blob',
+      params,
+      responseType: 'blob',
     });
     return res.data as Blob;
   },
   dailySummary: async (date: string) => {
     const res = await apiClient.get('/api/v1/reports/daily-summary', {
-      params: { date }, responseType: 'blob',
+      params: { date },
+      responseType: 'blob',
     });
     return res.data as Blob;
   },
   downloadLoadingSheet: async (routeId?: string, date?: string) => {
+    const params: Record<string, string> = {};
+    if (routeId) params.routeId = routeId;
+    if (date) params.date = date;
     const res = await apiClient.get('/api/v1/reports/loading-sheet', {
-      params: { routeId, date }, responseType: 'blob',
+      params,
+      responseType: 'blob',
     });
     return res.data as Blob;
   },
   downloadBillingSheet: async (routeId?: string, date?: string) => {
+    const params: Record<string, string> = {};
+    if (routeId) params.routeId = routeId;
+    if (date) params.date = date;
     const res = await apiClient.get('/api/v1/reports/billing-sheet', {
-      params: { routeId, date }, responseType: 'blob',
+      params,
+      responseType: 'blob',
     });
     return res.data as Blob;
   },
   downloadRouteSummary: async (routeId?: string, fromDate?: string, toDate?: string) => {
+    const params: Record<string, string> = {};
+    if (routeId) params.routeId = routeId;
+    if (fromDate) params.fromDate = fromDate;
+    if (toDate) params.toDate = toDate;
     const res = await apiClient.get('/api/v1/reports/route-summary', {
-      params: { routeId, fromDate, toDate }, responseType: 'blob',
+      params,
+      responseType: 'blob',
     });
     return res.data as Blob;
   },
   downloadProductSummary: async (productGroupId?: string, fromDate?: string, toDate?: string) => {
+    const params: Record<string, string> = {};
+    if (productGroupId) params.productGroupId = productGroupId;
+    if (fromDate) params.fromDate = fromDate;
+    if (toDate) params.toDate = toDate;
     const res = await apiClient.get('/api/v1/reports/product-summary', {
-      params: { productGroupId, fromDate, toDate }, responseType: 'blob',
+      params,
+      responseType: 'blob',
     });
     return res.data as Blob;
   },
   downloadDailySummary: async (date?: string) => {
+    const params: Record<string, string> = {};
+    if (date) params.date = date;
     const res = await apiClient.get('/api/v1/reports/daily-summary', {
-      params: { date }, responseType: 'blob',
+      params,
+      responseType: 'blob',
     });
     return res.data as Blob;
   },
@@ -751,11 +6143,40 @@ export const routeAssignmentsApi = {
 </file>
 
 <file path="src/App.tsx">
+// PATH: src/App.tsx
+// FIX: Landing page was flashing to /login because Zustand rehydrates
+// localStorage ASYNCHRONOUSLY. For ~50ms on first paint token=null even
+// when user IS logged in. RequireAuth saw null → navigated to /login.
+//
+// Fix: read localStorage SYNCHRONOUSLY with getTokenFromStorage().
+// No new dependencies, no hooks needed.
+
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore, useIsAdmin, useIsSalesman, useIsAccounts, useIsWarehouse } from './store/authStore';
 import { Navbar } from './components/layout/Navbar';
 import { PageLoader } from './components/ui';
+import { useIsMobile } from './hooks/useIsMobile';
+import { MobileLayout } from './components/layout/MobileLayout';
+
+// ── Synchronous auth check ───────────────────────────────────────────────────
+// Reads localStorage directly — same data Zustand persist uses, but synchronously.
+// Returns the stored user object, or null if not logged in.
+function getStoredAuth(): { token: string; role: string } | null {
+  try {
+    const raw = localStorage.getItem('fmcg_auth');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // Zustand persist wraps state under { state: { ... } }
+    const state = parsed?.state ?? parsed;
+    const token = state?.token ?? state?.user?.token;
+    const role  = state?.user?.role;
+    if (token && role) return { token, role };
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 // ── Auth ────────────────────────────────────────────────────────────────────
 const LoginPage    = lazy(() => import('./pages/Auth/LoginPage').then(m => ({ default: m.LoginPage })));
@@ -767,7 +6188,7 @@ const HomeHub = lazy(() => import('./pages/Dashboard/HomeHub').then(m => ({ defa
 const MainHub = lazy(() => import('./pages/Dashboard/MainHub').then(m => ({ default: m.MainHub })));
 
 // ── Landing Page ───────────────────────────────────────────────────────────
-const LandingPage = lazy(() => import('./pages/Landing/LandingPage').then(m => ({ default: m.LandingPage })));
+const LandingPage = lazy(() => import('./pages/Landing/LandingPage_live').then(m => ({ default: m.LandingPage })));
 
 // ── Admin ───────────────────────────────────────────────────────────────────
 const AdminDashboard  = lazy(() => import('./pages/Admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
@@ -784,7 +6205,7 @@ const AdminReports    = lazy(() => import('./pages/Admin/AdminReports').then(m =
 const AdminAnalytics  = lazy(() => import('./pages/Admin/AdminAnalytics').then(m => ({ default: m.AdminAnalytics })));
 const AdminIncentives = lazy(() => import('./pages/Admin/AdminIncentives').then(m => ({ default: m.AdminIncentives })));
 const AdminSettings   = lazy(() => import('./pages/Admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
-const AdminUsers      = lazy(() =>import('./pages/Admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
+const AdminUsers      = lazy(() => import('./pages/Admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
 const AdminDailyAssignment = lazy(() =>
   import('./pages/Admin/AdminDailyAssignment').then(m => ({ default: m.AdminDailyAssignment }))
 );
@@ -809,10 +6230,20 @@ const AccountsReports    = lazy(() => import('./pages/Accounts/AccountsReports')
 const WarehouseLoading = lazy(() => import('./pages/Warehouse/WarehouseLoading'));
 
 // ── Guards ──────────────────────────────────────────────────────────────────
+
+// RequireAuth: uses synchronous localStorage read so there is no race with
+// Zustand's async rehydration. If the token is in localStorage, the user
+// passes through immediately — no flash redirect to /login.
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const token = useAuthStore(s => s.token);
   const location = useLocation();
-  if (!token) return <Navigate to="/login" state={{ from: location }} replace />;
+  // First check synchronous localStorage (instant, no async gap)
+  const stored = getStoredAuth();
+  // Also check Zustand store in case it was set this session without page reload
+  const zustandToken = useAuthStore(s => s.token);
+
+  if (!stored?.token && !zustandToken) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
   return <>{children}</>;
 }
 
@@ -825,8 +6256,47 @@ function RequireRole({ allowed, children }: { allowed: string[]; children: React
   return <>{children}</>;
 }
 
+// ── "/" route — RootRoute ────────────────────────────────────────────────────
+// Reads auth state synchronously from localStorage.
+// Logged-in user → redirect to their dashboard immediately, zero flash.
+// Guest → render the public landing page.
+function RootRoute() {
+  const stored = getStoredAuth();
+
+  if (stored?.token && stored?.role) {
+    const role = stored.role.toLowerCase();
+    if (role === 'superadmin' || role === 'admin') return <Navigate to="/admin/dashboard"     replace />;
+    if (role === 'salesman')                        return <Navigate to="/salesman/routes"     replace />;
+    if (role === 'accounts')                        return <Navigate to="/accounts/settlement" replace />;
+    if (role === 'warehouse')                       return <Navigate to="/warehouse/loading"   replace />;
+  }
+
+  // Not logged in — show the public marketing page
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <LandingPage />
+    </Suspense>
+  );
+}
+
 // ── Shell ───────────────────────────────────────────────────────────────────
 function AppShell() {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-[var(--bg)]">
+        <main>
+          <Suspense fallback={<PageLoader />}>
+            <MobileLayout>
+              <Outlet />
+            </MobileLayout>
+          </Suspense>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       <Navbar />
@@ -837,19 +6307,6 @@ function AppShell() {
       </main>
     </div>
   );
-}
-
-// ── Root redirect ────────────────────────────────────────────────────────────
-function RootRedirect() {
-  const user = useAuthStore(s => s.user);
-  const token = useAuthStore(s => s.token);
-  if (!token || !user) return <Navigate to="/login" replace />;
-  const role = user.role?.toLowerCase() ?? '';
-  if (role === 'superadmin' || role === 'admin') return <Navigate to="/admin/dashboard" replace />;
-  if (role === 'salesman')  return <Navigate to="/salesman/dashboard"  replace />;
-  if (role === 'accounts')  return <Navigate to="/accounts/dashboard"  replace />;
-  if (role === 'warehouse') return <Navigate to="/warehouse/dashboard" replace />;
-  return <Navigate to="/login" replace />;
 }
 
 function Unauthorized() {
@@ -874,14 +6331,14 @@ export default function App() {
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* Public */}
-          <Route path="/login"    element={<LoginPage />} />
-          <Route path="/pin-login"  element={<PinLoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          {/* Public auth pages */}
+          <Route path="/login"        element={<LoginPage />} />
+          <Route path="/pin-login"    element={<PinLoginPage />} />
+          <Route path="/register"     element={<RegisterPage />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Public landing — unauthenticated users see this; LandingPage itself redirects logged-in users */}
-          <Route path="/" element={<LandingPage />} />
+          {/* Root: shows landing page for guests, redirects logged-in users */}
+          <Route path="/" element={<RootRoute />} />
 
           {/* Protected shell */}
           <Route element={<RequireAuth><AppShell /></RequireAuth>}>
@@ -894,8 +6351,8 @@ export default function App() {
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard"  element={<HomeHub />} />
               <Route path="routes"     element={<AdminRoutes />} />
-              <Route path="routes/edit/:id" element={<EditRoutePage />} />
-              <Route path="routes/assign/:id" element={<AssignRoutePage />} />
+              <Route path="routes/edit/:id"     element={<EditRoutePage />} />
+              <Route path="routes/assign/:id"   element={<AssignRoutePage />} />
               <Route path="routes/override/:id" element={<OverrideRoutePage />} />
               <Route path="assignments" element={<AdminDailyAssignment />} />
               <Route path="customers"  element={<AdminCustomers />} />
@@ -916,7 +6373,7 @@ export default function App() {
               element={<RequireRole allowed={['Salesman', 'Admin', 'SuperAdmin']}><Outlet /></RequireRole>}
             >
               <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard"                                 element={<MainHub />} /> 
+              <Route path="dashboard"                                 element={<MainHub />} />
               <Route path="routes"                                    element={<SalesmanRoutes />} />
               <Route path="routes/:routeId/execute"                   element={<RouteExecution />} />
               <Route path="routes/:routeId/orders"                    element={<SalesmanOrders />} />
@@ -1732,6 +7189,589 @@ export function HeaderSearch({ onSearch, placeholder = "Search orders, customers
 }
 </file>
 
+<file path="src/components/layout/MobileLayout.tsx">
+// PATH: src/components/layout/MobileLayout.tsx
+// UPDATED: Fixed duplicate keys in navigation items
+
+import React, { ReactNode, useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuthStore, getRoleHome } from '../../store/authStore';
+
+import {
+  MapPin,
+  ShoppingCart,
+  TrendingUp,
+  LayoutDashboard,
+  Truck,
+  FileText,
+  Calculator,
+  Users,
+  Package,
+  Home,
+  LogOut,
+  Menu,
+  X,
+  User,
+  Settings,
+  ChevronRight,
+} from 'lucide-react';
+
+interface NavItem {
+  to: string;
+  label: string;
+  icon: React.ElementType;
+  roles: string[];
+}
+
+const NAV_ITEMS: Record<string, NavItem[]> = {
+  Salesman: [
+    { to: '/salesman/routes', label: 'Routes', icon: MapPin, roles: ['Salesman'] },
+    { to: '/salesman/orders', label: 'Orders', icon: ShoppingCart, roles: ['Salesman'] },
+    { to: '/salesman/incentives', label: 'Incentives', icon: TrendingUp, roles: ['Salesman'] },
+  ],
+  Warehouse: [
+    { to: '/warehouse/loading', label: 'Loading', icon: Truck, roles: ['Warehouse'] },
+    { to: '/warehouse/dispatch', label: 'Dispatch', icon: Package, roles: ['Warehouse'] },
+    { to: '/warehouse/dashboard', label: 'Reports', icon: FileText, roles: ['Warehouse'] },
+  ],
+  Accounts: [
+    { to: '/accounts/settlement', label: 'Settlement', icon: Calculator, roles: ['Accounts'] },
+    { to: '/accounts/reports', label: 'Reports', icon: FileText, roles: ['Accounts'] },
+    { to: '/accounts/settlement', label: 'Outstanding', icon: Users, roles: ['Accounts'] },
+  ],
+  Admin: [
+    { to: '/admin/dashboard', label: 'Home', icon: LayoutDashboard, roles: ['Admin', 'SuperAdmin'] },
+    { to: '/admin/routes', label: 'Routes', icon: MapPin, roles: ['Admin', 'SuperAdmin'] },
+    { to: '/admin/orders', label: 'Orders', icon: ShoppingCart, roles: ['Admin', 'SuperAdmin'] },
+    { to: '/admin/settlement', label: 'Settle', icon: Calculator, roles: ['Admin', 'SuperAdmin'] },
+  ],
+  SuperAdmin: [
+    { to: '/admin/dashboard', label: 'Home', icon: LayoutDashboard, roles: ['SuperAdmin'] },
+    { to: '/admin/routes', label: 'Routes', icon: MapPin, roles: ['SuperAdmin'] },
+    { to: '/admin/orders', label: 'Orders', icon: ShoppingCart, roles: ['SuperAdmin'] },
+    { to: '/admin/settlement', label: 'Settle', icon: Calculator, roles: ['SuperAdmin'] },
+  ],
+};
+
+// Pages that have their OWN fixed bottom action bar — hide mobile top bar
+const FULL_SCREEN_PAGES = [
+  '/order/',
+  '/execute',
+  '/review-orders',
+];
+
+// Nav height constant
+export const MOBILE_NAV_HEIGHT = 70;
+
+// Role colors for avatar badge
+const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
+  SuperAdmin: { bg: '#FEF3C7', text: '#92400E' },
+  Admin: { bg: '#EFF6FF', text: '#1D4ED8' },
+  Salesman: { bg: '#F0FDF4', text: '#15803D' },
+  Accounts: { bg: '#FDF4FF', text: '#7E22CE' },
+  Warehouse: { bg: '#FFF7ED', text: '#C2410C' },
+};
+
+interface MobileLayoutProps {
+  children: ReactNode;
+  title?: string;
+}
+
+export function MobileLayout({ children, title }: MobileLayoutProps) {
+  const { user, logout } = useAuthStore();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Inject CSS variable so pages can reference nav height
+  useEffect(() => {
+    document.documentElement.style.setProperty('--mobile-nav-h', `${MOBILE_NAV_HEIGHT}px`);
+    return () => {
+      document.documentElement.style.removeProperty('--mobile-nav-h');
+    };
+  }, []);
+
+  // Close drawer on route change
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [location.pathname]);
+
+  // Prevent body scroll when drawer open
+  useEffect(() => {
+    document.body.style.overflow = drawerOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [drawerOpen]);
+
+  if (!user) {
+    return <>{children}</>;
+  }
+
+  const role = user.role;
+  const navItems = NAV_ITEMS[role] || NAV_ITEMS.Admin;
+  const roleColor = ROLE_COLORS[role] || ROLE_COLORS.Admin;
+
+  const isActive = (to: string) => {
+    // Special case for Salesman orders page
+    if (to === '/salesman/orders' && location.pathname.includes('/salesman/routes/')) {
+      return true;
+    }
+    // Handle dashboard routes
+    if (to === '/admin/dashboard' && location.pathname === '/admin/dashboard') return true;
+    if (to === '/accounts/settlement' && location.pathname.includes('/accounts/settlement')) return true;
+    if (to === '/warehouse/loading' && location.pathname.includes('/warehouse/loading')) return true;
+    if (to === '/warehouse/dispatch' && location.pathname.includes('/warehouse/dispatch')) return true;
+    // Exact match for all others
+    return location.pathname === to;
+  };
+
+  const isFullScreen = FULL_SCREEN_PAGES.some(p => location.pathname.includes(p));
+
+  const getPageTitle = () => {
+    if (title) return title;
+    const path = location.pathname;
+    if (path.includes('/salesman/routes') && path.includes('/order/')) return 'Order Entry';
+    if (path.includes('/salesman/routes') && path.includes('/execute')) return 'Route Execution';
+    if (path.includes('/salesman/routes') && path.includes('/review')) return 'Review Orders';
+    if (path.includes('/salesman/routes')) return 'My Routes';
+    if (path.includes('/salesman/orders')) return 'My Orders';
+    if (path.includes('/salesman/incentives')) return 'My Incentives';
+    if (path.includes('/warehouse/loading')) return 'Loading Sheet';
+    if (path.includes('/warehouse/dispatch')) return 'Pack Orders';
+    if (path.includes('/warehouse/dashboard')) return 'Dashboard';
+    if (path.includes('/accounts/settlement')) return 'Settlement';
+    if (path.includes('/accounts/reports')) return 'Reports';
+    if (path.includes('/admin/dashboard')) return 'Dashboard';
+    if (path.includes('/admin/routes')) return 'Routes';
+    if (path.includes('/admin/orders') && path.includes('/edit')) return 'Edit Order';
+    if (path.includes('/admin/orders')) return 'Orders';
+    if (path.includes('/admin/settlement')) return 'Settlement';
+    if (path.includes('/admin/products')) return 'Products';
+    if (path.includes('/admin/customers')) return 'Customers';
+    if (path.includes('/admin/users')) return 'Users';
+    if (path.includes('/admin/reports')) return 'Reports';
+    if (path.includes('/admin/analytics')) return 'Analytics';
+    if (path.includes('/admin/incentives')) return 'Incentives';
+    if (path.includes('/admin/settings')) return 'Settings';
+    if (path.includes('/admin/assignments')) return 'Assignments';
+    return 'FMCG Dist';
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+    setDrawerOpen(false);
+  };
+
+  const initials = user.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() ?? 'U';
+
+  return (
+    <div
+      className="mobile-layout"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100vh',
+        paddingBottom: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+      }}
+    >
+      {/* Top App Bar - hidden on full-screen pages */}
+      {!isFullScreen && (
+        <div
+          className="mobile-top-bar"
+          style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 40,
+            background: '#FFFFFF',
+            borderBottom: '1px solid #E2E8F0',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          {/* Hamburger Menu Button */}
+          <button
+            onClick={() => setDrawerOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              border: '1px solid #E2E8F0',
+              background: 'transparent',
+              cursor: 'pointer',
+              color: '#64748B',
+              flexShrink: 0,
+            }}
+          >
+            <Menu size={20} />
+          </button>
+
+          {/* Page Title */}
+          <h1
+            style={{
+              fontSize: '1.1rem',
+              fontWeight: 800,
+              color: '#1E3A8A',
+              margin: 0,
+              letterSpacing: '-0.03em',
+              textAlign: 'center',
+              flex: 1,
+            }}
+          >
+            {getPageTitle()}
+          </h1>
+
+          {/* Spacer for alignment */}
+          <div style={{ width: 40, flexShrink: 0 }} />
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="mobile-content" style={{ flex: 1 }}>
+        {children}
+      </div>
+
+      {/* Bottom Navigation Bar */}
+      <div
+        className="mobile-bottom-nav"
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: '#FFFFFF',
+          borderTop: '1px solid #E2E8F0',
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          padding: '8px 12px',
+          paddingBottom: `calc(8px + env(safe-area-inset-bottom, 0px))`,
+          zIndex: 60,
+          boxShadow: '0 -2px 10px rgba(15,23,42,0.05)',
+        }}
+      >
+        {navItems.map((item, index) => {
+          const Icon = item.icon;
+          const active = isActive(item.to);
+          // Use unique key combining to and index to avoid duplicates
+          const uniqueKey = `${item.to}-${index}`;
+          return (
+            <Link
+              key={uniqueKey}
+              to={item.to}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 3,
+                padding: '4px 12px',
+                borderRadius: 10,
+                textDecoration: 'none',
+                color: active ? '#2563EB' : '#94A3B8',
+                background: active ? '#EFF6FF' : 'transparent',
+                transition: 'all 0.15s',
+                minWidth: 56,
+                minHeight: 44,
+                justifyContent: 'center',
+              }}
+            >
+              <Icon size={20} />
+              <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, letterSpacing: '-0.01em' }}>
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Drawer Overlay */}
+      {drawerOpen && (
+        <div
+          onClick={() => setDrawerOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15,23,42,0.40)',
+            backdropFilter: 'blur(2px)',
+            zIndex: 200,
+            animation: 'fade-in 0.18s ease',
+          }}
+        />
+      )}
+
+      {/* Slide-out Drawer Menu */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: 280,
+          background: '#FFFFFF',
+          boxShadow: '4px 0 32px rgba(15,23,42,0.12)',
+          zIndex: 210,
+          display: 'flex',
+          flexDirection: 'column',
+          transform: drawerOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.26s cubic-bezier(0.34, 1.2, 0.64, 1)',
+          willChange: 'transform',
+        }}
+      >
+        {/* Drawer Header with Close Button */}
+        <div
+          style={{
+            padding: '20px 16px 16px',
+            borderBottom: '1px solid #E2E8F0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+                borderRadius: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Package size={18} color="#fff" strokeWidth={2.2} />
+            </div>
+            <span
+              style={{
+                fontWeight: 800,
+                fontSize: 16,
+                color: '#1E3A8A',
+                letterSpacing: '-0.03em',
+              }}
+            >
+              FMCG<span style={{ color: '#2563EB' }}>Dist</span>
+            </span>
+          </div>
+          <button
+            onClick={() => setDrawerOpen(false)}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              border: '1px solid #E2E8F0',
+              background: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#64748B',
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* User Profile Section */}
+        <div
+          style={{
+            padding: '16px',
+            margin: '12px 16px',
+            background: '#EFF6FF',
+            borderRadius: 12,
+            border: '1px solid rgba(37,99,235,0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
+            }}
+          >
+            <span style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{initials}</span>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color: '#1E3A8A',
+                letterSpacing: '-0.02em',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {user.name}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '2px 8px',
+                  borderRadius: 20,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  background: roleColor.bg,
+                  color: roleColor.text,
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {user.role}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Items */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '8px 12px',
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: '#94A3B8',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              padding: '8px 8px 4px',
+            }}
+          >
+            Menu
+          </div>
+
+          {navItems.map((item, index) => {
+            const Icon = item.icon;
+            const active = isActive(item.to);
+            const uniqueKey = `drawer-${item.to}-${index}`;
+            return (
+              <Link
+                key={uniqueKey}
+                to={item.to}
+                onClick={() => setDrawerOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  textDecoration: 'none',
+                  fontSize: 14,
+                  fontWeight: active ? 700 : 500,
+                  marginBottom: 2,
+                  color: active ? '#2563EB' : '#334155',
+                  background: active ? '#EFF6FF' : 'transparent',
+                  border: `1px solid ${active ? 'rgba(37,99,235,0.15)' : 'transparent'}`,
+                  transition: 'all 0.12s',
+                }}
+              >
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    background: active ? 'rgba(37,99,235,0.12)' : '#F8FAFC',
+                    color: active ? '#2563EB' : '#64748B',
+                  }}
+                >
+                  <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
+                </div>
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {active && (
+                  <div
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: '#2563EB',
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Footer with Sign Out */}
+        <div
+          style={{
+            padding: '16px',
+            borderTop: '1px solid #E2E8F0',
+            flexShrink: 0,
+          }}
+        >
+          <button
+            onClick={handleLogout}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '10px 14px',
+              borderRadius: 10,
+              border: '1px solid #FEE2E2',
+              background: '#FEF2F2',
+              cursor: 'pointer',
+              width: '100%',
+              fontSize: 14,
+              fontWeight: 600,
+              color: '#DC2626',
+              transition: 'all 0.15s',
+              fontFamily: 'inherit',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.background = '#FEE2E2';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.background = '#FEF2F2';
+            }}
+          >
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#FEE2E2',
+              }}
+            >
+              <LogOut size={15} />
+            </div>
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
 <file path="src/components/layout/Navbar.tsx">
 // PATH: src/components/layout/Navbar.tsx
 // Redesigned — White & Blue corporate design system
@@ -2301,6 +8341,403 @@ export function Navbar() {
 }
 </file>
 
+<file path="src/components/PWAInstallPrompt.tsx">
+// PATH: src/components/PWAInstallPrompt.tsx
+// Smart install prompt:
+//  - Android/Chrome: shows native "Add to Home Screen" banner
+//  - iOS Safari: shows step-by-step Share → Add to Home Screen instructions
+//  - Desktop Chrome: shows install button
+//  - Already installed or dismissed: hidden forever (stored in localStorage)
+
+import { useEffect, useState } from 'react';
+import { Download, Share, X, Smartphone, Monitor } from 'lucide-react';
+
+// The beforeinstallprompt event is non-standard — type it manually
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+type Platform = 'android' | 'ios' | 'desktop' | null;
+
+function detectPlatform(): Platform {
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+  const isAndroid = /Android/.test(ua);
+  const isMobile = isIOS || isAndroid;
+
+  if (isIOS) return 'ios';
+  if (isAndroid) return 'android';
+  if (!isMobile) return 'desktop';
+  return null;
+}
+
+function isRunningAsInstalledPWA(): boolean {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true
+  );
+}
+
+function isDismissed(): boolean {
+  return localStorage.getItem('pwa_install_dismissed') === 'true';
+}
+
+function markDismissed() {
+  localStorage.setItem('pwa_install_dismissed', 'true');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+export default function PWAInstallPrompt() {
+  const [platform, setPlatform]           = useState<Platform>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [show, setShow]                   = useState(false);
+  const [installing, setInstalling]       = useState(false);
+  const [showIOSSteps, setShowIOSSteps]   = useState(false);
+
+  useEffect(() => {
+    // Don't show if already installed or previously dismissed
+    if (isRunningAsInstalledPWA() || isDismissed()) return;
+
+    const p = detectPlatform();
+    setPlatform(p);
+
+    // Android / Desktop Chrome: listen for the browser's install event
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      // Small delay so the page has loaded before showing the banner
+      setTimeout(() => setShow(true), 2000);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    // iOS: show manually since Safari doesn't fire beforeinstallprompt
+    if (p === 'ios') {
+      setTimeout(() => setShow(true), 3000);
+    }
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  function dismiss() {
+    setShow(false);
+    markDismissed();
+  }
+
+  async function handleInstall() {
+    if (!deferredPrompt) return;
+    setInstalling(true);
+    try {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setShow(false);
+        markDismissed();
+      }
+    } finally {
+      setInstalling(false);
+      setDeferredPrompt(null);
+    }
+  }
+
+  // Nothing to show
+  if (!show) return null;
+
+  // ── iOS banner ───────────────────────────────────────────────────────────
+  if (platform === 'ios') {
+    return (
+      <div
+        role="dialog"
+        aria-label="Install app"
+        style={{
+          position:     'fixed',
+          bottom:       'calc(70px + env(safe-area-inset-bottom, 0px) + 12px)',
+          left:         16,
+          right:        16,
+          zIndex:       200,
+          background:   '#fff',
+          border:       '1px solid #E2E8F0',
+          borderRadius: 20,
+          boxShadow:    '0 -4px 32px rgba(15,23,42,0.14), 0 8px 32px rgba(15,23,42,0.12)',
+          padding:      '20px 20px 16px',
+          animation:    'slide-up 0.3s cubic-bezier(0.34,1.2,0.64,1)',
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 46, height: 46, borderRadius: 12,
+              background: 'linear-gradient(135deg,#1E3A8A,#2563EB)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <Smartphone size={22} color="#fff" />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: '#0F172A' }}>Install FMCGDist</p>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748B' }}>Add to your home screen for quick access</p>
+            </div>
+          </div>
+          <button
+            onClick={dismiss}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#94A3B8' }}
+            aria-label="Dismiss"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Steps toggle */}
+        <button
+          onClick={() => setShowIOSSteps(v => !v)}
+          style={{
+            width: '100%', padding: '11px 16px',
+            background: '#EFF6FF', border: '1px solid rgba(37,99,235,0.20)',
+            borderRadius: 12, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            fontFamily: 'inherit', fontSize: 14, fontWeight: 700, color: '#2563EB',
+          }}
+        >
+          <Share size={16} />
+          {showIOSSteps ? 'Hide Steps' : 'How to Install'}
+        </button>
+
+        {showIOSSteps && (
+          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { step: 1, icon: '⬆️', text: 'Tap the Share button at the bottom of Safari' },
+              { step: 2, icon: '➕', text: 'Scroll down and tap "Add to Home Screen"' },
+              { step: 3, icon: '✅', text: 'Tap "Add" — the app icon appears on your home screen' },
+            ].map(s => (
+              <div key={s.step} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                  background: 'rgba(37,99,235,0.08)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 13, fontWeight: 800, color: '#2563EB',
+                }}>
+                  {s.step}
+                </div>
+                <p style={{ margin: 0, fontSize: 13, color: '#334155', lineHeight: 1.5, paddingTop: 4 }}>
+                  {s.icon} {s.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Android / Desktop banner ─────────────────────────────────────────────
+  const isDesktop = platform === 'desktop';
+  return (
+    <div
+      role="dialog"
+      aria-label="Install app"
+      style={{
+        position:     'fixed',
+        bottom:       isDesktop ? 24 : 'calc(70px + env(safe-area-inset-bottom, 0px) + 12px)',
+        left:         isDesktop ? 'auto' : 16,
+        right:        isDesktop ? 24 : 16,
+        width:        isDesktop ? 340 : 'auto',
+        zIndex:       200,
+        background:   '#fff',
+        border:       '1px solid #E2E8F0',
+        borderRadius: 20,
+        boxShadow:    '0 -4px 32px rgba(15,23,42,0.14), 0 8px 32px rgba(15,23,42,0.12)',
+        padding:      '18px 18px 14px',
+        animation:    'slide-up 0.3s cubic-bezier(0.34,1.2,0.64,1)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+        <div style={{
+          width: 46, height: 46, borderRadius: 12, flexShrink: 0,
+          background: 'linear-gradient(135deg,#1E3A8A,#2563EB)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {isDesktop ? <Monitor size={22} color="#fff" /> : <Smartphone size={22} color="#fff" />}
+        </div>
+        <div style={{ flex: 1 }}>
+          <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: '#0F172A' }}>Install FMCGDist</p>
+          <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748B' }}>
+            {isDesktop
+              ? 'Open from your taskbar without a browser'
+              : 'Works offline · Opens from home screen'}
+          </p>
+        </div>
+        <button
+          onClick={dismiss}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#94A3B8', flexShrink: 0 }}
+          aria-label="Dismiss"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button
+          onClick={dismiss}
+          style={{
+            flex: 1, padding: '10px', borderRadius: 12,
+            border: '1px solid #E2E8F0', background: 'transparent',
+            cursor: 'pointer', fontSize: 14, fontWeight: 600,
+            color: '#64748B', fontFamily: 'inherit',
+          }}
+        >
+          Not now
+        </button>
+        <button
+          onClick={handleInstall}
+          disabled={installing}
+          style={{
+            flex: 2, padding: '10px', borderRadius: 12,
+            border: 'none',
+            background: installing ? '#93C5FD' : 'linear-gradient(135deg,#1E3A8A,#2563EB)',
+            cursor: installing ? 'not-allowed' : 'pointer',
+            fontSize: 14, fontWeight: 700, color: '#fff',
+            fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            boxShadow: '0 4px 14px rgba(37,99,235,0.30)',
+          }}
+        >
+          <Download size={16} />
+          {installing ? 'Installing…' : 'Install App'}
+        </button>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/salesman/SubmitAllOrdersModal.tsx">
+// PATH: src/components/salesman/SubmitAllOrdersModal.tsx
+// NEW FILE - Modal for submitting all orders
+
+import { X, Send, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Spinner } from '../ui';
+
+interface SubmitAllOrdersModalProps {
+  isOpen: boolean;
+  draftCount: number;
+  isSubmitting: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+export function SubmitAllOrdersModal({
+  isOpen,
+  draftCount,
+  isSubmitting,
+  onConfirm,
+  onCancel,
+}: SubmitAllOrdersModalProps) {
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 bg-black/50 z-50"
+        onClick={onCancel}
+      />
+      <div
+        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl z-50 animate-slide-up"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-12 h-1 bg-slate-300 rounded-full" />
+        </div>
+
+        <div className="p-5">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                <Send size={18} className="text-amber-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-800">Submit All Orders</h2>
+                <p className="text-xs text-slate-500">{draftCount} draft order(s) ready</p>
+              </div>
+            </div>
+            <button
+              onClick={onCancel}
+              className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+            >
+              <X size={18} className="text-slate-400" />
+            </button>
+          </div>
+
+          {/* Warning Message */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Important Notice</p>
+                <p className="text-sm text-amber-700 mt-1">
+                  You are about to submit {draftCount} draft order(s). Once submitted, they will be sent to the admin for approval and cannot be edited further.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* What happens next */}
+          <div className="bg-slate-50 rounded-xl p-4 mb-6">
+            <p className="text-sm font-semibold text-slate-700 mb-3">What happens next?</p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                  <span className="text-xs font-bold text-blue-600">1</span>
+                </div>
+                <span className="text-sm text-slate-600">Admin reviews your orders</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                  <span className="text-xs font-bold text-blue-600">2</span>
+                </div>
+                <span className="text-sm text-slate-600">Admin approves the orders</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                  <span className="text-xs font-bold text-blue-600">3</span>
+                </div>
+                <span className="text-sm text-slate-600">You can start delivery once orders are closed</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-3 text-sm font-semibold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 active:scale-95 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isSubmitting}
+              className="flex-1 py-3 text-sm font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <Spinner size={18} />
+              ) : (
+                <>
+                  <Send size={16} />
+                  Submit {draftCount} Order{draftCount > 1 ? 's' : ''}
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+</file>
+
 <file path="src/components/ui/index.tsx">
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
@@ -2411,6 +8848,48 @@ export function Field({
       {error && <span style={{ color: 'var(--red)', fontSize: 12 }}>{error}</span>}
     </div>
   );
+}
+</file>
+
+<file path="src/hooks/useIsMobile.ts">
+// PATH: src/hooks/useIsMobile.ts
+// NEW FILE - Mobile viewport detection hook
+
+import { useState, useEffect } from 'react';
+
+/**
+ * Hook to detect if the current viewport is mobile-sized
+ * @param breakpoint - Width threshold in pixels (default: 768)
+ * @returns boolean indicating if viewport is mobile
+ */
+export function useIsMobile(breakpoint: number = 768): boolean {
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    // Initialize with current window width if available (for SSR safety)
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < breakpoint;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    // Guard for SSR
+    if (typeof window === 'undefined') return;
+
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < breakpoint);
+    };
+
+    // Initial check
+    checkMobile();
+
+    // Listen for resize events
+    window.addEventListener('resize', checkMobile);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [breakpoint]);
+
+  return isMobile;
 }
 </file>
 
@@ -2805,6 +9284,147 @@ td { padding: 12px 16px; color: var(--text-body); vertical-align: middle; }
 .animate-slide-up       { animation: slide-up 0.22s ease; }
 .animate-fade-in        { animation: fade-in 0.18s ease; }
 .animate-scale-in       { animation: scale-in 0.20s cubic-bezier(0.34, 1.3, 0.64, 1); }
+
+/* ── Mobile Touch Utilities (Phase 1) ────────────────────────────────────── */
+.mobile-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Ensure bottom nav doesn't obscure content on mobile */
+@media (max-width: 768px) {
+  .mobile-layout {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  }
+  
+  .mobile-bottom-nav {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  
+  /* Enhanced touch targets for mobile buttons */
+  .btn, button {
+    min-height: 44px;
+  }
+  
+  /* Larger input fields for mobile - prevents iOS zoom on focus */
+  input, select, textarea {
+    font-size: 16px;
+  }
+  
+  /* Improve card spacing on mobile */
+  .card {
+    padding: 16px;
+  }
+  
+  /* Improve table overflow handling on mobile */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Active state for bottom nav items - visual feedback without JS */
+.mobile-bottom-nav a:active {
+  transform: scale(0.95);
+  transition: transform 0.05s ease;
+}
+
+/* Ensure body has safe area insets for notched phones */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Improved tap highlight for mobile elements */
+button,
+a,
+[role="button"] {
+  -webkit-tap-highlight-color: rgba(37, 99, 235, 0.15);
+  touch-action: manipulation;
+}
+
+/* Prevent pull-to-refresh interference on main content (optional) */
+.mobile-content {
+  overscroll-behavior: contain;
+}
+
+/* Mobile-friendly list items */
+.mobile-list-item {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-lite);
+}
+
+.mobile-list-item:active {
+  background: var(--card-sub);
+}
+
+/* Ensure bottom navigation stays above content */
+.mobile-bottom-nav {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+/* ── PASTE THESE ADDITIONS AT THE BOTTOM OF src/index.css ─────────────────── */
+
+:root {
+  --mobile-nav-h: 70px;
+}
+
+/* Generic utility — apply className "above-nav" to any fixed bottom bar */
+@media (max-width: 768px) {
+  .above-nav {
+    z-index: 55 !important;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px) + var(--mobile-nav-h)) !important;
+  }
+
+  .fab-above-nav {
+    bottom: calc(16px + var(--mobile-nav-h)) !important;
+    z-index: 55 !important;
+  }
+
+  .sheet-above-nav {
+    z-index: 65 !important;
+  }
+
+  .mobile-layout .mobile-content > *:last-child,
+  .min-h-screen.pb-10,
+  .min-h-screen.pb-24 {
+    padding-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px) + 16px) !important;
+  }
+}
+
+/* Modal safe sizing — prevents modals touching screen edges on small phones */
+.modal {
+  width: min(calc(100vw - 32px), 480px) !important;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* ReviewOrdersPage consolidated items table — ensure it scrolls not clips */
+/* (The overflow-x-auto wrapper already exists; this just sets the min-width) */
+.review-items-table {
+  min-width: 560px;
+}
+
+/* Salesman mobile bottom nav clearance — prevent content hiding under nav */
+@media (max-width: 768px) {
+  .page-root,
+  .page-wrapper,
+  .min-h-screen {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Section headers stack on very small screens */
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* page-content tighter on mobile */
+  .page-content {
+    padding: 16px 14px;
+  }
+}
 </file>
 
 <file path="src/main.tsx">
@@ -2833,7 +9453,7 @@ interface ReportCard {
   description: string;
   needsRoute: boolean;
   needsDate: boolean;
-  fn: (date: string, routeId?: number) => Promise<Blob>;
+  fn: (date: string, routeId?: string) => Promise<Blob>;
   filename: (date: string) => string;
 }
 
@@ -2881,7 +9501,7 @@ export default function AccountsReports() {
     setErrors(e => ({ ...e, [report.key]: '' }));
     setDownloading(report.key);
     try {
-      const blob = await report.fn(date, routeId ? Number(routeId) : undefined);
+      const blob = await report.fn(date, routeId ? String(routeId) : undefined);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -2966,9 +9586,12 @@ export default function AccountsReports() {
 </file>
 
 <file path="src/pages/Accounts/AccountsSettlement.tsx">
+// PATH: src/pages/Accounts/AccountsSettlement.tsx
+// UPDATED: Phase 5 - Mobile-enhanced settlement view
+
 import { useEffect, useState } from 'react';
-import { DollarSign, Users, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
-import { settlementApi } from '../../api/services';
+import { DollarSign, Users, AlertCircle, CheckCircle2, RefreshCw, Search, X, Phone, MapPin, IndianRupee, CreditCard } from 'lucide-react';
+import { settlementApi, routesApi } from '../../api/services';
 import {
   SettlementSummaryDto, OutstandingCustomerDto, fmtNum, fmtDate
 } from '../../types';
@@ -2977,24 +9600,30 @@ import { Spinner, EmptyState, ConfirmModal } from '../../components/ui';
 export default function AccountsSettlement() {
   const [summary, setSummary] = useState<SettlementSummaryDto | null>(null);
   const [outstanding, setOutstanding] = useState<OutstandingCustomerDto[]>([]);
+  const [routes, setRoutes] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [paymentModal, setPaymentModal] = useState<{ customer: OutstandingCustomerDto } | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
+  const [paymentMode, setPaymentMode] = useState('Cash');
   const [paying, setPaying] = useState(false);
   const [search, setSearch] = useState('');
+  const [routeFilter, setRouteFilter] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const load = async () => {
     setLoading(true);
     setError('');
     try {
-      const [s, o] = await Promise.all([
+      const [s, o, r] = await Promise.all([
         settlementApi.summary(),
         settlementApi.outstanding(),
+        routesApi.getAll().catch(() => []),
       ]);
       setSummary(s);
       setOutstanding(o);
+      setRoutes(r.map(route => ({ id: String(route.id), name: route.name })));
     } catch (e: any) {
       setError(e.message ?? 'Failed to load settlement data');
     } finally {
@@ -3008,159 +9637,310 @@ export default function AccountsSettlement() {
     if (!paymentModal) return;
     const amount = parseFloat(paymentAmount);
     if (isNaN(amount) || amount <= 0) {
-      alert('Enter a valid amount');
+      setError('Enter a valid amount');
       return;
     }
     setPaying(true);
+    setError('');
     try {
       await settlementApi.recordPayment({
         customerId: paymentModal.customer.customerId,
         amount,
         note: paymentNote,
         paymentDate: new Date().toISOString(),
+        paymentMode: paymentMode,
       });
+      setSuccess(`Payment of ₹${fmtNum(amount)} recorded successfully!`);
       setPaymentModal(null);
       setPaymentAmount('');
       setPaymentNote('');
+      setPaymentMode('Cash');
       await load();
+      setTimeout(() => setSuccess(''), 3000);
     } catch (e: any) {
-      alert(e.message ?? 'Payment failed');
+      setError(e.message ?? 'Payment failed');
     } finally {
       setPaying(false);
     }
   };
 
-  const filtered = outstanding.filter(o =>
-    o.customerName.toLowerCase().includes(search.toLowerCase())
+  // Filter outstanding by route and search
+  const filteredOutstanding = outstanding.filter(o => {
+    if (routeFilter && o.routeName !== routeFilter) return false;
+    if (search && !o.customerName.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const totalOutstanding = filteredOutstanding.reduce((sum, o) => sum + o.outstanding, 0);
+
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <Spinner size={40} />
+    </div>
   );
 
-  if (loading) return <Spinner />;
-
   return (
-    <div className="min-h-screen bg-[var(--bg)] pb-10">
-      <div className="px-4 pt-6 pb-4 border-b border-[var(--border)]">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-white">Settlement</h1>
-            <p className="text-sm text-[var(--muted)] mt-1">Accounts Portal</p>
+    <div className="min-h-screen bg-slate-50 pb-24">
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 py-4 shadow-sm">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-xl font-bold text-slate-800">Settlement</h1>
+              <p className="text-sm text-slate-500 mt-0.5">Accounts Portal</p>
+            </div>
+            <button 
+              onClick={load} 
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+            >
+              <RefreshCw size={14} /> Refresh
+            </button>
           </div>
-          <button onClick={load} className="btn btn-secondary flex items-center gap-2">
-            <RefreshCw size={14} />
-            Refresh
-          </button>
+
+          {/* Search and Filter */}
+          <div className="flex flex-col gap-3 mt-3">
+            <div className="relative">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-base focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                placeholder="Search customer..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+            
+            {routes.length > 0 && (
+              <select
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-base focus:outline-none focus:border-blue-400 bg-white"
+                value={routeFilter}
+                onChange={e => setRouteFilter(e.target.value)}
+              >
+                <option value="">All Routes</option>
+                {routes.map(route => (
+                  <option key={route.id} value={route.name}>{route.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="px-4 mt-6 space-y-6">
-        {error && <div className="alert alert-error">{error}</div>}
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 py-5">
+        {error && (
+          <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-3 flex items-center justify-between">
+            <span className="text-sm text-red-700">{error}</span>
+            <button onClick={() => setError('')} className="text-red-400 hover:text-red-600">✕</button>
+          </div>
+        )}
+        {success && (
+          <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between">
+            <span className="text-sm text-emerald-700">✓ {success}</span>
+            <button onClick={() => setSuccess('')} className="text-emerald-400 hover:text-emerald-600">✕</button>
+          </div>
+        )}
 
-        {/* KPI cards */}
+        {/* KPI Summary Cards */}
         {summary && (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="card">
-              <DollarSign size={20} className="text-[var(--primary)] mb-2" />
-              <p className="text-xl font-bold text-white">₹{fmtNum(summary.totalBilled ?? 0)}</p>
-              <p className="text-xs text-[var(--muted)] mt-1">Total Billed</p>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <DollarSign size={20} className="text-blue-600" />
+                <span className="text-xs font-medium text-slate-400">Total Billed</span>
+              </div>
+              <p className="text-2xl font-bold text-slate-800">₹{fmtNum(summary.totalBilled ?? 0)}</p>
             </div>
-            <div className="card">
-              <CheckCircle2 size={20} className="text-green-400 mb-2" />
-              <p className="text-xl font-bold text-white">₹{fmtNum(summary.totalCollected ?? 0)}</p>
-              <p className="text-xs text-[var(--muted)] mt-1">Collected</p>
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <CheckCircle2 size={20} className="text-emerald-600" />
+                <span className="text-xs font-medium text-slate-400">Collected</span>
+              </div>
+              <p className="text-2xl font-bold text-emerald-600">₹{fmtNum(summary.totalCollected ?? 0)}</p>
             </div>
-            <div className="card">
-              <AlertCircle size={20} className="text-red-400 mb-2" />
-              <p className="text-xl font-bold text-white">₹{fmtNum(summary.totalOutstanding ?? 0)}</p>
-              <p className="text-xs text-[var(--muted)] mt-1">Outstanding</p>
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <AlertCircle size={20} className="text-red-600" />
+                <span className="text-xs font-medium text-slate-400">Outstanding</span>
+              </div>
+              <p className="text-2xl font-bold text-red-600">₹{fmtNum(totalOutstanding)}</p>
             </div>
-            <div className="card">
-              <Users size={20} className="text-blue-400 mb-2" />
-              <p className="text-xl font-bold text-white">{summary.customersWithDues ?? 0}</p>
-              <p className="text-xs text-[var(--muted)] mt-1">Customers with Dues</p>
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <Users size={20} className="text-purple-600" />
+                <span className="text-xs font-medium text-slate-400">Customers</span>
+              </div>
+              <p className="text-2xl font-bold text-slate-800">{filteredOutstanding.length}</p>
             </div>
           </div>
         )}
 
-        {/* Outstanding customers */}
+        {/* Outstanding Customers List */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider">Outstanding</h2>
-            <span className="text-xs text-[var(--muted)]">{outstanding.length} customers</span>
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Outstanding Customers</h2>
+            <span className="text-xs text-slate-400">{filteredOutstanding.length} customers</span>
           </div>
 
-          <input
-            className="input w-full mb-3"
-            placeholder="Search customer…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+          {filteredOutstanding.length === 0 ? (
+            <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
+              <CheckCircle2 size={48} className="mx-auto text-emerald-300 mb-3" />
+              <p className="text-slate-500 font-medium">No outstanding dues</p>
+              <p className="text-sm text-slate-400 mt-1">All customers are settled.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredOutstanding.map((customer) => (
+                <div 
+                  key={customer.customerId} 
+                  className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-slate-800 text-base">{customer.customerName}</h3>
+                        {customer.routeName && (
+                          <p className="text-sm text-slate-500 mt-0.5">{customer.routeName}</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-bold text-red-600">₹{fmtNum(customer.outstanding)}</p>
+                        <p className="text-xs text-slate-400">due</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {customer.lastPaymentDate && (
+                        <div className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded-full">
+                          Last payment: {fmtDate(customer.lastPaymentDate)}
+                        </div>
+                      )}
+                    </div>
 
-          {filtered.length === 0 && <EmptyState title="No outstanding dues" message="All customers are settled." />}
-
-          <div className="space-y-2">
-            {filtered.map(o => (
-              <div key={o.customerId} className="card flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-white text-sm truncate">{o.customerName}</p>
-                  <p className="text-xs text-[var(--muted)]">
-                    {o.routeName} · Last: {o.lastPaymentDate ? fmtDate(o.lastPaymentDate) : 'Never'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-red-400">₹{fmtNum(o.outstanding)}</p>
-                    <p className="text-xs text-[var(--muted)]">due</p>
+                    <button
+                      onClick={() => { 
+                        setPaymentModal({ customer }); 
+                        setPaymentAmount(String(customer.outstanding));
+                        setPaymentMode('Cash');
+                        setPaymentNote('');
+                      }}
+                      className="w-full mt-3 flex items-center justify-center gap-2 py-3 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 active:scale-[0.98] transition-all"
+                    >
+                      <IndianRupee size={16} /> Record Payment
+                    </button>
                   </div>
-                  <button
-                    onClick={() => { setPaymentModal({ customer: o }); setPaymentAmount(String(o.outstanding)); }}
-                    className="btn btn-primary text-xs px-3 py-2 h-auto"
-                  >
-                    Pay
-                  </button>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Payment modal */}
+      {/* Payment Modal - Mobile Optimized */}
       {paymentModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl w-full max-w-sm p-6">
-            <h3 className="text-lg font-bold text-white mb-1">Record Payment</h3>
-            <p className="text-sm text-[var(--muted)] mb-4">{paymentModal.customer.customerName}</p>
-
-            <div className="space-y-3 mb-4">
-              <div>
-                <label className="block text-xs text-[var(--muted)] mb-1">Amount (₹)</label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  className="input w-full"
-                  value={paymentAmount}
-                  onChange={e => setPaymentAmount(e.target.value)}
-                  placeholder={String(paymentModal.customer.outstanding)}
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-[var(--muted)] mb-1">Note (optional)</label>
-                <input
-                  className="input w-full"
-                  value={paymentNote}
-                  onChange={e => setPaymentNote(e.target.value)}
-                  placeholder="Cash / UPI / Cheque…"
-                />
-              </div>
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-50" 
+            onClick={() => setPaymentModal(null)} 
+          />
+          <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl animate-slide-up"
+          style={{ zIndex: 65, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-12 h-1 bg-slate-300 rounded-full" />
             </div>
+            
+            <div className="p-5">
+              <div className="mb-4">
+                <h3 className="text-lg font-bold text-slate-800">Record Payment</h3>
+                <p className="text-sm text-slate-500 mt-1">{paymentModal.customer.customerName}</p>
+              </div>
 
-            <div className="flex gap-2">
-              <button onClick={() => setPaymentModal(null)} className="btn btn-secondary flex-1">Cancel</button>
-              <button onClick={handlePayment} disabled={paying} className="btn btn-primary flex-1">
-                {paying ? 'Recording…' : 'Record'}
-              </button>
+              <div className="space-y-4">
+                {/* Outstanding amount display */}
+                <div className="bg-amber-50 rounded-xl p-3 border border-amber-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-amber-700">Outstanding Amount:</span>
+                    <span className="text-lg font-bold text-amber-700">₹{fmtNum(paymentModal.customer.outstanding)}</span>
+                  </div>
+                </div>
+
+                {/* Amount input */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Amount (₹) *</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-base focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    value={paymentAmount}
+                    onChange={e => setPaymentAmount(e.target.value)}
+                    placeholder="Enter amount"
+                    autoFocus
+                  />
+                </div>
+
+                {/* Payment mode selector */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Payment Mode</label>
+                  <div className="flex gap-2">
+                    {['Cash', 'UPI', 'NEFT', 'Cheque'].map(mode => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setPaymentMode(mode)}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                          paymentMode === mode
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'bg-slate-100 text-slate-600 active:scale-[0.98]'
+                        }`}
+                      >
+                        {mode === 'Cash' && '💵 Cash'}
+                        {mode === 'UPI' && '📱 UPI'}
+                        {mode === 'NEFT' && '🏦 NEFT'}
+                        {mode === 'Cheque' && '📝 Cheque'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Note input */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Note (optional)</label>
+                  <input
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-base focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    value={paymentNote}
+                    onChange={e => setPaymentNote(e.target.value)}
+                    placeholder="Transaction reference, remarks..."
+                  />
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setPaymentModal(null)}
+                  className="flex-1 py-3 text-sm font-semibold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 active:scale-[0.98] transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePayment}
+                  disabled={paying}
+                  className="flex-1 py-3 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {paying ? <Spinner size={18} /> : <><CreditCard size={16} /> Record Payment</>}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
@@ -3177,11 +9957,13 @@ import type {
 } from '../../types';
 import { fmt, fmtNum } from '../../types';
 import { PageLoader, Alert, Badge } from '../../components/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const today = new Date().toISOString().split('T')[0];
 const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
 
 export function AdminAnalytics() {
+  const isMobile = useIsMobile();
   const [routes,      setRoutes]      = useState<RouteDto[]>([]);
   const [groups,      setGroups]      = useState<ProductGroupDto[]>([]);
   const [prodProfit,  setProdProfit]  = useState<ProductProfitabilityDto[]>([]);
@@ -3216,8 +9998,8 @@ export function AdminAnalytics() {
   useEffect(() => { load(); }, [fromDate, toDate, showNeg]);
 
   const tabs = [
-    { key: 'products', label: 'Product Profitability' },
-    { key: 'routes',   label: 'Route Profitability' },
+    { key: 'products', label: 'Products' },
+    { key: 'routes',   label: 'Routes' },
     { key: 'top',      label: 'Top Products' },
   ] as const;
 
@@ -3228,15 +10010,16 @@ export function AdminAnalytics() {
 
   return (
     <div className="page-content">
-      <div className="section-header">
+      {/* Header */}
+      <div className="section-header" style={{ flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Analytics</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Profitability & variance insights</p>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <input className="input" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ width: 'auto' }} />
-          <span style={{ color: 'var(--text-muted)' }}>to</span>
-          <input className="input" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ width: 'auto' }} />
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input className="input" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ width: isMobile ? '100%' : 'auto' }} />
+          {!isMobile && <span style={{ color: 'var(--text-muted)' }}>to</span>}
+          <input className="input" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ width: isMobile ? '100%' : 'auto' }} />
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
             <input type="checkbox" checked={showNeg} onChange={(e) => setShowNeg(e.target.checked)} />
             Negative only
@@ -3248,14 +10031,14 @@ export function AdminAnalytics() {
       {error && <Alert variant="error">{error}</Alert>}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0, overflowX: 'auto' }}>
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             style={{
               padding: '8px 16px', fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer',
-              background: 'transparent', fontFamily: 'inherit',
+              background: 'transparent', fontFamily: 'inherit', whiteSpace: 'nowrap',
               color: tab === t.key ? 'var(--primary)' : 'var(--text-muted)',
               borderBottom: `2px solid ${tab === t.key ? 'var(--primary)' : 'transparent'}`,
               marginBottom: -1, transition: 'all 0.12s',
@@ -3270,107 +10053,226 @@ export function AdminAnalytics() {
         <>
           {/* Product Profitability */}
           {tab === 'products' && (
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <table className="tbl">
-                <thead>
-                  <tr>
-                    <th>Product</th><th>Group</th><th>Qty Sold</th><th>Revenue</th>
-                    <th>Variance</th><th>Margin%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {prodProfit.length === 0 && (
-                    <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</td></tr>
-                  )}
-                  {prodProfit.map((p) => (
-                    <tr key={p.productId}>
-                      <td style={{ fontWeight: 600 }}>{p.productName}</td>
-                      <td style={{ fontSize: 13 }}>{p.productGroupName ?? '—'}</td>
-                      <td>{fmtNum(p.totalQuantity)}</td>
-                      <td style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(p.totalSales)}</td>
-                      <td>
-                        <span className={p.totalVariance < 0 ? 'profit-negative' : 'profit-positive'} style={{ fontWeight: 600 }}>
+            isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {prodProfit.length === 0 && (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</div>
+                )}
+                {prodProfit.map((p) => (
+                  <div key={p.productId} className="card" style={{ padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{p.productName}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{p.productGroupName ?? '—'}</div>
+                      </div>
+                      <Badge variant={p.totalVariance < 0 ? 'red' : 'green'}>{fmtMargin(p.marginPercentage)}</Badge>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Qty Sold</div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{fmtNum(p.totalQuantity)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Revenue</div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--green)' }}>{fmt(p.totalSales)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Variance</div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }} className={p.totalVariance < 0 ? 'profit-negative' : 'profit-positive'}>
                           {p.totalVariance < 0 ? '▼' : '▲'} {fmt(Math.abs(p.totalVariance))}
-                        </span>
-                      </td>
-                      <td>
-                        <Badge variant={p.totalVariance < 0 ? 'red' : 'green'}>{fmtMargin(p.marginPercentage)}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table className="tbl" style={{ minWidth: 560 }}>
+                    <thead>
+                      <tr>
+                        <th>Product</th><th>Group</th><th>Qty Sold</th><th>Revenue</th>
+                        <th>Variance</th><th>Margin%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {prodProfit.length === 0 && (
+                        <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</td></tr>
+                      )}
+                      {prodProfit.map((p) => (
+                        <tr key={p.productId}>
+                          <td style={{ fontWeight: 600 }}>{p.productName}</td>
+                          <td style={{ fontSize: 13 }}>{p.productGroupName ?? '—'}</td>
+                          <td>{fmtNum(p.totalQuantity)}</td>
+                          <td style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(p.totalSales)}</td>
+                          <td>
+                            <span className={p.totalVariance < 0 ? 'profit-negative' : 'profit-positive'} style={{ fontWeight: 600 }}>
+                              {p.totalVariance < 0 ? '▼' : '▲'} {fmt(Math.abs(p.totalVariance))}
+                            </span>
+                          </td>
+                          <td>
+                            <Badge variant={p.totalVariance < 0 ? 'red' : 'green'}>{fmtMargin(p.marginPercentage)}</Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
           )}
 
           {/* Route Profitability */}
           {tab === 'routes' && (
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <table className="tbl">
-                <thead>
-                  <tr>
-                    <th>Route</th><th>Orders</th><th>Customers</th><th>Revenue</th>
-                    <th>Variance</th><th>Margin%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {routeProfit.length === 0 && (
-                    <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</td></tr>
-                  )}
-                  {routeProfit.map((r) => (
-                    <tr key={r.routeId}>
-                      <td style={{ fontWeight: 600 }}>{r.routeName}</td>
-                      <td>{fmtNum(r.orderCount)}</td>
-                      <td>{fmtNum(r.customerCount)}</td>
-                      <td style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(r.totalSales)}</td>
-                      <td>
-                        <span className={r.totalVariance < 0 ? 'profit-negative' : 'profit-positive'} style={{ fontWeight: 600 }}>
+            isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {routeProfit.length === 0 && (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</div>
+                )}
+                {routeProfit.map((r) => (
+                  <div key={r.routeId} className="card" style={{ padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{r.routeName}</div>
+                      <Badge variant={r.totalVariance < 0 ? 'red' : 'green'}>{fmtMargin(r.marginPercentage)}</Badge>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Orders</div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{fmtNum(r.orderCount)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Customers</div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{fmtNum(r.customerCount)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Revenue</div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--green)' }}>{fmt(r.totalSales)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Variance</div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }} className={r.totalVariance < 0 ? 'profit-negative' : 'profit-positive'}>
                           {r.totalVariance < 0 ? '▼' : '▲'} {fmt(Math.abs(r.totalVariance))}
-                        </span>
-                      </td>
-                      <td>
-                        <Badge variant={r.totalVariance < 0 ? 'red' : 'green'}>{fmtMargin(r.marginPercentage)}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table className="tbl" style={{ minWidth: 520 }}>
+                    <thead>
+                      <tr>
+                        <th>Route</th><th>Orders</th><th>Customers</th><th>Revenue</th>
+                        <th>Variance</th><th>Margin%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {routeProfit.length === 0 && (
+                        <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</td></tr>
+                      )}
+                      {routeProfit.map((r) => (
+                        <tr key={r.routeId}>
+                          <td style={{ fontWeight: 600 }}>{r.routeName}</td>
+                          <td>{fmtNum(r.orderCount)}</td>
+                          <td>{fmtNum(r.customerCount)}</td>
+                          <td style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(r.totalSales)}</td>
+                          <td>
+                            <span className={r.totalVariance < 0 ? 'profit-negative' : 'profit-positive'} style={{ fontWeight: 600 }}>
+                              {r.totalVariance < 0 ? '▼' : '▲'} {fmt(Math.abs(r.totalVariance))}
+                            </span>
+                          </td>
+                          <td>
+                            <Badge variant={r.totalVariance < 0 ? 'red' : 'green'}>{fmtMargin(r.marginPercentage)}</Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
           )}
 
           {/* Top Products */}
           {tab === 'top' && (
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <table className="tbl">
-                <thead>
-                  <tr><th>#</th><th>Product</th><th>Qty</th><th>Revenue</th><th>Variance</th><th>Orders</th></tr>
-                </thead>
-                <tbody>
-                  {topProducts.length === 0 && (
-                    <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</td></tr>
-                  )}
-                  {topProducts.map((p, i) => (
-                    <tr key={p.productId}>
-                      <td>
-                        <span style={{
-                          display: 'inline-flex', width: 24, height: 24, borderRadius: 6,
-                          background: i < 3 ? 'var(--primary-glow)' : 'var(--border-lite)',
-                          color: i < 3 ? 'var(--primary)' : 'var(--text-muted)',
-                          alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700,
-                        }}>
-                          {i + 1}
-                        </span>
-                      </td>
-                      <td style={{ fontWeight: 600 }}>{p.productName}</td>
-                      <td>{fmtNum(p.totalQuantity)}</td>
-                      <td style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(p.totalSales)}</td>
-                      <td className={p.totalVariance >= 0 ? 'profit-positive' : 'profit-negative'}>{fmt(p.totalVariance)}</td>
-                      <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{p.orderCount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {topProducts.length === 0 && (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</div>
+                )}
+                {topProducts.map((p, i) => (
+                  <div key={p.productId} className="card" style={{ padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+                        background: i < 3 ? 'var(--primary-glow)' : 'var(--border-lite)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 14, fontWeight: 800,
+                        color: i < 3 ? 'var(--primary)' : 'var(--text-muted)',
+                      }}>
+                        #{i + 1}
+                      </div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)', flex: 1 }}>{p.productName}</div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Qty</div>
+                        <div style={{ fontWeight: 700, fontSize: 13 }}>{fmtNum(p.totalQuantity)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Revenue</div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--green)' }}>{fmt(p.totalSales)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Variance</div>
+                        <div style={{ fontWeight: 700, fontSize: 13 }} className={p.totalVariance >= 0 ? 'profit-positive' : 'profit-negative'}>{fmt(p.totalVariance)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Orders</div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-muted)' }}>{p.orderCount}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table className="tbl" style={{ minWidth: 500 }}>
+                    <thead>
+                      <tr><th>#</th><th>Product</th><th>Qty</th><th>Revenue</th><th>Variance</th><th>Orders</th></tr>
+                    </thead>
+                    <tbody>
+                      {topProducts.length === 0 && (
+                        <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</td></tr>
+                      )}
+                      {topProducts.map((p, i) => (
+                        <tr key={p.productId}>
+                          <td>
+                            <span style={{
+                              display: 'inline-flex', width: 24, height: 24, borderRadius: 6,
+                              background: i < 3 ? 'var(--primary-glow)' : 'var(--border-lite)',
+                              color: i < 3 ? 'var(--primary)' : 'var(--text-muted)',
+                              alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700,
+                            }}>
+                              {i + 1}
+                            </span>
+                          </td>
+                          <td style={{ fontWeight: 600 }}>{p.productName}</td>
+                          <td>{fmtNum(p.totalQuantity)}</td>
+                          <td style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(p.totalSales)}</td>
+                          <td className={p.totalVariance >= 0 ? 'profit-positive' : 'profit-negative'}>{fmt(p.totalVariance)}</td>
+                          <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{p.orderCount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
           )}
         </>
       )}
@@ -4295,13 +11197,14 @@ export function AdminCustomers() {
 
 <file path="src/pages/Admin/AdminDailyAssignment.tsx">
 // PATH: src/pages/Admin/AdminDailyAssignment.tsx
-// NEW FILE — Admin daily route assignment management with week view
+// UPDATED: Mobile-responsive week grid (scrollable) + stacked day list on very small screens
 
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, RefreshCw, Plus, Trash2, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw, Plus, Trash2, CalendarDays, List } from 'lucide-react';
 import { routeAssignmentsApi, usersApi, routesApi } from '../../api/services';
 import type { RouteAssignmentDto, UserDto, RouteDto } from '../../types';
 import { PageLoader, Spinner, Alert, EmptyState } from '../../components/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 function dateStr(d: Date) { return d.toISOString().slice(0, 10); }
 function addDays(d: Date, n: number) {
@@ -4311,7 +11214,7 @@ function addDays(d: Date, n: number) {
 }
 function weekStart(d: Date) {
   const r = new Date(d);
-  r.setDate(r.getDate() - r.getDay() + 1); // Monday
+  r.setDate(r.getDate() - r.getDay() + 1);
   return r;
 }
 function fmtDay(d: Date) {
@@ -4319,6 +11222,7 @@ function fmtDay(d: Date) {
 }
 
 export function AdminDailyAssignment() {
+  const isMobile = useIsMobile();
   const [weekAnchor, setWeekAnchor] = useState(weekStart(new Date()));
   const [assignments, setAssignments] = useState<RouteAssignmentDto[]>([]);
   const [routes,      setRoutes]      = useState<RouteDto[]>([]);
@@ -4326,9 +11230,9 @@ export function AdminDailyAssignment() {
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState('');
   const [success,     setSuccess]     = useState('');
+  const [mobileView,  setMobileView]  = useState<'grid' | 'list'>('list');
 
-  // Add modal
-  const [addModal,    setAddModal]    = useState<string | null>(null); // date string
+  const [addModal,    setAddModal]    = useState<string | null>(null);
   const [addRouteId,  setAddRouteId]  = useState('');
   const [addSalesId,  setAddSalesId]  = useState('');
   const [addNotes,    setAddNotes]    = useState('');
@@ -4390,10 +11294,89 @@ export function AdminDailyAssignment() {
 
   if (loading) return <PageLoader />;
 
+  // Shared day card renderer
+  const renderDayCard = (day: Date, compact = false) => {
+    const ds = dateStr(day);
+    const isToday = ds === dateStr(new Date());
+    const dayAssignments = assignments.filter(
+      a => dateStr(new Date(a.assignmentDate)) === ds
+    );
+
+    return (
+      <div
+        key={ds}
+        style={{
+          border: `1px solid ${isToday ? 'var(--primary)' : 'var(--border)'}`,
+          borderRadius: 12,
+          padding: compact ? '10px 12px' : 10,
+          background: isToday ? 'var(--primary-glow)' : 'var(--card)',
+          minHeight: compact ? 'auto' : 160,
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div>
+            <p style={{ fontSize: compact ? 12 : 11, color: isToday ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
+              {compact
+                ? day.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
+                : day.toLocaleDateString('en-IN', { weekday: 'short' }).toUpperCase()}
+            </p>
+            {!compact && (
+              <p style={{ fontSize: 15, fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                {day.getDate()}
+              </p>
+            )}
+          </div>
+          <button
+            className="btn btn-ghost btn-icon btn-sm"
+            onClick={() => { setAddModal(ds); setAddRouteId(''); setAddSalesId(''); setAddNotes(''); }}
+            title="Add assignment"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {dayAssignments.length === 0 && (
+            <p style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>No overrides</p>
+          )}
+          {dayAssignments.map(a => (
+            <div
+              key={a.id}
+              style={{
+                background: a.isPermanent ? 'var(--border)' : 'var(--primary-glow)',
+                border: `1px solid ${a.isPermanent ? 'var(--border)' : 'var(--primary)'}`,
+                borderRadius: 6, padding: '4px 6px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, margin: 0, color: a.isPermanent ? 'var(--text-muted)' : 'var(--primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {a.routeName}
+                </p>
+                <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {a.salesmanName}
+                </p>
+              </div>
+              {!a.isPermanent && a.id !== '00000000-0000-0000-0000-000000000000' && (
+                <button
+                  onClick={() => handleDelete(a.id)}
+                  disabled={deleting === a.id}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px', color: 'var(--text-muted)', flexShrink: 0 }}
+                >
+                  {deleting === a.id ? <Spinner size={10} /> : <Trash2 size={10} />}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="page-content">
       {/* Header */}
-      <div className="section-header">
+      <div className="section-header" style={{ flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Daily Route Assignment</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
@@ -4403,7 +11386,7 @@ export function AdminDailyAssignment() {
         <button className="btn btn-outline btn-sm" onClick={load}><RefreshCw size={14} /></button>
       </div>
 
-      {/* Info banner explaining when to use Daily Assignment */}
+      {/* Info banner */}
       <div className="alert alert-info" style={{ marginBottom: 16, background: 'var(--amber-bg)', border: '1px solid var(--amber)' }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
           <span style={{ fontSize: 20 }}>📅</span>
@@ -4411,15 +11394,11 @@ export function AdminDailyAssignment() {
             <strong style={{ color: 'var(--amber)' }}>When to use Daily Assignment:</strong>
             <ul style={{ margin: '4px 0 0 20px', fontSize: 12, color: 'var(--text-muted)' }}>
               <li>Salesman is on leave (sick, vacation)</li>
-              <li>Salesman resigned - need temporary coverage until replacement is hired</li>
               <li>Route needs to be covered by a different salesman for a specific day</li>
               <li>Training a new salesman (shadowing an experienced one)</li>
-              <li>Split route between two salesmen for a day</li>
             </ul>
             <p style={{ marginTop: 6, fontSize: 11, color: 'var(--amber)', background: 'rgba(245,158,11,0.1)', padding: '6px 10px', borderRadius: 6 }}>
-              💡 <strong>Important:</strong> This overrides the permanent assignment ONLY for the selected date.
-              The permanent salesman will automatically show up again the next day.
-              To permanently change a route's salesman, edit the route directly.
+              💡 This overrides the permanent assignment ONLY for the selected date.
             </p>
           </div>
         </div>
@@ -4429,114 +11408,56 @@ export function AdminDailyAssignment() {
       {success && <Alert variant="success">{success}</Alert>}
 
       {/* Week navigator */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <button className="btn btn-outline btn-sm" onClick={() => setWeekAnchor(w => addDays(w, -7))}>
           <ChevronLeft size={16} />
         </button>
-        <span style={{ fontWeight: 600, fontSize: 14 }}>
+        <span style={{ fontWeight: 600, fontSize: 14, flex: 1, minWidth: 200 }}>
           <CalendarDays size={14} style={{ display: 'inline', marginRight: 6 }} />
           {fmtDay(weekDays[0])} — {fmtDay(weekDays[6])}
         </span>
         <button className="btn btn-outline btn-sm" onClick={() => setWeekAnchor(w => addDays(w, 7))}>
           <ChevronRight size={16} />
         </button>
-        <button
-          className="btn btn-outline btn-sm"
-          onClick={() => setWeekAnchor(weekStart(new Date()))}
-          style={{ marginLeft: 4 }}
-        >
+        <button className="btn btn-outline btn-sm" onClick={() => setWeekAnchor(weekStart(new Date()))}>
           This Week
         </button>
+        {/* Mobile view toggle */}
+        {isMobile && (
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => setMobileView(v => v === 'list' ? 'grid' : 'list')}
+            title="Toggle view"
+          >
+            <List size={14} />
+          </button>
+        )}
       </div>
 
-      {/* Week grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
-        {weekDays.map(day => {
-          const ds = dateStr(day);
-          const isToday = ds === dateStr(new Date());
-          const dayAssignments = assignments.filter(
-            a => dateStr(new Date(a.assignmentDate)) === ds
-          );
+      {/* Week grid / list */}
+      {isMobile && mobileView === 'list' ? (
+        /* Mobile: stacked list of days */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {weekDays.map(day => renderDayCard(day, true))}
+        </div>
+      ) : isMobile ? (
+        /* Mobile: compact horizontal scroll */
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(130px, 1fr))', gap: 8, minWidth: 910 }}>
+            {weekDays.map(day => renderDayCard(day, false))}
+          </div>
+        </div>
+      ) : (
+        /* Desktop: 7-col grid */
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
+          {weekDays.map(day => renderDayCard(day, false))}
+        </div>
+      )}
 
-          return (
-            <div
-              key={ds}
-              style={{
-                border: `1px solid ${isToday ? 'var(--primary)' : 'var(--border)'}`,
-                borderRadius: 12,
-                padding: 10,
-                background: isToday ? 'var(--primary-glow)' : 'var(--card)',
-                minHeight: 160,
-              }}
-            >
-              {/* Day header */}
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
-              }}>
-                <div>
-                  <p style={{ fontSize: 11, color: isToday ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
-                    {day.toLocaleDateString('en-IN', { weekday: 'short' }).toUpperCase()}
-                  </p>
-                  <p style={{ fontSize: 15, fontWeight: 800, margin: 0, color: 'var(--text)' }}>
-                    {day.getDate()}
-                  </p>
-                </div>
-                <button
-                  className="btn btn-ghost btn-icon btn-sm"
-                  onClick={() => { setAddModal(ds); setAddRouteId(''); setAddSalesId(''); setAddNotes(''); }}
-                  title="Add assignment"
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-
-              {/* Assignment chips */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {dayAssignments.length === 0 && (
-                  <p style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                    No overrides
-                  </p>
-                )}
-                {dayAssignments.map(a => (
-                  <div
-                    key={a.id}
-                    style={{
-                      background: a.isPermanent ? 'var(--border)' : 'var(--primary-glow)',
-                      border: `1px solid ${a.isPermanent ? 'var(--border)' : 'var(--primary)'}`,
-                      borderRadius: 6, padding: '4px 6px',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 10, fontWeight: 700, margin: 0, color: a.isPermanent ? 'var(--text-muted)' : 'var(--primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {a.routeName}
-                      </p>
-                      <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {a.salesmanName}
-                      </p>
-                    </div>
-                    {!a.isPermanent && a.id !== '00000000-0000-0000-0000-000000000000' && (
-                      <button
-                        onClick={() => handleDelete(a.id)}
-                        disabled={deleting === a.id}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px', color: 'var(--text-muted)', flexShrink: 0 }}
-                        title="Remove override"
-                      >
-                        {deleting === a.id ? <Spinner size={10} /> : <Trash2 size={10} />}
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── Add Assignment Modal ─────────────────────────────────────────── */}
+      {/* Add Assignment Modal */}
       {addModal && (
         <div className="modal-overlay" onClick={() => setAddModal(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ width: 'min(calc(100vw - 32px), 400px)' }}>
             <h3 style={{ marginTop: 0, fontWeight: 700 }}>
               Assign Route — {new Date(addModal + 'T00:00:00').toLocaleDateString('en-IN', {
                 weekday: 'long', day: 'numeric', month: 'long',
@@ -4545,45 +11466,28 @@ export function AdminDailyAssignment() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 16 }}>
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
-                  Route *
-                </label>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Route *</label>
                 <select className="input" value={addRouteId} onChange={e => setAddRouteId(e.target.value)}>
                   <option value="">Select route…</option>
                   {routes.map(r => <option key={String(r.id)} value={String(r.id)}>{r.name}</option>)}
                 </select>
               </div>
-
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
-                  Salesman *
-                </label>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Salesman *</label>
                 <select className="input" value={addSalesId} onChange={e => setAddSalesId(e.target.value)}>
                   <option value="">Select salesman…</option>
                   {salesmen.map(s => <option key={s.id} value={s.id}>{s.fullName}</option>)}
                 </select>
               </div>
-
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
-                  Notes (optional)
-                </label>
-                <input
-                  className="input"
-                  placeholder="e.g. Covering for Rajesh"
-                  value={addNotes}
-                  onChange={e => setAddNotes(e.target.value)}
-                />
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Notes (optional)</label>
+                <input className="input" placeholder="e.g. Covering for Rajesh" value={addNotes} onChange={e => setAddNotes(e.target.value)} />
               </div>
             </div>
 
             <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
               <button className="btn btn-outline" onClick={() => setAddModal(null)}>Cancel</button>
-              <button
-                className="btn btn-primary"
-                onClick={handleSave}
-                disabled={saving || !addRouteId || !addSalesId}
-              >
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving || !addRouteId || !addSalesId}>
                 {saving ? <Spinner size={16} /> : 'Save Assignment'}
               </button>
             </div>
@@ -5334,10 +12238,12 @@ import { incentivesApi, productsApi } from '../../api/services';
 import type { ProductIncentiveDto, ProductSearchDto } from '../../types';
 import { fmt, fmtDate } from '../../types';
 import { PageLoader, Spinner, Alert, Badge, EmptyState, Field, ConfirmModal } from '../../components/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const INCENTIVE_TYPES = { 1: 'Per Unit (₹)', 2: 'Percentage (%)' };
 
 export function AdminIncentives() {
+  const isMobile = useIsMobile();
   const [incentives, setIncentives] = useState<ProductIncentiveDto[]>([]);
   const [products,   setProducts]   = useState<ProductSearchDto[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -5423,7 +12329,7 @@ export function AdminIncentives() {
 
   return (
     <div className="page-content">
-      <div className="section-header">
+      <div className="section-header" style={{ flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Incentives</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>SKU-level salesman incentive configuration</p>
@@ -5438,41 +12344,89 @@ export function AdminIncentives() {
 
       {incentives.length === 0 ? (
         <EmptyState title="No incentives configured" message="Add product incentives to motivate your salesmen." icon={Gift} />
-      ) : (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table className="tbl">
-            <thead>
-              <tr><th>Product</th><th>Type</th><th>Value</th><th>Min Qty</th><th>Valid</th><th>Status</th><th></th></tr>
-            </thead>
-            <tbody>
-              {incentives.map((inc) => (
-                <tr key={inc.id}>
-                  <td style={{ fontWeight: 600 }}>{inc.productName ?? inc.productId.slice(0, 8)}</td>
-                  <td style={{ fontSize: 13 }}>{INCENTIVE_TYPES[inc.incentiveType as 1 | 2] ?? '—'}</td>
-                  <td style={{ fontWeight: 700, color: 'var(--primary)' }}>
+      ) : isMobile ? (
+        /* Mobile card view */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {incentives.map((inc) => (
+            <div key={inc.id} style={{
+              background: '#fff', border: '1px solid var(--border)',
+              borderRadius: 14, padding: '14px 16px',
+              boxShadow: '0 1px 4px rgba(15,23,42,0.06)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)', marginBottom: 2 }}>
+                    {inc.productName ?? inc.productId.slice(0, 8)}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    {INCENTIVE_TYPES[inc.incentiveType as 1 | 2] ?? '—'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--primary)' }}>
                     {inc.incentiveType === 1 ? fmt(inc.incentiveValue) : `${inc.incentiveValue}%`}
-                  </td>
-                  <td style={{ fontSize: 13 }}>{inc.minQuantity ?? '—'}</td>
-                  <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    {inc.validFrom ? fmtDate(inc.validFrom) : '∞'} – {inc.validTo ? fmtDate(inc.validTo) : '∞'}
-                  </td>
-                  <td><Badge variant={inc.isActive ? 'green' : 'muted'}>{inc.isActive ? 'Active' : 'Inactive'}</Badge></td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openEdit(inc)}><Edit2 size={14} /></button>
-                      <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setConfirm(inc.id)}><Trash2 size={14} color="var(--red)" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                  <Badge variant={inc.isActive ? 'green' : 'muted'}>{inc.isActive ? 'Active' : 'Inactive'}</Badge>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 12, fontSize: 12, color: 'var(--text-muted)' }}>
+                {inc.minQuantity != null && (
+                  <span>Min Qty: <strong style={{ color: 'var(--text)' }}>{inc.minQuantity}</strong></span>
+                )}
+                <span>
+                  Valid: {inc.validFrom ? fmtDate(inc.validFrom) : '∞'} – {inc.validTo ? fmtDate(inc.validTo) : '∞'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-outline btn-sm" style={{ flex: 1, justifyContent: 'center' }} onClick={() => openEdit(inc)}>
+                  <Edit2 size={13} /> Edit
+                </button>
+                <button className="btn btn-outline btn-sm" style={{ flex: 1, justifyContent: 'center', color: 'var(--red)', borderColor: 'var(--red)' }} onClick={() => setConfirm(inc.id)}>
+                  <Trash2 size={13} /> Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Desktop table */
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table className="tbl" style={{ minWidth: 580 }}>
+              <thead>
+                <tr><th>Product</th><th>Type</th><th>Value</th><th>Min Qty</th><th>Valid</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody>
+                {incentives.map((inc) => (
+                  <tr key={inc.id}>
+                    <td style={{ fontWeight: 600 }}>{inc.productName ?? inc.productId.slice(0, 8)}</td>
+                    <td style={{ fontSize: 13 }}>{INCENTIVE_TYPES[inc.incentiveType as 1 | 2] ?? '—'}</td>
+                    <td style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                      {inc.incentiveType === 1 ? fmt(inc.incentiveValue) : `${inc.incentiveValue}%`}
+                    </td>
+                    <td style={{ fontSize: 13 }}>{inc.minQuantity ?? '—'}</td>
+                    <td style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      {inc.validFrom ? fmtDate(inc.validFrom) : '∞'} – {inc.validTo ? fmtDate(inc.validTo) : '∞'}
+                    </td>
+                    <td><Badge variant={inc.isActive ? 'green' : 'muted'}>{inc.isActive ? 'Active' : 'Inactive'}</Badge></td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openEdit(inc)}><Edit2 size={14} /></button>
+                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setConfirm(inc.id)}><Trash2 size={14} color="var(--red)" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
+      {/* Add/Edit Modal */}
       {modal && (
         <div className="modal-overlay" onClick={() => setModal(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ width: 'min(calc(100vw - 32px), 480px)' }}>
             <h3 style={{ marginTop: 0, fontWeight: 700 }}>{modal === 'add' ? 'Add Incentive' : 'Edit Incentive'}</h3>
             {error && <Alert variant="error">{error}</Alert>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 16 }}>
@@ -5528,7 +12482,7 @@ export function AdminIncentives() {
 
 <file path="src/pages/Admin/AdminOrderEdit.tsx">
 // PATH: src/pages/Admin/AdminOrderEdit.tsx
-// Updated: Back button top-left, numbered remarks lines
+// UPDATED: Allow editing Approved orders
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -5754,7 +12708,6 @@ export function AdminOrderEdit() {
     }).filter(line => line !== '').join('\n');
   };
 
-  // Handle remarks change - preserve raw input but show numbered preview
   const handleRemarksChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setRemarks(e.target.value);
   };
@@ -5780,16 +12733,17 @@ export function AdminOrderEdit() {
 
   const orderStatus = order.status;
   const isClosed = orderStatus === OrderStatus.Closed;
-  const canEdit = orderStatus === OrderStatus.Draft || 
-                  orderStatus === OrderStatus.PendingApproval || 
-                  orderStatus === OrderStatus.Approved;
+  
+  // UPDATED: Admin can edit Draft, PendingApproval, or Approved orders
+  // Only Closed orders cannot be edited
+  const canEdit = orderStatus !== OrderStatus.Closed;
 
   if (!canEdit) {
     return (
       <div className="min-h-screen bg-slate-50 p-6">
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 mb-4">
           Cannot edit order in '{ORDER_STATUS_LABELS[orderStatus]}' status. 
-          Only Draft, Pending Approval, or Approved orders can be edited.
+          Only Draft, Pending Approval, or Approved orders can be edited. Closed orders are locked.
         </div>
         <button className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50" onClick={() => navigate('/admin/orders')}>
           ← Back to Orders
@@ -6106,7 +13060,8 @@ Sugar - 50 kg`}
 
       {/* Fixed bottom footer */}
       {lines.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg px-6 py-4 z-30">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg px-6"
+        style={{ zIndex: 55, padding: '16px 24px', paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px) + 70px)' }}>
           <div className="max-w-5xl mx-auto flex items-center justify-between flex-wrap gap-3">
             <div>
               <p className="text-sm text-slate-500">{lines.length} products · {totalItems} units</p>
@@ -6146,7 +13101,7 @@ Sugar - 50 kg`}
 
 <file path="src/pages/Admin/AdminOrders.tsx">
 // PATH: src/pages/Admin/AdminOrders.tsx
-// UPDATED: Fixed modal z-index, changed button logic for Approved vs Closed orders
+// UPDATED: Added Approve button functionality and fixed item loading
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -6170,6 +13125,7 @@ export function AdminOrders() {
   const [dateFilter, setDateFilter] = useState('');
   const [search, setSearch] = useState('');
   const [submitting, setSubmitting] = useState<string | null>(null);
+  const [approving, setApproving] = useState<string | null>(null);
   const [closing, setClosing] = useState<string | null>(null);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [previousOrders, setPreviousOrders] = useState<Record<string, CustomerOrderHistoryDto[]>>({});
@@ -6177,6 +13133,7 @@ export function AdminOrders() {
   const [reviewOrder, setReviewOrder] = useState<OrderDetailDto | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [loadingReview, setLoadingReview] = useState(false);
+  const [success, setSuccess] = useState('');
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -6243,13 +13200,33 @@ export function AdminOrders() {
     } finally { setSubmitting(null); }
   }
 
+  // ── NEW: Approve Order Handler ─────────────────────────────────────────────
+  async function handleApproveOrder(orderId: string) {
+    setApproving(orderId);
+    setError('');
+    try {
+      await ordersApi.approve(orderId);
+      setSuccess('Order approved successfully!');
+      setShowReviewModal(false);
+      setReviewOrder(null);
+      await load();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Approve failed');
+    } finally {
+      setApproving(null);
+    }
+  }
+
   async function handleClose(orderId: string) {
     setClosing(orderId); setError('');
     try {
       await ordersApi.close(orderId);
+      setSuccess('Order closed successfully!');
       await load();
       setShowReviewModal(false);
       setReviewOrder(null);
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Close failed');
     } finally { setClosing(null); }
@@ -6306,6 +13283,7 @@ export function AdminOrders() {
 
   async function handleReviewOrder(orderId: string) {
     setLoadingReview(true);
+    setError('');
     try {
       const orderDetail = await ordersApi.getById(orderId);
       
@@ -6439,6 +13417,7 @@ export function AdminOrders() {
 
       <div className="max-w-7xl mx-auto px-5 py-5">
         {error && <Alert variant="error">{error}</Alert>}
+        {success && <Alert variant="success">{success}</Alert>}
 
         {/* Filters Row */}
         <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-sm">
@@ -6695,7 +13674,7 @@ export function AdminOrders() {
         )}
       </div>
 
-      {/* Review Order Modal - Fixed z-index issue */}
+      {/* Review Order Modal - Fixed with Approve button */}
       {showReviewModal && reviewOrder && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" 
@@ -6797,7 +13776,17 @@ export function AdminOrders() {
             </div>
 
             <div className="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4 flex gap-3 justify-end">
-              
+              {/* ── NEW: Approve button for Pending Approval orders ── */}
+              {reviewOrder.status === OrderStatus.PendingApproval && (
+                <button 
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  onClick={() => handleApproveOrder(String(reviewOrder.id))}
+                  disabled={approving === String(reviewOrder.id)}
+                >
+                  {approving === String(reviewOrder.id) ? <Spinner size={14} /> : <CheckCircle size={14} />}
+                  Approve Order
+                </button>
+              )}
               
               {/* Show Edit button for Draft, PendingApproval, and Approved orders */}
               {(reviewOrder.status === OrderStatus.Draft || 
@@ -8644,8 +15633,7 @@ export function OverrideRouteCard({
 
 <file path="src/pages/Admin/AdminRoutes/components/RoutesTable.tsx">
 // PATH: src/pages/Admin/AdminRoutes/components/RoutesTable.tsx
-// UPDATED: Added "Customers" action button — clicking navigates to
-//          /admin/customers?routeId=<id> so admin can see customers for that route.
+// UPDATED: Added mobile card view + overflow-x-auto for desktop table
 
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '../../../../components/ui';
@@ -8653,6 +15641,7 @@ import { ActionBtn } from './ActionBtn';
 import { Route, Users, Edit2, Trash2, Calendar, ChevronDown } from 'lucide-react';
 import { fmtDate } from '../../../../types';
 import type { RouteDto } from '../../../../types';
+import { useIsMobile } from '../../../../hooks/useIsMobile';
 
 interface RoutesTableProps {
   routes:    RouteDto[];
@@ -8666,150 +15655,219 @@ export function RoutesTable({
   routes, onAssign, onOverride, onEdit, onDelete,
 }: RoutesTableProps) {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const hasCustomers = (n?: number) => !!(n && n > 0);
 
-  return (
-    <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 20 }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#fff' }}>
-        <thead>
-          <tr>
-            {['Route Name', 'Assigned Salesman', 'Customers', 'Status', 'Created', 'Override', 'Actions'].map(h => (
-              <th key={h} style={{
-                background: '#F8FAFC', color: '#64748B',
-                fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
-                textTransform: 'uppercase' as const, padding: '12px 16px',
-                borderBottom: '1px solid #E2E8F0', textAlign: 'left' as const,
-                whiteSpace: 'nowrap' as const,
-              }}>
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {routes.map(r => (
-            <tr
-              key={r.id}
-              style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.12s' }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#FAFBFD'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-            >
-              {/* Route name */}
-              <td style={{ padding: '14px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 9, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Route size={16} color="#2563EB" />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: '#0F172A' }}>{r.name}</div>
-                    {r.description && <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 1 }}>{r.description}</div>}
-                  </div>
-                </div>
-              </td>
-
-              {/* Salesman */}
-              <td style={{ padding: '14px 16px' }}>
-                {r.assignedSalesmanName ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span style={{ fontSize: 10, fontWeight: 800, color: '#2563EB' }}>
-                        {r.assignedSalesmanName.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{r.assignedSalesmanName}</span>
-                  </div>
-                ) : (
-                  <span style={{ fontSize: 13, color: '#94A3B8', fontStyle: 'italic' }}>— Not Assigned —</span>
-                )}
-              </td>
-
-              {/* Customers — clickable to navigate */}
-              <td style={{ padding: '14px 16px' }}>
-                <button
-                  onClick={() => navigate(`/admin/customers?routeId=${r.id}`)}
-                  title="View customers for this route"
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    fontSize: 13, fontWeight: 700,
-                    color: hasCustomers(r.customerCount) ? '#2563EB' : '#94A3B8',
-                    background: hasCustomers(r.customerCount) ? '#EFF6FF' : 'transparent',
-                    border: hasCustomers(r.customerCount) ? '1px solid #BFDBFE' : 'none',
-                    borderRadius: 7, padding: hasCustomers(r.customerCount) ? '4px 10px' : '0',
-                    cursor: hasCustomers(r.customerCount) ? 'pointer' : 'default',
-                    fontFamily: 'inherit', transition: 'all 0.12s',
-                  }}
-                  onMouseEnter={e => hasCustomers(r.customerCount) && ((e.currentTarget as HTMLElement).style.background = '#DBEAFE')}
-                  onMouseLeave={e => hasCustomers(r.customerCount) && ((e.currentTarget as HTMLElement).style.background = '#EFF6FF')}
-                >
-                  <Users size={13} />
-                  {r.customerCount ?? 0}
-                </button>
-              </td>
-
-              {/* Status */}
-              <td style={{ padding: '14px 16px' }}>
-                <Badge variant={r.isActive ? 'green' : 'muted'}>
-                  {r.isActive ? 'Active' : 'Inactive'}
-                </Badge>
-              </td>
-
-              {/* Created */}
-              <td style={{ padding: '14px 16px', color: '#94A3B8', fontSize: 12, fontWeight: 500 }}>
-                {r.createdAt ? fmtDate(r.createdAt) : '—'}
-              </td>
-
-              {/* Override badge */}
-              <td style={{ padding: '14px 16px' }}>
+  // ── Mobile card layout ──────────────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {routes.map(r => (
+          <div
+            key={r.id}
+            style={{
+              background: '#fff',
+              border: '1px solid #E2E8F0',
+              borderRadius: 14,
+              padding: '14px 16px',
+              boxShadow: '0 1px 4px rgba(15,23,42,0.06)',
+            }}
+          >
+            {/* Row 1: icon + name + status badge */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Route size={18} color="#2563EB" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#0F172A', marginBottom: 2 }}>{r.name}</div>
+                {r.description && <div style={{ color: '#94A3B8', fontSize: 12 }}>{r.description}</div>}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                <Badge variant={r.isActive ? 'green' : 'muted'}>{r.isActive ? 'Active' : 'Inactive'}</Badge>
                 {r.hasOverrideToday && (
-                  <span style={{
-                    fontSize: 11, fontWeight: 700,
-                    background: 'rgba(217,119,6,0.10)',
-                    color: '#B45309', padding: '3px 8px',
-                    borderRadius: 6, border: '1px solid rgba(217,119,6,0.20)',
-                  }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(217,119,6,0.10)', color: '#B45309', padding: '2px 7px', borderRadius: 6, border: '1px solid rgba(217,119,6,0.20)' }}>
                     Override Today
                   </span>
                 )}
-              </td>
+              </div>
+            </div>
 
-              {/* Actions */}
-              <td style={{ padding: '12px 16px' }}>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' as const }}>
-                  <ActionBtn
-                    icon={Calendar}
-                    label="Assign"
-                    color="blue"
-                    title="Assign salesman for today"
-                    onClick={() => onAssign(r)}
-                  />
-                  <ActionBtn
-                    icon={ChevronDown}
-                    label="Override"
-                    color="amber"
-                    title="Assign different salesman for a specific date"
-                    onClick={() => onOverride(r)}
-                  />
-                  <ActionBtn
-                    icon={Edit2}
-                    label="Edit"
-                    color="default"
-                    title="Edit route"
-                    onClick={() => onEdit(r)}
-                  />
-                  <ActionBtn
-                    icon={Trash2}
-                    label="Delete"
-                    color="red"
-                    title={hasCustomers(r.customerCount) ? 'Cannot delete route with customers' : 'Delete route'}
-                    disabled={hasCustomers(r.customerCount)}
-                    onClick={() => onDelete(String(r.id))}
-                  />
+            {/* Row 2: salesman + customers + created */}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12, fontSize: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 9, fontWeight: 800, color: '#2563EB' }}>
+                    {r.assignedSalesmanName ? r.assignedSalesmanName.charAt(0).toUpperCase() : '?'}
+                  </span>
                 </div>
-              </td>
+                <span style={{ color: r.assignedSalesmanName ? '#334155' : '#94A3B8', fontStyle: r.assignedSalesmanName ? 'normal' : 'italic', fontWeight: 600 }}>
+                  {r.assignedSalesmanName ?? 'Not Assigned'}
+                </span>
+              </div>
+              <button
+                onClick={() => navigate(`/admin/customers?routeId=${r.id}`)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  fontSize: 12, fontWeight: 700,
+                  color: hasCustomers(r.customerCount) ? '#2563EB' : '#94A3B8',
+                  background: hasCustomers(r.customerCount) ? '#EFF6FF' : 'transparent',
+                  border: hasCustomers(r.customerCount) ? '1px solid #BFDBFE' : 'none',
+                  borderRadius: 6, padding: hasCustomers(r.customerCount) ? '3px 8px' : '0',
+                  cursor: hasCustomers(r.customerCount) ? 'pointer' : 'default',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <Users size={11} />
+                {r.customerCount ?? 0} customers
+              </button>
+              {r.createdAt && (
+                <span style={{ color: '#94A3B8' }}>Created {fmtDate(r.createdAt)}</span>
+              )}
+            </div>
+
+            {/* Row 3: action buttons */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <ActionBtn icon={Calendar} label="Assign" color="blue" title="Assign salesman for today" onClick={() => onAssign(r)} />
+              <ActionBtn icon={ChevronDown} label="Override" color="amber" title="Assign different salesman for a date" onClick={() => onOverride(r)} />
+              <ActionBtn icon={Edit2} label="Edit" color="default" title="Edit route" onClick={() => onEdit(r)} />
+              <ActionBtn
+                icon={Trash2} label="Delete" color="red"
+                title={hasCustomers(r.customerCount) ? 'Cannot delete route with customers' : 'Delete route'}
+                disabled={hasCustomers(r.customerCount)}
+                onClick={() => onDelete(String(r.id))}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // ── Desktop table layout ────────────────────────────────────────────────────
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 20 }}>
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <table style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse', fontSize: 14, background: '#fff' }}>
+          <thead>
+            <tr>
+              {['Route Name', 'Assigned Salesman', 'Customers', 'Status', 'Created', 'Override', 'Actions'].map(h => (
+                <th key={h} style={{
+                  background: '#F8FAFC', color: '#64748B',
+                  fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+                  textTransform: 'uppercase' as const, padding: '12px 16px',
+                  borderBottom: '1px solid #E2E8F0', textAlign: 'left' as const,
+                  whiteSpace: 'nowrap' as const,
+                }}>
+                  {h}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {routes.map(r => (
+              <tr
+                key={r.id}
+                style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.12s' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#FAFBFD'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+              >
+                {/* Route name */}
+                <td style={{ padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 9, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Route size={16} color="#2563EB" />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#0F172A' }}>{r.name}</div>
+                      {r.description && <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 1 }}>{r.description}</div>}
+                    </div>
+                  </div>
+                </td>
+
+                {/* Salesman */}
+                <td style={{ padding: '14px 16px' }}>
+                  {r.assignedSalesmanName ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: '#2563EB' }}>
+                          {r.assignedSalesmanName.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{r.assignedSalesmanName}</span>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: 13, color: '#94A3B8', fontStyle: 'italic' }}>— Not Assigned —</span>
+                  )}
+                </td>
+
+                {/* Customers — clickable to navigate */}
+                <td style={{ padding: '14px 16px' }}>
+                  <button
+                    onClick={() => navigate(`/admin/customers?routeId=${r.id}`)}
+                    title="View customers for this route"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      fontSize: 13, fontWeight: 700,
+                      color: hasCustomers(r.customerCount) ? '#2563EB' : '#94A3B8',
+                      background: hasCustomers(r.customerCount) ? '#EFF6FF' : 'transparent',
+                      border: hasCustomers(r.customerCount) ? '1px solid #BFDBFE' : 'none',
+                      borderRadius: 7, padding: hasCustomers(r.customerCount) ? '4px 10px' : '0',
+                      cursor: hasCustomers(r.customerCount) ? 'pointer' : 'default',
+                      fontFamily: 'inherit', transition: 'all 0.12s',
+                    }}
+                    onMouseEnter={e => hasCustomers(r.customerCount) && ((e.currentTarget as HTMLElement).style.background = '#DBEAFE')}
+                    onMouseLeave={e => hasCustomers(r.customerCount) && ((e.currentTarget as HTMLElement).style.background = '#EFF6FF')}
+                  >
+                    <Users size={13} />
+                    {r.customerCount ?? 0}
+                  </button>
+                </td>
+
+                {/* Status */}
+                <td style={{ padding: '14px 16px' }}>
+                  <Badge variant={r.isActive ? 'green' : 'muted'}>
+                    {r.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </td>
+
+                {/* Created */}
+                <td style={{ padding: '14px 16px', color: '#94A3B8', fontSize: 12, fontWeight: 500 }}>
+                  {r.createdAt ? fmtDate(r.createdAt) : '—'}
+                </td>
+
+                {/* Override badge */}
+                <td style={{ padding: '14px 16px' }}>
+                  {r.hasOverrideToday && (
+                    <span style={{
+                      fontSize: 11, fontWeight: 700,
+                      background: 'rgba(217,119,6,0.10)',
+                      color: '#B45309', padding: '3px 8px',
+                      borderRadius: 6, border: '1px solid rgba(217,119,6,0.20)',
+                    }}>
+                      Override Today
+                    </span>
+                  )}
+                </td>
+
+                {/* Actions */}
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' as const }}>
+                    <ActionBtn icon={Calendar} label="Assign" color="blue" title="Assign salesman for today" onClick={() => onAssign(r)} />
+                    <ActionBtn icon={ChevronDown} label="Override" color="amber" title="Assign different salesman for a specific date" onClick={() => onOverride(r)} />
+                    <ActionBtn icon={Edit2} label="Edit" color="default" title="Edit route" onClick={() => onEdit(r)} />
+                    <ActionBtn
+                      icon={Trash2} label="Delete" color="red"
+                      title={hasCustomers(r.customerCount) ? 'Cannot delete route with customers' : 'Delete route'}
+                      disabled={hasCustomers(r.customerCount)}
+                      onClick={() => onDelete(String(r.id))}
+                    />
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -9203,8 +16261,10 @@ import { Plus, Edit2, Trash2, Settings, RefreshCw, ArrowUp, ArrowDown } from 'lu
 import { productGroupsApi, unitsApi } from '../../api/services';
 import type { ProductGroupDto, UnitDto, UnitPriorityDto } from '../../types';
 import { Spinner, Alert, EmptyState, Field, ConfirmModal } from '../../components/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 export function AdminSettings() {
+  const isMobile = useIsMobile();
   const [groups,   setGroups]   = useState<ProductGroupDto[]>([]);
   const [units,    setUnits]    = useState<UnitDto[]>([]);
   const [priorities, setPriorities] = useState<UnitPriorityDto[]>([]);
@@ -9215,7 +16275,6 @@ export function AdminSettings() {
   const [tab,      setTab]      = useState<'groups' | 'units' | 'priorities'>('groups');
   const [updatingPriority, setUpdatingPriority] = useState<string | null>(null);
 
-  // Groups form state
   const [gModal,   setGModal]   = useState<'add' | 'edit' | null>(null);
   const [gSelected, setGSelected] = useState<ProductGroupDto | null>(null);
   const [gForm, setGForm] = useState({ name: '', nameMl: '' });
@@ -9223,7 +16282,6 @@ export function AdminSettings() {
   const [gConfirm, setGConfirm] = useState<string | null>(null);
   const [gDeleting, setGDeleting] = useState(false);
 
-  // Units form state
   const [uModal,   setUModal]   = useState<'add' | 'edit' | null>(null);
   const [uSelected, setUSelected] = useState<UnitDto | null>(null);
   const [uForm, setUForm] = useState({ name: '', abbreviation: '' });
@@ -9248,9 +16306,7 @@ export function AdminSettings() {
       setPriorities(p);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load priorities');
-    } finally {
-      setPriorityLoading(false);
-    }
+    } finally { setPriorityLoading(false); }
   }
 
   async function handleUpdatePriority(unitId: string, newPriority: number) {
@@ -9262,14 +16318,11 @@ export function AdminSettings() {
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Update failed');
-    } finally {
-      setUpdatingPriority(null);
-    }
+    } finally { setUpdatingPriority(null); }
   }
 
   useEffect(() => { load(); loadPriorities(); }, []);
 
-  // Group handlers
   async function saveGroup() {
     if (!gForm.name.trim()) return;
     setGSaving(true); setError('');
@@ -9289,7 +16342,6 @@ export function AdminSettings() {
     finally { setGDeleting(false); }
   }
 
-  // Unit handlers
   async function saveUnit() {
     if (!uForm.name.trim()) return;
     setUSaving(true); setError('');
@@ -9311,7 +16363,7 @@ export function AdminSettings() {
 
   return (
     <div className="page-content">
-      <div className="section-header">
+      <div className="section-header" style={{ flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Settings</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Product groups and measurement units</p>
@@ -9321,12 +16373,12 @@ export function AdminSettings() {
 
       {error && <Alert variant="error">{error}</Alert>}
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)' }}>
+      {/* Tabs — scrollable on mobile */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', overflowX: 'auto' }}>
         {[['groups', 'Product Groups'], ['units', 'Units'], ['priorities', 'Loading Priorities']].map(([k, l]) => (
           <button key={k} onClick={() => setTab(k as 'groups' | 'units' | 'priorities')} style={{
             padding: '8px 16px', fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer',
-            background: 'transparent', fontFamily: 'inherit',
+            background: 'transparent', fontFamily: 'inherit', whiteSpace: 'nowrap',
             color: tab === k ? 'var(--primary)' : 'var(--text-muted)',
             borderBottom: `2px solid ${tab === k ? 'var(--primary)' : 'transparent'}`,
             marginBottom: -1, transition: 'all 0.12s',
@@ -9337,7 +16389,7 @@ export function AdminSettings() {
       {/* Product Groups */}
       {tab === 'groups' && (
         <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Product Groups ({groups.length})</h3>
             <button className="btn btn-primary btn-sm" onClick={() => { setGSelected(null); setGForm({ name: '', nameMl: '' }); setGModal('add'); }}>
               <Plus size={14} /> Add Group
@@ -9348,13 +16400,13 @@ export function AdminSettings() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {groups.map((g) => (
-                <div key={g.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8 }}>
-                  <div>
+                <div key={g.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8, gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ fontWeight: 600, fontSize: 14 }}>{g.name}</span>
                     {g.nameMl && <span style={{ color: 'var(--text-muted)', fontSize: 13, marginLeft: 8 }}>{g.nameMl}</span>}
                     {g.productCount !== undefined && <span style={{ color: 'var(--text-muted)', fontSize: 12, marginLeft: 8 }}>({g.productCount} products)</span>}
                   </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     <button className="btn btn-ghost btn-icon btn-sm" onClick={() => { setGSelected(g); setGForm({ name: g.name, nameMl: g.nameMl ?? '' }); setGModal('edit'); }}><Edit2 size={13} /></button>
                     <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setGConfirm(g.id)}><Trash2 size={13} color="var(--red)" /></button>
                   </div>
@@ -9368,7 +16420,7 @@ export function AdminSettings() {
       {/* Units */}
       {tab === 'units' && (
         <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Units ({units.length})</h3>
             <button className="btn btn-primary btn-sm" onClick={() => { setUSelected(null); setUForm({ name: '', abbreviation: '' }); setUModal('add'); }}>
               <Plus size={14} /> Add Unit
@@ -9379,12 +16431,12 @@ export function AdminSettings() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {units.map((u) => (
-                <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8 }}>
-                  <div>
+                <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8, gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ fontWeight: 600, fontSize: 14 }}>{u.name}</span>
                     {u.abbreviation && <span style={{ color: 'var(--primary)', fontSize: 12, marginLeft: 8, fontFamily: 'monospace' }}>[{u.abbreviation}]</span>}
                   </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     <button className="btn btn-ghost btn-icon btn-sm" onClick={() => { setUSelected(u); setUForm({ name: u.name, abbreviation: u.abbreviation ?? '' }); setUModal('edit'); }}><Edit2 size={13} /></button>
                     <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setUConfirm(u.id)}><Trash2 size={13} color="var(--red)" /></button>
                   </div>
@@ -9395,10 +16447,131 @@ export function AdminSettings() {
         </div>
       )}
 
+      {/* Loading Priorities */}
+      {tab === 'priorities' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Unit Loading Priorities</h3>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Lower number = Load FIRST</div>
+          </div>
+
+          {success && <Alert variant="success">{success}</Alert>}
+
+          <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12, lineHeight: 1.6 }}>
+            <strong>📦 Priority 1</strong> = Load FIRST (heavy bags, bottom of van) ·
+            <strong> Priority 99</strong> = Load LAST (small items, top of van)
+          </div>
+
+          {priorityLoading ? (
+            <Spinner />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* Header row — hidden on mobile, shown on desktop */}
+              {!isMobile && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '80px 1fr 80px 100px',
+                  padding: '10px 14px',
+                  background: 'var(--border-lite)',
+                  borderRadius: 8,
+                  fontSize: 12, fontWeight: 600, color: 'var(--text-muted)',
+                }}>
+                  <div>Priority</div>
+                  <div>Unit Name</div>
+                  <div>Symbol</div>
+                  <div style={{ textAlign: 'center' }}>Actions</div>
+                </div>
+              )}
+
+              {priorities.length === 0 ? (
+                <EmptyState title="No units with priorities" />
+              ) : (
+                priorities.map((unit) => (
+                  <div
+                    key={unit.id}
+                    style={{
+                      display: isMobile ? 'flex' : 'grid',
+                      gridTemplateColumns: isMobile ? undefined : '80px 1fr 80px 100px',
+                      alignItems: 'center',
+                      justifyContent: isMobile ? 'space-between' : undefined,
+                      padding: '12px 14px',
+                      border: '1px solid var(--border)',
+                      borderRadius: 8,
+                      background: unit.loadingPriority <= 5 ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                      gap: 12,
+                    }}
+                  >
+                    {isMobile ? (
+                      <>
+                        {/* Mobile layout: priority badge + name/symbol + actions */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                          <div style={{
+                            width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                            background: 'var(--primary-glow)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontWeight: 800, fontSize: 15, color: 'var(--primary)',
+                          }}>
+                            {unit.loadingPriority}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: 14 }}>{unit.name}</div>
+                            {unit.symbol && <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{unit.symbol}</div>}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            className="btn btn-ghost btn-icon btn-sm"
+                            onClick={() => handleUpdatePriority(unit.id, Math.max(1, unit.loadingPriority - 1))}
+                            disabled={updatingPriority === unit.id || unit.loadingPriority <= 1}
+                          >
+                            <ArrowUp size={14} />
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-icon btn-sm"
+                            onClick={() => handleUpdatePriority(unit.id, unit.loadingPriority + 1)}
+                            disabled={updatingPriority === unit.id}
+                          >
+                            <ArrowDown size={14} />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: 14 }}>{unit.loadingPriority}</div>
+                        <div style={{ fontWeight: 600 }}>{unit.name}</div>
+                        <div style={{ color: 'var(--text-muted)' }}>{unit.symbol || '—'}</div>
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                          <button
+                            className="btn btn-ghost btn-icon btn-sm"
+                            onClick={() => handleUpdatePriority(unit.id, Math.max(1, unit.loadingPriority - 1))}
+                            disabled={updatingPriority === unit.id || unit.loadingPriority <= 1}
+                            title="Increase priority (load earlier)"
+                          >
+                            <ArrowUp size={14} />
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-icon btn-sm"
+                            onClick={() => handleUpdatePriority(unit.id, unit.loadingPriority + 1)}
+                            disabled={updatingPriority === unit.id}
+                            title="Decrease priority (load later)"
+                          >
+                            <ArrowDown size={14} />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Group modal */}
       {gModal && (
         <div className="modal-overlay" onClick={() => setGModal(null)}>
-          <div className="modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal" style={{ width: 'min(calc(100vw - 32px), 400px)' }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginTop: 0, fontWeight: 700 }}>{gModal === 'add' ? 'Add' : 'Edit'} Product Group</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <Field label="Group Name" required><input className="input" value={gForm.name} onChange={(e) => setGForm((p) => ({ ...p, name: e.target.value }))} placeholder="e.g. Beverages" /></Field>
@@ -9415,7 +16588,7 @@ export function AdminSettings() {
       {/* Unit modal */}
       {uModal && (
         <div className="modal-overlay" onClick={() => setUModal(null)}>
-          <div className="modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal" style={{ width: 'min(calc(100vw - 32px), 400px)' }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginTop: 0, fontWeight: 700 }}>{uModal === 'add' ? 'Add' : 'Edit'} Unit</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <Field label="Unit Name" required><input className="input" value={uForm.name} onChange={(e) => setUForm((p) => ({ ...p, name: e.target.value }))} placeholder="e.g. Kilogram" /></Field>
@@ -9424,101 +16597,6 @@ export function AdminSettings() {
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
               <button className="btn btn-outline" onClick={() => setUModal(null)}>Cancel</button>
               <button className="btn btn-primary" onClick={saveUnit} disabled={uSaving}>{uSaving ? <Spinner size={16} /> : 'Save'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Loading Priorities */}
-      {tab === 'priorities' && (
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Unit Loading Priorities</h3>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              Lower number = Load FIRST in van
-            </div>
-          </div>
-
-          {success && <Alert variant="success">{success}</Alert>}
-
-          <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12, lineHeight: 1.6 }}>
-            <strong>📦 Loading Priority Guide:</strong><br/>
-            • Priority 1: Load FIRST (e.g., Heavy bags go at bottom)<br/>
-            • Priority 99: Load LAST (e.g., Small items go on top)<br/>
-            • Items are grouped by priority when generating Loading Sheet
-          </div>
-
-          {priorityLoading ? (
-            <Spinner />
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 2fr 1fr 100px',
-                padding: '10px 14px',
-                background: 'var(--border-lite)',
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-              }}>
-                <div>Priority</div>
-                <div>Unit Name</div>
-                <div>Symbol</div>
-                <div style={{ textAlign: 'center' }}>Actions</div>
-              </div>
-
-              {priorities.length === 0 ? (
-                <EmptyState title="No units with priorities" />
-              ) : (
-                priorities.map((unit) => (
-                  <div key={unit.id} style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 2fr 1fr 100px',
-                    alignItems: 'center',
-                    padding: '10px 14px',
-                    border: '1px solid var(--border)',
-                    borderRadius: 8,
-                    background: unit.loadingPriority <= 5 ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
-                  }}>
-                    <div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: 14 }}>
-                      {unit.loadingPriority}
-                    </div>
-                    <div style={{ fontWeight: 600 }}>{unit.name}</div>
-                    <div style={{ color: 'var(--text-muted)' }}>{unit.symbol || '—'}</div>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                      <button
-                        className="btn btn-ghost btn-icon btn-sm"
-                        onClick={() => handleUpdatePriority(unit.id, Math.max(1, unit.loadingPriority - 1))}
-                        disabled={updatingPriority === unit.id || unit.loadingPriority <= 1}
-                        title="Increase priority (load earlier)"
-                      >
-                        <ArrowUp size={14} />
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-icon btn-sm"
-                        onClick={() => handleUpdatePriority(unit.id, unit.loadingPriority + 1)}
-                        disabled={updatingPriority === unit.id}
-                        title="Decrease priority (load later)"
-                      >
-                        <ArrowDown size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          <div style={{ borderTop: '1px solid var(--border)', marginTop: 16, paddingTop: 16 }}>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', background: 'var(--border-lite)', padding: 12, borderRadius: 8 }}>
-              <p style={{ fontWeight: 600, margin: '0 0 8px 0' }}>📦 How Loading Priority Works:</p>
-              <ul style={{ margin: 0, paddingLeft: 20 }}>
-                <li>Priority 1 items are loaded FIRST (bottom of van)</li>
-                <li>Priority 99 items are loaded LAST (top of van, unloaded first)</li>
-                <li>First delivery customer's items should have HIGHEST priority numbers</li>
-                <li>Last delivery customer's items should have LOWEST priority numbers</li>
-              </ul>
             </div>
           </div>
         </div>
@@ -9538,8 +16616,10 @@ import { settlementApi, routesApi } from '../../api/services';
 import type { ExpectedCashDto, OutstandingSummaryDto, RouteDto, DailyClosureStatusDto } from '../../types';
 import { fmt, fmtDate } from '../../types';
 import { PageLoader, Spinner, Alert, Badge, EmptyState, Field } from '../../components/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 export function AdminSettlement() {
+  const isMobile = useIsMobile();
   const [routes,      setRoutes]      = useState<RouteDto[]>([]);
   const [routeFilter, setRouteFilter] = useState('');
   const [summary,     setSummary]     = useState<ExpectedCashDto | null>(null);
@@ -9598,15 +16678,15 @@ export function AdminSettlement() {
 
   return (
     <div className="page-content">
-      <div className="section-header">
+      <div className="section-header" style={{ flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Settlement</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
             Outstanding reconciliation & payment tracking
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <select className="input" value={routeFilter} onChange={(e) => setRouteFilter(e.target.value)} style={{ width: 'auto' }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <select className="input" value={routeFilter} onChange={(e) => setRouteFilter(e.target.value)} style={{ width: isMobile ? '100%' : 'auto' }}>
             <option value="">All Routes</option>
             {routes.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
@@ -9642,7 +16722,7 @@ export function AdminSettlement() {
       {/* Outstanding by customer */}
       {outstanding && (
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Outstanding by Customer</h3>
             <span style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>{fmt(outstanding.totalOutstanding)} total</span>
           </div>
@@ -9651,30 +16731,82 @@ export function AdminSettlement() {
               <CheckCircle2 size={32} color="var(--green)" />
               <p style={{ marginTop: 10 }}>No outstanding balances!</p>
             </div>
+          ) : isMobile ? (
+            /* Mobile: card per customer */
+            <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {outstanding.customers.map((c) => (
+                <div key={c.customerId} style={{
+                  background: 'var(--card-sub, #F8FAFC)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12, padding: '14px 16px',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{c.customerName}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{c.routeName ?? '—'}</div>
+                    </div>
+                    <div style={{
+                      fontSize: 15, fontWeight: 800,
+                      color: c.outstanding > 0 ? 'var(--red)' : 'var(--green)',
+                    }}>
+                      {fmt(c.outstanding)}
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Billed</div>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{fmt(c.totalBilled)}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Paid</div>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--green)' }}>{fmt(c.totalPaid)}</div>
+                    </div>
+                  </div>
+                  {c.outstanding > 0 && (
+                    <button
+                      className="btn btn-primary btn-sm"
+                      style={{ width: '100%', justifyContent: 'center' }}
+                      onClick={() => {
+                        setPayModal(String(c.customerId));
+                        setPayForm({ amount: c.outstanding.toFixed(2), paymentMode: 'Cash', reference: '', remarks: '' });
+                      }}
+                    >
+                      <DollarSign size={13} /> Record Payment
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           ) : (
-            <table className="tbl">
-              <thead>
-                <tr><th>Customer</th><th>Route</th><th>Billed</th><th>Paid</th><th>Outstanding</th><th></th></tr>
-              </thead>
-              <tbody>
-                {outstanding.customers.map((c) => (
-                  <tr key={c.customerId}>
-                    <td style={{ fontWeight: 600 }}>{c.customerName}</td>
-                    <td style={{ fontSize: 13 }}>{c.routeName ?? '—'}</td>
-                    <td>{fmt(c.totalBilled)}</td>
-                    <td style={{ color: 'var(--green)' }}>{fmt(c.totalPaid)}</td>
-                    <td style={{ color: c.outstanding > 0 ? 'var(--red)' : 'var(--green)', fontWeight: 700 }}>{fmt(c.outstanding)}</td>
-                    <td>
-                      {c.outstanding > 0 && (
-                        <button className="btn btn-outline btn-sm" onClick={() => { setPayModal(String(c.customerId)); setPayForm({ amount: c.outstanding.toFixed(2), paymentMode: 'Cash', reference: '', remarks: '' }); }}>
-                          <DollarSign size={13} /> Record Payment
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            /* Desktop: scrollable table */
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table className="tbl" style={{ minWidth: 520 }}>
+                <thead>
+                  <tr><th>Customer</th><th>Route</th><th>Billed</th><th>Paid</th><th>Outstanding</th><th></th></tr>
+                </thead>
+                <tbody>
+                  {outstanding.customers.map((c) => (
+                    <tr key={c.customerId}>
+                      <td style={{ fontWeight: 600 }}>{c.customerName}</td>
+                      <td style={{ fontSize: 13 }}>{c.routeName ?? '—'}</td>
+                      <td>{fmt(c.totalBilled)}</td>
+                      <td style={{ color: 'var(--green)' }}>{fmt(c.totalPaid)}</td>
+                      <td style={{ color: c.outstanding > 0 ? 'var(--red)' : 'var(--green)', fontWeight: 700 }}>{fmt(c.outstanding)}</td>
+                      <td>
+                        {c.outstanding > 0 && (
+                          <button className="btn btn-outline btn-sm" onClick={() => {
+                            setPayModal(String(c.customerId));
+                            setPayForm({ amount: c.outstanding.toFixed(2), paymentMode: 'Cash', reference: '', remarks: '' });
+                          }}>
+                            <DollarSign size={13} /> Record Payment
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
@@ -9682,7 +16814,7 @@ export function AdminSettlement() {
       {/* Payment modal */}
       {payModal && (
         <div className="modal-overlay" onClick={() => setPayModal(null)}>
-          <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal" style={{ maxWidth: 420, width: 'min(calc(100vw - 32px), 420px)' }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginTop: 0, fontWeight: 700 }}>Record Payment</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <Field label="Amount (₹)" required>
@@ -9728,15 +16860,15 @@ function SummCard({ label, value, icon: Icon, color }: { label: string; value: s
 
 <file path="src/pages/Admin/AdminUsers.tsx">
 // PATH: src/pages/Admin/AdminUsers.tsx
-// NEW FILE — Admin User Management: list, activate/deactivate, set salesman PIN
+// UPDATED: Mobile card view replaces table on small screens
 
 import { useEffect, useState } from 'react';
 import { RefreshCw, UserCheck, UserX, KeyRound, Search } from 'lucide-react';
 import { usersApi, authApi } from '../../api/services';
 import type { UserDto } from '../../types';
 import { PageLoader, Spinner, Alert, Badge, EmptyState, ConfirmModal } from '../../components/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
-// Badge only accepts: 'green' | 'amber' | 'red' | 'blue' | 'muted' | 'primary'
 const ROLE_BADGE: Record<string, 'primary' | 'blue' | 'green' | 'muted' | 'amber'> = {
   SuperAdmin: 'primary',
   Admin:      'primary',
@@ -9749,6 +16881,7 @@ type RoleFilter = 'All' | 'Salesman' | 'Admin' | 'Accounts' | 'Warehouse';
 const ROLE_FILTERS: RoleFilter[] = ['All', 'Salesman', 'Admin', 'Accounts', 'Warehouse'];
 
 export function AdminUsers() {
+  const isMobile = useIsMobile();
   const [users,        setUsers]        = useState<UserDto[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState('');
@@ -9756,11 +16889,9 @@ export function AdminUsers() {
   const [search,       setSearch]       = useState('');
   const [roleFilter,   setRoleFilter]   = useState<RoleFilter>('All');
 
-  // Toggle active state
   const [toggling,     setToggling]     = useState<string | null>(null);
   const [toggleTarget, setToggleTarget] = useState<UserDto | null>(null);
 
-  // Set PIN modal
   const [pinModal,     setPinModal]     = useState<UserDto | null>(null);
   const [pinValue,     setPinValue]     = useState('');
   const [pinSaving,    setPinSaving]    = useState(false);
@@ -9780,7 +16911,6 @@ export function AdminUsers() {
 
   useEffect(() => { load(); }, [roleFilter]);
 
-  // ── Toggle active ─────────────────────────────────────────────────────────
   async function handleToggleConfirm() {
     if (!toggleTarget) return;
     setToggling(toggleTarget.id);
@@ -9798,7 +16928,6 @@ export function AdminUsers() {
     } finally { setToggling(null); }
   }
 
-  // ── Set PIN ───────────────────────────────────────────────────────────────
   function openPinModal(u: UserDto) {
     setPinModal(u);
     setPinValue('');
@@ -9821,7 +16950,6 @@ export function AdminUsers() {
     } finally { setPinSaving(false); }
   }
 
-  // ── Filter ────────────────────────────────────────────────────────────────
   const filtered = users.filter(u => {
     const q = search.toLowerCase();
     return u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
@@ -9832,7 +16960,7 @@ export function AdminUsers() {
   return (
     <div className="page-content">
       {/* Header */}
-      <div className="section-header">
+      <div className="section-header" style={{ flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Users</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
@@ -9844,13 +16972,11 @@ export function AdminUsers() {
         </button>
       </div>
 
-      {/* Alerts — Alert only accepts variant + children, no style/onClose */}
       {error   && <Alert variant="error">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        {/* Search */}
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
           <Search size={14} style={{
             position: 'absolute', left: 10, top: '50%',
@@ -9865,8 +16991,7 @@ export function AdminUsers() {
           />
         </div>
 
-        {/* Role filter pills */}
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
           {ROLE_FILTERS.map(r => (
             <button
               key={r}
@@ -9885,98 +17010,145 @@ export function AdminUsers() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Content */}
       {filtered.length === 0 ? (
         <EmptyState title="No users found" message="Try adjusting your filters." icon={UserCheck} />
+      ) : isMobile ? (
+        /* ── Mobile: card list ──────────────────────────────────────────────── */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {filtered.map(u => (
+            <div
+              key={u.id}
+              style={{
+                background: '#fff',
+                border: '1px solid var(--border)',
+                borderRadius: 14,
+                padding: '14px 16px',
+                opacity: u.isActive ? 1 : 0.6,
+                boxShadow: '0 1px 4px rgba(15,23,42,0.06)',
+              }}
+            >
+              {/* Row 1: avatar + name + role */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                  background: u.isActive ? 'var(--primary-glow)' : 'var(--border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 15, fontWeight: 700,
+                  color: u.isActive ? 'var(--primary)' : 'var(--text-muted)',
+                }}>
+                  {u.fullName.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{u.fullName}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                  <Badge variant={ROLE_BADGE[u.role] ?? 'muted'}>{u.role}</Badge>
+                  <Badge variant={u.isActive ? 'green' : 'muted'}>{u.isActive ? 'Active' : 'Inactive'}</Badge>
+                </div>
+              </div>
+
+              {/* Row 2: action buttons */}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {u.role === 'Salesman' && u.isActive && (
+                  <button
+                    className="btn btn-outline btn-sm"
+                    style={{ flex: 1, justifyContent: 'center', minWidth: 100 }}
+                    onClick={() => openPinModal(u)}
+                  >
+                    <KeyRound size={13} /> Set PIN
+                  </button>
+                )}
+                <button
+                  className={`btn btn-sm ${u.isActive ? 'btn-danger' : 'btn-outline'}`}
+                  style={{ flex: 1, justifyContent: 'center', minWidth: 100 }}
+                  onClick={() => setToggleTarget(u)}
+                  disabled={toggling === u.id}
+                >
+                  {toggling === u.id
+                    ? <Spinner size={13} />
+                    : u.isActive
+                      ? <><UserX size={13} /> Deactivate</>
+                      : <><UserCheck size={13} /> Activate</>
+                  }
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
+        /* ── Desktop: table ─────────────────────────────────────────────────── */
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(u => (
-                <tr key={u.id} style={{ opacity: u.isActive ? 1 : 0.55 }}>
-                  {/* Name */}
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-                        background: u.isActive ? 'var(--primary-glow)' : 'var(--border)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 13, fontWeight: 700,
-                        color: u.isActive ? 'var(--primary)' : 'var(--text-muted)',
-                      }}>
-                        {u.fullName.charAt(0).toUpperCase()}
-                      </div>
-                      <span style={{ fontWeight: 600, fontSize: 14 }}>{u.fullName}</span>
-                    </div>
-                  </td>
-
-                  {/* Email */}
-                  <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{u.email}</td>
-
-                  {/* Role — only valid BadgeVariant values used */}
-                  <td>
-                    <Badge variant={ROLE_BADGE[u.role] ?? 'muted'}>{u.role}</Badge>
-                  </td>
-
-                  {/* Status */}
-                  <td>
-                    <Badge variant={u.isActive ? 'green' : 'muted'}>
-                      {u.isActive ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </td>
-
-                  {/* Actions */}
-                  <td>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      {/* Set PIN — Salesman only */}
-                      {u.role === 'Salesman' && u.isActive && (
-                        <button
-                          className="btn btn-outline btn-sm"
-                          style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
-                          onClick={() => openPinModal(u)}
-                          title="Set PIN for this salesman"
-                        >
-                          <KeyRound size={12} /> Set PIN
-                        </button>
-                      )}
-
-                      {/* Activate / Deactivate */}
-                      <button
-                        className={`btn btn-sm ${u.isActive ? 'btn-danger' : 'btn-outline'}`}
-                        style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
-                        onClick={() => setToggleTarget(u)}
-                        disabled={toggling === u.id}
-                        title={u.isActive ? 'Deactivate account' : 'Activate account'}
-                      >
-                        {toggling === u.id
-                          ? <Spinner size={12} />
-                          : u.isActive
-                            ? <><UserX size={12} /> Deactivate</>
-                            : <><UserCheck size={12} /> Activate</>
-                        }
-                      </button>
-                    </div>
-                  </td>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table className="tbl" style={{ minWidth: 520 }}>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.map(u => (
+                  <tr key={u.id} style={{ opacity: u.isActive ? 1 : 0.55 }}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{
+                          width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                          background: u.isActive ? 'var(--primary-glow)' : 'var(--border)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 13, fontWeight: 700,
+                          color: u.isActive ? 'var(--primary)' : 'var(--text-muted)',
+                        }}>
+                          {u.fullName.charAt(0).toUpperCase()}
+                        </div>
+                        <span style={{ fontWeight: 600, fontSize: 14 }}>{u.fullName}</span>
+                      </div>
+                    </td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{u.email}</td>
+                    <td><Badge variant={ROLE_BADGE[u.role] ?? 'muted'}>{u.role}</Badge></td>
+                    <td><Badge variant={u.isActive ? 'green' : 'muted'}>{u.isActive ? 'Active' : 'Inactive'}</Badge></td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        {u.role === 'Salesman' && u.isActive && (
+                          <button
+                            className="btn btn-outline btn-sm"
+                            style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+                            onClick={() => openPinModal(u)}
+                          >
+                            <KeyRound size={12} /> Set PIN
+                          </button>
+                        )}
+                        <button
+                          className={`btn btn-sm ${u.isActive ? 'btn-danger' : 'btn-outline'}`}
+                          style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+                          onClick={() => setToggleTarget(u)}
+                          disabled={toggling === u.id}
+                        >
+                          {toggling === u.id
+                            ? <Spinner size={12} />
+                            : u.isActive
+                              ? <><UserX size={12} /> Deactivate</>
+                              : <><UserCheck size={12} /> Activate</>
+                          }
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* ── Set PIN Modal ──────────────────────────────────────────────────── */}
+      {/* Set PIN Modal */}
       {pinModal && (
         <div className="modal-overlay" onClick={() => setPinModal(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380, width: 'min(calc(100vw - 32px), 380px)' }}>
             <h3 style={{ marginTop: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
               <KeyRound size={18} color="var(--primary)" /> Set PIN
             </h3>
@@ -9985,7 +17157,6 @@ export function AdminUsers() {
               The salesman uses this 4–6 digit PIN to log in from their mobile device.
             </p>
 
-            {/* pinError shown inline — no Alert needed here */}
             {pinError && (
               <div style={{
                 background: 'var(--red-dim, rgba(239,68,68,0.12))',
@@ -10030,17 +17201,12 @@ export function AdminUsers() {
         </div>
       )}
 
-      {/* ── Toggle Active Confirm — ConfirmModal accepts open prop ────────── */}
       <ConfirmModal
         open={!!toggleTarget}
         title={toggleTarget?.isActive ? 'Deactivate User' : 'Activate User'}
-        message={
-          toggleTarget?.isActive
-            ? `Deactivating ${toggleTarget.fullName} will immediately block their login. Continue?`
-            : `Reactivate ${toggleTarget?.fullName ?? ''}? They will be able to log in again immediately.`
-        }
+        message={`Are you sure you want to ${toggleTarget?.isActive ? 'deactivate' : 'activate'} ${toggleTarget?.fullName}?`}
         confirmLabel={toggleTarget?.isActive ? 'Deactivate' : 'Activate'}
-        danger={toggleTarget?.isActive ?? false}
+        danger={toggleTarget?.isActive}
         loading={!!toggling}
         onConfirm={handleToggleConfirm}
         onCancel={() => setToggleTarget(null)}
@@ -10333,6 +17499,7 @@ export function LoginPage() {
 <file path="src/pages/Auth/PinLoginPage.tsx">
 // PATH: src/pages/Auth/PinLoginPage.tsx
 // Redesigned — White & Blue design system
+// ENHANCED: Added inputMode="email" and safe area padding for mobile
 
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -10459,7 +17626,9 @@ export default function PinLoginPage() {
       minHeight: '100vh',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: 'linear-gradient(135deg, #EFF6FF 0%, #F1F5F9 50%, #E0F2FE 100%)',
-      padding: 20, position: 'relative', overflow: 'hidden',
+      padding: 20,
+      paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
+      position: 'relative', overflow: 'hidden',
     }}>
 
       {/* Decorative blobs */}
@@ -10538,6 +17707,7 @@ export default function PinLoginPage() {
                 }} />
                 <input
                   type="email"
+                  inputMode="email"
                   placeholder="salesman@example.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
@@ -11529,7 +18699,7 @@ export function HomeHub() {
         onClick={() => setFabOpen(true)}
         style={{
           position:       'fixed',
-          bottom:          28,
+          bottom:          'calc(28px + 70px)',
           right:           24,
           width:           58,
           height:          58,
@@ -11584,6 +18754,7 @@ export function HomeHub() {
               left:           0,
               right:          0,
               zIndex:         170,
+              paddingBottom:  'env(safe-area-inset-bottom, 0px)',
               background:     '#FFFFFF',
               borderRadius:   '20px 20px 0 0',
               padding:        '0 0 32px',
@@ -12191,7 +19362,7 @@ export function MainHub() {
         </div>
 
         {/* Floating Action Button - Main CTA */}
-        <div className="fixed bottom-6 right-6 z-40">
+        <div className="fixed right-6 z-50" style={{ bottom: 'calc(24px + 70px)' }}>
           <button
             onClick={() => navigate('/salesman/routes')}
             className="group w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 hover:scale-105 flex items-center justify-center"
@@ -12233,274 +19404,199 @@ export function MainHub() {
 }
 </file>
 
-<file path="src/pages/Landing/LandingPage.tsx">
+<file path="src/pages/Landing/LandingPage_live.tsx">
 // PATH: src/pages/Landing/LandingPage.tsx
-// Public landing page — white & blue design system
-// Shown at "/" for unauthenticated users
+// UPDATED: Fetches real stats from GET /api/v1/analytics/public-stats
+//          That endpoint is [AllowAnonymous] — no token needed.
+//          Shows "—" gracefully while loading or if API is unreachable.
 
-import { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+
+function fmtCr(n: number): string {
+  if (n >= 10_000_000) return `₹${(n / 10_000_000).toFixed(1)}Cr`;
+  if (n >= 100_000)    return `₹${(n / 100_000).toFixed(1)}L`;
+  if (n >= 1_000)      return `₹${(n / 1_000).toFixed(0)}K`;
+  if (n === 0)         return "₹0";
+  return `₹${n.toFixed(0)}`;
+}
+
+interface PublicStats {
+  activeRoutes:    number;
+  todayOrders:     number;
+  todayRevenue:    number;
+  activeCustomers: number;
+  routes: { routeName: string; revenue: number; orderCount: number }[];
+}
 
 export function LandingPage() {
-  const token    = useAuthStore(s => s.token);
-  const user     = useAuthStore(s => s.user);
-  const navigate = useNavigate();
+  const [stats,   setStats]   = useState<PublicStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // If already logged in, redirect to role home
   useEffect(() => {
-    if (token && user) {
-      const role = user.role?.toLowerCase() ?? '';
-      if (role === 'superadmin' || role === 'admin') navigate('/admin/dashboard', { replace: true });
-      else if (role === 'salesman')  navigate('/salesman/routes',      { replace: true });
-      else if (role === 'accounts')  navigate('/accounts/settlement',  { replace: true });
-      else if (role === 'warehouse') navigate('/warehouse/loading',    { replace: true });
-    }
-  }, [token, user, navigate]);
+    fetch("/api/v1/analytics/public-stats")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setStats(data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const activeRoutes = stats ? String(stats.activeRoutes)  : "—";
+  const todayOrders  = stats ? String(stats.todayOrders)   : "—";
+  const collections  = stats ? fmtCr(stats.todayRevenue)   : "—";
+  const customers    = stats ? String(stats.activeCustomers): "—";
+
+  const maxRev = stats?.routes?.length ? Math.max(...stats.routes.map(r => r.revenue), 1) : 1;
+  const routeBars = stats?.routes?.length
+    ? stats.routes.map((r, i) => ({
+        label: r.routeName,
+        pct:   Math.round((r.revenue / maxRev) * 100),
+        color: ["#2563EB","#16A34A","#D97706","#2563EB"][i % 4],
+      }))
+    : null;
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', 'DM Sans', sans-serif", background: '#fff', color: '#334155', overflowX: 'hidden' }}>
+    <div style={{ fontFamily: "'Plus Jakarta Sans', 'DM Sans', sans-serif", background: "#fff", color: "#334155", overflowX: "hidden" }}>
 
-      {/* ── Navbar ────────────────────────────────────────────── */}
-      <nav style={{
-        position:       'sticky', top: 0, zIndex: 100,
-        background:     'rgba(255,255,255,0.96)',
-        backdropFilter: 'blur(12px)',
-        borderBottom:   '1px solid #E2E8F0',
-        display:        'flex', alignItems: 'center',
-        padding:        '0 48px', height: 68, gap: 40,
-      }}>
-        {/* Logo */}
-        <a href="#" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 11,
-            background: 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(37,99,235,0.25)',
-          }}>
-            <svg width="20" height="20" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
-            </svg>
+      {/* Navbar */}
+      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(255,255,255,0.96)", backdropFilter: "blur(12px)", borderBottom: "1px solid #E2E8F0", display: "flex", alignItems: "center", padding: "0 48px", height: 68, gap: 40 }}>
+        <a href="#" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 11, background: "linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(37,99,235,0.25)" }}>
+            <svg width="20" height="20" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
           </div>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.04em' }}>
-            FMCG<span style={{ color: '#2563EB' }}>Dist</span>
-          </span>
+          <span style={{ fontSize: 18, fontWeight: 800, color: "#1E3A8A", letterSpacing: "-0.04em" }}>FMCG<span style={{ color: "#2563EB" }}>Dist</span></span>
         </a>
-
-        {/* Nav links */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
-          {['#features', '#how-it-works', '#roles'].map((href, i) => (
-            <a key={href} href={href} style={{
-              padding: '7px 14px', borderRadius: 8,
-              fontSize: 14, fontWeight: 600, color: '#64748B',
-              textDecoration: 'none', transition: 'all 0.14s',
-              letterSpacing: '-0.01em',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#2563EB'; (e.currentTarget as HTMLElement).style.background = '#EFF6FF'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#64748B'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-            >
-              {['Features', 'How It Works', 'Roles'][i]}
-            </a>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1 }}>
+          {["#features","#how-it-works","#roles"].map((href, i) => (
+            <a key={href} href={href} style={{ padding: "7px 14px", borderRadius: 8, fontSize: 14, fontWeight: 600, color: "#64748B", textDecoration: "none", transition: "all 0.14s" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color="#2563EB"; (e.currentTarget as HTMLElement).style.background="#EFF6FF"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color="#64748B"; (e.currentTarget as HTMLElement).style.background="transparent"; }}
+            >{["Features","How It Works","Roles"][i]}</a>
           ))}
         </div>
-
-        {/* CTAs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
-          <Link to="/login" style={{
-            padding: '8px 18px', borderRadius: 9, fontSize: 14, fontWeight: 700,
-            color: '#1E3A8A', border: '1px solid #E2E8F0', background: 'transparent',
-            textDecoration: 'none', transition: 'all 0.15s', letterSpacing: '-0.01em',
-          }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#EFF6FF'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.25)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.borderColor = '#E2E8F0'; }}
-          >
-            Sign In
-          </Link>
-          <Link to="/register" style={{
-            padding: '8px 20px', borderRadius: 9, fontSize: 14, fontWeight: 700,
-            color: '#fff', border: 'none', textDecoration: 'none',
-            background: 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)',
-            boxShadow: '0 3px 10px rgba(37,99,235,0.28)',
-            transition: 'all 0.18s', letterSpacing: '-0.01em',
-          }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 18px rgba(37,99,235,0.36)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 10px rgba(37,99,235,0.28)'; }}
-          >
-            Get Started →
-          </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: "auto" }}>
+          <Link to="/login" style={{ padding: "8px 18px", borderRadius: 9, fontSize: 14, fontWeight: 700, color: "#1E3A8A", border: "1px solid #E2E8F0", background: "transparent", textDecoration: "none" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background="#EFF6FF"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background="transparent"; }}
+          >Sign In</Link>
+          <Link to="/register" style={{ padding: "8px 20px", borderRadius: 9, fontSize: 14, fontWeight: 700, color: "#fff", border: "none", textDecoration: "none", background: "linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)", boxShadow: "0 3px 10px rgba(37,99,235,0.28)" }}>Get Started →</Link>
         </div>
       </nav>
 
-      {/* ── Hero ──────────────────────────────────────────────── */}
-      <section style={{
-        minHeight: 600,
-        background: 'linear-gradient(135deg,#F8FAFC 0%,#EFF6FF 60%,#E0F2FE 100%)',
-        position: 'relative', overflow: 'hidden',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '80px 48px 60px', gap: 64,
-        flexWrap: 'wrap',
-      }}>
-        <div style={{
-          position: 'absolute', top: '-10%', right: '-5%',
-          width: 700, height: 700, borderRadius: '50%',
-          background: 'radial-gradient(circle,rgba(37,99,235,0.07) 0%,transparent 65%)',
-          pointerEvents: 'none',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: '-15%', left: '-8%',
-          width: 600, height: 600, borderRadius: '50%',
-          background: 'radial-gradient(circle,rgba(30,58,138,0.05) 0%,transparent 65%)',
-          pointerEvents: 'none',
-        }} />
+      {/* Hero */}
+      <section style={{ minHeight: 600, background: "linear-gradient(135deg,#F8FAFC 0%,#EFF6FF 60%,#E0F2FE 100%)", position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 48px 60px", gap: 64, flexWrap: "wrap" }}>
+        <div style={{ position: "absolute", top: "-10%", right: "-5%", width: 700, height: 700, borderRadius: "50%", background: "radial-gradient(circle,rgba(37,99,235,0.07) 0%,transparent 65%)", pointerEvents: "none" }} />
 
-        {/* Left */}
-        <div style={{ flex: 1, maxWidth: 560, position: 'relative', zIndex: 1 }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 7,
-            padding: '6px 14px', borderRadius: 20,
-            background: '#DBEAFE', border: '1px solid rgba(37,99,235,0.20)',
-            fontSize: 12, fontWeight: 700, color: '#2563EB',
-            letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 22,
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2563EB', display: 'inline-block' }} />
+        <div style={{ flex: 1, maxWidth: 560, position: "relative", zIndex: 1 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 14px", borderRadius: 20, background: "#DBEAFE", border: "1px solid rgba(37,99,235,0.20)", fontSize: 12, fontWeight: 700, color: "#2563EB", letterSpacing: "0.04em", textTransform: "uppercase" as const, marginBottom: 22 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2563EB", display: "inline-block" }} />
             FMCG Distribution Platform
           </div>
-          <h1 style={{
-            fontSize: 'clamp(34px,5vw,56px)', fontWeight: 900,
-            color: '#1E3A8A', letterSpacing: '-0.04em', lineHeight: 1.06, marginBottom: 22,
-          }}>
-            Manage your <span style={{ color: '#2563EB' }}>entire</span> distribution network, in one place.
+          <h1 style={{ fontSize: "clamp(34px,5vw,56px)", fontWeight: 900, color: "#1E3A8A", letterSpacing: "-0.04em", lineHeight: 1.06, marginBottom: 22 }}>
+            Manage your <span style={{ color: "#2563EB" }}>entire</span> distribution network, in one place.
           </h1>
-          <p style={{ fontSize: 17, color: '#64748B', lineHeight: 1.65, fontWeight: 500, maxWidth: 460, marginBottom: 36 }}>
+          <p style={{ fontSize: 17, color: "#64748B", lineHeight: 1.65, fontWeight: 500, maxWidth: 460, marginBottom: 36 }}>
             From routes and orders to collections and settlements — FMCGDist gives your team a single, powerful hub to run field operations with precision.
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' as const }}>
-            <Link to="/register" style={{
-              padding: '14px 30px', borderRadius: 12, fontSize: 15, fontWeight: 800,
-              color: '#fff', textDecoration: 'none', letterSpacing: '-0.02em',
-              background: 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)',
-              boxShadow: '0 6px 22px rgba(37,99,235,0.32)', transition: 'all 0.2s',
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 10px 32px rgba(37,99,235,0.42)'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 22px rgba(37,99,235,0.32)'; }}
-            >
-              Start Free Trial →
-            </Link>
-            <a href="#features" style={{
-              padding: '14px 28px', borderRadius: 12, fontSize: 15, fontWeight: 800,
-              color: '#1E3A8A', textDecoration: 'none', letterSpacing: '-0.02em',
-              border: '1.5px solid #E2E8F0', background: 'transparent', transition: 'all 0.18s',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#fff'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.30)'; (e.currentTarget as HTMLElement).style.color = '#2563EB'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.borderColor = '#E2E8F0'; (e.currentTarget as HTMLElement).style.color = '#1E3A8A'; }}
-            >
-              See Features
-            </a>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" as const }}>
+            <Link to="/register" style={{ padding: "14px 30px", borderRadius: 12, fontSize: 15, fontWeight: 800, color: "#fff", textDecoration: "none", background: "linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)", boxShadow: "0 6px 22px rgba(37,99,235,0.32)" }}>Start Free Trial →</Link>
+            <a href="#features" style={{ padding: "14px 28px", borderRadius: 12, fontSize: 15, fontWeight: 800, color: "#1E3A8A", textDecoration: "none", border: "1.5px solid #E2E8F0", background: "transparent" }}>See Features</a>
           </div>
         </div>
 
-        {/* Right — live ops card */}
-        <div style={{ flexShrink: 0, position: 'relative', zIndex: 1 }}>
-          <div style={{
-            background: '#fff', border: '1px solid #E2E8F0', borderRadius: 24,
-            padding: 24, boxShadow: '0 20px 60px rgba(15,23,42,0.10)', width: 340,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, paddingBottom: 16, borderBottom: '1px solid #E2E8F0' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Live stats card */}
+        <div style={{ flexShrink: 0, position: "relative", zIndex: 1 }}>
+          <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 24, padding: 24, boxShadow: "0 20px 60px rgba(15,23,42,0.10)", width: 340 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, paddingBottom: 16, borderBottom: "1px solid #E2E8F0" }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="18" height="18" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
               </div>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#1E3A8A' }}>Today's Operations</div>
-                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 500 }}>Live dashboard · Updated now</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#1E3A8A" }}>Today's Operations</div>
+                <div style={{ fontSize: 11, color: "#64748B" }}>{loading ? "Fetching live data…" : "Live dashboard · Updated now"}</div>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
               {[
-                { val: '48',   lbl: 'Active Routes' },
-                { val: '312',  lbl: 'Orders Today' },
-                { val: '₹4.2L', lbl: 'Collections' },
-                { val: '96%',  lbl: 'On-Time Rate' },
+                { val: activeRoutes, lbl: "Active Routes" },
+                { val: todayOrders,  lbl: "Orders Today" },
+                { val: collections,  lbl: "Collections" },
+                { val: customers,    lbl: "Active Customers" },
               ].map(s => (
-                <div key={s.lbl} style={{ padding: '12px 14px', borderRadius: 10, background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.03em' }}>{s.val}</div>
-                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, marginTop: 2 }}>{s.lbl}</div>
+                <div key={s.lbl} style={{ padding: "12px 14px", borderRadius: 10, background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: loading ? "#CBD5E1" : "#1E3A8A", letterSpacing: "-0.03em" }}>{s.val}</div>
+                  <div style={{ fontSize: 11, color: "#64748B", fontWeight: 600, marginTop: 2 }}>{s.lbl}</div>
                 </div>
               ))}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 10, background: '#F0FDF4', border: '1px solid rgba(22,163,74,0.18)' }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16A34A', flexShrink: 0 }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#15803D' }}>All systems operational · 0 route delays</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: stats ? "#F0FDF4" : "#F8FAFC", border: `1px solid ${stats ? "rgba(22,163,74,0.18)" : "#E2E8F0"}` }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: loading ? "#CBD5E1" : stats ? "#16A34A" : "#94A3B8" }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: loading ? "#94A3B8" : stats ? "#15803D" : "#64748B" }}>
+                {loading ? "Connecting to live data…" : stats ? "All systems operational · 0 route delays" : "Live data unavailable"}
+              </span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Trust bar ─────────────────────────────────────────── */}
-      <div style={{
-        padding: '20px 48px', borderBottom: '1px solid #E2E8F0',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 40, flexWrap: 'wrap' as const, background: '#fff',
-      }}>
+      {/* Trust bar */}
+      <div style={{ padding: "20px 48px", borderBottom: "1px solid #E2E8F0", display: "flex", alignItems: "center", justifyContent: "center", gap: 40, flexWrap: "wrap" as const, background: "#fff" }}>
         {[
-          { icon: <svg width="16" height="16" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>, label: 'Real-time route tracking' },
-          { icon: <svg width="16" height="16" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>, label: 'Role-based access control' },
-          { icon: <svg width="16" height="16" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, label: 'Daily settlement reports' },
-          { icon: <svg width="16" height="16" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>, label: 'Mobile-first design' },
-          { icon: <svg width="16" height="16" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>, label: 'Live ₹ collections tracking' },
+          { icon: <svg width="16" height="16" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>, label: "Real-time route tracking" },
+          { icon: <svg width="16" height="16" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>, label: "Role-based access control" },
+          { icon: <svg width="16" height="16" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, label: "Daily settlement reports" },
+          { icon: <svg width="16" height="16" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>, label: "Mobile-first design" },
+          { icon: <svg width="16" height="16" fill="none" stroke="#2563EB" strokeWidth="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>, label: "Live ₹ collections tracking" },
         ].map((t, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {i > 0 && <div style={{ width: 1, height: 24, background: '#E2E8F0', marginRight: 30 }} />}
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: '#EFF6FF', border: '1px solid rgba(37,99,235,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {t.icon}
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#1E3A8A' }}>{t.label}</span>
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {i > 0 && <div style={{ width: 1, height: 24, background: "#E2E8F0", marginRight: 30 }} />}
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: "#EFF6FF", border: "1px solid rgba(37,99,235,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>{t.icon}</div>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#1E3A8A" }}>{t.label}</span>
           </div>
         ))}
       </div>
 
-      {/* ── Features ──────────────────────────────────────────── */}
-      <section id="features" style={{ padding: '80px 48px', background: '#F8FAFC' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+      {/* Features */}
+      <section id="features" style={{ padding: "80px 48px", background: "#F8FAFC" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           <div style={{ marginBottom: 56 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#EFF6FF', color: '#2563EB', padding: '5px 13px', borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 16 }}>✦ Features</div>
-            <h2 style={{ fontSize: 'clamp(26px,3.5vw,42px)', fontWeight: 900, color: '#1E3A8A', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 14 }}>Everything your distribution team needs</h2>
-            <p style={{ fontSize: 17, color: '#64748B', fontWeight: 500, lineHeight: 1.6, maxWidth: 540 }}>Purpose-built tools for every part of the FMCG supply chain — from warehouse to final-mile delivery.</p>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#EFF6FF", color: "#2563EB", padding: "5px 13px", borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" as const, marginBottom: 16 }}>✦ Features</div>
+            <h2 style={{ fontSize: "clamp(26px,3.5vw,42px)", fontWeight: 900, color: "#1E3A8A", letterSpacing: "-0.04em", lineHeight: 1.1, marginBottom: 14 }}>Everything your distribution team needs</h2>
+            <p style={{ fontSize: 17, color: "#64748B", fontWeight: 500, lineHeight: 1.6, maxWidth: 540 }}>Purpose-built tools for every part of the FMCG supply chain — from warehouse to final-mile delivery.</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
             {[
-              { bg: '#EFF6FF', stroke: '#2563EB', title: 'Route Management', desc: 'Assign and track delivery routes in real time. View progress, stops completed, and ETA for each salesman on the field.', icon: <svg width="24" height="24" fill="none" stroke="#2563EB" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg> },
-              { bg: '#F0FDF4', stroke: '#16A34A', title: 'Order Processing', desc: 'Create, edit, and track field orders from any device. Full order lifecycle from entry to fulfilment, with history and audit trail.', icon: <svg width="24" height="24" fill="none" stroke="#16A34A" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg> },
-              { bg: '#FFF7ED', stroke: '#C2410C', title: 'Collections & Settlement', desc: 'Log cash, cheque, and UPI collections on the spot. Auto-reconcile daily settlements and flag outstanding dues instantly.', icon: <svg width="24" height="24" fill="none" stroke="#C2410C" strokeWidth="1.8" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg> },
-              { bg: '#FDF4FF', stroke: '#7E22CE', title: 'Customer Catalog', desc: 'Maintain a live customer directory with credit limits, order history, and contact details. Assign customers to routes automatically.', icon: <svg width="24" height="24" fill="none" stroke="#7E22CE" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> },
-              { bg: '#EFF6FF', stroke: '#2563EB', title: 'Warehouse Dispatch', desc: 'Generate digital loading sheets, track packing status, and ensure accurate inventory dispatch before every route begins.', icon: <svg width="24" height="24" fill="none" stroke="#2563EB" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> },
-              { bg: '#F0FDF4', stroke: '#15803D', title: 'Analytics & Reports', desc: 'Daily, weekly, and monthly performance reports. Track salesman productivity, product-wise sales, and route efficiency.', icon: <svg width="24" height="24" fill="none" stroke="#15803D" strokeWidth="1.8" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
+              { bg: "#EFF6FF", title: "Route Management",        icon: <svg width="24" height="24" fill="none" stroke="#2563EB" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>, desc: "Assign and track delivery routes in real time. View progress, stops completed, and ETA for each salesman." },
+              { bg: "#F0FDF4", title: "Order Processing",         icon: <svg width="24" height="24" fill="none" stroke="#16A34A" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>, desc: "Create, edit, and track field orders from any device. Full order lifecycle with history and audit trail." },
+              { bg: "#FFF7ED", title: "Collections & Settlement", icon: <svg width="24" height="24" fill="none" stroke="#C2410C" strokeWidth="1.8" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>, desc: "Log cash, cheque, and UPI collections on the spot. Auto-reconcile daily settlements and flag outstanding dues." },
+              { bg: "#FDF4FF", title: "Customer Catalog",         icon: <svg width="24" height="24" fill="none" stroke="#7E22CE" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>, desc: "Maintain a live customer directory with credit limits, order history, and contact details by route." },
+              { bg: "#EFF6FF", title: "Warehouse Dispatch",       icon: <svg width="24" height="24" fill="none" stroke="#2563EB" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>, desc: "Generate digital loading sheets, track packing status, and ensure accurate inventory dispatch daily." },
+              { bg: "#F0FDF4", title: "Analytics & Reports",      icon: <svg width="24" height="24" fill="none" stroke="#15803D" strokeWidth="1.8" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>, desc: "Daily, weekly, and monthly performance reports. Track productivity, product-wise sales, and route efficiency." },
             ].map(f => (
-              <div key={f.title} style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 18, padding: 28, transition: 'all 0.22s', cursor: 'default' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 40px rgba(37,99,235,0.10)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.25)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; (e.currentTarget as HTMLElement).style.borderColor = '#E2E8F0'; }}
+              <div key={f.title} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 18, padding: 28, transition: "all 0.22s", cursor: "default" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform="translateY(-4px)"; (e.currentTarget as HTMLElement).style.boxShadow="0 12px 40px rgba(37,99,235,0.10)"; (e.currentTarget as HTMLElement).style.borderColor="rgba(37,99,235,0.25)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform="translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow="none"; (e.currentTarget as HTMLElement).style.borderColor="#E2E8F0"; }}
               >
-                <div style={{ width: 52, height: 52, borderRadius: 14, background: f.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>{f.icon}</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#1E3A8A', marginBottom: 8, letterSpacing: '-0.02em' }}>{f.title}</div>
-                <div style={{ fontSize: 14, color: '#64748B', lineHeight: 1.6, fontWeight: 500 }}>{f.desc}</div>
+                <div style={{ width: 52, height: 52, borderRadius: 14, background: f.bg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>{f.icon}</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#1E3A8A", marginBottom: 8 }}>{f.title}</div>
+                <div style={{ fontSize: 14, color: "#64748B", lineHeight: 1.6 }}>{f.desc}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Highlight 1 ───────────────────────────────────────── */}
-      <section id="how-it-works" style={{ padding: '80px 48px', background: '#fff' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', gap: 80, alignItems: 'center', flexWrap: 'wrap' as const }}>
+      {/* How It Works - LIVE route bars */}
+      <section id="how-it-works" style={{ padding: "80px 48px", background: "#fff" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", gap: 80, alignItems: "center", flexWrap: "wrap" as const }}>
           <div style={{ flex: 1, minWidth: 280 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#EFF6FF', color: '#2563EB', padding: '5px 13px', borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 16 }}>📦 Operations Hub</div>
-            <h2 style={{ fontSize: 'clamp(22px,2.8vw,34px)', fontWeight: 900, color: '#1E3A8A', letterSpacing: '-0.04em', lineHeight: 1.15, marginBottom: 16 }}>Your entire field operation, <span style={{ color: '#2563EB' }}>visible in real time.</span></h2>
-            <p style={{ fontSize: 15, color: '#64748B', lineHeight: 1.7, fontWeight: 500, maxWidth: 440, marginBottom: 24 }}>Admins get a live bird's-eye view of every route, every salesman, and every order — all from a single dashboard.</p>
-            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 12 }}>
-              {['Live route progress with stop-by-stop visibility', 'Order status — pending, packed, dispatched, delivered', 'Daily collection targets vs. actual — at a glance', 'Incentive tracking tied to salesman performance'].map(pt => (
-                <div key={pt} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 14, fontWeight: 600, color: '#334155' }}>
-                  <div style={{ width: 20, height: 20, borderRadius: 6, background: '#DBEAFE', border: '1px solid rgba(37,99,235,0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#EFF6FF", color: "#2563EB", padding: "5px 13px", borderRadius: 20, fontSize: 12, fontWeight: 700, textTransform: "uppercase" as const, marginBottom: 16 }}>📦 Operations Hub</div>
+            <h2 style={{ fontSize: "clamp(22px,2.8vw,34px)", fontWeight: 900, color: "#1E3A8A", letterSpacing: "-0.04em", lineHeight: 1.15, marginBottom: 16 }}>Your entire field operation, <span style={{ color: "#2563EB" }}>visible in real time.</span></h2>
+            <p style={{ fontSize: 15, color: "#64748B", lineHeight: 1.7, fontWeight: 500, maxWidth: 440, marginBottom: 24 }}>Admins get a live bird's-eye view of every route, every salesman, and every order — all from a single dashboard.</p>
+            <div style={{ display: "flex", flexDirection: "column" as const, gap: 12 }}>
+              {["Live route progress with stop-by-stop visibility","Order status — pending, packed, dispatched, delivered","Daily collection targets vs. actual — at a glance","Incentive tracking tied to salesman performance"].map(pt => (
+                <div key={pt} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, fontWeight: 600, color: "#334155" }}>
+                  <div style={{ width: 20, height: 20, borderRadius: 6, background: "#DBEAFE", border: "1px solid rgba(37,99,235,0.20)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
                     <svg width="11" height="11" fill="none" stroke="#2563EB" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                   </div>
                   {pt}
@@ -12509,113 +19605,76 @@ export function LandingPage() {
             </div>
           </div>
           <div style={{ flex: 1, minWidth: 280 }}>
-            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 24, padding: 28, boxShadow: '0 8px 32px rgba(15,23,42,0.07)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <div><div style={{ fontSize: 13, fontWeight: 800, color: '#1E3A8A' }}>Today's Route Performance</div><div style={{ fontSize: 11, color: '#64748B' }}>48 routes · 6 salesmen active</div></div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#16A34A', background: '#F0FDF4', padding: '4px 10px', borderRadius: 20, border: '1px solid rgba(22,163,74,0.18)' }}>LIVE</span>
-              </div>
-              {[
-                { label: 'Route A — North Zone', pct: 87, color: '#2563EB' },
-                { label: 'Route B — East Zone',  pct: 100, color: '#16A34A' },
-                { label: 'Route C — South Zone', pct: 64, color: '#D97706' },
-                { label: 'Route D — West Zone',  pct: 79, color: '#2563EB' },
-              ].map(r => (
-                <div key={r.label} style={{ marginBottom: 14 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>{r.label}</span>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: r.color }}>{r.pct}%</span>
-                  </div>
-                  <div style={{ height: 8, background: '#E2E8F0', borderRadius: 4, overflow: 'hidden' }}>
-                    <div style={{ width: `${r.pct}%`, height: '100%', borderRadius: 4, background: r.color }} />
-                  </div>
+            <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 24, padding: 28, boxShadow: "0 8px 32px rgba(15,23,42,0.07)" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#1E3A8A" }}>Today's Route Performance</div>
+                  <div style={{ fontSize: 11, color: "#64748B" }}>{stats ? `${stats.activeRoutes} active routes · today` : "Live data · Updated now"}</div>
                 </div>
-              ))}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginTop: 18, borderTop: '1px solid #E2E8F0', paddingTop: 18 }}>
-                {[{ n: '312', l: 'Orders' }, { n: '₹4.2L', l: 'Collected' }, { n: '96%', l: 'On-Time' }].map(s => (
-                  <div key={s.l} style={{ textAlign: 'center' as const }}>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.03em' }}>{s.n}</div>
-                    <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{s.l}</div>
-                  </div>
-                ))}
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#16A34A", background: "#F0FDF4", padding: "4px 10px", borderRadius: 20, border: "1px solid rgba(22,163,74,0.18)" }}>LIVE</span>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ── Highlight 2 ───────────────────────────────────────── */}
-      <section style={{ padding: '80px 48px', background: '#F8FAFC' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'row-reverse' as const, gap: 80, alignItems: 'center', flexWrap: 'wrap' as const }}>
-          <div style={{ flex: 1, minWidth: 280 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#EFF6FF', color: '#2563EB', padding: '5px 13px', borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 16 }}>💳 Collections</div>
-            <h2 style={{ fontSize: 'clamp(22px,2.8vw,34px)', fontWeight: 900, color: '#1E3A8A', letterSpacing: '-0.04em', lineHeight: 1.15, marginBottom: 16 }}>Never miss a <span style={{ color: '#2563EB' }}>payment</span> or outstanding due.</h2>
-            <p style={{ fontSize: 15, color: '#64748B', lineHeight: 1.7, fontWeight: 500, maxWidth: 440, marginBottom: 24 }}>FMCGDist gives your accounts team full visibility into daily collections — by route, by salesman, and by customer.</p>
-            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 12 }}>
-              {['Cash, cheque, UPI — all in one place', 'Automatic daily settlement closing', 'Outstanding dues flagged automatically', 'Exportable reconciliation reports'].map(pt => (
-                <div key={pt} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 14, fontWeight: 600, color: '#334155' }}>
-                  <div style={{ width: 20, height: 20, borderRadius: 6, background: '#DBEAFE', border: '1px solid rgba(37,99,235,0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                    <svg width="11" height="11" fill="none" stroke="#2563EB" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              {loading ? (
+                <div style={{ color: "#94A3B8", fontSize: 13, textAlign: "center" as const, padding: "20px 0" }}>Loading route data…</div>
+              ) : routeBars && routeBars.length > 0 ? (
+                routeBars.map((r, idx) => (
+                  <div key={idx} style={{ marginBottom: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#334155", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, maxWidth: 200 }}>{r.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: r.color, flexShrink: 0, marginLeft: 8 }}>{r.pct}%</span>
+                    </div>
+                    <div style={{ height: 8, background: "#E2E8F0", borderRadius: 4, overflow: "hidden" }}>
+                      <div style={{ width: `${r.pct}%`, height: "100%", borderRadius: 4, background: r.color, transition: "width 0.8s ease" }} />
+                    </div>
                   </div>
-                  {pt}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div style={{ flex: 1, minWidth: 280 }}>
-            <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 24, padding: 28, boxShadow: '0 8px 32px rgba(15,23,42,0.07)' }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#1E3A8A', marginBottom: 4 }}>Collection Summary — Today</div>
-              <div style={{ fontSize: 11, color: '#64748B', marginBottom: 20 }}>Accounts · Auto-settled at 6 PM</div>
-              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10 }}>
+                ))
+              ) : (
+                <div style={{ color: "#94A3B8", fontSize: 13, textAlign: "center" as const, padding: "20px 0", fontStyle: "italic" }}>No route activity yet today</div>
+              )}
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginTop: 18, borderTop: "1px solid #E2E8F0", paddingTop: 18 }}>
                 {[
-                  { label: 'Cash Collections', val: '₹1,84,500' },
-                  { label: 'UPI / Online',      val: '₹2,12,000' },
-                  { label: 'Cheques Collected', val: '₹48,000' },
-                ].map(c => (
-                  <div key={c.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 10 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>{c.label}</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>{c.val}</div>
+                  { n: stats ? String(stats.todayOrders) : "—",       l: "Orders" },
+                  { n: stats ? fmtCr(stats.todayRevenue) : "—",        l: "Collected" },
+                  { n: stats ? String(stats.activeCustomers) : "—",    l: "Customers" },
+                ].map(s => (
+                  <div key={s.l} style={{ textAlign: "center" as const }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: "#1E3A8A", letterSpacing: "-0.03em" }}>{s.n}</div>
+                    <div style={{ fontSize: 11, color: "#64748B", fontWeight: 600 }}>{s.l}</div>
                   </div>
                 ))}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 14px', background: '#EFF6FF', border: '1px solid rgba(37,99,235,0.20)', borderRadius: 10 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#1E3A8A' }}>Total Settled</div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: '#1E3A8A' }}>₹4,44,500</div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#FEF2F2', border: '1px solid rgba(220,38,38,0.18)', borderRadius: 10 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#DC2626', flexShrink: 0, display: 'inline-block' }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#B91C1C' }}>2 customers with outstanding dues · ₹18,400</span>
-                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Roles ─────────────────────────────────────────────── */}
-      <section id="roles" style={{ padding: '80px 48px', background: '#fff' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+      {/* Roles */}
+      <section id="roles" style={{ padding: "80px 48px", background: "#F8FAFC" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           <div style={{ marginBottom: 56 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#EFF6FF', color: '#2563EB', padding: '5px 13px', borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 16 }}>👥 Roles</div>
-            <h2 style={{ fontSize: 'clamp(26px,3.5vw,42px)', fontWeight: 900, color: '#1E3A8A', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 14 }}>Built for every team member</h2>
-            <p style={{ fontSize: 17, color: '#64748B', fontWeight: 500, lineHeight: 1.6, maxWidth: 540 }}>Four role-based access levels, each with the right tools and permissions for the job.</p>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#EFF6FF", color: "#2563EB", padding: "5px 13px", borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" as const, marginBottom: 16 }}>👥 Roles</div>
+            <h2 style={{ fontSize: "clamp(26px,3.5vw,42px)", fontWeight: 900, color: "#1E3A8A", letterSpacing: "-0.04em", lineHeight: 1.1, marginBottom: 14 }}>Built for every team member</h2>
+            <p style={{ fontSize: 17, color: "#64748B", fontWeight: 500, lineHeight: 1.6, maxWidth: 540 }}>Four role-based access levels, each with the right tools and permissions for the job.</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
             {[
-              { badge: 'Admin',     badgeBg: '#EFF6FF', badgeColor: '#1D4ED8', title: 'Distribution Manager', desc: 'Full platform access. Manage all users, routes, products, and business reports.', perms: ['All routes & assignments', 'User management', 'Analytics & reports', 'Incentive configuration'] },
-              { badge: 'Salesman',  badgeBg: '#F0FDF4', badgeColor: '#15803D', title: 'Field Sales Executive', desc: 'Mobile-first access to assigned routes, order entry, and collection recording.', perms: ['View assigned routes', 'Create & submit orders', 'Log collections', 'Track incentives'] },
-              { badge: 'Accounts',  badgeBg: '#FDF4FF', badgeColor: '#7E22CE', title: 'Accounts Executive', desc: 'Focused view on daily settlements, outstanding dues, and financial reports.', perms: ['Daily settlement', 'Collection review', 'Financial reports', 'Dues management'] },
-              { badge: 'Warehouse', badgeBg: '#FFF7ED', badgeColor: '#C2410C', title: 'Warehouse Operator', desc: 'Manage loading sheets, packing status, and inventory dispatch for daily routes.', perms: ['Loading sheet view', 'Pack & dispatch orders', 'Inventory tracking', 'Dispatch confirmation'] },
+              { badge: "Admin",     badgeBg: "#EFF6FF", badgeColor: "#1D4ED8", title: "Distribution Manager", desc: "Full platform access. Manage all users, routes, products, and business reports.",         perms: ["All routes & assignments","User management","Analytics & reports","Incentive configuration"] },
+              { badge: "Salesman",  badgeBg: "#F0FDF4", badgeColor: "#15803D", title: "Field Sales Executive", desc: "Mobile-first access to assigned routes, order entry, and collection recording.",            perms: ["View assigned routes","Create & submit orders","Log collections","Track incentives"] },
+              { badge: "Accounts",  badgeBg: "#FDF4FF", badgeColor: "#7E22CE", title: "Accounts Executive",   desc: "Focused view on daily settlements, outstanding dues, and financial reports.",              perms: ["Daily settlement","Collection review","Financial reports","Dues management"] },
+              { badge: "Warehouse", badgeBg: "#FFF7ED", badgeColor: "#C2410C", title: "Warehouse Operator",   desc: "Manage loading sheets, packing status, and inventory dispatch for daily routes.",           perms: ["Loading sheet view","Pack & dispatch orders","Inventory tracking","Dispatch confirmation"] },
             ].map(r => (
-              <div key={r.badge} style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 18, padding: 24, transition: 'all 0.2s' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.25)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 28px rgba(37,99,235,0.09)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.borderColor = '#E2E8F0'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}
+              <div key={r.badge} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 18, padding: 24, transition: "all 0.2s" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform="translateY(-3px)"; (e.currentTarget as HTMLElement).style.borderColor="rgba(37,99,235,0.25)"; (e.currentTarget as HTMLElement).style.boxShadow="0 8px 28px rgba(37,99,235,0.09)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform="translateY(0)"; (e.currentTarget as HTMLElement).style.borderColor="#E2E8F0"; (e.currentTarget as HTMLElement).style.boxShadow="none"; }}
               >
-                <div style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 14, background: r.badgeBg, color: r.badgeColor }}>{r.badge}</div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: '#1E3A8A', marginBottom: 8, letterSpacing: '-0.02em' }}>{r.title}</div>
-                <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.6, fontWeight: 500, marginBottom: 16 }}>{r.desc}</div>
-                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 7 }}>
+                <div style={{ display: "inline-flex", padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 800, textTransform: "uppercase" as const, marginBottom: 14, background: r.badgeBg, color: r.badgeColor }}>{r.badge}</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: "#1E3A8A", marginBottom: 8 }}>{r.title}</div>
+                <div style={{ fontSize: 13, color: "#64748B", lineHeight: 1.6, marginBottom: 16 }}>{r.desc}</div>
+                <div style={{ display: "flex", flexDirection: "column" as const, gap: 7 }}>
                   {r.perms.map(p => (
-                    <div key={p} style={{ fontSize: 12, color: '#334155', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 7 }}>
-                      <span style={{ color: '#16A34A', fontWeight: 900, fontSize: 11 }}>✓</span>{p}
+                    <div key={p} style={{ fontSize: 12, color: "#334155", fontWeight: 600, display: "flex", alignItems: "center", gap: 7 }}>
+                      <span style={{ color: "#16A34A", fontWeight: 900, fontSize: 11 }}>✓</span>{p}
                     </div>
                   ))}
                 </div>
@@ -12625,89 +19684,28 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ── Auth section ──────────────────────────────────────── */}
-      <section style={{ background: 'linear-gradient(135deg,#F8FAFC 0%,#EFF6FF 60%,#E0F2FE 100%)', padding: '80px 48px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: '-20%', right: '-5%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle,rgba(37,99,235,0.07) 0%,transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ maxWidth: 900, margin: '0 auto', position: 'relative', zIndex: 1 }}>
-          <div style={{ textAlign: 'center' as const, marginBottom: 48 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#EFF6FF', color: '#2563EB', padding: '5px 13px', borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 16 }}>🔐 Get Started</div>
-            <h2 style={{ fontSize: 'clamp(26px,3.5vw,42px)', fontWeight: 900, color: '#1E3A8A', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 14 }}>Sign in or create your account</h2>
-            <p style={{ fontSize: 17, color: '#64748B', fontWeight: 500, lineHeight: 1.6, maxWidth: 540, margin: '0 auto' }}>Already part of a distribution team? Sign in. Setting up a new company? Register and get onboarded in minutes.</p>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
-            {/* Login card */}
-            <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 24, padding: '36px 32px', boxShadow: '0 8px 40px rgba(15,23,42,0.08)' }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#1E3A8A', letterSpacing: '-0.04em', marginBottom: 8 }}>Sign In</div>
-              <div style={{ fontSize: 14, color: '#64748B', fontWeight: 500, marginBottom: 28 }}>Access your distribution dashboard</div>
-              {['Email Address', 'Password'].map((label, i) => (
-                <div key={label} style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', letterSpacing: '0.02em', textTransform: 'uppercase' as const, marginBottom: 7 }}>{label}</label>
-                  <input type={i === 1 ? 'password' : 'email'} placeholder={i === 0 ? 'you@company.com' : '••••••••'} style={{ width: '100%', padding: '11px 14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, fontSize: 14, color: '#334155', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const }} />
-                </div>
-              ))}
-              <Link to="/login" style={{ display: 'block', width: '100%', padding: 13, background: 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer', letterSpacing: '-0.02em', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(37,99,235,0.28)', textDecoration: 'none', textAlign: 'center' as const, marginBottom: 12 }}>Sign In →</Link>
-              <Link to="/pin-login" style={{ display: 'block', width: '100%', padding: 13, background: 'linear-gradient(135deg,#334155,#1E293B)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer', letterSpacing: '-0.02em', fontFamily: 'inherit', textDecoration: 'none', textAlign: 'center' as const }}>🔢 Sign In with PIN</Link>
-              <div style={{ textAlign: 'center' as const, marginTop: 18, fontSize: 13, color: '#64748B' }}>Don't have an account? <Link to="/register" style={{ color: '#2563EB', fontWeight: 700, textDecoration: 'none' }}>Create one →</Link></div>
-            </div>
-            {/* Register card */}
-            <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 24, padding: '36px 32px', boxShadow: '0 8px 40px rgba(15,23,42,0.08)' }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#1E3A8A', letterSpacing: '-0.04em', marginBottom: 8 }}>Create Account</div>
-              <div style={{ fontSize: 14, color: '#64748B', fontWeight: 500, marginBottom: 28 }}>Set up your distribution company</div>
-              {['Full Name', 'Email Address', 'Password'].map((label, i) => (
-                <div key={label} style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', letterSpacing: '0.02em', textTransform: 'uppercase' as const, marginBottom: 7 }}>{label}</label>
-                  <input type={i === 2 ? 'password' : i === 1 ? 'email' : 'text'} placeholder={i === 0 ? 'Your full name' : i === 1 ? 'you@company.com' : 'Min. 6 characters'} style={{ width: '100%', padding: '11px 14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, fontSize: 14, color: '#334155', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const }} />
-                </div>
-              ))}
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', letterSpacing: '0.02em', textTransform: 'uppercase' as const, marginBottom: 7 }}>Role</label>
-                <select style={{ width: '100%', padding: '11px 14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, fontSize: 14, color: '#334155', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const }}>
-                  <option>Admin — Distribution Manager</option>
-                  <option>Salesman — Field Executive</option>
-                  <option>Accounts — Accounts Team</option>
-                  <option>Warehouse — Warehouse Operator</option>
-                </select>
-              </div>
-              <Link to="/register" style={{ display: 'block', width: '100%', padding: 13, background: 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer', letterSpacing: '-0.02em', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(37,99,235,0.28)', textDecoration: 'none', textAlign: 'center' as const }}>Create Account →</Link>
-              <div style={{ textAlign: 'center' as const, marginTop: 18, fontSize: 13, color: '#64748B' }}>Already registered? <Link to="/login" style={{ color: '#2563EB', fontWeight: 700, textDecoration: 'none' }}>Sign in →</Link></div>
-            </div>
-          </div>
+      {/* CTA */}
+      <section style={{ background: "linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)", padding: "80px 48px", textAlign: "center" as const }}>
+        <h2 style={{ fontSize: "clamp(26px,3.5vw,42px)", fontWeight: 900, color: "#fff", letterSpacing: "-0.04em", marginBottom: 16 }}>Ready to streamline your distribution?</h2>
+        <p style={{ fontSize: 17, color: "rgba(255,255,255,0.75)", fontWeight: 500, maxWidth: 500, margin: "0 auto 36px" }}>Join distribution teams already running their operations on FMCGDist.</p>
+        <div style={{ display: "flex", justifyContent: "center", gap: 14 }}>
+          <Link to="/register" style={{ padding: "14px 32px", borderRadius: 12, fontSize: 15, fontWeight: 800, color: "#1E3A8A", textDecoration: "none", background: "#fff", boxShadow: "0 6px 22px rgba(0,0,0,0.15)" }}>Get Started Free →</Link>
+          <Link to="/login"    style={{ padding: "14px 32px", borderRadius: 12, fontSize: 15, fontWeight: 800, color: "#fff", textDecoration: "none", border: "2px solid rgba(255,255,255,0.35)", background: "transparent" }}>Sign In</Link>
         </div>
       </section>
 
-      {/* ── Footer ────────────────────────────────────────────── */}
-      <footer style={{ background: '#1E3A8A', color: 'rgba(255,255,255,0.7)', padding: '60px 48px 32px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 48, marginBottom: 48 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="18" height="18" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-              </div>
-              <span style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>FMCG<span style={{ color: '#93C5FD' }}>Dist</span></span>
-            </div>
-            <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(255,255,255,0.5)' }}>A purpose-built platform for FMCG distribution companies in India — connecting admin, field, accounts, and warehouse teams in one unified system.</p>
+      {/* Footer */}
+      <footer style={{ background: "#1E3A8A", color: "rgba(255,255,255,0.7)", padding: "48px 48px 32px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, flexWrap: "wrap" as const, gap: 10 }}>
+          <span style={{ fontWeight: 800, color: "#fff" }}>FMCG<span style={{ color: "#93C5FD" }}>Dist</span></span>
+          <span>© {new Date().getFullYear()} FMCGDist · Built for India's FMCG distribution network</span>
+          <div style={{ display: "flex", gap: 20 }}>
+            <Link to="/login"    style={{ color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>Sign In</Link>
+            <Link to="/register" style={{ color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>Register</Link>
           </div>
-          {[
-            { heading: 'Platform', links: ['Features', 'Roles & Access', 'How It Works', 'Get Started'] },
-            { heading: 'Modules',  links: ['Route Management', 'Order Processing', 'Collections', 'Analytics'] },
-            { heading: 'Company',  links: ['About', 'Contact', 'Privacy Policy', 'Terms of Service'] },
-          ].map(col => (
-            <div key={col.heading}>
-              <h4 style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 16 }}>{col.heading}</h4>
-              {col.links.map(l => (
-                <a key={l} href="#" style={{ display: 'block', fontSize: 14, color: 'rgba(255,255,255,0.5)', textDecoration: 'none', marginBottom: 10, fontWeight: 500, transition: 'color 0.12s' }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.9)'}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)'}
-                >{l}</a>
-              ))}
-            </div>
-          ))}
-        </div>
-        <div style={{ maxWidth: 1200, margin: '0 auto', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, flexWrap: 'wrap' as const, gap: 10 }}>
-          <span>© 2025 FMCGDist · Distribution Management Platform</span>
-          <span>Built for India's FMCG distribution network</span>
         </div>
       </footer>
+
     </div>
   );
 }
@@ -12862,9 +19860,9 @@ export function PriceVarianceBadge({ base, selling }: { base: number; selling: n
 
 <file path="src/pages/Salesman/OrderEntry/components/ProductSidebar.tsx">
 // PATH: src/pages/Salesman/OrderEntry/components/ProductSidebar.tsx
-// FIXED: Added top offset for navbar, removed search icon
+// UPDATED: Phase 4 - Added group filter and improved mobile layout
 
-import { Package, X } from 'lucide-react';
+import { Package, X, Filter } from 'lucide-react';
 import { ProductDto, fmtNum } from '../../../../types';
 
 interface ProductSidebarProps {
@@ -12877,6 +19875,9 @@ interface ProductSidebarProps {
   onAddProduct: (product: ProductDto) => void;
   canEdit: boolean;
   searchInputRef: React.RefObject<HTMLInputElement>;
+  productGroupFilter?: string;
+  onGroupFilterChange?: (groupId: string) => void;
+  productGroups?: { id: string; name: string }[];
 }
 
 export function ProductSidebar({
@@ -12889,17 +19890,19 @@ export function ProductSidebar({
   onAddProduct,
   canEdit,
   searchInputRef,
+  productGroupFilter = '',
+  onGroupFilterChange,
+  productGroups = [],
 }: ProductSidebarProps) {
   if (!isOpen || !canEdit) return null;
 
-  // Get navbar height from CSS variable or default to 64px
   const navbarHeight = typeof window !== 'undefined' 
     ? getComputedStyle(document.documentElement).getPropertyValue('--nav-h').trim() || '64px'
     : '64px';
 
   return (
     <div 
-      className="fixed right-0 w-[340px] bg-white border-l border-slate-200 shadow-xl z-40 flex flex-col"
+      className="fixed right-0 w-[380px] bg-white border-l border-slate-200 shadow-xl z-40 flex flex-col"
       style={{ 
         top: 'var(--nav-h, 64px)',
         height: `calc(100vh - var(--nav-h, 64px))`
@@ -12908,46 +19911,79 @@ export function ProductSidebar({
       {/* Header */}
       <div className="bg-white border-b border-slate-200 px-4 py-3 flex-shrink-0">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-slate-800 text-sm">Products</h2>
+          <h2 className="font-semibold text-slate-800 text-base">Products</h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-slate-100 transition-colors text-slate-400"
+            className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-400"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
         
-        {/* Search input - Clean, no icon */}
+        {/* Search input */}
         <div className="mt-3">
-          <input
-            ref={searchInputRef}
-            type="text"
-            placeholder="Search products..."
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50"
-          />
+          <div className="relative">
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search products..."
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-base focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50"
+            />
+            <Package size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          </div>
         </div>
+
+        {/* Group filter */}
+        {productGroups.length > 0 && onGroupFilterChange && (
+          <div className="mt-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Filter size={12} className="text-slate-400" />
+              <span className="text-xs font-medium text-slate-500">Filter by group</span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              <button
+                onClick={() => onGroupFilterChange('')}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                  productGroupFilter === '' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-slate-100 text-slate-600'
+                }`}
+              >
+                All
+              </button>
+              {productGroups.map(group => (
+                <button
+                  key={group.id}
+                  onClick={() => onGroupFilterChange(group.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                    productGroupFilter === group.id 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {group.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         
         {/* Results count */}
-        <div className="mt-1.5 text-xs text-slate-400">
+        <div className="mt-2 text-xs text-slate-400">
           {filteredProducts.length} item{filteredProducts.length !== 1 ? 's' : ''}
         </div>
       </div>
 
       {/* Product List - Scrollable */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {filteredProducts.length === 0 && search && (
+        {filteredProducts.length === 0 && (
           <div className="text-center py-10">
-            <Package size={36} className="mx-auto text-slate-300 mb-2 opacity-40" />
-            <p className="text-slate-400 text-sm">No products found</p>
-          </div>
-        )}
-        
-        {filteredProducts.length === 0 && !search && (
-          <div className="text-center py-10">
-            <Package size={36} className="mx-auto text-slate-300 mb-2 opacity-40" />
-            <p className="text-slate-400 text-sm">No products available</p>
+            <Package size={40} className="mx-auto text-slate-300 mb-2 opacity-40" />
+            <p className="text-slate-400 text-sm">
+              {search || productGroupFilter ? 'No products match your filters' : 'No products available'}
+            </p>
           </div>
         )}
 
@@ -12959,23 +19995,26 @@ export function ProductSidebar({
             <button
               key={product.id}
               onClick={() => onAddProduct(product)}
-              className={`w-full text-left p-2.5 rounded-lg border transition-all duration-150 ${
+              className={`w-full text-left p-3 rounded-lg border transition-all duration-150 active:scale-[0.98] ${
                 isInBill 
                   ? 'border-emerald-200 bg-emerald-50/40' 
                   : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/20 hover:shadow-sm'
               }`}
             >
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-medium text-slate-800 text-sm truncate">{product.nameEnglish}</p>
+                    <p className="font-semibold text-slate-800 text-base truncate">{product.nameEnglish}</p>
                     {isInBill && (
                       <span className="inline-flex items-center text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full shrink-0">
                         {existingQty} in bill
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  {product.nameMalayalam && (
+                    <p className="text-sm text-slate-400 mt-0.5" lang="ml">{product.nameMalayalam}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
                       {product.productGroupName || 'General'}
                     </span>
@@ -12983,7 +20022,7 @@ export function ProductSidebar({
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-bold text-emerald-600">₹{fmtNum(product.basePrice)}</p>
+                  <p className="text-base font-bold text-emerald-600">₹{fmtNum(product.basePrice)}</p>
                 </div>
               </div>
             </button>
@@ -12992,8 +20031,8 @@ export function ProductSidebar({
       </div>
 
       {/* Footer */}
-      <div className="bg-slate-50 border-t border-slate-200 px-3 py-2 text-xs text-slate-400 text-center flex-shrink-0">
-        Click to add to bill
+      <div className="bg-slate-50 border-t border-slate-200 px-3 py-2.5 text-xs text-slate-400 text-center flex-shrink-0">
+        Tap a product to add to bill
       </div>
     </div>
   );
@@ -13101,6 +20140,7 @@ Sugar - 50 kg`}
 import { Package, Plus, Minus, Trash2 } from 'lucide-react';
 import { LineItem } from '../types';
 import { PriceVarianceBadge } from '../types';
+import { useIsMobile } from '../../../../hooks/useIsMobile';
 
 interface WholesaleItemsTableProps {
   lines: LineItem[];
@@ -13133,6 +20173,8 @@ export function WholesaleItemsTable({
   getDisplayQty,
   fmtNum,
 }: WholesaleItemsTableProps) {
+  const isMobile = useIsMobile();
+
   if (lines.length === 0) return null;
 
   return (
@@ -13151,36 +20193,46 @@ export function WholesaleItemsTable({
           </button>
         )}
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
-        <table className="w-full min-w-[600px]">
-          <thead className="bg-slate-50 border-b border-slate-200">
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-500 uppercase">Product</th>
-              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-500 uppercase w-28">Quantity</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 uppercase w-28">Unit</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 uppercase w-32">Price (₹)</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 uppercase w-28">Total</th>
-              {canEdit && <th className="px-4 py-3 text-center w-10"></th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {lines.map((line) => (
-              <tr key={line.product.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3">
-                  <div>
-                    <p className="font-semibold text-slate-800 text-base">{line.product.nameEnglish}</p>
-                    {line.product.nameMalayalam && (
-                      <p className="text-sm text-slate-400" lang="ml">{line.product.nameMalayalam}</p>
-                    )}
-                    <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} />
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
+
+      {isMobile ? (
+        /* ── Mobile: stacked cards ────────────────────────────────────────── */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {lines.map((line) => (
+            <div
+              key={line.product.id}
+              style={{
+                background: '#fff',
+                border: '1px solid #E2E8F0',
+                borderRadius: 14,
+                padding: '14px 16px',
+              }}
+            >
+              {/* Product name + remove */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div style={{ flex: 1, minWidth: 0, marginRight: 10 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#0F172A' }}>{line.product.nameEnglish}</div>
+                  {line.product.nameMalayalam && (
+                    <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }} lang="ml">{line.product.nameMalayalam}</div>
+                  )}
+                  <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} />
+                </div>
+                {canEdit && (
+                  <button onClick={() => onRemoveItem(line.product.id)} style={{ color: '#f87171', flexShrink: 0, padding: 4 }}>
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+
+              {/* Qty + Unit + Price row */}
+              <div style={{ display: 'grid', gridTemplateColumns: canEdit ? '1fr 1fr' : '1fr 1fr 1fr', gap: 12 }}>
+                {/* Quantity */}
+                <div>
+                  <div style={{ fontSize: 11, color: '#64748B', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Quantity</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     {canEdit && (
                       <button
                         onClick={() => onUpdateQty(line.product.id, -1)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                        style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9', border: '1px solid #E2E8F0', color: '#64748B', cursor: 'pointer' }}
                       >
                         <Minus size={14} />
                       </button>
@@ -13192,59 +20244,153 @@ export function WholesaleItemsTable({
                       onChange={(e) => onQuantityInput(line.product.id, e.target.value)}
                       onBlur={() => onQuantityBlur(line.product.id)}
                       disabled={!canEdit}
-                      className={`w-16 text-center px-2 py-2 border border-slate-200 rounded-lg text-base focus:outline-none focus:border-blue-400 ${!canEdit ? 'bg-slate-50 text-slate-500' : ''}`}
+                      style={{
+                        width: canEdit ? 52 : 60, textAlign: 'center',
+                        padding: '6px 4px', border: '1px solid #E2E8F0',
+                        borderRadius: 8, fontSize: 15, fontWeight: 700,
+                        background: canEdit ? '#fff' : '#F8FAFC',
+                        color: canEdit ? '#0F172A' : '#64748B',
+                      }}
                     />
                     {canEdit && (
                       <button
                         onClick={() => onUpdateQty(line.product.id, 1)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                        style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9', border: '1px solid #E2E8F0', color: '#64748B', cursor: 'pointer' }}
                       >
                         <Plus size={14} />
                       </button>
                     )}
                   </div>
-                </td>
-                <td className="px-4 py-3 text-right text-base text-slate-500">
-                  {line.unit}
-                </td>
-                <td className="px-4 py-3 text-right">
+                  <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>{line.unit}</div>
+                </div>
+
+                {/* Price + Total */}
+                <div>
+                  <div style={{ fontSize: 11, color: '#64748B', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Price (₹)</div>
                   <input
                     type="text"
                     inputMode="decimal"
                     value={line.sellingPrice}
                     onChange={e => onSetPrice(line.product.id, e.target.value)}
                     disabled={!canEdit}
-                    className={`w-28 text-right px-2 py-2 border border-slate-200 rounded-lg text-base font-semibold focus:outline-none focus:border-blue-400 ${!canEdit ? 'bg-slate-50 text-slate-500' : 'text-slate-800'}`}
+                    style={{
+                      width: '100%', textAlign: 'right',
+                      padding: '6px 10px', border: '1px solid #E2E8F0',
+                      borderRadius: 8, fontSize: 15, fontWeight: 700,
+                      background: canEdit ? '#fff' : '#F8FAFC',
+                      color: canEdit ? '#0F172A' : '#64748B',
+                      boxSizing: 'border-box',
+                    }}
                   />
-                </td>
-                <td className="px-4 py-3 text-right font-semibold text-slate-800 text-base">
-                  ₹{fmtNum(line.qty * line.sellingPrice)}
-                </td>
-                {canEdit && (
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => onRemoveItem(line.product.id)}
-                      className="text-red-400 hover:text-red-600 transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </td>
-                )}
+                  <div style={{ textAlign: 'right', marginTop: 6, fontSize: 14, fontWeight: 800, color: '#0F172A' }}>
+                    = ₹{fmtNum(line.qty * line.sellingPrice)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Total footer */}
+          <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 12, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontWeight: 700, color: '#166534', fontSize: 14 }}>Total Wholesale</span>
+            <span style={{ fontWeight: 800, fontSize: 20, color: '#166534' }}>₹{fmtNum(totalAmount)}</span>
+          </div>
+        </div>
+      ) : (
+        /* ── Desktop: horizontal table ────────────────────────────────────── */
+        <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+          <table className="w-full min-w-[600px]">
+            <thead className="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-500 uppercase">Product</th>
+                <th className="px-4 py-3 text-center text-sm font-semibold text-slate-500 uppercase w-28">Quantity</th>
+                <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 uppercase w-28">Unit</th>
+                <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 uppercase w-32">Price (₹)</th>
+                <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 uppercase w-28">Total</th>
+                {canEdit && <th className="px-4 py-3 text-center w-10"></th>}
               </tr>
-            ))}
-          </tbody>
-          <tfoot className="bg-slate-50 border-t border-slate-200">
-            <tr>
-              <td colSpan={canEdit ? 5 : 4} className="px-4 py-3 text-right font-semibold text-slate-700 text-base">
-                Total Wholesale:
-              </td>
-              <td className="px-4 py-3 text-right font-bold text-xl text-slate-800">
-                ₹{fmtNum(totalAmount)}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {lines.map((line) => (
+                <tr key={line.product.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-3">
+                    <div>
+                      <p className="font-semibold text-slate-800 text-base">{line.product.nameEnglish}</p>
+                      {line.product.nameMalayalam && (
+                        <p className="text-sm text-slate-400" lang="ml">{line.product.nameMalayalam}</p>
+                      )}
+                      <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      {canEdit && (
+                        <button
+                          onClick={() => onUpdateQty(line.product.id, -1)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                        >
+                          <Minus size={14} />
+                        </button>
+                      )}
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={getDisplayQty(line.product.id, line.qty)}
+                        onChange={(e) => onQuantityInput(line.product.id, e.target.value)}
+                        onBlur={() => onQuantityBlur(line.product.id)}
+                        disabled={!canEdit}
+                        className={`w-16 text-center px-2 py-2 border border-slate-200 rounded-lg text-base focus:outline-none focus:border-blue-400 ${!canEdit ? 'bg-slate-50 text-slate-500' : ''}`}
+                      />
+                      {canEdit && (
+                        <button
+                          onClick={() => onUpdateQty(line.product.id, 1)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-right text-base text-slate-500">{line.unit}</td>
+                  <td className="px-4 py-3 text-right">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={line.sellingPrice}
+                      onChange={e => onSetPrice(line.product.id, e.target.value)}
+                      disabled={!canEdit}
+                      className={`w-28 text-right px-2 py-2 border border-slate-200 rounded-lg text-base font-semibold focus:outline-none focus:border-blue-400 ${!canEdit ? 'bg-slate-50 text-slate-500' : 'text-slate-800'}`}
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-right font-semibold text-slate-800 text-base">
+                    ₹{fmtNum(line.qty * line.sellingPrice)}
+                  </td>
+                  {canEdit && (
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => onRemoveItem(line.product.id)}
+                        className="text-red-400 hover:text-red-600 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="bg-slate-50 border-t border-slate-200">
+              <tr>
+                <td colSpan={canEdit ? 5 : 4} className="px-4 py-3 text-right font-semibold text-slate-700 text-base">
+                  Total Wholesale:
+                </td>
+                <td className="px-4 py-3 text-right font-bold text-xl text-slate-800">
+                  ₹{fmtNum(totalAmount)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -13257,11 +20403,11 @@ export { default } from './OrderEntry';
 
 <file path="src/pages/Salesman/OrderEntry/OrderEntry.tsx">
 // PATH: src/pages/Salesman/OrderEntry/OrderEntry.tsx
-// Updated with cleaner layout and per-unit pricing support
+// UPDATED: Phase 4 - Mobile-enhanced order entry with improved error handling
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Package, Printer, Edit3, Lock, Plus, Save, ChevronLeft, ChevronRight, ShoppingCart, X, CalendarDays } from 'lucide-react';
+import { ArrowLeft, Package, Printer, Edit3, Lock, Plus, Save, ChevronLeft, ChevronRight, ShoppingCart, X, CalendarDays, Minus, Trash2, Search, Filter, CheckCircle2, Clock } from 'lucide-react';
 import { customersApi, ordersApi, productsApi } from '../../../api/services';
 import { OrderStatus, fmtNum, CustomerOrderHistoryDto, CreateOrderCommand, ProductUnitPriceDto } from '../../../types';
 import { Spinner } from '../../../components/ui';
@@ -13272,6 +20418,50 @@ import { WholesaleItemsTable } from './components/WholesaleItemsTable';
 import { RetailItemsSection } from './components/RetailItemsSection';
 import { OrderSummary } from './components/OrderSummary';
 import { PreviousOrdersModal } from './components/PreviousOrdersModal';
+
+// Quantity input component with +/- buttons (touch-friendly)
+function QuantityInput({ 
+  value, 
+  onIncrement, 
+  onDecrement, 
+  onChange,
+  disabled 
+}: { 
+  value: number; 
+  onIncrement: () => void; 
+  onDecrement: () => void; 
+  onChange: (val: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={onDecrement}
+        disabled={disabled || value <= 1}
+        className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-100 text-slate-600 disabled:opacity-40 active:scale-95 transition-all"
+        type="button"
+      >
+        <Minus size={16} />
+      </button>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className="w-16 text-center py-2 border border-slate-200 rounded-lg text-base font-semibold focus:outline-none focus:border-blue-400 bg-white"
+      />
+      <button
+        onClick={onIncrement}
+        disabled={disabled}
+        className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-100 text-slate-600 disabled:opacity-40 active:scale-95 transition-all"
+        type="button"
+      >
+        <Plus size={16} />
+      </button>
+    </div>
+  );
+}
 
 export default function OrderEntry() {
   const { routeId, customerId } = useParams<{ routeId: string; customerId: string }>();
@@ -13284,6 +20474,8 @@ export default function OrderEntry() {
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [productGroupFilter, setProductGroupFilter] = useState<string>('');
+  const [productGroups, setProductGroups] = useState<{ id: string; name: string }[]>([]);
   const [existingOrder, setExistingOrder] = useState<any>(null);
   const [lines, setLines] = useState<LineItem[]>([]);
   const [remarks, setRemarks] = useState('');
@@ -13309,19 +20501,40 @@ export default function OrderEntry() {
     if (!customerId) setError('Invalid customer. Please go back.');
   }, [routeId, customerId]);
 
-  // Load unit prices for products
+  // Load product groups for filter - with error handling
+  useEffect(() => {
+    async function loadGroups() {
+      try {
+        const { productGroupsApi } = await import('../../../api/services');
+        const groups = await productGroupsApi.getAll();
+        setProductGroups(groups.map(g => ({ id: g.id, name: g.name })));
+      } catch (err) {
+        // Silently fail - groups filter is optional
+        console.warn('Failed to load product groups:', err);
+        setProductGroups([]);
+      }
+    }
+    loadGroups();
+  }, []);
+
+  // Load unit prices for products - with better error handling
   const loadUnitPrices = useCallback(async (products: any[]) => {
     const priceMap: Record<string, ProductUnitPriceDto> = {};
-    for (const product of products) {
-      try {
-        const prices = await productsApi.getUnitPrices(product.id);
-        const defaultPrice = prices.find(p => p.isDefault) || prices[0];
-        if (defaultPrice) {
-          priceMap[product.id] = defaultPrice;
+    // Limit concurrent requests to avoid overwhelming the server
+    const batchSize = 5;
+    for (let i = 0; i < products.length; i += batchSize) {
+      const batch = products.slice(i, i + batchSize);
+      await Promise.all(batch.map(async (product) => {
+        try {
+          const prices = await productsApi.getUnitPrices(product.id);
+          const defaultPrice = prices.find(p => p.isDefault) || prices[0];
+          if (defaultPrice) {
+            priceMap[product.id] = defaultPrice;
+          }
+        } catch {
+          // No unit prices configured, use base price - this is expected for many products
         }
-      } catch {
-        // No unit prices configured, use base price
-      }
+      }));
     }
     setUnitPrices(priceMap);
     return priceMap;
@@ -13378,21 +20591,28 @@ export default function OrderEntry() {
           setPreviousOrders(history);
         }
       } catch { /* no history */ }
+    }).catch((err) => {
+      console.error('Failed to load order entry data:', err);
+      setError('Failed to load data. Please refresh the page.');
     }).finally(() => setLoading(false));
   }, [customerId, routeId, loadUnitPrices]);
 
+  // Filter products by search and group
   useEffect(() => {
-    if (!search.trim()) {
-      setFilteredProducts(allProducts);
-    } else {
+    let filtered = allProducts;
+    if (search.trim()) {
       const q = search.toLowerCase();
-      setFilteredProducts(allProducts.filter((p: any) =>
+      filtered = filtered.filter((p: any) =>
         p.nameEnglish.toLowerCase().includes(q) ||
         (p.nameMalayalam && p.nameMalayalam.toLowerCase().includes(q)) ||
         (p.productGroupName && p.productGroupName.toLowerCase().includes(q))
-      ));
+      );
     }
-  }, [search, allProducts]);
+    if (productGroupFilter) {
+      filtered = filtered.filter((p: any) => p.productGroupId === productGroupFilter);
+    }
+    setFilteredProducts(filtered);
+  }, [search, allProducts, productGroupFilter]);
 
   useEffect(() => {
     if (isSidebarOpen && searchInputRef.current && canEdit) {
@@ -13588,9 +20808,9 @@ export default function OrderEntry() {
       <div className={`transition-all duration-300 ${isSidebarOpen && canEdit ? 'mr-[340px]' : 'mr-0'}`}>
         
         {/* Header */}
-        <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-5 py-4 shadow-sm print:shadow-none print:border-0">
+        <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 py-3 shadow-sm print:shadow-none print:border-0">
           <div className="max-w-4xl mx-auto">
-            {/* ── Top row: back + action buttons ── */}
+            {/* Top row: back + action buttons */}
             <div className="flex items-center justify-between mb-2">
               <button
                 onClick={() => navigate(`/salesman/routes/${routeId}/orders`)}
@@ -13610,26 +20830,13 @@ export default function OrderEntry() {
                   </button>
                 )}
                 {previousOrders.length > 0 && canEdit && (
-                  /* ── Page-flip style button — easy large tap target on tablet ── */
                   <button
                     onClick={() => setShowPreviousModal(true)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 5,
-                      padding: '7px 12px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                      background: 'linear-gradient(135deg,#7C3AED 0%,#A855F7 100%)',
-                      color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
-                      boxShadow: '0 2px 8px rgba(124,58,237,0.28)', minHeight: 38,
-                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
                   >
-                    <ChevronLeft size={15} style={{ marginRight: -5 }} />
-                    <ChevronRight size={15} style={{ marginRight: 4 }} />
-                    Previous Orders
-                    <span style={{
-                      background: 'rgba(255,255,255,0.22)', borderRadius: 20,
-                      padding: '1px 7px', fontSize: 11, fontWeight: 800, marginLeft: 2,
-                    }}>
-                      {previousOrders.length}
-                    </span>
+                    <ChevronLeft size={14} />
+                    <ChevronRight size={14} />
+                    Previous
                   </button>
                 )}
                 <button
@@ -13641,26 +20848,17 @@ export default function OrderEntry() {
               </div>
             </div>
 
-            {/* ── Date highlight bar — always visible so salesman knows today's date ── */}
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '8px 14px', borderRadius: 10, marginBottom: 10,
-              background: 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)',
-              boxShadow: '0 2px 8px rgba(37,99,235,0.20)',
-            }} className="print:hidden">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CalendarDays size={15} color="rgba(255,255,255,0.85)" />
-                <span style={{ fontSize: 13, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>
+            {/* Date bar */}
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-gradient-to-r from-blue-900 to-blue-700 mb-3 print:hidden">
+              <div className="flex items-center gap-2">
+                <CalendarDays size={14} color="rgba(255,255,255,0.85)" />
+                <span className="text-sm font-semibold text-white">
                   {new Date().toLocaleDateString('en-IN', {
                     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
                   })}
                 </span>
               </div>
-              <span style={{
-                fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
-                background: 'rgba(255,255,255,0.18)', color: '#fff',
-                padding: '2px 8px', borderRadius: 20,
-              }}>TODAY</span>
+              <span className="text-xs font-bold text-white bg-white/20 px-2 py-0.5 rounded-full">TODAY</span>
             </div>
             
             <div className="pb-2">
@@ -13687,17 +20885,12 @@ export default function OrderEntry() {
             )}
             {orderStatus === OrderStatus.PendingApproval && (
               <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs">
-                <Edit3 size={12} /> Pending Approval - Waiting for admin
+                <Clock size={12} /> Pending Approval
               </div>
             )}
             {orderStatus === OrderStatus.Approved && (
               <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-indigo-100 text-indigo-700 rounded-md text-xs">
-                <Edit3 size={12} /> Approved - Being prepared
-              </div>
-            )}
-            {orderStatus === OrderStatus.Packed && (
-              <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-purple-100 text-purple-700 rounded-md text-xs">
-                <Edit3 size={12} /> Packed - Ready for delivery
+                <CheckCircle2 size={12} /> Approved
               </div>
             )}
             {orderStatus === OrderStatus.Closed && (
@@ -13709,7 +20902,7 @@ export default function OrderEntry() {
         </div>
 
         {/* Main Bill Area */}
-        <div className="max-w-4xl mx-auto px-5 py-5">
+        <div className="max-w-4xl mx-auto px-4 py-4 pb-32">
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 flex justify-between">
               <span>{error}</span>
@@ -13728,7 +20921,7 @@ export default function OrderEntry() {
               <Lock size={16} className="inline mr-1" />
               {orderStatus === OrderStatus.Closed
                 ? 'This order has been closed. No further edits allowed.'
-                : 'This order has been submitted and is waiting for admin approval. No further edits allowed.'}
+                : 'This order has been submitted and is waiting for admin approval.'}
             </div>
           )}
 
@@ -13736,9 +20929,9 @@ export default function OrderEntry() {
           {canEdit && lines.length === 0 && !isSidebarOpen && (
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="w-full mb-5 flex items-center justify-center gap-2 py-3 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 text-blue-600 font-medium text-sm hover:bg-blue-100 transition-colors"
+              className="w-full mb-5 flex items-center justify-center gap-2 py-4 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 text-blue-600 font-medium text-base hover:bg-blue-100 transition-colors"
             >
-              <Plus size={16} /> Add Wholesale Items
+              <Plus size={18} /> Add Products
             </button>
           )}
 
@@ -13773,7 +20966,8 @@ export default function OrderEntry() {
 
           {/* Save Button - Fixed Bottom */}
           {canEdit && (
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 shadow-lg print:hidden z-30">
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg print:hidden"
+            style={{ zIndex: 55, padding: '12px 12px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px) + 70px)' }}>
               <div className="max-w-4xl mx-auto flex items-center justify-between">
                 <div className="text-sm text-slate-500">
                   {lines.length} item{lines.length !== 1 ? 's' : ''} · {totalItems} units
@@ -13781,7 +20975,7 @@ export default function OrderEntry() {
                 <button
                   onClick={handleSaveOrder}
                   disabled={saving}
-                  className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 active:scale-95"
                 >
                   <Save size={16} />
                   {saving ? 'Saving...' : hasExistingOrder ? 'Update Order' : 'Save as Draft'}
@@ -13802,6 +20996,9 @@ export default function OrderEntry() {
         onAddProduct={addProduct}
         canEdit={canEdit}
         searchInputRef={searchInputRef}
+        productGroupFilter={productGroupFilter}
+        onGroupFilterChange={setProductGroupFilter}
+        productGroups={productGroups}
       />
 
       <PreviousOrdersModal
@@ -14661,7 +21858,7 @@ export default function RouteExecution() {
 
       {/* ── Fixed bottom CTA ─────────────────────────────────────────────────── */}
       {allDone && !summary && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50, background: '#fff', borderTop: '1px solid #E2E8F0', padding: '16px 20px', boxShadow: '0 -4px 20px rgba(15,23,42,0.10)' }}>
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 55, background: '#fff', borderTop: '1px solid #E2E8F0', padding: '16px 20px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px) + 70px)', boxShadow: '0 -4px 20px rgba(15,23,42,0.10)' }}>
           <div style={{ marginBottom: 10, padding: '8px 14px', borderRadius: 10, background: '#F0FDF4', border: '1px solid rgba(22,163,74,0.20)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <CheckCircle2 size={14} color="#16A34A" />
             <span style={{ fontSize: 14, fontWeight: 700, color: '#15803D' }}>
@@ -14818,11 +22015,12 @@ export default function SalesmanCustomers() {
 </file>
 
 <file path="src/pages/Salesman/SalesmanIncentives.tsx">
+// src/pages/Salesman/SalesmanIncentives.tsx
 import { useEffect, useState } from 'react';
-import { Gift, TrendingUp, Package } from 'lucide-react';
+import { Gift, TrendingUp, Package, Calendar, ArrowUpRight, Award, Clock, CheckCircle2 } from 'lucide-react';
 import { incentivesApi } from '../../api/services';
 import { SalesmanIncentiveSummaryDto, fmtNum } from '../../types';
-import { Spinner, EmptyState } from '../../components/ui';
+import { Spinner, EmptyState, Alert } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
 
 export default function SalesmanIncentives() {
@@ -14838,81 +22036,195 @@ export default function SalesmanIncentives() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Spinner />;
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <Spinner size={40} />
+    </div>
+  );
+
+  const firstName = user?.name?.split(' ')[0] ?? 'Salesman';
+  const currentMonth = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] pb-10">
-      <div className="px-4 pt-6 pb-4 border-b border-[var(--border)]">
-        <h1 className="text-xl font-bold text-white">My Incentives</h1>
-        <p className="text-sm text-[var(--muted)] mt-1">{user?.name}</p>
-      </div>
-
-      {error && (
-        <div className="mx-4 mt-4 alert alert-error">{error}</div>
-      )}
-
-      {!summary && !error && (
-        <EmptyState title="No incentive data" message="No incentives available for your account yet." />
-      )}
-
-      {summary && (
-        <div className="px-4 mt-6 space-y-6">
-          {/* KPI summary cards */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="card text-center">
-              <Gift size={24} className="mx-auto text-[var(--primary)] mb-2" />
-              <p className="text-2xl font-bold text-white">₹{fmtNum(summary.totalIncentiveEarned ?? 0)}</p>
-              <p className="text-xs text-[var(--muted)] mt-1">Total Earned</p>
+    <div className="min-h-screen bg-slate-50 pb-10">
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-5 py-4 shadow-sm">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800">My Incentives</h1>
+              <p className="text-sm text-slate-500 mt-0.5">{firstName} · {currentMonth}</p>
             </div>
-            <div className="card text-center">
-              <TrendingUp size={24} className="mx-auto text-green-400 mb-2" />
-              <p className="text-2xl font-bold text-white">₹{fmtNum(summary.pendingPayout ?? 0)}</p>
-              <p className="text-xs text-[var(--muted)] mt-1">Pending Payout</p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full">Salesman</span>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Per-product breakdown */}
-          {summary.productBreakdown && summary.productBreakdown.length > 0 && (
-            <div>
-              <h2 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-3">Product Breakdown</h2>
-              <div className="space-y-2">
-                {summary.productBreakdown.map((item, i) => (
-                  <div key={i} className="card flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[var(--primary)]/10 flex items-center justify-center">
-                        <Package size={16} className="text-[var(--primary)]" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-white">{item.productName}</p>
-                        <p className="text-xs text-[var(--muted)]">
-                          {item.unitsSold ?? 0} units ·{' '}
-                          {item.incentiveType === 'PerUnit'
-                            ? `₹${fmtNum(item.incentiveRate ?? 0)} / unit`
-                            : `${item.incentiveRate}%`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-white">₹{fmtNum(item.earned ?? 0)}</p>
-                    </div>
+      <div className="max-w-7xl mx-auto px-5 py-6">
+        {error && (
+          <div className="mb-5 bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
+            ⚠️ {error}
+          </div>
+        )}
+
+        {!summary && !error && (
+          <div className="text-center py-16 bg-white rounded-2xl border border-slate-200">
+            <Gift size={48} className="mx-auto text-slate-300 mb-3 opacity-50" />
+            <p className="text-slate-500 font-medium">No incentive data available</p>
+            <p className="text-sm text-slate-400 mt-1">Incentives will appear here once orders are approved.</p>
+          </div>
+        )}
+
+        {summary && (
+          <div className="space-y-6">
+            {/* Hero Section - KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Total Earned Card */}
+              <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-5 text-white shadow-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="bg-white/20 p-2 rounded-xl">
+                    <Gift size={20} className="text-white" />
                   </div>
-                ))}
+                  <span className="text-xs bg-white/20 px-2 py-1 rounded-full">This Period</span>
+                </div>
+                <p className="text-3xl font-bold">₹{fmtNum(summary.totalIncentiveEarned ?? 0)}</p>
+                <p className="text-sm text-blue-100 mt-1">Total Earned</p>
+              </div>
+
+              {/* Pending Payout Card */}
+              <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-5 text-white shadow-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="bg-white/20 p-2 rounded-xl">
+                    <Clock size={20} className="text-white" />
+                  </div>
+                  <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Awaiting</span>
+                </div>
+                <p className="text-3xl font-bold">₹{fmtNum(summary.pendingPayout ?? 0)}</p>
+                <p className="text-sm text-amber-100 mt-1">Pending Payout</p>
+              </div>
+
+              {/* Qualified Orders Card */}
+              <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="bg-white/20 p-2 rounded-xl">
+                    <Award size={20} className="text-white" />
+                  </div>
+                  <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Earned</span>
+                </div>
+                <p className="text-3xl font-bold">{summary.qualifiedOrders ?? 0}</p>
+                <p className="text-sm text-emerald-100 mt-1">Qualified Orders</p>
               </div>
             </div>
-          )}
 
-          {/* Period info */}
-          {summary.periodStart && (
-            <div className="card">
-              <p className="text-xs text-[var(--muted)] mb-1">Incentive Period</p>
-              <p className="text-sm font-semibold text-white">
-                {new Date(summary.periodStart).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                {summary.periodEnd && ` – ${new Date(summary.periodEnd).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`}
-              </p>
+            {/* Period Info */}
+            <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <Calendar size={18} className="text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Incentive Period</p>
+                  <p className="font-semibold text-slate-800">
+                    {summary.periodStart && new Date(summary.periodStart).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {summary.periodEnd && ` – ${new Date(summary.periodEnd).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <CheckCircle2 size={14} className="text-emerald-500" />
+                <span>Incentives calculated automatically</span>
+              </div>
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Product Breakdown Section */}
+            {summary.productBreakdown && summary.productBreakdown.length > 0 && (
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="bg-slate-50 px-5 py-4 border-b border-slate-200">
+                  <h2 className="font-semibold text-slate-800 flex items-center gap-2">
+                    <Package size={18} className="text-blue-600" />
+                    Product-wise Breakdown
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">Incentives earned per product</p>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {summary.productBreakdown.map((item, i) => (
+                    <div key={i} className="px-5 py-4 hover:bg-slate-50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                              <Package size={14} className="text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-800">{item.productName}</p>
+                              <p className="text-xs text-slate-400">
+                                {item.unitsSold ?? 0} units sold · 
+                                {item.incentiveType === 'PerUnit' 
+                                  ? ` ₹${fmtNum(item.incentiveRate ?? 0)} / unit`
+                                  : ` ${item.incentiveRate}% of sale`}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-emerald-600">₹{fmtNum(item.earned ?? 0)}</p>
+                          <span className="text-xs text-slate-400 flex items-center gap-1 justify-end">
+                            <TrendingUp size={10} /> earned
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Progress bar for visual */}
+                      {summary.totalIncentiveEarned && summary.totalIncentiveEarned > 0 && (
+                        <div className="mt-2">
+                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full transition-all duration-500"
+                              style={{ width: `${((item.earned ?? 0) / summary.totalIncentiveEarned) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Empty State with helpful message */}
+            {(!summary.productBreakdown || summary.productBreakdown.length === 0) && (
+              <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
+                <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                  <TrendingUp size={24} className="text-slate-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">No incentives earned yet</h3>
+                <p className="text-slate-500 text-sm max-w-md mx-auto">
+                  Incentives are calculated based on your sales performance. 
+                  Complete more orders to start earning!
+                </p>
+              </div>
+            )}
+
+            {/* Tip Section */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <ArrowUpRight size={14} className="text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-blue-800">How to earn more?</p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Each product has its own incentive rate. Check with your admin for 
+                    current incentive offers on high-margin products.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -14920,29 +22232,40 @@ export default function SalesmanIncentives() {
 
 <file path="src/pages/Salesman/SalesmanOrders.tsx">
 // PATH: src/pages/Salesman/SalesmanOrders.tsx
-// FIXED: Show only today's orders, improved submit all flow
+// UPDATED: Added SubmitAllOrdersModal and improved order status display
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, Plus, ChevronRight, CheckCircle2, Clock, 
   Calendar, Package, Eye, List, User, Search, Send, 
-  RefreshCw, AlertCircle, Edit2, ClipboardList, Truck
+  RefreshCw, AlertCircle, Edit2, ClipboardList, Truck,
+  Filter, X, CheckCircle
 } from 'lucide-react';
 import { customersApi, ordersApi, routesApi } from '../../api/services';
 import { CustomerDto, OrderDto, RouteDto, OrderStatus, fmt, OrderItemDto } from '../../types';
-import { Spinner, EmptyState, Badge, Alert, ConfirmModal } from '../../components/ui';
+import { Spinner, EmptyState, Badge, Alert } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
+import { SubmitAllOrdersModal } from '../../components/salesman/SubmitAllOrdersModal';
 
-const statusMeta: Record<number, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
-  [OrderStatus.Draft]:           { label: 'Draft',           color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: <Clock size={14} /> },
-  [OrderStatus.PendingApproval]: { label: 'Pending Approval', color: 'text-blue-700',  bg: 'bg-blue-50', border: 'border-blue-200',   icon: <CheckCircle2 size={14} /> },
-  [OrderStatus.Approved]:        { label: 'Approved',        color: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-200', icon: <CheckCircle2 size={14} /> },
-  [OrderStatus.Packed]:          { label: 'Packed',          color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200', icon: <CheckCircle2 size={14} /> },
-  [OrderStatus.Closed]:          { label: 'Closed',          color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200', icon: <CheckCircle2 size={14} /> },
-};
+// Status badge component - UPDATED to show appropriate action
+function OrderStatusBadge({ status }: { status: number }) {
+  const config: Record<number, { label: string; bg: string; text: string; icon: React.ReactNode; canEdit: boolean }> = {
+    1: { label: 'Draft', bg: 'bg-amber-50', text: 'text-amber-700', icon: <Edit2 size={12} />, canEdit: true },
+    2: { label: 'Pending Approval', bg: 'bg-blue-50', text: 'text-blue-700', icon: <Clock size={12} />, canEdit: false },
+    3: { label: 'Approved', bg: 'bg-indigo-50', text: 'text-indigo-700', icon: <CheckCircle size={12} />, canEdit: false },
+    4: { label: 'Packed', bg: 'bg-purple-50', text: 'text-purple-700', icon: <Package size={12} />, canEdit: false },
+    5: { label: 'Closed', bg: 'bg-green-50', text: 'text-green-700', icon: <CheckCircle2 size={12} />, canEdit: false },
+  };
+  const c = config[status] || config[1];
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${c.bg} ${c.text}`}>
+      {c.icon} {c.label}
+    </span>
+  );
+}
 
-// Order item card component
+// Order item card component - UPDATED with delivery status
 function OrderItemCard({ 
   order, 
   routeId, 
@@ -14957,8 +22280,23 @@ function OrderItemCard({
   const [showItems, setShowItems] = useState(false);
   const itemCount = order.items?.length ?? 0;
   const totalQuantity = order.items?.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
-  const status = statusMeta[order.status] || statusMeta[OrderStatus.Draft];
   const isDraft = order.status === OrderStatus.Draft;
+  const isPendingApproval = order.status === OrderStatus.PendingApproval;
+  const isApproved = order.status === OrderStatus.Approved;
+  const isPacked = order.status === OrderStatus.Packed;
+  const isClosed = order.status === OrderStatus.Closed;
+  
+  // Determine delivery status message
+  let deliveryStatus = null;
+  if (isPendingApproval) {
+    deliveryStatus = { text: 'Waiting for admin approval', color: 'text-blue-600', bg: 'bg-blue-50' };
+  } else if (isApproved) {
+    deliveryStatus = { text: 'Approved - Ready for packing', color: 'text-indigo-600', bg: 'bg-indigo-50' };
+  } else if (isPacked) {
+    deliveryStatus = { text: 'Packed - Ready for delivery', color: 'text-purple-600', bg: 'bg-purple-50' };
+  } else if (isClosed) {
+    deliveryStatus = { text: 'Delivered ✓', color: 'text-green-600', bg: 'bg-green-50' };
+  }
 
   const getProductName = (item: OrderItemDto): string => {
     return item.productName || item.productNameMl || 'Unknown';
@@ -14983,9 +22321,7 @@ function OrderItemCard({
               )}
             </div>
           </div>
-          <span className={`inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-full font-medium border ${status.bg} ${status.color} ${status.border} flex-shrink-0`}>
-            {status.icon} {status.label}
-          </span>
+          <OrderStatusBadge status={order.status} />
         </div>
 
         <div className="flex items-center justify-between mt-2">
@@ -14998,6 +22334,17 @@ function OrderItemCard({
             <p className="text-xl font-bold text-slate-800">{fmt(order.totalAmount ?? 0)}</p>
           </div>
         </div>
+        
+        {/* Delivery Status Indicator */}
+        {deliveryStatus && (
+          <div className={`mt-3 pt-2 ${deliveryStatus.bg} rounded-lg px-3 py-2 text-sm ${deliveryStatus.color} flex items-center gap-2`}>
+            {isPendingApproval && <Clock size={14} />}
+            {isApproved && <CheckCircle size={14} />}
+            {isPacked && <Package size={14} />}
+            {isClosed && <CheckCircle2 size={14} />}
+            <span>{deliveryStatus.text}</span>
+          </div>
+        )}
         
         {order.items && order.items.length > 0 && (
           <div className="mt-3 pt-3 border-t border-slate-100">
@@ -15027,14 +22374,24 @@ function OrderItemCard({
         )}
       </div>
 
+      {/* Only show Edit button for Draft orders */}
       {isDraft && (
         <div className="border-t border-slate-100 bg-slate-50 px-4 py-2 flex justify-end">
           <button
             onClick={(e) => { e.stopPropagation(); onEdit(String(order.id), String(order.customerId)); }}
-            className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
           >
             <Edit2 size={14} /> Edit Order
           </button>
+        </div>
+      )}
+      
+      {/* Show Completed message for Closed orders */}
+      {isClosed && (
+        <div className="border-t border-green-100 px-4 py-2 bg-green-50">
+          <div className="flex items-center gap-2 text-sm text-green-700">
+            <CheckCircle2 size={14} /> Order completed and delivered
+          </div>
         </div>
       )}
     </div>
@@ -15090,6 +22447,7 @@ export default function SalesmanOrders() {
   const [orders, setOrders] = useState<OrderDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<number | 'all'>('all');
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [submittingAll, setSubmittingAll] = useState(false);
@@ -15154,18 +22512,19 @@ export default function SalesmanOrders() {
         await ordersApi.submit(String(order.id));
         submitted++;
       }
-      setSuccessMsg(`✅ ${submitted} order(s) submitted for admin approval! Redirecting to Routes...`);
+      setSuccessMsg(`✅ ${submitted} order(s) submitted for admin approval!`);
+      setShowSubmitConfirm(false);
+      await load(); // Refresh the page to show updated status
       
-      // Wait 2 seconds then go to Routes page
       setTimeout(() => {
-        navigate('/salesman/routes');
-      }, 2000);
+        setSuccessMsg('');
+      }, 4000);
       
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Submission failed';
       setError(errorMessage);
+    } finally {
       setSubmittingAll(false);
-      setShowSubmitConfirm(false);
     }
   };
 
@@ -15178,15 +22537,17 @@ export default function SalesmanOrders() {
     (c.phoneNumber && c.phoneNumber.includes(search))
   );
 
-  const filteredOrders = orders.filter(order =>
-    order.customerName?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredOrders = orders.filter(order => {
+    if (statusFilter !== 'all' && order.status !== statusFilter) return false;
+    if (!search) return true;
+    return order.customerName?.toLowerCase().includes(search.toLowerCase());
+  });
 
-  const totalAmount = orders.reduce((s, o) => s + (o.totalAmount ?? 0), 0);
   const draftCount = orders.filter(o => o.status === OrderStatus.Draft).length;
   const pendingCount = orders.filter(o => o.status === OrderStatus.PendingApproval).length;
+  const approvedCount = orders.filter(o => o.status === OrderStatus.Approved || o.status === OrderStatus.Packed).length;
   const closedCount = orders.filter(o => o.status === OrderStatus.Closed).length;
-  const allCustomersDone = customers.length > 0 && customersWithOrders.size === customers.length;
+  const totalAmount = orders.reduce((s, o) => s + (o.totalAmount ?? 0), 0);
 
   const handleNavigateToOrder = (customerId: string) => {
     navigate(`/salesman/routes/${routeId}/order/${customerId}`);
@@ -15231,7 +22592,7 @@ export default function SalesmanOrders() {
                   disabled={submittingAll}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 shadow-sm"
                 >
-                  {submittingAll ? <Spinner size={16} /> : <Send size={16} />}
+                  <Send size={16} />
                   Submit All ({draftCount})
                 </button>
               )}
@@ -15260,7 +22621,7 @@ export default function SalesmanOrders() {
               <span className="ml-2 font-bold text-blue-700">{pendingCount}</span>
             </div>
             <div className="shrink-0 bg-green-50 border border-green-200 rounded-lg px-4 py-2">
-              <span className="text-sm text-green-600">Closed</span>
+              <span className="text-sm text-green-600">Completed</span>
               <span className="ml-2 font-bold text-green-700">{closedCount}</span>
             </div>
           </div>
@@ -15281,13 +22642,49 @@ export default function SalesmanOrders() {
             </div>
           )}
 
-          {/* Completion message */}
-          {allCustomersDone && draftCount === 0 && (
-            <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-center text-sm text-emerald-700">
-              <CheckCircle2 size={16} className="inline mr-1" />
-              All customers have orders! Click "Submit All" to send to admin.
-            </div>
-          )}
+          {/* Filter chips */}
+          <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                statusFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+              }`}
+            >
+              All ({orders.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter(OrderStatus.Draft)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                statusFilter === OrderStatus.Draft ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700'
+              }`}
+            >
+              Draft ({draftCount})
+            </button>
+            <button
+              onClick={() => setStatusFilter(OrderStatus.PendingApproval)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                statusFilter === OrderStatus.PendingApproval ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700'
+              }`}
+            >
+              Pending ({pendingCount})
+            </button>
+            <button
+              onClick={() => setStatusFilter(OrderStatus.Approved)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                statusFilter === OrderStatus.Approved ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-700'
+              }`}
+            >
+              Approved ({approvedCount})
+            </button>
+            <button
+              onClick={() => setStatusFilter(OrderStatus.Closed)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                statusFilter === OrderStatus.Closed ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700'
+              }`}
+            >
+              Completed ({closedCount})
+            </button>
+          </div>
 
           {/* Search input */}
           <div className="relative mt-3">
@@ -15299,6 +22696,14 @@ export default function SalesmanOrders() {
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -15327,7 +22732,7 @@ export default function SalesmanOrders() {
           <ClipboardList size={16} /> Today's Orders
         </h2>
         
-        {filteredOrders.length === 0 && !search && (
+        {filteredOrders.length === 0 && !search && statusFilter === 'all' && (
           <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
             <Package size={48} className="mx-auto text-slate-300 mb-3 opacity-40" />
             <p className="text-slate-500">No orders yet today</p>
@@ -15335,9 +22740,15 @@ export default function SalesmanOrders() {
           </div>
         )}
         
-        {filteredOrders.length === 0 && search && (
+        {filteredOrders.length === 0 && (search || statusFilter !== 'all') && (
           <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
-            <p className="text-slate-500">No orders match "{search}"</p>
+            <p className="text-slate-500">No orders match your filters</p>
+            <button 
+              onClick={() => { setSearch(''); setStatusFilter('all'); }}
+              className="mt-2 text-sm text-blue-600 hover:text-blue-700"
+            >
+              Clear filters
+            </button>
           </div>
         )}
 
@@ -15373,15 +22784,13 @@ export default function SalesmanOrders() {
         </div>
       )}
 
-      {/* Submit All Confirmation Modal */}
-      <ConfirmModal
-        open={showSubmitConfirm}
-        title="Submit All Orders"
-        message={`You are about to submit ${draftCount} draft order(s). Once submitted, they will be sent to the admin for approval and cannot be edited further. Do you want to continue?`}
-        confirmLabel={`Submit ${draftCount} Order${draftCount > 1 ? 's' : ''}`}
+      {/* Submit All Orders Modal */}
+      <SubmitAllOrdersModal
+        isOpen={showSubmitConfirm}
+        draftCount={draftCount}
+        isSubmitting={submittingAll}
         onConfirm={handleSubmitAllOrders}
         onCancel={() => setShowSubmitConfirm(false)}
-        loading={submittingAll}
       />
     </div>
   );
@@ -15763,12 +23172,7 @@ function RouteCard({
 
 <file path="src/pages/Warehouse/WarehouseDashboard.tsx">
 // PATH: src/pages/Warehouse/WarehouseDashboard.tsx
-// FIXED:
-//  1. Shows Approved, Packed, AND Closed orders (Closed tab answers "where did they go?")
-//  2. Proper status tabs: Pending Pack | Packed | Closed
-//  3. WarehouseController now targets OrderStatus.Approved for packing,
-//     but Closed orders are visible in history tab.
-//  4. Fixed empty-state text — no longer says "submitted", uses correct status names.
+// UPDATED: Mobile card view for orders list + overflow-x on modal item table
 
 import { useEffect, useState, useCallback } from 'react';
 import {
@@ -15779,6 +23183,7 @@ import {
 import { warehouseApi, routesApi } from '../../api/services';
 import type { WarehouseOrderDto, RouteDto } from '../../types';
 import { Spinner, Alert, EmptyState } from '../../components/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 const PACKING_STATUS = {
@@ -15828,37 +23233,39 @@ function OrderDetailModal({
               Salesman: {order.salesmanName} · {new Date(order.orderDate).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
             </p>
           </div>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '4px 10px', borderRadius: 20, fontWeight: 700 }} className={meta.color}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '4px 10px', borderRadius: 20, fontWeight: 700, flexShrink: 0 }} className={meta.color}>
             {meta.icon} {meta.label}
           </span>
         </div>
 
-        {/* Items */}
+        {/* Items — overflow-x-auto so it scrolls on narrow screens */}
         <div style={{ border: '1px solid #E2E8F0', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: '#F8FAFC' }}>
-                {['Product', 'Qty', 'Bags', 'Boxes', 'Tins'].map(h => (
-                  <th key={h} style={{ padding: '8px 12px', textAlign: h === 'Product' ? 'left' : 'right', color: '#64748B', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {order.items.map((item, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ padding: '8px 12px', fontWeight: 600 }}>{item.productName}</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700 }}>{item.quantity}</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{item.quantityBags ?? '—'}</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{item.quantityBoxes ?? '—'}</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{item.quantityTins ?? '—'}</td>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', minWidth: 340, borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: '#F8FAFC' }}>
+                  {['Product', 'Qty', 'Bags', 'Boxes', 'Tins'].map(h => (
+                    <th key={h} style={{ padding: '8px 12px', textAlign: h === 'Product' ? 'left' : 'right', color: '#64748B', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {order.items.map((item, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                    <td style={{ padding: '8px 12px', fontWeight: 600 }}>{item.productName}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700 }}>{item.quantity}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{item.quantityBags ?? '—'}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{item.quantityBoxes ?? '—'}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{item.quantityTins ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <button
             onClick={onClose}
             style={{ padding: '9px 18px', borderRadius: 9, border: '1px solid #E2E8F0', background: 'transparent', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#64748B', fontFamily: 'inherit' }}
@@ -15893,6 +23300,7 @@ function OrderDetailModal({
 type ActiveTab = 'pending' | 'packed' | 'closed';
 
 export default function WarehouseDashboard() {
+  const isMobile = useIsMobile();
   const [orders,      setOrders]      = useState<WarehouseOrderDto[]>([]);
   const [routes,      setRoutes]      = useState<RouteDto[]>([]);
   const [loading,     setLoading]     = useState(true);
@@ -15900,20 +23308,16 @@ export default function WarehouseDashboard() {
   const [success,     setSuccess]     = useState('');
   const [activeTab,   setActiveTab]   = useState<ActiveTab>('pending');
 
-  // Filters
   const [fromDate,     setFromDate]     = useState(todayStr());
   const [toDate,       setToDate]       = useState(tomorrowStr());
   const [routeFilter,  setRouteFilter]  = useState('');
   const [search,       setSearch]       = useState('');
   const [showFilters,  setShowFilters]  = useState(false);
 
-  // Selection
   const [selected,    setSelected]    = useState<Set<string>>(new Set());
   const [bulkPacking, setBulkPacking] = useState(false);
   const [detailOrder, setDetailOrder] = useState<WarehouseOrderDto | null>(null);
 
-  // We fetch ALL relevant orders (Pending + Packed) from the warehouse API,
-  // and Closed orders come from a separate all-status query on the ordersApi.
   const [closedOrders, setClosedOrders] = useState<WarehouseOrderDto[]>([]);
 
   const pendingOrders = orders.filter(o => o.packingStatus === 0);
@@ -15923,28 +23327,13 @@ export default function WarehouseDashboard() {
     setLoading(true); setError('');
     try {
       const [o, r] = await Promise.all([
-        // Fetch pending+packed (Approved status)
-        warehouseApi.getPendingOrders({
-          fromDate,
-          toDate,
-          routeId: routeFilter || undefined,
-          search:  search || undefined,
-        }),
+        warehouseApi.getPendingOrders({ fromDate, toDate, routeId: routeFilter || undefined, search: search || undefined }),
         routesApi.getAll(),
       ]);
       setOrders(o);
       setRoutes(r);
-
-      // Also fetch closed orders (packingStatus doesn't matter; these are done)
-      // We reuse the same endpoint but filter by packingStatus=1 (already packed+closed)
-      // The backend WarehouseController now also returns Closed orders when requested
       try {
-        const closed = await warehouseApi.getClosedOrders({
-          fromDate,
-          toDate,
-          routeId: routeFilter || undefined,
-          search:  search || undefined,
-        });
+        const closed = await warehouseApi.getClosedOrders({ fromDate, toDate, routeId: routeFilter || undefined, search: search || undefined });
         setClosedOrders(closed);
       } catch {
         setClosedOrders([]);
@@ -16002,10 +23391,8 @@ export default function WarehouseDashboard() {
     }
   }
 
-  const allPendingSelected = pendingOrders.length > 0 &&
-    pendingOrders.every(o => selected.has(o.id));
+  const allPendingSelected = pendingOrders.length > 0 && pendingOrders.every(o => selected.has(o.id));
 
-  // Filter search client-side
   const filterBySearch = (list: WarehouseOrderDto[]) => {
     if (!search.trim()) return list;
     const q = search.toLowerCase();
@@ -16018,9 +23405,9 @@ export default function WarehouseDashboard() {
   };
 
   const tabs: { id: ActiveTab; label: string; count: number; color: string }[] = [
-    { id: 'pending', label: '⏳ Pending Pack', count: pendingOrders.length, color: 'amber' },
-    { id: 'packed',  label: '✅ Packed',        count: packedOrders.length,  color: 'green' },
-    { id: 'closed',  label: '📦 Closed',         count: closedOrders.length,  color: 'slate' },
+    { id: 'pending', label: '⏳ Pending', count: pendingOrders.length, color: 'amber' },
+    { id: 'packed',  label: '✅ Packed',  count: packedOrders.length,  color: 'green' },
+    { id: 'closed',  label: '📦 Closed',  count: closedOrders.length,  color: 'slate' },
   ];
 
   const tabOrders: Record<ActiveTab, WarehouseOrderDto[]> = {
@@ -16033,7 +23420,7 @@ export default function WarehouseDashboard() {
 
   return (
     <div className="page-content">
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: 'var(--text)', letterSpacing: '-0.03em', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -16066,10 +23453,10 @@ export default function WarehouseDashboard() {
       {error   && <Alert variant="error">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
 
-      {/* ── Filters ──────────────────────────────────────────────────────────── */}
+      {/* Filters */}
       {showFilters && (
         <div className="card" style={{ marginBottom: 20 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
             <div>
               <label style={{ fontSize: 11, color: 'var(--text-sub)', display: 'block', marginBottom: 4, fontWeight: 600 }}>From Date</label>
               <input type="date" className="input" value={fromDate} onChange={e => setFromDate(e.target.value)} />
@@ -16087,35 +23474,24 @@ export default function WarehouseDashboard() {
             </div>
             <div>
               <label style={{ fontSize: 11, color: 'var(--text-sub)', display: 'block', marginBottom: 4, fontWeight: 600 }}>Search</label>
-              <input
-                className="input"
-                placeholder="Customer, salesman, order…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
+              <input className="input" placeholder="Customer, salesman…" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
           </div>
-          <button
-            className="btn btn-primary btn-sm"
-            style={{ marginTop: 12 }}
-            onClick={load}
-          >
-            Apply Filters
-          </button>
+          <button className="btn btn-primary btn-sm" style={{ marginTop: 12 }} onClick={load}>Apply Filters</button>
         </div>
       )}
 
-      {/* ── Tabs ─────────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 4, borderBottom: '2px solid var(--border)', marginBottom: 20 }}>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 4, borderBottom: '2px solid var(--border)', marginBottom: 20, overflowX: 'auto' }}>
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '10px 18px', borderRadius: '10px 10px 0 0',
+              padding: '10px 14px', borderRadius: '10px 10px 0 0',
               border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              fontSize: 13, fontWeight: 700,
+              fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
               background: activeTab === tab.id ? '#fff' : 'transparent',
               color: activeTab === tab.id ? 'var(--primary)' : 'var(--text-sub)',
               borderBottom: activeTab === tab.id ? '2px solid var(--primary)' : '2px solid transparent',
@@ -16137,21 +23513,17 @@ export default function WarehouseDashboard() {
         ))}
       </div>
 
-      {/* ── Closed orders notice ───────────────────────────────────────────────── */}
+      {/* Closed notice */}
       {activeTab === 'closed' && closedOrders.length > 0 && (
         <div style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--text-sub)' }}>
           <History size={15} />
-          <span>These orders were <strong>approved → packed → closed</strong> by Admin. They are read-only and shown for reference.</span>
+          <span>These orders were <strong>approved → packed → closed</strong> by Admin. Read-only reference.</span>
         </div>
       )}
 
-      {/* ── Bulk Actions ────────────────────────────────────────────────────── */}
+      {/* Bulk Actions */}
       {activeTab === 'pending' && selected.size > 0 && (
-        <div style={{
-          background: 'var(--primary-glow)', border: '1px solid var(--primary)',
-          borderRadius: 10, padding: '10px 16px', marginBottom: 12,
-          display: 'flex', alignItems: 'center', gap: 12,
-        }}>
+        <div style={{ background: 'var(--primary-glow)', border: '1px solid var(--primary)', borderRadius: 10, padding: '10px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>
             {selected.size} order{selected.size > 1 ? 's' : ''} selected
           </span>
@@ -16160,10 +23532,7 @@ export default function WarehouseDashboard() {
             disabled={bulkPacking}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}
           >
-            {bulkPacking
-              ? <><Spinner size={13} /> Packing…</>
-              : <><CheckCircle2 size={13} /> Mark All as Packed</>
-            }
+            {bulkPacking ? <><Spinner size={13} /> Packing…</> : <><CheckCircle2 size={13} /> Mark All as Packed</>}
           </button>
           <button
             onClick={() => setSelected(new Set())}
@@ -16174,7 +23543,7 @@ export default function WarehouseDashboard() {
         </div>
       )}
 
-      {/* ── Orders Table ────────────────────────────────────────────────────── */}
+      {/* Orders */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 60 }}><Spinner size={32} /></div>
       ) : visibleOrders.length === 0 ? (
@@ -16183,113 +23552,165 @@ export default function WarehouseDashboard() {
             {activeTab === 'closed' ? <History size={28} color="#94A3B8" /> : <Package size={28} color="#94A3B8" />}
           </div>
           <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-            {activeTab === 'pending' ? 'No orders pending packing'
-              : activeTab === 'packed' ? 'No packed orders'
-              : 'No closed orders for this period'}
+            {activeTab === 'pending' ? 'No orders pending packing' : activeTab === 'packed' ? 'No packed orders' : 'No closed orders for this period'}
           </p>
           <p style={{ fontSize: 13, color: 'var(--text-sub)' }}>
-            {activeTab === 'pending'
-              ? 'Orders appear here once Admin approves them.'
-              : activeTab === 'packed'
-              ? 'Pack orders from the Pending tab to see them here.'
-              : 'Closed orders from Admin will appear here. Try adjusting the date range.'}
+            {activeTab === 'pending' ? 'Orders appear here once Admin approves them.' : activeTab === 'packed' ? 'Pack orders from the Pending tab.' : 'Try adjusting the date range.'}
           </p>
         </div>
-      ) : (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: '#F8FAFC' }}>
-                {activeTab === 'pending' && (
-                  <th style={{ width: 40, padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
-                    <button
-                      onClick={toggleAll}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-sub)', padding: 0 }}
-                    >
-                      {allPendingSelected
-                        ? <CheckSquare size={15} color="var(--primary)" />
-                        : <Square size={15} />
-                      }
-                    </button>
-                  </th>
-                )}
-                {['Order #', 'Date', 'Salesman', 'Customer', 'Route', 'Items', 'Qty', 'Status', ''].map(h => (
-                  <th key={h} style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', textAlign: h === 'Items' || h === 'Qty' ? 'right' : 'left', color: '#64748B', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {visibleOrders.map(order => {
-                const meta       = PACKING_STATUS[order.packingStatus as keyof typeof PACKING_STATUS] ?? PACKING_STATUS[0];
-                const isPending  = order.packingStatus === 0;
-                const isSelected = selected.has(order.id);
-                const isClosed   = activeTab === 'closed';
+      ) : isMobile ? (
+        /* ── Mobile: card list ──────────────────────────────────────────────── */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {visibleOrders.map(order => {
+            const meta      = PACKING_STATUS[order.packingStatus as keyof typeof PACKING_STATUS] ?? PACKING_STATUS[0];
+            const isPending = order.packingStatus === 0;
+            const isSelected = selected.has(order.id);
+            const isClosed  = activeTab === 'closed';
 
-                return (
-                  <tr
-                    key={order.id}
-                    style={{
-                      background: isSelected ? 'var(--primary-glow)' : isClosed ? '#FAFBFD' : 'transparent',
-                      cursor: 'pointer',
-                      borderBottom: '1px solid var(--border-lite)',
-                    }}
-                    onClick={() => setDetailOrder(order)}
-                    onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = '#FAFBFD'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isSelected ? 'var(--primary-glow)' : isClosed ? '#FAFBFD' : 'transparent'; }}
-                  >
-                    {activeTab === 'pending' && (
-                      <td onClick={e => e.stopPropagation()} style={{ padding: '10px 14px' }}>
-                        {isPending && (
+            return (
+              <div
+                key={order.id}
+                onClick={() => setDetailOrder(order)}
+                style={{
+                  background: isSelected ? 'var(--primary-glow)' : '#fff',
+                  border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
+                  borderRadius: 14, padding: '14px 16px',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 4px rgba(15,23,42,0.06)',
+                  opacity: isClosed ? 0.75 : 1,
+                }}
+              >
+                {/* Row 1: order # + status */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {activeTab === 'pending' && isPending && (
+                      <button
+                        onClick={e => { e.stopPropagation(); toggleSelect(order.id); }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-sub)' }}
+                      >
+                        {isSelected ? <CheckSquare size={16} color="var(--primary)" /> : <Square size={16} />}
+                      </button>
+                    )}
+                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--primary)' }}>{order.orderNumber}</span>
+                  </div>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '3px 9px', borderRadius: 20, fontWeight: 700 }} className={meta.color}>
+                    {meta.icon} {meta.label}
+                  </span>
+                </div>
+
+                {/* Row 2: customer + route */}
+                <div style={{ marginBottom: 6 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{order.customerName}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 2 }}>
+                    {order.routeName} · {order.salesmanName}
+                  </div>
+                </div>
+
+                {/* Row 3: date + items + qty + pack button */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--text-sub)' }}>
+                    <span>{new Date(order.orderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                    <span>{order.itemCount} items · {order.totalQty.toFixed(0)} units</span>
+                  </div>
+                  {isPending && activeTab === 'pending' && (
+                    <button
+                      style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}
+                      onClick={e => { e.stopPropagation(); handlePackOne(order.id, false); }}
+                    >
+                      Pack ✓
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* ── Desktop: table ─────────────────────────────────────────────────── */
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: '#F8FAFC' }}>
+                  {activeTab === 'pending' && (
+                    <th style={{ width: 40, padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+                      <button onClick={toggleAll} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-sub)', padding: 0 }}>
+                        {allPendingSelected ? <CheckSquare size={15} color="var(--primary)" /> : <Square size={15} />}
+                      </button>
+                    </th>
+                  )}
+                  {['Order #', 'Date', 'Salesman', 'Customer', 'Route', 'Items', 'Qty', 'Status', ''].map(h => (
+                    <th key={h} style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', textAlign: h === 'Items' || h === 'Qty' ? 'right' : 'left', color: '#64748B', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {visibleOrders.map(order => {
+                  const meta       = PACKING_STATUS[order.packingStatus as keyof typeof PACKING_STATUS] ?? PACKING_STATUS[0];
+                  const isPending  = order.packingStatus === 0;
+                  const isSelected = selected.has(order.id);
+                  const isClosed   = activeTab === 'closed';
+
+                  return (
+                    <tr
+                      key={order.id}
+                      style={{
+                        background: isSelected ? 'var(--primary-glow)' : isClosed ? '#FAFBFD' : 'transparent',
+                        cursor: 'pointer',
+                        borderBottom: '1px solid var(--border-lite)',
+                      }}
+                      onClick={() => setDetailOrder(order)}
+                      onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = '#FAFBFD'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isSelected ? 'var(--primary-glow)' : isClosed ? '#FAFBFD' : 'transparent'; }}
+                    >
+                      {activeTab === 'pending' && (
+                        <td onClick={e => e.stopPropagation()} style={{ padding: '10px 14px' }}>
+                          {isPending && (
+                            <button onClick={() => toggleSelect(order.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-sub)' }}>
+                              {isSelected ? <CheckSquare size={14} color="var(--primary)" /> : <Square size={14} />}
+                            </button>
+                          )}
+                        </td>
+                      )}
+                      <td style={{ padding: '10px 14px', fontWeight: 700, fontSize: 12, color: 'var(--primary)' }}>{order.orderNumber}</td>
+                      <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text-sub)' }}>
+                        {new Date(order.orderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        <span style={{ display: 'block', fontSize: 11, color: '#94A3B8' }}>
+                          {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 14px', fontWeight: 600 }}>{order.salesmanName}</td>
+                      <td style={{ padding: '10px 14px' }}>{order.customerName}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-sub)', fontSize: 12 }}>{order.routeName}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right' }}>{order.itemCount}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700 }}>{order.totalQty.toFixed(0)}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '3px 8px', borderRadius: 12, fontWeight: 700 }} className={meta.color}>
+                          {meta.icon} {meta.label}
+                        </span>
+                      </td>
+                      <td onClick={e => e.stopPropagation()} style={{ padding: '8px 14px' }}>
+                        {isPending && activeTab === 'pending' && (
                           <button
-                            onClick={() => toggleSelect(order.id)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-sub)' }}
+                            style={{ padding: '5px 12px', borderRadius: 7, border: 'none', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', boxShadow: '0 2px 6px rgba(22,163,74,0.25)' }}
+                            onClick={() => handlePackOne(order.id, false)}
                           >
-                            {isSelected
-                              ? <CheckSquare size={14} color="var(--primary)" />
-                              : <Square size={14} />
-                            }
+                            Pack ✓
                           </button>
                         )}
                       </td>
-                    )}
-                    <td style={{ padding: '10px 14px', fontWeight: 700, fontSize: 12, color: 'var(--primary)' }}>{order.orderNumber}</td>
-                    <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text-sub)' }}>
-                      {new Date(order.orderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                      <span style={{ display: 'block', fontSize: 11, color: '#94A3B8' }}>
-                        {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 14px', fontWeight: 600 }}>{order.salesmanName}</td>
-                    <td style={{ padding: '10px 14px' }}>{order.customerName}</td>
-                    <td style={{ padding: '10px 14px', color: 'var(--text-sub)', fontSize: 12 }}>{order.routeName}</td>
-                    <td style={{ padding: '10px 14px', textAlign: 'right' }}>{order.itemCount}</td>
-                    <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700 }}>{order.totalQty.toFixed(0)}</td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '3px 8px', borderRadius: 12, fontWeight: 700 }} className={meta.color}>
-                        {meta.icon} {meta.label}
-                      </span>
-                    </td>
-                    <td onClick={e => e.stopPropagation()} style={{ padding: '8px 14px' }}>
-                      {isPending && activeTab === 'pending' && (
-                        <button
-                          style={{ padding: '5px 12px', borderRadius: 7, border: 'none', background: 'linear-gradient(135deg,#16A34A,#22C55E)', color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', boxShadow: '0 2px 6px rgba(22,163,74,0.25)' }}
-                          onClick={() => handlePackOne(order.id, false)}
-                        >
-                          Pack ✓
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* ── Detail Modal ──────────────────────────────────────────────────────── */}
+      {/* Detail Modal */}
       {detailOrder && (
         <OrderDetailModal
           order={detailOrder}
@@ -16304,65 +23725,106 @@ export default function WarehouseDashboard() {
 
 <file path="src/pages/Warehouse/WarehouseLoading.tsx">
 // PATH: src/pages/Warehouse/WarehouseLoading.tsx
-// FIXED:
-//  1. NaN warning on <select value> — routeId state is now always string, never number
-//  2. "Loading Sheet" heading was white-on-white — now uses --text (dark slate)
-//  3. Full-width layout using page-content class so it fills the page properly
-//  4. Better colour palette: teal accent for warehouse, clear section hierarchy
+// UPDATED: Phase 6 - Added route search, mobile improvements
 
 import { useEffect, useState } from 'react';
-import { Truck, Download, Loader2, Package, CheckCircle2 } from 'lucide-react';
+import { Truck, Download, Loader2, Package, CheckCircle2, Search, X } from 'lucide-react';
 import { reportsApi, routesApi } from '../../api/services';
 import type { RouteDto } from '../../types';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
 export default function WarehouseLoading() {
-  const [routes,      setRoutes]      = useState<RouteDto[]>([]);
-  const [date,        setDate]        = useState(today());
-  // ── FIXED: always string so <select value> never receives NaN ─────────────
-  const [routeId,     setRouteId]     = useState<string>('');
+  const isMobile = useIsMobile();
+  const [routes, setRoutes] = useState<RouteDto[]>([]);
+  const [filteredRoutes, setFilteredRoutes] = useState<RouteDto[]>([]);
+  const [date, setDate] = useState(today());
+  const [routeId, setRouteId] = useState<string>('');
+  const [search, setSearch] = useState('');
   const [downloading, setDownloading] = useState(false);
-  const [error,       setError]       = useState('');
-  const [success,     setSuccess]     = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     routesApi.list().then(r => {
       setRoutes(r);
-      // auto-select only route if exactly one exists
-      if (r.length === 1) setRouteId(String(r[0].id));
-    }).catch(() => {});
+      setFilteredRoutes(r);
+      if (r.length > 0) {
+        setRouteId(String(r[0].id));
+      }
+    }).catch((err) => {
+      console.error('Failed to load routes:', err);
+      setError('Could not load routes. Please refresh the page.');
+    });
   }, []);
+
+  // Filter routes by search
+  useEffect(() => {
+    if (!search.trim()) {
+      setFilteredRoutes(routes);
+    } else {
+      const q = search.toLowerCase();
+      setFilteredRoutes(routes.filter(r => 
+        r.name.toLowerCase().includes(q) ||
+        (r.assignedSalesmanName && r.assignedSalesmanName.toLowerCase().includes(q))
+      ));
+    }
+  }, [search, routes]);
 
   const download = async () => {
     setError('');
     setSuccess(false);
-    if (!routeId) { setError('Please select a route first.'); return; }
+    
+    if (!routeId) { 
+      setError('Please select a route first.'); 
+      return; 
+    }
+    
+    if (!date) {
+      setError('Please select a date.');
+      return;
+    }
+    
     setDownloading(true);
+    
     try {
-      const blob = await reportsApi.loadingSheet(date, Number(routeId));
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href     = url;
-      a.download = `loading-sheet-${date}-route${routeId}.pdf`;
+      const blob = await reportsApi.loadingSheet(date, routeId);
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      const selectedRoute = routes.find(r => String(r.id) === routeId);
+      const routeName = selectedRoute?.name || routeId;
+      const safeRouteName = routeName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      
+      a.download = `loading-sheet-${date}-${safeRouteName}.pdf`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      
       setSuccess(true);
       setTimeout(() => setSuccess(false), 4000);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Download failed. Please try again.');
+      console.error('Download error:', e);
+      const errorMessage = e instanceof Error ? e.message : 'Download failed. Please try again.';
+      setError(errorMessage);
     } finally {
       setDownloading(false);
     }
   };
 
+  const selectedRouteName = routes.find(r => String(r.id) === routeId)?.name || '';
+
   return (
     <div className="page-content">
-      {/* ── Page Header ──────────────────────────────────────────────────── */}
+      {/* Page Header */}
       <div style={{ marginBottom: 28 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <div style={{
             width: 48, height: 48, borderRadius: 14,
             background: 'linear-gradient(135deg,#0E7490 0%,#06B6D4 100%)',
@@ -16373,19 +23835,24 @@ export default function WarehouseLoading() {
             <Truck size={22} color="#fff" />
           </div>
           <div>
-            {/* FIXED: was text-white (invisible on white bg) — now slate heading */}
             <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text)', margin: 0, letterSpacing: '-0.03em' }}>
               Loading Sheet
             </h1>
             <p style={{ color: 'var(--text-sub)', fontSize: 14, marginTop: 2 }}>
-              Warehouse Portal — Generate & download route PDF
+              Generate & download route loading PDF
             </p>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
-        {/* ── Left: What is a Loading Sheet ──────────────────────────────── */}
+      {/* Two column layout - stacks on mobile */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', 
+        gap: 24, 
+        alignItems: 'start' 
+      }}>
+        {/* Left: Info Card */}
         <div className="card" style={{ borderLeft: '4px solid #06B6D4' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
             <div style={{
@@ -16408,7 +23875,7 @@ export default function WarehouseLoading() {
           </div>
         </div>
 
-        {/* ── Right: Generate Report form ─────────────────────────────────── */}
+        {/* Right: Generate Report Form */}
         <div className="card">
           <h2 style={{
             fontSize: 12, fontWeight: 700, color: 'var(--text-sub)',
@@ -16431,12 +23898,11 @@ export default function WarehouseLoading() {
             />
           </div>
 
-          {/* Route */}
+          {/* Route Select */}
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
               Route
             </label>
-            {/* FIXED: value is always string, never number — eliminates NaN warning */}
             <select
               className="input"
               style={{ width: '100%' }}
@@ -16446,10 +23912,15 @@ export default function WarehouseLoading() {
               <option value="">Select a route…</option>
               {routes.map(r => (
                 <option key={String(r.id)} value={String(r.id)}>
-                  {r.name}
+                  {r.name} {r.assignedSalesmanName ? `(${r.assignedSalesmanName})` : ''}
                 </option>
               ))}
             </select>
+            {selectedRouteName && (
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                Selected: <strong>{selectedRouteName}</strong>
+              </p>
+            )}
           </div>
 
           {/* Error / Success */}
@@ -16459,7 +23930,7 @@ export default function WarehouseLoading() {
               borderRadius: 8, padding: '10px 14px', marginBottom: 14,
               fontSize: 13, color: '#DC2626',
             }}>
-              {error}
+              ⚠️ {error}
             </div>
           )}
           {success && (
@@ -16480,14 +23951,14 @@ export default function WarehouseLoading() {
             disabled={downloading || !routeId}
             style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              gap: 8, padding: '12px 20px', borderRadius: 10, border: 'none',
-              background: routeId
+              gap: 8, padding: '14px 20px', borderRadius: 10, border: 'none',
+              background: routeId && !downloading
                 ? 'linear-gradient(135deg,#0E7490 0%,#06B6D4 100%)'
                 : '#E2E8F0',
-              color: routeId ? '#fff' : '#94A3B8',
-              fontSize: 14, fontWeight: 700, cursor: routeId ? 'pointer' : 'not-allowed',
+              color: routeId && !downloading ? '#fff' : '#94A3B8',
+              fontSize: 14, fontWeight: 700, cursor: routeId && !downloading ? 'pointer' : 'not-allowed',
               fontFamily: 'inherit',
-              boxShadow: routeId ? '0 4px 14px rgba(6,182,212,0.30)' : 'none',
+              boxShadow: routeId && !downloading ? '0 4px 14px rgba(6,182,212,0.30)' : 'none',
               transition: 'all 0.15s',
             }}
           >
@@ -16499,51 +23970,95 @@ export default function WarehouseLoading() {
         </div>
       </div>
 
-      {/* ── Quick-Select Route Grid ──────────────────────────────────────── */}
-      {routes.length > 1 && (
+      {/* Quick Select Route Section with Search */}
+      {routes.length > 0 && (
         <div style={{ marginTop: 32 }}>
-          <h2 style={{
-            fontSize: 12, fontWeight: 700, color: 'var(--text-sub)',
-            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14,
-          }}>
-            Quick Select Route
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-            {routes.map(r => {
-              const isActive = routeId === String(r.id);
-              return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+            <h2 style={{
+              fontSize: 12, fontWeight: 700, color: 'var(--text-sub)',
+              textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0,
+            }}>
+              Quick Select Route
+            </h2>
+            
+            {/* Search input for routes */}
+            <div style={{ position: 'relative', minWidth: isMobile ? '100%' : 200 }}>
+              <Search size={14} style={{
+                position: 'absolute', left: 10, top: '50%',
+                transform: 'translateY(-50%)', color: '#94A3B8',
+              }} />
+              <input
+                type="text"
+                placeholder="Search routes..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{
+                  width: '100%', padding: '8px 12px 8px 32px',
+                  border: '1px solid #E2E8F0', borderRadius: 8,
+                  fontSize: 13, outline: 'none',
+                }}
+              />
+              {search && (
                 <button
-                  key={String(r.id)}
-                  onClick={() => setRouteId(String(r.id))}
+                  onClick={() => setSearch('')}
                   style={{
-                    background: isActive ? 'rgba(6,182,212,0.08)' : '#fff',
-                    border: isActive ? '2px solid #06B6D4' : '1px solid var(--border)',
-                    borderRadius: 12, padding: '14px 16px', cursor: 'pointer',
-                    textAlign: 'left', transition: 'all 0.15s', fontFamily: 'inherit',
-                    boxShadow: isActive ? '0 0 0 3px rgba(6,182,212,0.12)' : 'var(--shadow-sm)',
+                    position: 'absolute', right: 10, top: '50%',
+                    transform: 'translateY(-50%)', background: 'none',
+                    border: 'none', cursor: 'pointer', color: '#94A3B8',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{
-                      width: 34, height: 34, borderRadius: 9,
-                      background: isActive ? 'rgba(6,182,212,0.15)' : '#F1F5F9',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
-                      <Truck size={16} color={isActive ? '#0E7490' : '#94A3B8'} />
-                    </div>
-                    <div>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: isActive ? '#0E7490' : 'var(--text)', margin: 0 }}>
-                        {r.name}
-                      </p>
-                      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                        {(r as any).salesman ?? r.assignedSalesmanName ?? 'Unassigned'}
-                      </p>
-                    </div>
-                  </div>
+                  <X size={12} />
                 </button>
-              );
-            })}
+              )}
+            </div>
           </div>
+
+          {filteredRoutes.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>
+              No routes match "{search}"
+            </div>
+          ) : (
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(220px, 1fr))', 
+              gap: 12 
+            }}>
+              {filteredRoutes.map(r => {
+                const isActive = routeId === String(r.id);
+                return (
+                  <button
+                    key={String(r.id)}
+                    onClick={() => setRouteId(String(r.id))}
+                    style={{
+                      background: isActive ? 'rgba(6,182,212,0.08)' : '#fff',
+                      border: isActive ? '2px solid #06B6D4' : '1px solid var(--border)',
+                      borderRadius: 12, padding: '14px 16px', cursor: 'pointer',
+                      textAlign: 'left', transition: 'all 0.15s', fontFamily: 'inherit',
+                      boxShadow: isActive ? '0 0 0 3px rgba(6,182,212,0.12)' : 'var(--shadow-sm)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 34, height: 34, borderRadius: 9,
+                        background: isActive ? 'rgba(6,182,212,0.15)' : '#F1F5F9',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <Truck size={16} color={isActive ? '#0E7490' : '#94A3B8'} />
+                      </div>
+                      <div>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: isActive ? '#0E7490' : 'var(--text)', margin: 0 }}>
+                          {r.name}
+                        </p>
+                        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                          {r.assignedSalesmanName || 'Unassigned'}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -16552,8 +24067,15 @@ export default function WarehouseLoading() {
 </file>
 
 <file path="src/store/authStore.ts">
+// PATH: src/store/authStore.ts
+// UPDATED: Added useHasHydrated() hook so pages can wait for Zustand
+// to finish rehydrating from localStorage before making redirect decisions.
+// Without this, token/user briefly appear null on first paint even when
+// the user IS logged in — causing spurious redirects to /login.
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useEffect, useState } from 'react';
 import type { AuthUser, UserRole } from '../types';
 
 interface AuthState {
@@ -16595,6 +24117,33 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 );
+
+// ── Hydration guard ────────────────────────────────────────────────────────────
+// Returns true once Zustand has finished rehydrating state from localStorage.
+// Use this in any component that makes routing decisions based on auth state,
+// so they wait for the real value instead of the initial null.
+export function useHasHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(
+    // Synchronously true if already hydrated (e.g. on subsequent renders)
+    useAuthStore.persist.hasHydrated()
+  );
+
+  useEffect(() => {
+    // If not already hydrated, subscribe to the onFinishHydration event
+    if (!hydrated) {
+      const unsub = useAuthStore.persist.onFinishHydration(() => {
+        setHydrated(true);
+      });
+      // Re-check in case hydration completed between the useState call and here
+      if (useAuthStore.persist.hasHydrated()) {
+        setHydrated(true);
+      }
+      return unsub;
+    }
+  }, [hydrated]);
+
+  return hydrated;
+}
 
 // ── Role guards ────────────────────────────────────────────────────────────────
 export function useRole(): UserRole | null {
@@ -17373,7 +24922,7 @@ export interface SalesmanIncentiveSummaryDto {
   totalIncentive?:       number;
   totalIncentiveEarned?: number;
   pendingPayout?:        number;
-  qualifiedOrders?:      number;
+  qualifiedOrders?:      number;          // ← ADD THIS
   breakdown?:            IncentiveBreakdownDto[];
   productBreakdown?:     ProductIncentiveBreakdownDto[];
 }
@@ -17421,6 +24970,7 @@ export function fmtDate(d: string | Date): string {
 
 <file path="src/vite-env.d.ts">
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/client" />
 </file>
 
 <file path="tailwind.config.js">
@@ -17497,11 +25047,12 @@ export default {
 
 <file path="vite.config.ts">
 // PATH: vite.config.ts
-// UPDATED: Added vite-plugin-pwa so the app installs on any Android/Apple
-//          tablet or phone directly from the browser (no app store needed).
-//
-// Before running: npm install vite-plugin-pwa -D
-// Also place icon-192.png and icon-512.png inside /public/
+// UPDATED: Full PWA configuration
+//  - Offline app-shell caching (JS/CSS/HTML/fonts)
+//  - API calls always go to network (never served stale)
+//  - Role-based deep links work after install (start_url: '/')
+//  - Auto-updates: new SW activates when user navigates after deploy
+//  - Separate maskable icon declared for Android adaptive icons
 
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -17510,56 +25061,184 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   plugins: [
     react(),
+
     VitePWA({
+      // 'autoUpdate' = new service worker activates on next navigation.
+      // Users never see a stale version for more than one page view.
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png'],
+
+      // Files to pre-cache during the build (app shell)
+      includeAssets: [
+        'icons/icon.svg',
+        'icons/icon-16.png',
+        'icons/icon-32.png',
+        'icons/icon-72.png',
+        'icons/icon-96.png',
+        'icons/icon-128.png',
+        'icons/icon-144.png',
+        'icons/icon-152.png',
+        'icons/icon-167.png',
+        'icons/icon-180.png',
+        'icons/icon-192.png',
+        'icons/icon-512.png',
+      ],
+
+      // ── Web App Manifest ─────────────────────────────────────────────────
       manifest: {
-        name: 'FMCG Distribution',
-        short_name: 'FMCGDist',
-        description: 'FMCG Distribution Management — Orders, Routes, Warehouse',
-        start_url: '/',
-        display: 'standalone',       // ← full screen, no browser bar on tablet/phone
-        background_color: '#F1F5F9',
-        theme_color: '#2563EB',
-        orientation: 'any',
+        name:             'FMCG Distribution',
+        short_name:       'FMCGDist',
+        description:      'Routes · Orders · Warehouse · Settlement',
+        start_url:        '/',
+        scope:            '/',
+        display:          'standalone',      // no browser chrome when installed
+        background_color: '#F1F5F9',         // matches --bg in index.css
+        theme_color:      '#2563EB',         // matches --primary
+        orientation:      'any',             // works portrait and landscape
+        lang:             'en-IN',
+        categories:       ['business', 'productivity'],
+
         icons: [
+          // Standard icons — used by Android/Chrome and desktop
+          { src: '/icons/icon-72.png',  sizes: '72x72',   type: 'image/png' },
+          { src: '/icons/icon-96.png',  sizes: '96x96',   type: 'image/png' },
+          { src: '/icons/icon-128.png', sizes: '128x128', type: 'image/png' },
+          { src: '/icons/icon-144.png', sizes: '144x144', type: 'image/png' },
+          { src: '/icons/icon-152.png', sizes: '152x152', type: 'image/png' },
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          // Maskable — Android adaptive icon (fills the rounded-square shape)
+          // This MUST be a separate file with safe-zone padding around the logo
           {
-            src: '/icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: '/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-          },
-          {
-            src: '/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
+            src:     '/icons/icon-512-maskable.png',
+            sizes:   '512x512',
+            type:    'image/png',
             purpose: 'maskable',
+          },
+          // SVG fallback for modern browsers
+          {
+            src:     '/icons/icon.svg',
+            sizes:   'any',
+            type:    'image/svg+xml',
+            purpose: 'any',
+          },
+        ],
+
+        // ── Shortcuts — appear on long-press of home screen icon (Android) ──
+        shortcuts: [
+          {
+            name:  'My Routes',
+            url:   '/salesman/routes',
+            icons: [{ src: '/icons/icon-96.png', sizes: '96x96' }],
+          },
+          {
+            name:  'Orders',
+            url:   '/admin/orders',
+            icons: [{ src: '/icons/icon-96.png', sizes: '96x96' }],
           },
         ],
       },
+
+      // ── Workbox (service worker caching strategy) ────────────────────────
       workbox: {
-        // Cache all app pages so the shell loads even on weak connections
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        // Don't cache API calls — always fetch fresh data from server
+        // Pre-cache the complete app shell (all build output)
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
+
+        // Raise the per-file size limit (default 2 MB is too small for JS bundles)
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+
+        // ── Runtime caching rules (in priority order) ──────────────────────
         runtimeCaching: [
+          // 1. API calls — always network, never stale
+          //    Covers both /api/... and the direct backend URL
           {
-            urlPattern: /^https?:\/\/.*\/api\//,
-            handler: 'NetworkOnly',
+            urlPattern: /\/api\//,
+            handler:    'NetworkOnly',
+          },
+
+          // 2. Google Fonts CSS — stale-while-revalidate (fast + fresh)
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/,
+            handler:    'StaleWhileRevalidate',
+            options: {
+              cacheName: 'google-fonts-stylesheets',
+            },
+          },
+
+          // 3. Google Fonts binary files — cache-first for 1 year (they never change)
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/,
+            handler:    'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-webfonts',
+              expiration: {
+                maxEntries:    30,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+
+          // 4. Everything else (navigation) — network-first with offline fallback
+          {
+            urlPattern:   ({ request }: { request: Request }) => request.mode === 'navigate',
+            handler:      'NetworkFirst',
+            options: {
+              cacheName: 'pages',
+              networkTimeoutSeconds: 5,
+              cacheableResponse: { statuses: [200] },
+            },
           },
         ],
+
+        // Navigate to index.html for any unmatched URL (SPA fallback)
+        navigateFallback:       '/index.html',
+        navigateFallbackDenylist: [/^\/api\//, /^\/icons\//],
+
+        // Clean up old caches when SW updates
+        cleanupOutdatedCaches: true,
+
+        // Skip waiting — new SW activates immediately
+        skipWaiting: true,
+        clientsClaim: true,
+      },
+
+      // Inject the service-worker registration into the app entry point
+      injectRegister: 'auto',
+
+      // Show the generated sw.js source in DevTools
+      devOptions: {
+        enabled: true,
+        type:    'module',
       },
     }),
   ],
+
+  // ── Dev server ───────────────────────────────────────────────────────────
   server: {
-    port: 3000,
+    host:         true,
+    port:         3000,
+    allowedHosts: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5002',
+        target:       'http://localhost:5002',
         changeOrigin: true,
+      },
+    },
+  },
+
+  // ── Build ────────────────────────────────────────────────────────────────
+  build: {
+    // Larger chunk warning threshold (PWA bundles are naturally bigger)
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        // Split vendor code into separate cacheable chunks
+        manualChunks: {
+          'react-vendor':  ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor':     ['lucide-react'],
+          'state-vendor':  ['zustand'],
+          'http-vendor':   ['axios'],
+        },
       },
     },
   },

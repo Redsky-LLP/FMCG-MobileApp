@@ -1,8 +1,37 @@
+// PATH: src/App.tsx
+// FIX: Landing page was flashing to /login because Zustand rehydrates
+// localStorage ASYNCHRONOUSLY. For ~50ms on first paint token=null even
+// when user IS logged in. RequireAuth saw null → navigated to /login.
+//
+// Fix: read localStorage SYNCHRONOUSLY with getTokenFromStorage().
+// No new dependencies, no hooks needed.
+
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore, useIsAdmin, useIsSalesman, useIsAccounts, useIsWarehouse } from './store/authStore';
 import { Navbar } from './components/layout/Navbar';
 import { PageLoader } from './components/ui';
+import { useIsMobile } from './hooks/useIsMobile';
+import { MobileLayout } from './components/layout/MobileLayout';
+
+// ── Synchronous auth check ───────────────────────────────────────────────────
+// Reads localStorage directly — same data Zustand persist uses, but synchronously.
+// Returns the stored user object, or null if not logged in.
+function getStoredAuth(): { token: string; role: string } | null {
+  try {
+    const raw = localStorage.getItem('fmcg_auth');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // Zustand persist wraps state under { state: { ... } }
+    const state = parsed?.state ?? parsed;
+    const token = state?.token ?? state?.user?.token;
+    const role  = state?.user?.role;
+    if (token && role) return { token, role };
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 // ── Auth ────────────────────────────────────────────────────────────────────
 const LoginPage    = lazy(() => import('./pages/Auth/LoginPage').then(m => ({ default: m.LoginPage })));
@@ -14,7 +43,7 @@ const HomeHub = lazy(() => import('./pages/Dashboard/HomeHub').then(m => ({ defa
 const MainHub = lazy(() => import('./pages/Dashboard/MainHub').then(m => ({ default: m.MainHub })));
 
 // ── Landing Page ───────────────────────────────────────────────────────────
-const LandingPage = lazy(() => import('./pages/Landing/LandingPage').then(m => ({ default: m.LandingPage })));
+const LandingPage = lazy(() => import('./pages/Landing/LandingPage_live').then(m => ({ default: m.LandingPage })));
 
 // ── Admin ───────────────────────────────────────────────────────────────────
 const AdminDashboard  = lazy(() => import('./pages/Admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
@@ -31,7 +60,7 @@ const AdminReports    = lazy(() => import('./pages/Admin/AdminReports').then(m =
 const AdminAnalytics  = lazy(() => import('./pages/Admin/AdminAnalytics').then(m => ({ default: m.AdminAnalytics })));
 const AdminIncentives = lazy(() => import('./pages/Admin/AdminIncentives').then(m => ({ default: m.AdminIncentives })));
 const AdminSettings   = lazy(() => import('./pages/Admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
-const AdminUsers      = lazy(() =>import('./pages/Admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
+const AdminUsers      = lazy(() => import('./pages/Admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
 const AdminDailyAssignment = lazy(() =>
   import('./pages/Admin/AdminDailyAssignment').then(m => ({ default: m.AdminDailyAssignment }))
 );
@@ -56,10 +85,20 @@ const AccountsReports    = lazy(() => import('./pages/Accounts/AccountsReports')
 const WarehouseLoading = lazy(() => import('./pages/Warehouse/WarehouseLoading'));
 
 // ── Guards ──────────────────────────────────────────────────────────────────
+
+// RequireAuth: uses synchronous localStorage read so there is no race with
+// Zustand's async rehydration. If the token is in localStorage, the user
+// passes through immediately — no flash redirect to /login.
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const token = useAuthStore(s => s.token);
   const location = useLocation();
-  if (!token) return <Navigate to="/login" state={{ from: location }} replace />;
+  // First check synchronous localStorage (instant, no async gap)
+  const stored = getStoredAuth();
+  // Also check Zustand store in case it was set this session without page reload
+  const zustandToken = useAuthStore(s => s.token);
+
+  if (!stored?.token && !zustandToken) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
   return <>{children}</>;
 }
 
@@ -72,8 +111,47 @@ function RequireRole({ allowed, children }: { allowed: string[]; children: React
   return <>{children}</>;
 }
 
+// ── "/" route — RootRoute ────────────────────────────────────────────────────
+// Reads auth state synchronously from localStorage.
+// Logged-in user → redirect to their dashboard immediately, zero flash.
+// Guest → render the public landing page.
+function RootRoute() {
+  const stored = getStoredAuth();
+
+  if (stored?.token && stored?.role) {
+    const role = stored.role.toLowerCase();
+    if (role === 'superadmin' || role === 'admin') return <Navigate to="/admin/dashboard"     replace />;
+    if (role === 'salesman')                        return <Navigate to="/salesman/routes"     replace />;
+    if (role === 'accounts')                        return <Navigate to="/accounts/settlement" replace />;
+    if (role === 'warehouse')                       return <Navigate to="/warehouse/loading"   replace />;
+  }
+
+  // Not logged in — show the public marketing page
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <LandingPage />
+    </Suspense>
+  );
+}
+
 // ── Shell ───────────────────────────────────────────────────────────────────
 function AppShell() {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-[var(--bg)]">
+        <main>
+          <Suspense fallback={<PageLoader />}>
+            <MobileLayout>
+              <Outlet />
+            </MobileLayout>
+          </Suspense>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       <Navbar />
@@ -84,19 +162,6 @@ function AppShell() {
       </main>
     </div>
   );
-}
-
-// ── Root redirect ────────────────────────────────────────────────────────────
-function RootRedirect() {
-  const user = useAuthStore(s => s.user);
-  const token = useAuthStore(s => s.token);
-  if (!token || !user) return <Navigate to="/login" replace />;
-  const role = user.role?.toLowerCase() ?? '';
-  if (role === 'superadmin' || role === 'admin') return <Navigate to="/admin/dashboard" replace />;
-  if (role === 'salesman')  return <Navigate to="/salesman/dashboard"  replace />;
-  if (role === 'accounts')  return <Navigate to="/accounts/dashboard"  replace />;
-  if (role === 'warehouse') return <Navigate to="/warehouse/dashboard" replace />;
-  return <Navigate to="/login" replace />;
 }
 
 function Unauthorized() {
@@ -121,14 +186,14 @@ export default function App() {
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* Public */}
-          <Route path="/login"    element={<LoginPage />} />
-          <Route path="/pin-login"  element={<PinLoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          {/* Public auth pages */}
+          <Route path="/login"        element={<LoginPage />} />
+          <Route path="/pin-login"    element={<PinLoginPage />} />
+          <Route path="/register"     element={<RegisterPage />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Public landing — unauthenticated users see this; LandingPage itself redirects logged-in users */}
-          <Route path="/" element={<LandingPage />} />
+          {/* Root: shows landing page for guests, redirects logged-in users */}
+          <Route path="/" element={<RootRoute />} />
 
           {/* Protected shell */}
           <Route element={<RequireAuth><AppShell /></RequireAuth>}>
@@ -141,8 +206,8 @@ export default function App() {
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard"  element={<HomeHub />} />
               <Route path="routes"     element={<AdminRoutes />} />
-              <Route path="routes/edit/:id" element={<EditRoutePage />} />
-              <Route path="routes/assign/:id" element={<AssignRoutePage />} />
+              <Route path="routes/edit/:id"     element={<EditRoutePage />} />
+              <Route path="routes/assign/:id"   element={<AssignRoutePage />} />
               <Route path="routes/override/:id" element={<OverrideRoutePage />} />
               <Route path="assignments" element={<AdminDailyAssignment />} />
               <Route path="customers"  element={<AdminCustomers />} />
@@ -163,7 +228,7 @@ export default function App() {
               element={<RequireRole allowed={['Salesman', 'Admin', 'SuperAdmin']}><Outlet /></RequireRole>}
             >
               <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard"                                 element={<MainHub />} /> 
+              <Route path="dashboard"                                 element={<MainHub />} />
               <Route path="routes"                                    element={<SalesmanRoutes />} />
               <Route path="routes/:routeId/execute"                   element={<RouteExecution />} />
               <Route path="routes/:routeId/orders"                    element={<SalesmanOrders />} />

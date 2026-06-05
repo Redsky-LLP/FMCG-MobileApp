@@ -2,19 +2,62 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FMCG Distribution Platform</title>
+
+    <!-- ── Viewport ───────────────────────────────────────────────────────── -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- ── PWA manifest ──────────────────────────────────────────────────── -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- ── Theme colours (matched to --primary / --bg in index.css) ──────── -->
+    <!-- Android Chrome toolbar -->
+    <meta name="theme-color" content="#2563EB" />
+    <!-- iOS Safari status bar -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="FMCGDist" />
+
+    <!-- ── Apple touch icons (Safari "Add to Home Screen") ───────────────── -->
+    <!-- vite-plugin-pwa doesn't auto-inject apple-touch-icon, so we do it here -->
+    <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-167.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png" />
+
+    <!-- ── Splash screens for iOS (optional but polished) ────────────────── -->
+    <!-- iPhone SE / 8 -->
+    <link rel="apple-touch-startup-image"
+      media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)"
+      href="/icons/splash-750x1334.png" />
+    <!-- iPhone 14 Pro -->
+    <link rel="apple-touch-startup-image"
+      media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)"
+      href="/icons/splash-1170x2532.png" />
+
+    <!-- ── Favicon ────────────────────────────────────────────────────────── -->
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16.png" />
+
+    <!-- ── SEO / Social ───────────────────────────────────────────────────── -->
+    <meta name="description" content="FMCG Distribution — Routes, Orders, Warehouse, Settlement" />
+    <meta name="application-name" content="FMCGDist" />
+
+    <!-- ── Title ─────────────────────────────────────────────────────────── -->
+    <title>FMCG Distribution</title>
+
+    <!-- ── Fonts ──────────────────────────────────────────────────────────── -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <!-- Malayalam script support — Manjari renders Kh/Mal glyphs cleanly -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Malayalam script support -->
     <link
       href="https://fonts.googleapis.com/css2?family=Manjari:wght@400;700&display=swap"
       rel="stylesheet"
-    >
+    />
   </head>
   <body>
     <div id="root"></div>

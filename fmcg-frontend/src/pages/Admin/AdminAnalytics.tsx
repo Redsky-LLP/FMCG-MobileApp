@@ -7,11 +7,13 @@ import type {
 } from '../../types';
 import { fmt, fmtNum } from '../../types';
 import { PageLoader, Alert, Badge } from '../../components/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const today = new Date().toISOString().split('T')[0];
 const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
 
 export function AdminAnalytics() {
+  const isMobile = useIsMobile();
   const [routes,      setRoutes]      = useState<RouteDto[]>([]);
   const [groups,      setGroups]      = useState<ProductGroupDto[]>([]);
   const [prodProfit,  setProdProfit]  = useState<ProductProfitabilityDto[]>([]);
@@ -46,8 +48,8 @@ export function AdminAnalytics() {
   useEffect(() => { load(); }, [fromDate, toDate, showNeg]);
 
   const tabs = [
-    { key: 'products', label: 'Product Profitability' },
-    { key: 'routes',   label: 'Route Profitability' },
+    { key: 'products', label: 'Products' },
+    { key: 'routes',   label: 'Routes' },
     { key: 'top',      label: 'Top Products' },
   ] as const;
 
@@ -58,15 +60,16 @@ export function AdminAnalytics() {
 
   return (
     <div className="page-content">
-      <div className="section-header">
+      {/* Header */}
+      <div className="section-header" style={{ flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Analytics</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Profitability & variance insights</p>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <input className="input" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ width: 'auto' }} />
-          <span style={{ color: 'var(--text-muted)' }}>to</span>
-          <input className="input" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ width: 'auto' }} />
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input className="input" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ width: isMobile ? '100%' : 'auto' }} />
+          {!isMobile && <span style={{ color: 'var(--text-muted)' }}>to</span>}
+          <input className="input" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ width: isMobile ? '100%' : 'auto' }} />
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
             <input type="checkbox" checked={showNeg} onChange={(e) => setShowNeg(e.target.checked)} />
             Negative only
@@ -78,14 +81,14 @@ export function AdminAnalytics() {
       {error && <Alert variant="error">{error}</Alert>}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0, overflowX: 'auto' }}>
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             style={{
               padding: '8px 16px', fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer',
-              background: 'transparent', fontFamily: 'inherit',
+              background: 'transparent', fontFamily: 'inherit', whiteSpace: 'nowrap',
               color: tab === t.key ? 'var(--primary)' : 'var(--text-muted)',
               borderBottom: `2px solid ${tab === t.key ? 'var(--primary)' : 'transparent'}`,
               marginBottom: -1, transition: 'all 0.12s',
@@ -100,107 +103,226 @@ export function AdminAnalytics() {
         <>
           {/* Product Profitability */}
           {tab === 'products' && (
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <table className="tbl">
-                <thead>
-                  <tr>
-                    <th>Product</th><th>Group</th><th>Qty Sold</th><th>Revenue</th>
-                    <th>Variance</th><th>Margin%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {prodProfit.length === 0 && (
-                    <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</td></tr>
-                  )}
-                  {prodProfit.map((p) => (
-                    <tr key={p.productId}>
-                      <td style={{ fontWeight: 600 }}>{p.productName}</td>
-                      <td style={{ fontSize: 13 }}>{p.productGroupName ?? '—'}</td>
-                      <td>{fmtNum(p.totalQuantity)}</td>
-                      <td style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(p.totalSales)}</td>
-                      <td>
-                        <span className={p.totalVariance < 0 ? 'profit-negative' : 'profit-positive'} style={{ fontWeight: 600 }}>
+            isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {prodProfit.length === 0 && (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</div>
+                )}
+                {prodProfit.map((p) => (
+                  <div key={p.productId} className="card" style={{ padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{p.productName}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{p.productGroupName ?? '—'}</div>
+                      </div>
+                      <Badge variant={p.totalVariance < 0 ? 'red' : 'green'}>{fmtMargin(p.marginPercentage)}</Badge>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Qty Sold</div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{fmtNum(p.totalQuantity)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Revenue</div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--green)' }}>{fmt(p.totalSales)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Variance</div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }} className={p.totalVariance < 0 ? 'profit-negative' : 'profit-positive'}>
                           {p.totalVariance < 0 ? '▼' : '▲'} {fmt(Math.abs(p.totalVariance))}
-                        </span>
-                      </td>
-                      <td>
-                        <Badge variant={p.totalVariance < 0 ? 'red' : 'green'}>{fmtMargin(p.marginPercentage)}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table className="tbl" style={{ minWidth: 560 }}>
+                    <thead>
+                      <tr>
+                        <th>Product</th><th>Group</th><th>Qty Sold</th><th>Revenue</th>
+                        <th>Variance</th><th>Margin%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {prodProfit.length === 0 && (
+                        <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</td></tr>
+                      )}
+                      {prodProfit.map((p) => (
+                        <tr key={p.productId}>
+                          <td style={{ fontWeight: 600 }}>{p.productName}</td>
+                          <td style={{ fontSize: 13 }}>{p.productGroupName ?? '—'}</td>
+                          <td>{fmtNum(p.totalQuantity)}</td>
+                          <td style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(p.totalSales)}</td>
+                          <td>
+                            <span className={p.totalVariance < 0 ? 'profit-negative' : 'profit-positive'} style={{ fontWeight: 600 }}>
+                              {p.totalVariance < 0 ? '▼' : '▲'} {fmt(Math.abs(p.totalVariance))}
+                            </span>
+                          </td>
+                          <td>
+                            <Badge variant={p.totalVariance < 0 ? 'red' : 'green'}>{fmtMargin(p.marginPercentage)}</Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
           )}
 
           {/* Route Profitability */}
           {tab === 'routes' && (
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <table className="tbl">
-                <thead>
-                  <tr>
-                    <th>Route</th><th>Orders</th><th>Customers</th><th>Revenue</th>
-                    <th>Variance</th><th>Margin%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {routeProfit.length === 0 && (
-                    <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</td></tr>
-                  )}
-                  {routeProfit.map((r) => (
-                    <tr key={r.routeId}>
-                      <td style={{ fontWeight: 600 }}>{r.routeName}</td>
-                      <td>{fmtNum(r.orderCount)}</td>
-                      <td>{fmtNum(r.customerCount)}</td>
-                      <td style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(r.totalSales)}</td>
-                      <td>
-                        <span className={r.totalVariance < 0 ? 'profit-negative' : 'profit-positive'} style={{ fontWeight: 600 }}>
+            isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {routeProfit.length === 0 && (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</div>
+                )}
+                {routeProfit.map((r) => (
+                  <div key={r.routeId} className="card" style={{ padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{r.routeName}</div>
+                      <Badge variant={r.totalVariance < 0 ? 'red' : 'green'}>{fmtMargin(r.marginPercentage)}</Badge>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Orders</div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{fmtNum(r.orderCount)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Customers</div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{fmtNum(r.customerCount)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Revenue</div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--green)' }}>{fmt(r.totalSales)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Variance</div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }} className={r.totalVariance < 0 ? 'profit-negative' : 'profit-positive'}>
                           {r.totalVariance < 0 ? '▼' : '▲'} {fmt(Math.abs(r.totalVariance))}
-                        </span>
-                      </td>
-                      <td>
-                        <Badge variant={r.totalVariance < 0 ? 'red' : 'green'}>{fmtMargin(r.marginPercentage)}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table className="tbl" style={{ minWidth: 520 }}>
+                    <thead>
+                      <tr>
+                        <th>Route</th><th>Orders</th><th>Customers</th><th>Revenue</th>
+                        <th>Variance</th><th>Margin%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {routeProfit.length === 0 && (
+                        <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</td></tr>
+                      )}
+                      {routeProfit.map((r) => (
+                        <tr key={r.routeId}>
+                          <td style={{ fontWeight: 600 }}>{r.routeName}</td>
+                          <td>{fmtNum(r.orderCount)}</td>
+                          <td>{fmtNum(r.customerCount)}</td>
+                          <td style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(r.totalSales)}</td>
+                          <td>
+                            <span className={r.totalVariance < 0 ? 'profit-negative' : 'profit-positive'} style={{ fontWeight: 600 }}>
+                              {r.totalVariance < 0 ? '▼' : '▲'} {fmt(Math.abs(r.totalVariance))}
+                            </span>
+                          </td>
+                          <td>
+                            <Badge variant={r.totalVariance < 0 ? 'red' : 'green'}>{fmtMargin(r.marginPercentage)}</Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
           )}
 
           {/* Top Products */}
           {tab === 'top' && (
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <table className="tbl">
-                <thead>
-                  <tr><th>#</th><th>Product</th><th>Qty</th><th>Revenue</th><th>Variance</th><th>Orders</th></tr>
-                </thead>
-                <tbody>
-                  {topProducts.length === 0 && (
-                    <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</td></tr>
-                  )}
-                  {topProducts.map((p, i) => (
-                    <tr key={p.productId}>
-                      <td>
-                        <span style={{
-                          display: 'inline-flex', width: 24, height: 24, borderRadius: 6,
-                          background: i < 3 ? 'var(--primary-glow)' : 'var(--border-lite)',
-                          color: i < 3 ? 'var(--primary)' : 'var(--text-muted)',
-                          alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700,
-                        }}>
-                          {i + 1}
-                        </span>
-                      </td>
-                      <td style={{ fontWeight: 600 }}>{p.productName}</td>
-                      <td>{fmtNum(p.totalQuantity)}</td>
-                      <td style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(p.totalSales)}</td>
-                      <td className={p.totalVariance >= 0 ? 'profit-positive' : 'profit-negative'}>{fmt(p.totalVariance)}</td>
-                      <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{p.orderCount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {topProducts.length === 0 && (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</div>
+                )}
+                {topProducts.map((p, i) => (
+                  <div key={p.productId} className="card" style={{ padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+                        background: i < 3 ? 'var(--primary-glow)' : 'var(--border-lite)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 14, fontWeight: 800,
+                        color: i < 3 ? 'var(--primary)' : 'var(--text-muted)',
+                      }}>
+                        #{i + 1}
+                      </div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)', flex: 1 }}>{p.productName}</div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Qty</div>
+                        <div style={{ fontWeight: 700, fontSize: 13 }}>{fmtNum(p.totalQuantity)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Revenue</div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--green)' }}>{fmt(p.totalSales)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Variance</div>
+                        <div style={{ fontWeight: 700, fontSize: 13 }} className={p.totalVariance >= 0 ? 'profit-positive' : 'profit-negative'}>{fmt(p.totalVariance)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Orders</div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-muted)' }}>{p.orderCount}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table className="tbl" style={{ minWidth: 500 }}>
+                    <thead>
+                      <tr><th>#</th><th>Product</th><th>Qty</th><th>Revenue</th><th>Variance</th><th>Orders</th></tr>
+                    </thead>
+                    <tbody>
+                      {topProducts.length === 0 && (
+                        <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No data for this period</td></tr>
+                      )}
+                      {topProducts.map((p, i) => (
+                        <tr key={p.productId}>
+                          <td>
+                            <span style={{
+                              display: 'inline-flex', width: 24, height: 24, borderRadius: 6,
+                              background: i < 3 ? 'var(--primary-glow)' : 'var(--border-lite)',
+                              color: i < 3 ? 'var(--primary)' : 'var(--text-muted)',
+                              alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700,
+                            }}>
+                              {i + 1}
+                            </span>
+                          </td>
+                          <td style={{ fontWeight: 600 }}>{p.productName}</td>
+                          <td>{fmtNum(p.totalQuantity)}</td>
+                          <td style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(p.totalSales)}</td>
+                          <td className={p.totalVariance >= 0 ? 'profit-positive' : 'profit-negative'}>{fmt(p.totalVariance)}</td>
+                          <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{p.orderCount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
           )}
         </>
       )}

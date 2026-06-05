@@ -1,27 +1,38 @@
 // PATH: src/pages/Salesman/SalesmanOrders.tsx
-// FIXED: Show only today's orders, improved submit all flow
+// UPDATED: Added SubmitAllOrdersModal and improved order status display
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, Plus, ChevronRight, CheckCircle2, Clock, 
   Calendar, Package, Eye, List, User, Search, Send, 
-  RefreshCw, AlertCircle, Edit2, ClipboardList, Truck
+  RefreshCw, AlertCircle, Edit2, ClipboardList, Truck,
+  Filter, X, CheckCircle
 } from 'lucide-react';
 import { customersApi, ordersApi, routesApi } from '../../api/services';
 import { CustomerDto, OrderDto, RouteDto, OrderStatus, fmt, OrderItemDto } from '../../types';
-import { Spinner, EmptyState, Badge, Alert, ConfirmModal } from '../../components/ui';
+import { Spinner, EmptyState, Badge, Alert } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
+import { SubmitAllOrdersModal } from '../../components/salesman/SubmitAllOrdersModal';
 
-const statusMeta: Record<number, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
-  [OrderStatus.Draft]:           { label: 'Draft',           color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: <Clock size={14} /> },
-  [OrderStatus.PendingApproval]: { label: 'Pending Approval', color: 'text-blue-700',  bg: 'bg-blue-50', border: 'border-blue-200',   icon: <CheckCircle2 size={14} /> },
-  [OrderStatus.Approved]:        { label: 'Approved',        color: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-200', icon: <CheckCircle2 size={14} /> },
-  [OrderStatus.Packed]:          { label: 'Packed',          color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200', icon: <CheckCircle2 size={14} /> },
-  [OrderStatus.Closed]:          { label: 'Closed',          color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200', icon: <CheckCircle2 size={14} /> },
-};
+// Status badge component - UPDATED to show appropriate action
+function OrderStatusBadge({ status }: { status: number }) {
+  const config: Record<number, { label: string; bg: string; text: string; icon: React.ReactNode; canEdit: boolean }> = {
+    1: { label: 'Draft', bg: 'bg-amber-50', text: 'text-amber-700', icon: <Edit2 size={12} />, canEdit: true },
+    2: { label: 'Pending Approval', bg: 'bg-blue-50', text: 'text-blue-700', icon: <Clock size={12} />, canEdit: false },
+    3: { label: 'Approved', bg: 'bg-indigo-50', text: 'text-indigo-700', icon: <CheckCircle size={12} />, canEdit: false },
+    4: { label: 'Packed', bg: 'bg-purple-50', text: 'text-purple-700', icon: <Package size={12} />, canEdit: false },
+    5: { label: 'Closed', bg: 'bg-green-50', text: 'text-green-700', icon: <CheckCircle2 size={12} />, canEdit: false },
+  };
+  const c = config[status] || config[1];
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${c.bg} ${c.text}`}>
+      {c.icon} {c.label}
+    </span>
+  );
+}
 
-// Order item card component
+// Order item card component - UPDATED with delivery status
 function OrderItemCard({ 
   order, 
   routeId, 
@@ -36,8 +47,23 @@ function OrderItemCard({
   const [showItems, setShowItems] = useState(false);
   const itemCount = order.items?.length ?? 0;
   const totalQuantity = order.items?.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
-  const status = statusMeta[order.status] || statusMeta[OrderStatus.Draft];
   const isDraft = order.status === OrderStatus.Draft;
+  const isPendingApproval = order.status === OrderStatus.PendingApproval;
+  const isApproved = order.status === OrderStatus.Approved;
+  const isPacked = order.status === OrderStatus.Packed;
+  const isClosed = order.status === OrderStatus.Closed;
+  
+  // Determine delivery status message
+  let deliveryStatus = null;
+  if (isPendingApproval) {
+    deliveryStatus = { text: 'Waiting for admin approval', color: 'text-blue-600', bg: 'bg-blue-50' };
+  } else if (isApproved) {
+    deliveryStatus = { text: 'Approved - Ready for packing', color: 'text-indigo-600', bg: 'bg-indigo-50' };
+  } else if (isPacked) {
+    deliveryStatus = { text: 'Packed - Ready for delivery', color: 'text-purple-600', bg: 'bg-purple-50' };
+  } else if (isClosed) {
+    deliveryStatus = { text: 'Delivered ✓', color: 'text-green-600', bg: 'bg-green-50' };
+  }
 
   const getProductName = (item: OrderItemDto): string => {
     return item.productName || item.productNameMl || 'Unknown';
@@ -62,9 +88,7 @@ function OrderItemCard({
               )}
             </div>
           </div>
-          <span className={`inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-full font-medium border ${status.bg} ${status.color} ${status.border} flex-shrink-0`}>
-            {status.icon} {status.label}
-          </span>
+          <OrderStatusBadge status={order.status} />
         </div>
 
         <div className="flex items-center justify-between mt-2">
@@ -77,6 +101,17 @@ function OrderItemCard({
             <p className="text-xl font-bold text-slate-800">{fmt(order.totalAmount ?? 0)}</p>
           </div>
         </div>
+        
+        {/* Delivery Status Indicator */}
+        {deliveryStatus && (
+          <div className={`mt-3 pt-2 ${deliveryStatus.bg} rounded-lg px-3 py-2 text-sm ${deliveryStatus.color} flex items-center gap-2`}>
+            {isPendingApproval && <Clock size={14} />}
+            {isApproved && <CheckCircle size={14} />}
+            {isPacked && <Package size={14} />}
+            {isClosed && <CheckCircle2 size={14} />}
+            <span>{deliveryStatus.text}</span>
+          </div>
+        )}
         
         {order.items && order.items.length > 0 && (
           <div className="mt-3 pt-3 border-t border-slate-100">
@@ -106,14 +141,24 @@ function OrderItemCard({
         )}
       </div>
 
+      {/* Only show Edit button for Draft orders */}
       {isDraft && (
         <div className="border-t border-slate-100 bg-slate-50 px-4 py-2 flex justify-end">
           <button
             onClick={(e) => { e.stopPropagation(); onEdit(String(order.id), String(order.customerId)); }}
-            className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
           >
             <Edit2 size={14} /> Edit Order
           </button>
+        </div>
+      )}
+      
+      {/* Show Completed message for Closed orders */}
+      {isClosed && (
+        <div className="border-t border-green-100 px-4 py-2 bg-green-50">
+          <div className="flex items-center gap-2 text-sm text-green-700">
+            <CheckCircle2 size={14} /> Order completed and delivered
+          </div>
         </div>
       )}
     </div>
@@ -169,6 +214,7 @@ export default function SalesmanOrders() {
   const [orders, setOrders] = useState<OrderDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<number | 'all'>('all');
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [submittingAll, setSubmittingAll] = useState(false);
@@ -233,18 +279,19 @@ export default function SalesmanOrders() {
         await ordersApi.submit(String(order.id));
         submitted++;
       }
-      setSuccessMsg(`✅ ${submitted} order(s) submitted for admin approval! Redirecting to Routes...`);
+      setSuccessMsg(`✅ ${submitted} order(s) submitted for admin approval!`);
+      setShowSubmitConfirm(false);
+      await load(); // Refresh the page to show updated status
       
-      // Wait 2 seconds then go to Routes page
       setTimeout(() => {
-        navigate('/salesman/routes');
-      }, 2000);
+        setSuccessMsg('');
+      }, 4000);
       
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Submission failed';
       setError(errorMessage);
+    } finally {
       setSubmittingAll(false);
-      setShowSubmitConfirm(false);
     }
   };
 
@@ -257,15 +304,17 @@ export default function SalesmanOrders() {
     (c.phoneNumber && c.phoneNumber.includes(search))
   );
 
-  const filteredOrders = orders.filter(order =>
-    order.customerName?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredOrders = orders.filter(order => {
+    if (statusFilter !== 'all' && order.status !== statusFilter) return false;
+    if (!search) return true;
+    return order.customerName?.toLowerCase().includes(search.toLowerCase());
+  });
 
-  const totalAmount = orders.reduce((s, o) => s + (o.totalAmount ?? 0), 0);
   const draftCount = orders.filter(o => o.status === OrderStatus.Draft).length;
   const pendingCount = orders.filter(o => o.status === OrderStatus.PendingApproval).length;
+  const approvedCount = orders.filter(o => o.status === OrderStatus.Approved || o.status === OrderStatus.Packed).length;
   const closedCount = orders.filter(o => o.status === OrderStatus.Closed).length;
-  const allCustomersDone = customers.length > 0 && customersWithOrders.size === customers.length;
+  const totalAmount = orders.reduce((s, o) => s + (o.totalAmount ?? 0), 0);
 
   const handleNavigateToOrder = (customerId: string) => {
     navigate(`/salesman/routes/${routeId}/order/${customerId}`);
@@ -310,7 +359,7 @@ export default function SalesmanOrders() {
                   disabled={submittingAll}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 shadow-sm"
                 >
-                  {submittingAll ? <Spinner size={16} /> : <Send size={16} />}
+                  <Send size={16} />
                   Submit All ({draftCount})
                 </button>
               )}
@@ -339,7 +388,7 @@ export default function SalesmanOrders() {
               <span className="ml-2 font-bold text-blue-700">{pendingCount}</span>
             </div>
             <div className="shrink-0 bg-green-50 border border-green-200 rounded-lg px-4 py-2">
-              <span className="text-sm text-green-600">Closed</span>
+              <span className="text-sm text-green-600">Completed</span>
               <span className="ml-2 font-bold text-green-700">{closedCount}</span>
             </div>
           </div>
@@ -360,13 +409,49 @@ export default function SalesmanOrders() {
             </div>
           )}
 
-          {/* Completion message */}
-          {allCustomersDone && draftCount === 0 && (
-            <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-center text-sm text-emerald-700">
-              <CheckCircle2 size={16} className="inline mr-1" />
-              All customers have orders! Click "Submit All" to send to admin.
-            </div>
-          )}
+          {/* Filter chips */}
+          <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                statusFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+              }`}
+            >
+              All ({orders.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter(OrderStatus.Draft)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                statusFilter === OrderStatus.Draft ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700'
+              }`}
+            >
+              Draft ({draftCount})
+            </button>
+            <button
+              onClick={() => setStatusFilter(OrderStatus.PendingApproval)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                statusFilter === OrderStatus.PendingApproval ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700'
+              }`}
+            >
+              Pending ({pendingCount})
+            </button>
+            <button
+              onClick={() => setStatusFilter(OrderStatus.Approved)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                statusFilter === OrderStatus.Approved ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-700'
+              }`}
+            >
+              Approved ({approvedCount})
+            </button>
+            <button
+              onClick={() => setStatusFilter(OrderStatus.Closed)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                statusFilter === OrderStatus.Closed ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700'
+              }`}
+            >
+              Completed ({closedCount})
+            </button>
+          </div>
 
           {/* Search input */}
           <div className="relative mt-3">
@@ -378,6 +463,14 @@ export default function SalesmanOrders() {
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -406,7 +499,7 @@ export default function SalesmanOrders() {
           <ClipboardList size={16} /> Today's Orders
         </h2>
         
-        {filteredOrders.length === 0 && !search && (
+        {filteredOrders.length === 0 && !search && statusFilter === 'all' && (
           <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
             <Package size={48} className="mx-auto text-slate-300 mb-3 opacity-40" />
             <p className="text-slate-500">No orders yet today</p>
@@ -414,9 +507,15 @@ export default function SalesmanOrders() {
           </div>
         )}
         
-        {filteredOrders.length === 0 && search && (
+        {filteredOrders.length === 0 && (search || statusFilter !== 'all') && (
           <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
-            <p className="text-slate-500">No orders match "{search}"</p>
+            <p className="text-slate-500">No orders match your filters</p>
+            <button 
+              onClick={() => { setSearch(''); setStatusFilter('all'); }}
+              className="mt-2 text-sm text-blue-600 hover:text-blue-700"
+            >
+              Clear filters
+            </button>
           </div>
         )}
 
@@ -452,15 +551,13 @@ export default function SalesmanOrders() {
         </div>
       )}
 
-      {/* Submit All Confirmation Modal */}
-      <ConfirmModal
-        open={showSubmitConfirm}
-        title="Submit All Orders"
-        message={`You are about to submit ${draftCount} draft order(s). Once submitted, they will be sent to the admin for approval and cannot be edited further. Do you want to continue?`}
-        confirmLabel={`Submit ${draftCount} Order${draftCount > 1 ? 's' : ''}`}
+      {/* Submit All Orders Modal */}
+      <SubmitAllOrdersModal
+        isOpen={showSubmitConfirm}
+        draftCount={draftCount}
+        isSubmitting={submittingAll}
         onConfirm={handleSubmitAllOrders}
         onCancel={() => setShowSubmitConfirm(false)}
-        loading={submittingAll}
       />
     </div>
   );

@@ -1,9 +1,9 @@
 // PATH: src/pages/Salesman/OrderEntry/OrderEntry.tsx
-// Updated with cleaner layout and per-unit pricing support
+// UPDATED: Phase 4 - Mobile-enhanced order entry with improved error handling
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Package, Printer, Edit3, Lock, Plus, Save, ChevronLeft, ChevronRight, ShoppingCart, X, CalendarDays } from 'lucide-react';
+import { ArrowLeft, Package, Printer, Edit3, Lock, Plus, Save, ChevronLeft, ChevronRight, ShoppingCart, X, CalendarDays, Minus, Trash2, Search, Filter, CheckCircle2, Clock } from 'lucide-react';
 import { customersApi, ordersApi, productsApi } from '../../../api/services';
 import { OrderStatus, fmtNum, CustomerOrderHistoryDto, CreateOrderCommand, ProductUnitPriceDto } from '../../../types';
 import { Spinner } from '../../../components/ui';
@@ -14,6 +14,50 @@ import { WholesaleItemsTable } from './components/WholesaleItemsTable';
 import { RetailItemsSection } from './components/RetailItemsSection';
 import { OrderSummary } from './components/OrderSummary';
 import { PreviousOrdersModal } from './components/PreviousOrdersModal';
+
+// Quantity input component with +/- buttons (touch-friendly)
+function QuantityInput({ 
+  value, 
+  onIncrement, 
+  onDecrement, 
+  onChange,
+  disabled 
+}: { 
+  value: number; 
+  onIncrement: () => void; 
+  onDecrement: () => void; 
+  onChange: (val: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={onDecrement}
+        disabled={disabled || value <= 1}
+        className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-100 text-slate-600 disabled:opacity-40 active:scale-95 transition-all"
+        type="button"
+      >
+        <Minus size={16} />
+      </button>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className="w-16 text-center py-2 border border-slate-200 rounded-lg text-base font-semibold focus:outline-none focus:border-blue-400 bg-white"
+      />
+      <button
+        onClick={onIncrement}
+        disabled={disabled}
+        className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-100 text-slate-600 disabled:opacity-40 active:scale-95 transition-all"
+        type="button"
+      >
+        <Plus size={16} />
+      </button>
+    </div>
+  );
+}
 
 export default function OrderEntry() {
   const { routeId, customerId } = useParams<{ routeId: string; customerId: string }>();
@@ -26,6 +70,8 @@ export default function OrderEntry() {
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [productGroupFilter, setProductGroupFilter] = useState<string>('');
+  const [productGroups, setProductGroups] = useState<{ id: string; name: string }[]>([]);
   const [existingOrder, setExistingOrder] = useState<any>(null);
   const [lines, setLines] = useState<LineItem[]>([]);
   const [remarks, setRemarks] = useState('');
@@ -51,19 +97,40 @@ export default function OrderEntry() {
     if (!customerId) setError('Invalid customer. Please go back.');
   }, [routeId, customerId]);
 
-  // Load unit prices for products
+  // Load product groups for filter - with error handling
+  useEffect(() => {
+    async function loadGroups() {
+      try {
+        const { productGroupsApi } = await import('../../../api/services');
+        const groups = await productGroupsApi.getAll();
+        setProductGroups(groups.map(g => ({ id: g.id, name: g.name })));
+      } catch (err) {
+        // Silently fail - groups filter is optional
+        console.warn('Failed to load product groups:', err);
+        setProductGroups([]);
+      }
+    }
+    loadGroups();
+  }, []);
+
+  // Load unit prices for products - with better error handling
   const loadUnitPrices = useCallback(async (products: any[]) => {
     const priceMap: Record<string, ProductUnitPriceDto> = {};
-    for (const product of products) {
-      try {
-        const prices = await productsApi.getUnitPrices(product.id);
-        const defaultPrice = prices.find(p => p.isDefault) || prices[0];
-        if (defaultPrice) {
-          priceMap[product.id] = defaultPrice;
+    // Limit concurrent requests to avoid overwhelming the server
+    const batchSize = 5;
+    for (let i = 0; i < products.length; i += batchSize) {
+      const batch = products.slice(i, i + batchSize);
+      await Promise.all(batch.map(async (product) => {
+        try {
+          const prices = await productsApi.getUnitPrices(product.id);
+          const defaultPrice = prices.find(p => p.isDefault) || prices[0];
+          if (defaultPrice) {
+            priceMap[product.id] = defaultPrice;
+          }
+        } catch {
+          // No unit prices configured, use base price - this is expected for many products
         }
-      } catch {
-        // No unit prices configured, use base price
-      }
+      }));
     }
     setUnitPrices(priceMap);
     return priceMap;
@@ -120,21 +187,28 @@ export default function OrderEntry() {
           setPreviousOrders(history);
         }
       } catch { /* no history */ }
+    }).catch((err) => {
+      console.error('Failed to load order entry data:', err);
+      setError('Failed to load data. Please refresh the page.');
     }).finally(() => setLoading(false));
   }, [customerId, routeId, loadUnitPrices]);
 
+  // Filter products by search and group
   useEffect(() => {
-    if (!search.trim()) {
-      setFilteredProducts(allProducts);
-    } else {
+    let filtered = allProducts;
+    if (search.trim()) {
       const q = search.toLowerCase();
-      setFilteredProducts(allProducts.filter((p: any) =>
+      filtered = filtered.filter((p: any) =>
         p.nameEnglish.toLowerCase().includes(q) ||
         (p.nameMalayalam && p.nameMalayalam.toLowerCase().includes(q)) ||
         (p.productGroupName && p.productGroupName.toLowerCase().includes(q))
-      ));
+      );
     }
-  }, [search, allProducts]);
+    if (productGroupFilter) {
+      filtered = filtered.filter((p: any) => p.productGroupId === productGroupFilter);
+    }
+    setFilteredProducts(filtered);
+  }, [search, allProducts, productGroupFilter]);
 
   useEffect(() => {
     if (isSidebarOpen && searchInputRef.current && canEdit) {
@@ -330,9 +404,9 @@ export default function OrderEntry() {
       <div className={`transition-all duration-300 ${isSidebarOpen && canEdit ? 'mr-[340px]' : 'mr-0'}`}>
         
         {/* Header */}
-        <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-5 py-4 shadow-sm print:shadow-none print:border-0">
+        <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 py-3 shadow-sm print:shadow-none print:border-0">
           <div className="max-w-4xl mx-auto">
-            {/* ── Top row: back + action buttons ── */}
+            {/* Top row: back + action buttons */}
             <div className="flex items-center justify-between mb-2">
               <button
                 onClick={() => navigate(`/salesman/routes/${routeId}/orders`)}
@@ -352,26 +426,13 @@ export default function OrderEntry() {
                   </button>
                 )}
                 {previousOrders.length > 0 && canEdit && (
-                  /* ── Page-flip style button — easy large tap target on tablet ── */
                   <button
                     onClick={() => setShowPreviousModal(true)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 5,
-                      padding: '7px 12px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                      background: 'linear-gradient(135deg,#7C3AED 0%,#A855F7 100%)',
-                      color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
-                      boxShadow: '0 2px 8px rgba(124,58,237,0.28)', minHeight: 38,
-                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
                   >
-                    <ChevronLeft size={15} style={{ marginRight: -5 }} />
-                    <ChevronRight size={15} style={{ marginRight: 4 }} />
-                    Previous Orders
-                    <span style={{
-                      background: 'rgba(255,255,255,0.22)', borderRadius: 20,
-                      padding: '1px 7px', fontSize: 11, fontWeight: 800, marginLeft: 2,
-                    }}>
-                      {previousOrders.length}
-                    </span>
+                    <ChevronLeft size={14} />
+                    <ChevronRight size={14} />
+                    Previous
                   </button>
                 )}
                 <button
@@ -383,26 +444,17 @@ export default function OrderEntry() {
               </div>
             </div>
 
-            {/* ── Date highlight bar — always visible so salesman knows today's date ── */}
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '8px 14px', borderRadius: 10, marginBottom: 10,
-              background: 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)',
-              boxShadow: '0 2px 8px rgba(37,99,235,0.20)',
-            }} className="print:hidden">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CalendarDays size={15} color="rgba(255,255,255,0.85)" />
-                <span style={{ fontSize: 13, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>
+            {/* Date bar */}
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-gradient-to-r from-blue-900 to-blue-700 mb-3 print:hidden">
+              <div className="flex items-center gap-2">
+                <CalendarDays size={14} color="rgba(255,255,255,0.85)" />
+                <span className="text-sm font-semibold text-white">
                   {new Date().toLocaleDateString('en-IN', {
                     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
                   })}
                 </span>
               </div>
-              <span style={{
-                fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
-                background: 'rgba(255,255,255,0.18)', color: '#fff',
-                padding: '2px 8px', borderRadius: 20,
-              }}>TODAY</span>
+              <span className="text-xs font-bold text-white bg-white/20 px-2 py-0.5 rounded-full">TODAY</span>
             </div>
             
             <div className="pb-2">
@@ -429,17 +481,12 @@ export default function OrderEntry() {
             )}
             {orderStatus === OrderStatus.PendingApproval && (
               <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs">
-                <Edit3 size={12} /> Pending Approval - Waiting for admin
+                <Clock size={12} /> Pending Approval
               </div>
             )}
             {orderStatus === OrderStatus.Approved && (
               <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-indigo-100 text-indigo-700 rounded-md text-xs">
-                <Edit3 size={12} /> Approved - Being prepared
-              </div>
-            )}
-            {orderStatus === OrderStatus.Packed && (
-              <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-purple-100 text-purple-700 rounded-md text-xs">
-                <Edit3 size={12} /> Packed - Ready for delivery
+                <CheckCircle2 size={12} /> Approved
               </div>
             )}
             {orderStatus === OrderStatus.Closed && (
@@ -451,7 +498,7 @@ export default function OrderEntry() {
         </div>
 
         {/* Main Bill Area */}
-        <div className="max-w-4xl mx-auto px-5 py-5">
+        <div className="max-w-4xl mx-auto px-4 py-4 pb-32">
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 flex justify-between">
               <span>{error}</span>
@@ -470,7 +517,7 @@ export default function OrderEntry() {
               <Lock size={16} className="inline mr-1" />
               {orderStatus === OrderStatus.Closed
                 ? 'This order has been closed. No further edits allowed.'
-                : 'This order has been submitted and is waiting for admin approval. No further edits allowed.'}
+                : 'This order has been submitted and is waiting for admin approval.'}
             </div>
           )}
 
@@ -478,9 +525,9 @@ export default function OrderEntry() {
           {canEdit && lines.length === 0 && !isSidebarOpen && (
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="w-full mb-5 flex items-center justify-center gap-2 py-3 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 text-blue-600 font-medium text-sm hover:bg-blue-100 transition-colors"
+              className="w-full mb-5 flex items-center justify-center gap-2 py-4 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 text-blue-600 font-medium text-base hover:bg-blue-100 transition-colors"
             >
-              <Plus size={16} /> Add Wholesale Items
+              <Plus size={18} /> Add Products
             </button>
           )}
 
@@ -515,7 +562,8 @@ export default function OrderEntry() {
 
           {/* Save Button - Fixed Bottom */}
           {canEdit && (
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 shadow-lg print:hidden z-30">
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg print:hidden"
+            style={{ zIndex: 55, padding: '12px 12px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px) + 70px)' }}>
               <div className="max-w-4xl mx-auto flex items-center justify-between">
                 <div className="text-sm text-slate-500">
                   {lines.length} item{lines.length !== 1 ? 's' : ''} · {totalItems} units
@@ -523,7 +571,7 @@ export default function OrderEntry() {
                 <button
                   onClick={handleSaveOrder}
                   disabled={saving}
-                  className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 active:scale-95"
                 >
                   <Save size={16} />
                   {saving ? 'Saving...' : hasExistingOrder ? 'Update Order' : 'Save as Draft'}
@@ -544,6 +592,9 @@ export default function OrderEntry() {
         onAddProduct={addProduct}
         canEdit={canEdit}
         searchInputRef={searchInputRef}
+        productGroupFilter={productGroupFilter}
+        onGroupFilterChange={setProductGroupFilter}
+        productGroups={productGroups}
       />
 
       <PreviousOrdersModal

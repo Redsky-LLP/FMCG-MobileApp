@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.ProductGroups.Commands;
-using FMCG.Distribution.Application.Features.ProductGroups.Queries;  // ← new
+using FMCG.Distribution.Application.Features.ProductGroups.Queries;
 
 namespace FMCG.Distribution.API.Controllers;
 
 [ApiController]
 [Route("api/v1/[controller]")]
-[Authorize(Roles = "Admin,SuperAdmin")]
+[Authorize(Roles = "Admin,SuperAdmin,Salesman,Accounts,Warehouse")]
 public class ProductGroupsController(IMediator mediator) : ControllerBase
 {
     [HttpGet]
@@ -20,6 +20,7 @@ public class ProductGroupsController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<Result<CreateProductGroupResponse>>> Create(
         [FromBody] CreateProductGroupCommand command)
     {
@@ -28,6 +29,7 @@ public class ProductGroupsController(IMediator mediator) : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<Result<UpdateProductGroupResponse>>> Update(
         Guid id, [FromBody] UpdateProductGroupCommand command)
     {
@@ -38,6 +40,7 @@ public class ProductGroupsController(IMediator mediator) : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<Result<bool>>> Delete(Guid id)
     {
         var result = await mediator.Send(new DeleteProductGroupCommand { Id = id });

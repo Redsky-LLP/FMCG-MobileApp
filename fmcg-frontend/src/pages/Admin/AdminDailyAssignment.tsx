@@ -1,11 +1,12 @@
 // PATH: src/pages/Admin/AdminDailyAssignment.tsx
-// NEW FILE — Admin daily route assignment management with week view
+// UPDATED: Mobile-responsive week grid (scrollable) + stacked day list on very small screens
 
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, RefreshCw, Plus, Trash2, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw, Plus, Trash2, CalendarDays, List } from 'lucide-react';
 import { routeAssignmentsApi, usersApi, routesApi } from '../../api/services';
 import type { RouteAssignmentDto, UserDto, RouteDto } from '../../types';
 import { PageLoader, Spinner, Alert, EmptyState } from '../../components/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 function dateStr(d: Date) { return d.toISOString().slice(0, 10); }
 function addDays(d: Date, n: number) {
@@ -15,7 +16,7 @@ function addDays(d: Date, n: number) {
 }
 function weekStart(d: Date) {
   const r = new Date(d);
-  r.setDate(r.getDate() - r.getDay() + 1); // Monday
+  r.setDate(r.getDate() - r.getDay() + 1);
   return r;
 }
 function fmtDay(d: Date) {
@@ -23,6 +24,7 @@ function fmtDay(d: Date) {
 }
 
 export function AdminDailyAssignment() {
+  const isMobile = useIsMobile();
   const [weekAnchor, setWeekAnchor] = useState(weekStart(new Date()));
   const [assignments, setAssignments] = useState<RouteAssignmentDto[]>([]);
   const [routes,      setRoutes]      = useState<RouteDto[]>([]);
@@ -30,9 +32,9 @@ export function AdminDailyAssignment() {
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState('');
   const [success,     setSuccess]     = useState('');
+  const [mobileView,  setMobileView]  = useState<'grid' | 'list'>('list');
 
-  // Add modal
-  const [addModal,    setAddModal]    = useState<string | null>(null); // date string
+  const [addModal,    setAddModal]    = useState<string | null>(null);
   const [addRouteId,  setAddRouteId]  = useState('');
   const [addSalesId,  setAddSalesId]  = useState('');
   const [addNotes,    setAddNotes]    = useState('');
@@ -94,10 +96,89 @@ export function AdminDailyAssignment() {
 
   if (loading) return <PageLoader />;
 
+  // Shared day card renderer
+  const renderDayCard = (day: Date, compact = false) => {
+    const ds = dateStr(day);
+    const isToday = ds === dateStr(new Date());
+    const dayAssignments = assignments.filter(
+      a => dateStr(new Date(a.assignmentDate)) === ds
+    );
+
+    return (
+      <div
+        key={ds}
+        style={{
+          border: `1px solid ${isToday ? 'var(--primary)' : 'var(--border)'}`,
+          borderRadius: 12,
+          padding: compact ? '10px 12px' : 10,
+          background: isToday ? 'var(--primary-glow)' : 'var(--card)',
+          minHeight: compact ? 'auto' : 160,
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div>
+            <p style={{ fontSize: compact ? 12 : 11, color: isToday ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
+              {compact
+                ? day.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
+                : day.toLocaleDateString('en-IN', { weekday: 'short' }).toUpperCase()}
+            </p>
+            {!compact && (
+              <p style={{ fontSize: 15, fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                {day.getDate()}
+              </p>
+            )}
+          </div>
+          <button
+            className="btn btn-ghost btn-icon btn-sm"
+            onClick={() => { setAddModal(ds); setAddRouteId(''); setAddSalesId(''); setAddNotes(''); }}
+            title="Add assignment"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {dayAssignments.length === 0 && (
+            <p style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>No overrides</p>
+          )}
+          {dayAssignments.map(a => (
+            <div
+              key={a.id}
+              style={{
+                background: a.isPermanent ? 'var(--border)' : 'var(--primary-glow)',
+                border: `1px solid ${a.isPermanent ? 'var(--border)' : 'var(--primary)'}`,
+                borderRadius: 6, padding: '4px 6px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, margin: 0, color: a.isPermanent ? 'var(--text-muted)' : 'var(--primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {a.routeName}
+                </p>
+                <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {a.salesmanName}
+                </p>
+              </div>
+              {!a.isPermanent && a.id !== '00000000-0000-0000-0000-000000000000' && (
+                <button
+                  onClick={() => handleDelete(a.id)}
+                  disabled={deleting === a.id}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px', color: 'var(--text-muted)', flexShrink: 0 }}
+                >
+                  {deleting === a.id ? <Spinner size={10} /> : <Trash2 size={10} />}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="page-content">
       {/* Header */}
-      <div className="section-header">
+      <div className="section-header" style={{ flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Daily Route Assignment</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
@@ -107,7 +188,7 @@ export function AdminDailyAssignment() {
         <button className="btn btn-outline btn-sm" onClick={load}><RefreshCw size={14} /></button>
       </div>
 
-      {/* Info banner explaining when to use Daily Assignment */}
+      {/* Info banner */}
       <div className="alert alert-info" style={{ marginBottom: 16, background: 'var(--amber-bg)', border: '1px solid var(--amber)' }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
           <span style={{ fontSize: 20 }}>📅</span>
@@ -115,15 +196,11 @@ export function AdminDailyAssignment() {
             <strong style={{ color: 'var(--amber)' }}>When to use Daily Assignment:</strong>
             <ul style={{ margin: '4px 0 0 20px', fontSize: 12, color: 'var(--text-muted)' }}>
               <li>Salesman is on leave (sick, vacation)</li>
-              <li>Salesman resigned - need temporary coverage until replacement is hired</li>
               <li>Route needs to be covered by a different salesman for a specific day</li>
               <li>Training a new salesman (shadowing an experienced one)</li>
-              <li>Split route between two salesmen for a day</li>
             </ul>
             <p style={{ marginTop: 6, fontSize: 11, color: 'var(--amber)', background: 'rgba(245,158,11,0.1)', padding: '6px 10px', borderRadius: 6 }}>
-              💡 <strong>Important:</strong> This overrides the permanent assignment ONLY for the selected date.
-              The permanent salesman will automatically show up again the next day.
-              To permanently change a route's salesman, edit the route directly.
+              💡 This overrides the permanent assignment ONLY for the selected date.
             </p>
           </div>
         </div>
@@ -133,114 +210,56 @@ export function AdminDailyAssignment() {
       {success && <Alert variant="success">{success}</Alert>}
 
       {/* Week navigator */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <button className="btn btn-outline btn-sm" onClick={() => setWeekAnchor(w => addDays(w, -7))}>
           <ChevronLeft size={16} />
         </button>
-        <span style={{ fontWeight: 600, fontSize: 14 }}>
+        <span style={{ fontWeight: 600, fontSize: 14, flex: 1, minWidth: 200 }}>
           <CalendarDays size={14} style={{ display: 'inline', marginRight: 6 }} />
           {fmtDay(weekDays[0])} — {fmtDay(weekDays[6])}
         </span>
         <button className="btn btn-outline btn-sm" onClick={() => setWeekAnchor(w => addDays(w, 7))}>
           <ChevronRight size={16} />
         </button>
-        <button
-          className="btn btn-outline btn-sm"
-          onClick={() => setWeekAnchor(weekStart(new Date()))}
-          style={{ marginLeft: 4 }}
-        >
+        <button className="btn btn-outline btn-sm" onClick={() => setWeekAnchor(weekStart(new Date()))}>
           This Week
         </button>
+        {/* Mobile view toggle */}
+        {isMobile && (
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => setMobileView(v => v === 'list' ? 'grid' : 'list')}
+            title="Toggle view"
+          >
+            <List size={14} />
+          </button>
+        )}
       </div>
 
-      {/* Week grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
-        {weekDays.map(day => {
-          const ds = dateStr(day);
-          const isToday = ds === dateStr(new Date());
-          const dayAssignments = assignments.filter(
-            a => dateStr(new Date(a.assignmentDate)) === ds
-          );
+      {/* Week grid / list */}
+      {isMobile && mobileView === 'list' ? (
+        /* Mobile: stacked list of days */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {weekDays.map(day => renderDayCard(day, true))}
+        </div>
+      ) : isMobile ? (
+        /* Mobile: compact horizontal scroll */
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(130px, 1fr))', gap: 8, minWidth: 910 }}>
+            {weekDays.map(day => renderDayCard(day, false))}
+          </div>
+        </div>
+      ) : (
+        /* Desktop: 7-col grid */
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
+          {weekDays.map(day => renderDayCard(day, false))}
+        </div>
+      )}
 
-          return (
-            <div
-              key={ds}
-              style={{
-                border: `1px solid ${isToday ? 'var(--primary)' : 'var(--border)'}`,
-                borderRadius: 12,
-                padding: 10,
-                background: isToday ? 'var(--primary-glow)' : 'var(--card)',
-                minHeight: 160,
-              }}
-            >
-              {/* Day header */}
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
-              }}>
-                <div>
-                  <p style={{ fontSize: 11, color: isToday ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
-                    {day.toLocaleDateString('en-IN', { weekday: 'short' }).toUpperCase()}
-                  </p>
-                  <p style={{ fontSize: 15, fontWeight: 800, margin: 0, color: 'var(--text)' }}>
-                    {day.getDate()}
-                  </p>
-                </div>
-                <button
-                  className="btn btn-ghost btn-icon btn-sm"
-                  onClick={() => { setAddModal(ds); setAddRouteId(''); setAddSalesId(''); setAddNotes(''); }}
-                  title="Add assignment"
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-
-              {/* Assignment chips */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {dayAssignments.length === 0 && (
-                  <p style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                    No overrides
-                  </p>
-                )}
-                {dayAssignments.map(a => (
-                  <div
-                    key={a.id}
-                    style={{
-                      background: a.isPermanent ? 'var(--border)' : 'var(--primary-glow)',
-                      border: `1px solid ${a.isPermanent ? 'var(--border)' : 'var(--primary)'}`,
-                      borderRadius: 6, padding: '4px 6px',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 10, fontWeight: 700, margin: 0, color: a.isPermanent ? 'var(--text-muted)' : 'var(--primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {a.routeName}
-                      </p>
-                      <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {a.salesmanName}
-                      </p>
-                    </div>
-                    {!a.isPermanent && a.id !== '00000000-0000-0000-0000-000000000000' && (
-                      <button
-                        onClick={() => handleDelete(a.id)}
-                        disabled={deleting === a.id}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px', color: 'var(--text-muted)', flexShrink: 0 }}
-                        title="Remove override"
-                      >
-                        {deleting === a.id ? <Spinner size={10} /> : <Trash2 size={10} />}
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── Add Assignment Modal ─────────────────────────────────────────── */}
+      {/* Add Assignment Modal */}
       {addModal && (
         <div className="modal-overlay" onClick={() => setAddModal(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ width: 'min(calc(100vw - 32px), 400px)' }}>
             <h3 style={{ marginTop: 0, fontWeight: 700 }}>
               Assign Route — {new Date(addModal + 'T00:00:00').toLocaleDateString('en-IN', {
                 weekday: 'long', day: 'numeric', month: 'long',
@@ -249,45 +268,28 @@ export function AdminDailyAssignment() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 16 }}>
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
-                  Route *
-                </label>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Route *</label>
                 <select className="input" value={addRouteId} onChange={e => setAddRouteId(e.target.value)}>
                   <option value="">Select route…</option>
                   {routes.map(r => <option key={String(r.id)} value={String(r.id)}>{r.name}</option>)}
                 </select>
               </div>
-
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
-                  Salesman *
-                </label>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Salesman *</label>
                 <select className="input" value={addSalesId} onChange={e => setAddSalesId(e.target.value)}>
                   <option value="">Select salesman…</option>
                   {salesmen.map(s => <option key={s.id} value={s.id}>{s.fullName}</option>)}
                 </select>
               </div>
-
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
-                  Notes (optional)
-                </label>
-                <input
-                  className="input"
-                  placeholder="e.g. Covering for Rajesh"
-                  value={addNotes}
-                  onChange={e => setAddNotes(e.target.value)}
-                />
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Notes (optional)</label>
+                <input className="input" placeholder="e.g. Covering for Rajesh" value={addNotes} onChange={e => setAddNotes(e.target.value)} />
               </div>
             </div>
 
             <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
               <button className="btn btn-outline" onClick={() => setAddModal(null)}>Cancel</button>
-              <button
-                className="btn btn-primary"
-                onClick={handleSave}
-                disabled={saving || !addRouteId || !addSalesId}
-              >
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving || !addRouteId || !addSalesId}>
                 {saving ? <Spinner size={16} /> : 'Save Assignment'}
               </button>
             </div>

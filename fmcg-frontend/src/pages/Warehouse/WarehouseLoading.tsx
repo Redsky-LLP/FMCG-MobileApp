@@ -1,28 +1,31 @@
 // PATH: src/pages/Warehouse/WarehouseLoading.tsx
-// FIXED: Proper routeId handling (GUID strings, not numbers)
-// FIXED: Loading sheet download with correct parameters
+// UPDATED: Phase 6 - Added route search, mobile improvements
 
 import { useEffect, useState } from 'react';
-import { Truck, Download, Loader2, Package, CheckCircle2 } from 'lucide-react';
+import { Truck, Download, Loader2, Package, CheckCircle2, Search, X } from 'lucide-react';
 import { reportsApi, routesApi } from '../../api/services';
 import type { RouteDto } from '../../types';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
 export default function WarehouseLoading() {
-  const [routes,      setRoutes]      = useState<RouteDto[]>([]);
-  const [date,        setDate]        = useState(today());
-  const [routeId,     setRouteId]     = useState<string>(''); // Always string (GUID)
+  const isMobile = useIsMobile();
+  const [routes, setRoutes] = useState<RouteDto[]>([]);
+  const [filteredRoutes, setFilteredRoutes] = useState<RouteDto[]>([]);
+  const [date, setDate] = useState(today());
+  const [routeId, setRouteId] = useState<string>('');
+  const [search, setSearch] = useState('');
   const [downloading, setDownloading] = useState(false);
-  const [error,       setError]       = useState('');
-  const [success,     setSuccess]     = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     routesApi.list().then(r => {
       setRoutes(r);
-      // Auto-select first route if available
+      setFilteredRoutes(r);
       if (r.length > 0) {
         setRouteId(String(r[0].id));
       }
@@ -31,6 +34,19 @@ export default function WarehouseLoading() {
       setError('Could not load routes. Please refresh the page.');
     });
   }, []);
+
+  // Filter routes by search
+  useEffect(() => {
+    if (!search.trim()) {
+      setFilteredRoutes(routes);
+    } else {
+      const q = search.toLowerCase();
+      setFilteredRoutes(routes.filter(r => 
+        r.name.toLowerCase().includes(q) ||
+        (r.assignedSalesmanName && r.assignedSalesmanName.toLowerCase().includes(q))
+      ));
+    }
+  }, [search, routes]);
 
   const download = async () => {
     setError('');
@@ -49,15 +65,12 @@ export default function WarehouseLoading() {
     setDownloading(true);
     
     try {
-      // Call the API with routeId as string (GUID)
       const blob = await reportsApi.loadingSheet(date, routeId);
       
-      // Create download link
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       
-      // Find route name for filename
       const selectedRoute = routes.find(r => String(r.id) === routeId);
       const routeName = selectedRoute?.name || routeId;
       const safeRouteName = routeName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
@@ -79,11 +92,13 @@ export default function WarehouseLoading() {
     }
   };
 
+  const selectedRouteName = routes.find(r => String(r.id) === routeId)?.name || '';
+
   return (
     <div className="page-content">
-      {/* ── Page Header ──────────────────────────────────────────────────── */}
+      {/* Page Header */}
       <div style={{ marginBottom: 28 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <div style={{
             width: 48, height: 48, borderRadius: 14,
             background: 'linear-gradient(135deg,#0E7490 0%,#06B6D4 100%)',
@@ -98,14 +113,20 @@ export default function WarehouseLoading() {
               Loading Sheet
             </h1>
             <p style={{ color: 'var(--text-sub)', fontSize: 14, marginTop: 2 }}>
-              Warehouse Portal — Generate & download route PDF
+              Generate & download route loading PDF
             </p>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
-        {/* ── Left: What is a Loading Sheet ──────────────────────────────── */}
+      {/* Two column layout - stacks on mobile */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', 
+        gap: 24, 
+        alignItems: 'start' 
+      }}>
+        {/* Left: Info Card */}
         <div className="card" style={{ borderLeft: '4px solid #06B6D4' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
             <div style={{
@@ -128,7 +149,7 @@ export default function WarehouseLoading() {
           </div>
         </div>
 
-        {/* ── Right: Generate Report form ─────────────────────────────────── */}
+        {/* Right: Generate Report Form */}
         <div className="card">
           <h2 style={{
             fontSize: 12, fontWeight: 700, color: 'var(--text-sub)',
@@ -151,7 +172,7 @@ export default function WarehouseLoading() {
             />
           </div>
 
-          {/* Route */}
+          {/* Route Select */}
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
               Route
@@ -169,6 +190,11 @@ export default function WarehouseLoading() {
                 </option>
               ))}
             </select>
+            {selectedRouteName && (
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                Selected: <strong>{selectedRouteName}</strong>
+              </p>
+            )}
           </div>
 
           {/* Error / Success */}
@@ -199,7 +225,7 @@ export default function WarehouseLoading() {
             disabled={downloading || !routeId}
             style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              gap: 8, padding: '12px 20px', borderRadius: 10, border: 'none',
+              gap: 8, padding: '14px 20px', borderRadius: 10, border: 'none',
               background: routeId && !downloading
                 ? 'linear-gradient(135deg,#0E7490 0%,#06B6D4 100%)'
                 : '#E2E8F0',
@@ -218,51 +244,95 @@ export default function WarehouseLoading() {
         </div>
       </div>
 
-      {/* ── Quick-Select Route Grid ──────────────────────────────────────── */}
+      {/* Quick Select Route Section with Search */}
       {routes.length > 0 && (
         <div style={{ marginTop: 32 }}>
-          <h2 style={{
-            fontSize: 12, fontWeight: 700, color: 'var(--text-sub)',
-            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14,
-          }}>
-            Quick Select Route
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-            {routes.map(r => {
-              const isActive = routeId === String(r.id);
-              return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+            <h2 style={{
+              fontSize: 12, fontWeight: 700, color: 'var(--text-sub)',
+              textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0,
+            }}>
+              Quick Select Route
+            </h2>
+            
+            {/* Search input for routes */}
+            <div style={{ position: 'relative', minWidth: isMobile ? '100%' : 200 }}>
+              <Search size={14} style={{
+                position: 'absolute', left: 10, top: '50%',
+                transform: 'translateY(-50%)', color: '#94A3B8',
+              }} />
+              <input
+                type="text"
+                placeholder="Search routes..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{
+                  width: '100%', padding: '8px 12px 8px 32px',
+                  border: '1px solid #E2E8F0', borderRadius: 8,
+                  fontSize: 13, outline: 'none',
+                }}
+              />
+              {search && (
                 <button
-                  key={String(r.id)}
-                  onClick={() => setRouteId(String(r.id))}
+                  onClick={() => setSearch('')}
                   style={{
-                    background: isActive ? 'rgba(6,182,212,0.08)' : '#fff',
-                    border: isActive ? '2px solid #06B6D4' : '1px solid var(--border)',
-                    borderRadius: 12, padding: '14px 16px', cursor: 'pointer',
-                    textAlign: 'left', transition: 'all 0.15s', fontFamily: 'inherit',
-                    boxShadow: isActive ? '0 0 0 3px rgba(6,182,212,0.12)' : 'var(--shadow-sm)',
+                    position: 'absolute', right: 10, top: '50%',
+                    transform: 'translateY(-50%)', background: 'none',
+                    border: 'none', cursor: 'pointer', color: '#94A3B8',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{
-                      width: 34, height: 34, borderRadius: 9,
-                      background: isActive ? 'rgba(6,182,212,0.15)' : '#F1F5F9',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
-                      <Truck size={16} color={isActive ? '#0E7490' : '#94A3B8'} />
-                    </div>
-                    <div>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: isActive ? '#0E7490' : 'var(--text)', margin: 0 }}>
-                        {r.name}
-                      </p>
-                      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                        {r.assignedSalesmanName || 'Unassigned'}
-                      </p>
-                    </div>
-                  </div>
+                  <X size={12} />
                 </button>
-              );
-            })}
+              )}
+            </div>
           </div>
+
+          {filteredRoutes.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>
+              No routes match "{search}"
+            </div>
+          ) : (
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(220px, 1fr))', 
+              gap: 12 
+            }}>
+              {filteredRoutes.map(r => {
+                const isActive = routeId === String(r.id);
+                return (
+                  <button
+                    key={String(r.id)}
+                    onClick={() => setRouteId(String(r.id))}
+                    style={{
+                      background: isActive ? 'rgba(6,182,212,0.08)' : '#fff',
+                      border: isActive ? '2px solid #06B6D4' : '1px solid var(--border)',
+                      borderRadius: 12, padding: '14px 16px', cursor: 'pointer',
+                      textAlign: 'left', transition: 'all 0.15s', fontFamily: 'inherit',
+                      boxShadow: isActive ? '0 0 0 3px rgba(6,182,212,0.12)' : 'var(--shadow-sm)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 34, height: 34, borderRadius: 9,
+                        background: isActive ? 'rgba(6,182,212,0.15)' : '#F1F5F9',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <Truck size={16} color={isActive ? '#0E7490' : '#94A3B8'} />
+                      </div>
+                      <div>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: isActive ? '#0E7490' : 'var(--text)', margin: 0 }}>
+                          {r.name}
+                        </p>
+                        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                          {r.assignedSalesmanName || 'Unassigned'}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

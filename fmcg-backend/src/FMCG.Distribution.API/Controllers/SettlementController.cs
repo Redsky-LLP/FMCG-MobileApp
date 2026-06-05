@@ -123,18 +123,41 @@ public class SettlementController(IMediator mediator, IApplicationDbContext cont
     // ─────────────────────────────────────────────────────────────────────────
     // GET /api/v1/settlement/status
     // ─────────────────────────────────────────────────────────────────────────
+    // Salesman can view closure status to know if delivery can start
+    // ─────────────────────────────────────────────────────────────────────────
     [HttpGet("status")]
-    [Authorize(Roles = "Admin,SuperAdmin,Accounts")]
+    [Authorize(Roles = "Admin,SuperAdmin,Accounts,Salesman")]
     public async Task<ActionResult<Result<DailyClosureStatusDto>>> GetClosureStatus(
         [FromQuery] DateTime? date)
     {
+        var targetDate = date ?? DateTime.UtcNow.Date;
+        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+        var userId = GetCurrentUserId();
+
+        // For salesman, only return status for today
+        if (userRole == "Salesman" && date == null)
+        {
+            // Return just the closure status without sensitive financial details
+            var closure = await context.DailyClosures
+                .FirstOrDefaultAsync(c => !c.IsDeleted && c.ClosureDate.Date == targetDate);
+
+            var result = new DailyClosureStatusDto
+            {
+                IsClosed = closure != null,
+                ClosedAt = closure?.ClosedAt,
+                Notes = closure?.Notes
+            };
+
+            return Ok(Result<DailyClosureStatusDto>.Success(result));
+        }
+
         var query = new GetDailyClosureStatusQuery
         {
             Date = date
         };
 
-        var result = await mediator.Send(query);
-        return result.IsSuccess ? Ok(result) : BadRequest(result);
+        var fullResult = await mediator.Send(query);
+        return fullResult.IsSuccess ? Ok(fullResult) : BadRequest(fullResult);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

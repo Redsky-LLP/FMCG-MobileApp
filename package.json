@@ -1,0 +1,25 @@
+{
+  "name": "fmcg.distribution.core",
+  "version": "1.0.0",
+  "description": "",
+  "main": "proxy-server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Redsky-LLP/FMCG-MobileApp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Redsky-LLP/FMCG-MobileApp/issues"
+  },
+  "homepage": "https://github.com/Redsky-LLP/FMCG-MobileApp#readme",
+  "dependencies": {
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^4.0.0"
+  }
+}
