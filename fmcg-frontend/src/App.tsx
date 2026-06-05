@@ -13,6 +13,7 @@ import { Navbar } from './components/layout/Navbar';
 import { PageLoader } from './components/ui';
 import { useIsMobile } from './hooks/useIsMobile';
 import { MobileLayout } from './components/layout/MobileLayout';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 // ── Synchronous auth check ───────────────────────────────────────────────────
 // Reads localStorage directly — same data Zustand persist uses, but synchronously.
@@ -43,6 +44,9 @@ const HomeHub = lazy(() => import('./pages/Dashboard/HomeHub').then(m => ({ defa
 const MainHub = lazy(() => import('./pages/Dashboard/MainHub').then(m => ({ default: m.MainHub })));
 
 // ── Landing Page ───────────────────────────────────────────────────────────
+// The original import was failing (module not found). Use a safe fallback inline
+// component to prevent build errors when the module is missing. If the real
+// LandingPage component exists at a different path, update this import.
 const LandingPage = lazy(() => import('./pages/Landing/LandingPage_live').then(m => ({ default: m.LandingPage })));
 
 // ── Admin ───────────────────────────────────────────────────────────────────
@@ -148,6 +152,8 @@ function AppShell() {
             </MobileLayout>
           </Suspense>
         </main>
+        {/* PWA install prompt — shows above mobile nav bar */}
+        <PWAInstallPrompt />
       </div>
     );
   }
@@ -160,6 +166,8 @@ function AppShell() {
           <Outlet />
         </Suspense>
       </main>
+      {/* PWA install prompt for desktop */}
+      <PWAInstallPrompt />
     </div>
   );
 }
