@@ -202,7 +202,10 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Database check failed: {ex.Message}");
+        Console.WriteLine($"Database check failed: {ex.GetType().Name}");
+        Console.WriteLine($"Message: {ex.Message}");
+        Console.WriteLine($"Inner: {ex.InnerException?.Message}");
+        Console.WriteLine($"Stack: {ex.StackTrace}");
     }
 }
 
