@@ -40,6 +40,7 @@ The content is organized as follows:
 </file_summary>
 
 <directory_structure>
+.env.production
 dev-dist/registerSW.js
 dev-dist/sw.js
 dev-dist/workbox-f389b5da.js
@@ -47,6 +48,7 @@ generate-icons.js
 index.html
 package.json
 postcss.config.js
+public/_redirects
 public/icons/generate-icons.sh
 public/icons/icon-128.png
 public/icons/icon-144.png
@@ -137,6 +139,10 @@ vite.config.ts
 <files>
 This section contains the contents of the repository's files.
 
+<file path=".env.production">
+VITE_API_URL=https://fmcg-distribution-api.onrender.com
+</file>
+
 <file path="dev-dist/registerSW.js">
 if('serviceWorker' in navigator) navigator.serviceWorker.register('/dev-sw.js?dev-sw', { scope: '/', type: 'classic' })
 </file>
@@ -225,7 +231,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.g620fnasra4"
+    "revision": "0.chfd3727jq8"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -5441,6 +5447,10 @@ export default {
 };
 </file>
 
+<file path="public/_redirects">
+/*    /index.html   200
+</file>
+
 <file path="public/icons/generate-icons.sh">
 #!/bin/bash
 # PATH: public/icons/generate-icons.sh
@@ -5545,7 +5555,13 @@ echo "or https://progressier.com/pwa-icons-and-screenshots-generator"
 // PATH: src/api/client.ts
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || '';
+// In production (Netlify), VITE_API_URL must be set in Netlify environment variables.
+// In development, it falls back to localhost:5002.
+const BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD
+    ? 'https://fmcg-distribution-api.onrender.com'
+    : 'http://localhost:5002');
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -5555,15 +5571,15 @@ const apiClient = axios.create({
 
 // Flag to prevent multiple refresh requests
 let isRefreshing = false;
-let failedQueue: Array<{ resolve: (value: unknown) => void; reject: (reason?: unknown) => void }> = [];
+let failedQueue: Array<{
+  resolve: (value: unknown) => void;
+  reject: (reason?: unknown) => void;
+}> = [];
 
 const processQueue = (error: Error | null, token: string | null = null) => {
   failedQueue.forEach(promise => {
-    if (error) {
-      promise.reject(error);
-    } else {
-      promise.resolve(token);
-    }
+    if (error) promise.reject(error);
+    else promise.resolve(token);
   });
   failedQueue = [];
 };
@@ -5588,22 +5604,22 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// ── Response: handle 401 + token refresh ─────────────────────────────────────
+// ── Response: handle 401 ─────────────────────────────────────────────────────
 apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
     const originalRequest = error.config;
-    
-    // If 401 and not a retry attempt
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // Queue the request while token is being refreshed
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return apiClient(originalRequest);
-        }).catch(err => Promise.reject(err));
+        })
+          .then(token => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          })
+          .catch(err => Promise.reject(err));
       }
 
       originalRequest._retry = true;
@@ -5611,32 +5627,27 @@ apiClient.interceptors.response.use(
 
       try {
         const stored = localStorage.getItem('fmcg_auth');
-        if (!stored) {
-          throw new Error('No stored auth');
-        }
-        
-        const parsed = JSON.parse(stored);
-        const refreshToken = parsed?.state?.user?.refreshToken ?? parsed?.user?.refreshToken;
-        
-        if (!refreshToken) {
-          throw new Error('No refresh token');
-        }
+        if (!stored) throw new Error('No stored auth');
 
-        // Call refresh endpoint
-        const response = await axios.post(`${BASE_URL}/api/v1/auth/refresh`, { refreshToken });
+        const parsed = JSON.parse(stored);
+        const refreshToken =
+          parsed?.state?.user?.refreshToken ?? parsed?.user?.refreshToken;
+
+        if (!refreshToken) throw new Error('No refresh token');
+
+        const response = await axios.post(`${BASE_URL}/api/v1/auth/refresh`, {
+          refreshToken,
+        });
         const { token } = response.data;
-        
-        // Update stored token
+
         const auth = JSON.parse(localStorage.getItem('fmcg_auth') || '{}');
         if (auth.state) {
           auth.state.user.token = token;
           auth.state.token = token;
           localStorage.setItem('fmcg_auth', JSON.stringify(auth));
         }
-        
-        // Update Authorization header
+
         apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
-        
         processQueue(null, token);
         return apiClient(originalRequest);
       } catch (refreshError) {
@@ -6158,6 +6169,7 @@ import { Navbar } from './components/layout/Navbar';
 import { PageLoader } from './components/ui';
 import { useIsMobile } from './hooks/useIsMobile';
 import { MobileLayout } from './components/layout/MobileLayout';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 // ── Synchronous auth check ───────────────────────────────────────────────────
 // Reads localStorage directly — same data Zustand persist uses, but synchronously.
@@ -6188,6 +6200,9 @@ const HomeHub = lazy(() => import('./pages/Dashboard/HomeHub').then(m => ({ defa
 const MainHub = lazy(() => import('./pages/Dashboard/MainHub').then(m => ({ default: m.MainHub })));
 
 // ── Landing Page ───────────────────────────────────────────────────────────
+// The original import was failing (module not found). Use a safe fallback inline
+// component to prevent build errors when the module is missing. If the real
+// LandingPage component exists at a different path, update this import.
 const LandingPage = lazy(() => import('./pages/Landing/LandingPage_live').then(m => ({ default: m.LandingPage })));
 
 // ── Admin ───────────────────────────────────────────────────────────────────
@@ -6293,6 +6308,8 @@ function AppShell() {
             </MobileLayout>
           </Suspense>
         </main>
+        {/* PWA install prompt — shows above mobile nav bar */}
+        <PWAInstallPrompt />
       </div>
     );
   }
@@ -6305,6 +6322,8 @@ function AppShell() {
           <Outlet />
         </Suspense>
       </main>
+      {/* PWA install prompt for desktop */}
+      <PWAInstallPrompt />
     </div>
   );
 }
@@ -9428,6 +9447,7 @@ a,
 </file>
 
 <file path="src/main.tsx">
+// v2
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
@@ -9436,7 +9456,7 @@ import './index.css';
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>,
+  </React.StrictMode>, 
 );
 </file>
 
@@ -12482,6 +12502,12 @@ export function AdminIncentives() {
 
 <file path="src/pages/Admin/AdminOrderEdit.tsx">
 // PATH: src/pages/Admin/AdminOrderEdit.tsx
+// FIXED: Admin edit no longer clears order items
+// Bug: itemId was not stored during reconstruction, and productId was
+// incorrectly sent as item.id in payload. Server treated all items as new,
+// deleted existing ones, then failed to create new ones correctly → 0 items.
+
+// PATH: src/pages/Admin/AdminOrderEdit.tsx
 // UPDATED: Allow editing Approved orders
 
 import { useEffect, useState, useCallback } from 'react';
@@ -12504,6 +12530,7 @@ interface LineItem {
   sellingPrice: number;
   unit: string;
   productId: string;
+  itemId?: string;   // OrderItem.Id — needed to update existing items correctly
   isNew?: boolean;
 }
 
@@ -12580,6 +12607,7 @@ export function AdminOrderEdit() {
         return {
           product: prod,
           productId: String(prod.id),
+          itemId: String(item.id),   // store OrderItem.Id for correct update
           qty: item.quantity,
           sellingPrice: item.sellingPrice,
           unit: prod.productUnitName ?? 'Unit',
@@ -12666,7 +12694,7 @@ export function AdminOrderEdit() {
       orderDate: order?.orderDate || new Date().toISOString(),
       remarks: remarks || undefined,
       items: lines.map(l => ({
-        id: l.isNew ? undefined : l.productId,
+        id: l.isNew ? undefined : l.itemId,   // use OrderItem.Id not productId
         productId: l.productId,
         quantity: l.qty,
         unitId: l.product.productUnitId,

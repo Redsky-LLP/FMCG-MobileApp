@@ -8,6 +8,7 @@ import { authApi } from '../../api/services';
 import { useAuthStore, getRoleHome } from '../../store/authStore';
 import type { UserRole, AuthUser } from '../../types';
 import { Spinner } from '../../components/ui';
+import PWAInstallPrompt from '../../components/PWAInstallPrompt';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -271,6 +272,8 @@ export function LoginPage() {
         <p style={{ textAlign: 'center', fontSize: 12, color: '#94A3B8', marginTop: 20 }}>
           FMCG Distribution Platform · Secure Access
         </p>
+
+        <PWAInstallPrompt variant="default" autoShowDelay={3000} />
       </div>
     </div>
   );

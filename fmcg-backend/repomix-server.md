@@ -3201,16 +3201,27 @@ var builder = WebApplication.CreateBuilder(args);
 var dbProvider = builder.Configuration.GetValue<string>("DatabaseSettings:Provider");
 var usePostgres = dbProvider?.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase) == true;
 
+Console.WriteLine($"[STARTUP] DatabaseSettings:Provider = '{dbProvider}'");
+Console.WriteLine($"[STARTUP] usePostgres = {usePostgres}");
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     if (usePostgres)
     {
         var connectionString = builder.Configuration.GetConnectionString("PostgresConnection");
+
+        // Log connection string with password hidden
+        var safeCs = connectionString == null ? "NULL" :
+            System.Text.RegularExpressions.Regex.Replace(
+                connectionString, @"Password=[^;]+", "Password=***");
+        Console.WriteLine($"[STARTUP] PostgresConnection = '{safeCs}'");
+
         options.UseNpgsql(connectionString, x => x.MigrationsAssembly("FMCG.Distribution.Infrastructure"));
     }
     else
     {
         var connectionString = builder.Configuration.GetConnectionString("SqlServerConnection");
+        Console.WriteLine($"[STARTUP] Using SQL Server");
         options.UseSqlServer(connectionString, x => x.MigrationsAssembly("FMCG.Distribution.Infrastructure"));
     }
 });
@@ -3297,20 +3308,7 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Route-based FMCG Sales Governance Platform API"
     });
 
-    // FIX: Handle duplicate class names in different namespaces
-    // This resolves the conflict between:
-    // - FMCG.Distribution.Application.Features.Incentives.DTOs.SalesmanIncentiveSummaryDto
-    // - FMCG.Distribution.Application.Features.Analytics.DTOs.SalesmanIncentiveSummaryDto
     c.CustomSchemaIds(type => type.FullName?.Replace("+", "."));
-
-    // XML comments are disabled to prevent the 500 Internal Server Error
-    // To enable XML comments, uncomment the lines below and ensure XML doc generation is enabled in .csproj
-    // var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    // var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    // if (File.Exists(xmlPath))
-    // {
-    //     c.IncludeXmlComments(xmlPath);
-    // }
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -3338,9 +3336,6 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Fix PostgreSQL DateTime timezone issue
-AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-
 // ============================================================
 // 9. Build App
 // ============================================================
@@ -3364,25 +3359,49 @@ app.MapControllers();
 // ============================================================
 // 11. Database Connection Check & Seed Data
 // ============================================================
+Console.WriteLine("[DB] Starting database connection check...");
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    // Log the actual connection string being used at runtime
     try
     {
+        var runtimeCs = dbContext.Database.GetConnectionString() ?? "NULL";
+        var safeRuntimeCs = System.Text.RegularExpressions.Regex.Replace(
+            runtimeCs, @"Password=[^;]+", "Password=***");
+        Console.WriteLine($"[DB] Runtime connection string: {safeRuntimeCs}");
+    }
+    catch (Exception csEx)
+    {
+        Console.WriteLine($"[DB] Could not read runtime connection string: {csEx.Message}");
+    }
+
+    try
+    {
+        Console.WriteLine("[DB] Calling CanConnect()...");
         var canConnect = dbContext.Database.CanConnect();
+        Console.WriteLine($"[DB] CanConnect result: {canConnect}");
         Console.WriteLine($"Database connection: {(canConnect ? "✓ OK" : "✗ FAILED")}");
 
         if (canConnect)
         {
+            Console.WriteLine("[DB] Running DbInitializer...");
             await DbInitializer.InitializeAsync(dbContext);
             Console.WriteLine("Database seeded successfully.");
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Database check failed: {ex.Message}");
+        Console.WriteLine($"Database connection: ✗ FAILED");
+        Console.WriteLine($"[DB] ERROR TYPE:  {ex.GetType().FullName}");
+        Console.WriteLine($"[DB] ERROR MSG:   {ex.Message}");
+        Console.WriteLine($"[DB] INNER 1:     {ex.InnerException?.Message}");
+        Console.WriteLine($"[DB] INNER 2:     {ex.InnerException?.InnerException?.Message}");
+        Console.WriteLine($"[DB] STACK:\n{ex.StackTrace}");
     }
 }
+Console.WriteLine("[DB] Database check complete.");
 
 // ============================================================
 // 12. Startup Info

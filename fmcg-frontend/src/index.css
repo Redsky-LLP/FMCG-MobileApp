@@ -529,3 +529,20 @@ a,
     padding: 16px 14px;
   }
 }
+
+/* Mobile responsive overrides */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
+
+  .show-mobile {
+    display: flex !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .show-mobile {
+    display: none !important;
+  }
+}

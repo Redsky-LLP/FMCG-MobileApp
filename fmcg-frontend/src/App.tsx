@@ -153,7 +153,7 @@ function AppShell() {
           </Suspense>
         </main>
         {/* PWA install prompt — shows above mobile nav bar */}
-        <PWAInstallPrompt />
+        <PWAInstallPrompt variant="default" autoShowDelay={5000} />
       </div>
     );
   }
@@ -167,7 +167,7 @@ function AppShell() {
         </Suspense>
       </main>
       {/* PWA install prompt for desktop */}
-      <PWAInstallPrompt />
+      <PWAInstallPrompt variant="default" autoShowDelay={5000} />
     </div>
   );
 }
