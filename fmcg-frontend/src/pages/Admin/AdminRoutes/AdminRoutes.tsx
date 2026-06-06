@@ -151,7 +151,6 @@ export function AdminRoutes() {
         <RoutesTable
           routes={routes}
           onAssign={handleAssign}
-          onOverride={handleOverride}
           onEdit={handleEdit}
           onDelete={(routeId) => setConfirmDelete(routeId)}
         />
