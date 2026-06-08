@@ -55,6 +55,7 @@ const AdminRoutes     = lazy(() => import('./pages/Admin/AdminRoutes/AdminRoutes
 const EditRoutePage = lazy(() => import('./pages/Admin/AdminRoutes/EditRoutePage'));
 const AssignRoutePage = lazy(() => import('./pages/Admin/AdminRoutes/AssignRoutePage'));
 const OverrideRoutePage = lazy(() => import('./pages/Admin/AdminRoutes/OverrideRoutePage'));
+const DeleteRoutePage = lazy(() => import('./pages/Admin/AdminRoutes/DeleteRoutePage'));
 const AdminCustomers  = lazy(() => import('./pages/Admin/AdminCustomers').then(m => ({ default: m.AdminCustomers })));
 const AdminProducts   = lazy(() => import('./pages/Admin/AdminProducts').then(m => ({ default: m.AdminProducts })));
 const AdminOrders     = lazy(() => import('./pages/Admin/AdminOrders').then(m => ({ default: m.AdminOrders })));
@@ -217,6 +218,7 @@ export default function App() {
               <Route path="routes/edit/:id"     element={<EditRoutePage />} />
               <Route path="routes/assign/:id"   element={<AssignRoutePage />} />
               <Route path="routes/override/:id" element={<OverrideRoutePage />} />
+              <Route path="routes/delete/:id"   element={<DeleteRoutePage />} />
               <Route path="assignments" element={<AdminDailyAssignment />} />
               <Route path="customers"  element={<AdminCustomers />} />
               <Route path="products"   element={<AdminProducts />} />
