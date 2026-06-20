@@ -1,4 +1,7 @@
-﻿using MediatR;
+﻿// PATH: src/FMCG.Distribution.Application/Features/Orders/Commands/DeleteOrderCommandHandler.cs
+// FIX: Use primary constructor (IDE0290)
+
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
@@ -6,19 +9,15 @@ using FMCG.Distribution.Domain.Enums;
 
 namespace FMCG.Distribution.Application.Features.Orders.Commands;
 
-public class DeleteOrderCommandHandler : IRequestHandler<DeleteOrderCommand, Result<bool>>
+// ── Primary constructor (fixes IDE0290) ──
+public class DeleteOrderCommandHandler(IApplicationDbContext context)
+    : IRequestHandler<DeleteOrderCommand, Result<bool>>
 {
-    private readonly IApplicationDbContext _context;
-
-    public DeleteOrderCommandHandler(IApplicationDbContext context)
-    {
-        _context = context;
-    }
-
     public async Task<Result<bool>> Handle(DeleteOrderCommand request, CancellationToken cancellationToken)
     {
-        // Get existing order
-        var order = await _context.Orders
+        // ── 1. Get existing order with CustomerVisit included ──
+        var order = await context.Orders
+            .Include(o => o.CustomerVisit)
             .FirstOrDefaultAsync(o => o.Id == request.Id && !o.IsDeleted, cancellationToken);
 
         if (order == null)
@@ -26,23 +25,40 @@ public class DeleteOrderCommandHandler : IRequestHandler<DeleteOrderCommand, Res
             return Result<bool>.Failure("Order not found.");
         }
 
-        // Verify salesman owns this order
+        // ── 2. Verify salesman owns this order ──
         if (order.SalesmanId != request.SalesmanId)
         {
             return Result<bool>.Failure("You are not authorized to delete this order.");
         }
 
-        // Only Draft orders can be deleted
+        // ── 3. Only Draft orders can be deleted ──
         if (order.Status != OrderStatus.Draft)
         {
             return Result<bool>.Failure($"Cannot delete order in '{order.Status}' status. Only Draft orders can be deleted.");
         }
 
-        // Soft delete the order (OrderItems will be cascade deleted)
+        // ── 4. FIX: Reset the associated CustomerVisit ──
+        if (order.CustomerVisit != null)
+        {
+            var visit = order.CustomerVisit;
+
+            // Reset visit to Pending
+            visit.Status = VisitStatus.Pending;
+            visit.OrderId = null;
+            visit.VisitedAt = null;
+            visit.UpdatedAt = DateTime.UtcNow;
+            visit.UpdatedBy = request.SalesmanId.ToString();
+
+            // Also update the VisitStatus in the order
+            order.CustomerVisitId = null;
+        }
+
+        // ── 5. Soft delete the order ──
         order.SoftDelete(request.SalesmanId.ToString());
 
-        await _context.SaveChangesAsync(cancellationToken);
+        // ── 6. Save all changes ──
+        await context.SaveChangesAsync(cancellationToken);
 
-        return Result<bool>.Success(true, "Order deleted successfully.");
+        return Result<bool>.Success(true, "Order cancelled successfully. You can now take a new order for this customer.");
     }
 }

@@ -11,6 +11,15 @@ public class CreateProductCommandHandler(IApplicationDbContext context)
 {
     public async Task<Result<CreateProductResponse>> Handle(CreateProductCommand request, CancellationToken cancellationToken)
     {
+        // ItemCode is mandatory for every product — enforced here too, not just
+        // in the admin UI, since it's also where the price comes from (the
+        // "1000-90" convention: the admin form parses the price out of it
+        // client-side, but the server shouldn't trust that alone).
+        if (string.IsNullOrWhiteSpace(request.ItemCode))
+        {
+            return Result<CreateProductResponse>.Failure("Item Code is required.");
+        }
+
         // Verify ProductGroup exists
         var productGroup = await context.ProductGroups
             .FirstOrDefaultAsync(g => g.Id == request.ProductGroupId && !g.IsDeleted, cancellationToken);
@@ -35,6 +44,13 @@ public class CreateProductCommandHandler(IApplicationDbContext context)
             ProductGroupId = request.ProductGroupId,
             DefaultUnitId = request.ProductUnitId,  // ← CHANGE THIS
             BasePrice = request.BasePrice,
+            ItemCode = request.ItemCode,
+            Sku = request.Sku,
+            HSNCode = request.HSNCode,
+            Supplier = request.Supplier,
+            ClosingStock = request.ClosingStock ?? 0,
+            MinOrderQty = request.MinOrderQty,
+            MaxOrderQty = request.MaxOrderQty,
             IsActive = true
         };
 
@@ -49,7 +65,8 @@ public class CreateProductCommandHandler(IApplicationDbContext context)
             ProductGroupId = product.ProductGroupId,
             ProductUnitId = product.DefaultUnitId,  // ← CHANGE THIS (mapping to response)
             BasePrice = product.BasePrice,
-            IsActive = product.IsActive
+            IsActive = product.IsActive,
+            ItemCode = product.ItemCode
         }, "Product created successfully.");
     }
 }

@@ -439,12 +439,16 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* Improved tap highlight for mobile elements */
-button,
-a,
-[role="button"] {
-  -webkit-tap-highlight-color: rgba(37, 99, 235, 0.15);
+/* Mobile touch feedback */
+button, a, .clickable {
+  -webkit-tap-highlight-color: rgba(234, 88, 12, 0.15);
   touch-action: manipulation;
+}
+
+/* Active state for all buttons (no JS needed) */
+button:active, .btn:active {
+  transform: scale(0.96);
+  transition: transform 0.05s ease;
 }
 
 /* Prevent pull-to-refresh interference on main content (optional) */
@@ -465,13 +469,20 @@ a,
 /* Ensure bottom navigation stays above content */
 .mobile-bottom-nav {
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); /* iOS Safari */
   background: rgba(255, 255, 255, 0.98);
 }
-
 /* ── PASTE THESE ADDITIONS AT THE BOTTOM OF src/index.css ─────────────────── */
 
 :root {
   --mobile-nav-h: 70px;
+}
+
+/* All pages should respect mobile nav height */
+@media (max-width: 768px) {
+  .page-content, .page-wrapper, main > * {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* Generic utility — apply className "above-nav" to any fixed bottom bar */
@@ -497,8 +508,28 @@ a,
   }
 }
 
-/* Modal safe sizing — prevents modals touching screen edges on small phones */
+/* Modal overlay + card — shared by ConfirmModal and any inline modal that
+   uses these two classes (Set PIN, etc). This was previously incomplete:
+   .modal-overlay didn't exist at all and .modal had only sizing rules with
+   no background/shadow/centering, so every modal using these classes
+   rendered as a plain inline block in the page flow instead of a floating
+   dialog over a dimmed backdrop. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
 .modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
   width: min(calc(100vw - 32px), 480px) !important;
   max-height: 90vh;
   overflow-y: auto;
@@ -545,4 +576,101 @@ a,
   .show-mobile {
     display: none !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EASTERN DARK THEME ADDITIONS — append to src/index.css
+   Salesman-facing screens use .eastern-* tokens; admin pages
+   remain untouched (existing white/blue system stays intact).
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Eastern Salesman Theme tokens ──────────────────────────── */
+:root {
+  --e-bg:      #0f172a;   /* slate-950 — main dark canvas        */
+  --e-surface: #1e293b;   /* slate-800 — card / keypad bg        */
+  --e-border:  #334155;   /* slate-700 — subtle dividers         */
+  --e-accent:  #ea580c;   /* orange-600 — primary CTA / headers  */
+  --e-accent-h:#c2410c;   /* orange-700 — hover state            */
+  --e-green:   #16a34a;   /* green-600 — success / done states   */
+  --e-blue:    #2563eb;   /* blue-600  — phone links, nav        */
+  --e-text:    #f1f5f9;   /* slate-100 — high-contrast body text */
+  --e-muted:   #94a3b8;   /* slate-400 — secondary labels        */
+  --e-sub:     #64748b;   /* slate-500 — tertiary / captions     */
+  --e-list:    #f1f5f9;   /* off-white — list/content backgrounds */
+}
+
+/* Add to the Eastern theme section */
+.eastern-page {
+  background: var(--e-bg) !important;
+  color: var(--e-text) !important;
+}
+
+/* Or just add a class for dark pages */
+.dark-page {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+}
+
+/* ── Eastern key-button active flash ────────────────────────── */
+.e-key-btn:active {
+  background: var(--e-accent) !important;
+  border-color: var(--e-accent) !important;
+  color: #fff !important;
+}
+
+/* ── Smooth drawer animation ─────────────────────────────────── */
+@keyframes slide-in-right-dark {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+/* ── Skeleton Loader Animation ──────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ── Orange sticky footer safe area ─────────────────────────── */
+.e-sticky-footer {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 55;
+  background: var(--e-accent);
+  padding: 10px 14px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px) + var(--mobile-nav-h, 70px));
+}
+
+/* ── Eastern status pills ────────────────────────────────────── */
+.e-pill-pending  { background: #fff7ed; color: #ea580c; border: 1px solid rgba(234,88,12,0.25); }
+.e-pill-done     { background: #f0fdf4; color: #16a34a; border: 1px solid rgba(22,163,74,0.25); }
+.e-pill-skip     { background: #fef2f2; color: #dc2626; border: 1px solid rgba(220,38,38,0.25); }
+.e-pill-noorder  { background: #fffbeb; color: #d97706; border: 1px solid rgba(217,119,6,0.25); }
+
+/* ── Eastern input focus ring ────────────────────────────────── */
+.e-input:focus {
+  outline: none;
+  border-color: var(--e-accent) !important;
+  box-shadow: 0 0 0 2px rgba(234,88,12,0.18);
+}
+
+/* ── Malayalam font support ──────────────────────────────────── */
+[lang="ml"] {
+  font-family: 'Manjari', 'Noto Sans Malayalam', system-ui, sans-serif;
+}
+
+/* ── Touch optimisations for Eastern screens ─────────────────── */
+.e-btn {
+  min-height: 44px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(234, 88, 12, 0.15);
+}
+
+@media (max-width: 768px) {
+  .e-btn { min-height: 48px; }
 }

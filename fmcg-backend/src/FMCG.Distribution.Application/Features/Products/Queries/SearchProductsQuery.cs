@@ -23,4 +23,5 @@ public class ProductSearchDto
     public string UnitSymbol { get; set; } = string.Empty;
     public decimal BasePrice { get; set; }
     public bool IsActive { get; set; }
+    public string? ItemCode { get; set; }
 }

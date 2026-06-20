@@ -1,116 +1,258 @@
 // PATH: src/pages/Salesman/SalesmanRoutes.tsx
-// UPDATED: Added day closure check to disable delivery button when day not closed
+//
+// "My Routes" — the single canonical route list, used on both desktop and mobile.
+//
+// IMPORTANT: routes are NOT gated behind a formal daily admin-assignment step.
+// All active routes are visible to every salesman (admin coordinates who takes
+// what informally, e.g. over WhatsApp/call) — the system's job is just to show
+// what's available vs. already started by someone else today, and to lock a
+// route to whoever starts it first. See routesApi.getActiveRoutes() / the
+// backend's GetActiveRoutesQueryHandler + StartRouteExecutionCommandHandler for
+// the actual locking logic.
+//
+// FIXES carried over from earlier passes:
+// 1. Route shows "Completed" immediately when returning
+// 2. No "Continue" loop — if route has submitted orders with no drafts → show Completed
+// 3. One active route at a time — blocks others while InProgress
+// 4. handleStartOrderTaking checks existing execution first
+// 5. Reloads on location.key change / on visibilitychange
+// 6. Completed route detection is AGGRESSIVE
+// 7. "Taken by X" — another salesman's in-progress route is shown, not hidden
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Route, Users, ChevronRight, RefreshCw,
-  Play, Calendar, Info, CheckCircle2, MapPin,
-  ShoppingBag, Truck, Package, Lock
+  CheckCircle2, Search, X,
+  ShoppingBag, Truck, Package, Lock, AlertTriangle, Play, UserX,
 } from 'lucide-react';
-import { routesApi, routeAssignmentsApi, settlementApi } from '../../api/services';
-import type { TodayRouteDto } from '../../types';
-import { PageLoader, Alert, EmptyState, Badge, Spinner } from '../../components/ui';
+import { routesApi, settlementApi, ordersApi } from '../../api/services';
+import type { ActiveRouteDto } from '../../types';
+import { OrderStatus } from '../../types';
+import { PageLoader, EmptyState, Badge, Spinner } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
 
-// ── Enriched route type (TodayRouteDto + execution state) ────
-interface EnrichedRoute extends TodayRouteDto {
-  customerCount?: number;
-  description?:   string;
-  executionStatus?: 'InProgress' | 'Completed' | null;
+// ── Dark theme tokens ─────────────────────────────────────────────────────────
+const D = {
+  bg:       '#0f172a',
+  surface:  '#1e293b',
+  surface2: '#243447',
+  border:   '#334155',
+  accent:   '#ea580c',
+  accentH:  '#c2410c',
+  accentGlow: 'rgba(234,88,12,0.25)',
+  text:     '#f1f5f9',
+  muted:    '#94a3b8',
+  sub:      '#64748b',
+  green:    '#22c55e',
+  red:      '#ef4444',
+  amber:    '#f59e0b',
+  card:     '#1e293b',
+};
+
+interface EnrichedRoute {
+  routeId:              string;
+  routeName:            string;
+  description?:         string;
+  customerCount?:       number;
+  isDedicatedToAnother?: boolean;
+  // Someone else already has this route running today — locked, read-only card.
+  takenByOther?:        boolean;
+  takenByName?:         string;
+  executionId?:         string;
+  executionStatus?:     'InProgress' | 'Completed' | null;
+  ordersAllSubmitted?:  boolean;
+  submittedCount?:      number;
+  isTrulyCompleted?:    boolean;
+  // True only when the BACKEND execution status is actually 'Completed' —
+  // which now happens ONLY via admin's Close Day action (salesman side
+  // never sets this anymore). This is what locks the route from further
+  // editing, separately from "all stops visited" which just means the
+  // salesman is done but admin hasn't closed yet (still editable).
+  isAdminClosed?:       boolean;
 }
 
 export function SalesmanRoutes() {
-  const [routes,   setRoutes]   = useState<EnrichedRoute[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState('');
-  const [starting, setStarting] = useState<string | null>(null);
-  const [activeMode, setActiveMode] = useState<'order' | 'delivery' | null>(null);
+  const [routes,      setRoutes]      = useState<EnrichedRoute[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState('');
+  const [starting,    setStarting]    = useState<string | null>(null);
+  const [activeMode,  setActiveMode]  = useState<'order' | 'delivery' | null>(null);
   const [isDayClosed, setIsDayClosed] = useState(false);
-  const navigate = useNavigate();
+  const [search,      setSearch]      = useState('');
   const { user } = useAuthStore();
+  const navigate  = useNavigate();
+  const location  = useLocation();
 
   async function load() {
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
-      const myRoutes = await routeAssignmentsApi.getMyRoutesToday();
+      let activeRoutes: ActiveRouteDto[] = [];
+      try { activeRoutes = await routesApi.getActiveRoutes(); } catch {}
 
-      // Check if day is closed for today
       try {
-        const closureStatus = await settlementApi.getStatus();
-        setIsDayClosed(closureStatus?.isClosed ?? false);
-      } catch {
-        setIsDayClosed(false);
-      }
+        const status = await settlementApi.getStatus();
+        setIsDayClosed(status?.isClosed ?? false);
+      } catch { setIsDayClosed(false); }
 
       const enriched: EnrichedRoute[] = await Promise.all(
-        myRoutes.map(async (r) => {
+        activeRoutes.map(async (r): Promise<EnrichedRoute> => {
+          const base = {
+            routeId:              r.id,
+            routeName:            r.name,
+            description:          r.description,
+            customerCount:        r.customerCount,
+            isDedicatedToAnother: r.isDedicatedToAnother,
+          };
+
+          // Someone else already has this route running today — it's locked.
+          // No point probing executions/orders for a route that isn't mine.
+          if (r.isStarted && !r.isMine) {
+            return { ...base, takenByOther: true, takenByName: r.startedBy };
+          }
+
           let executionStatus: EnrichedRoute['executionStatus'] = null;
-          let customerCount: number | undefined;
-          let description: string | undefined;
+          let executionId: string | undefined;
+          let ordersAllSubmitted = false;
+          let submittedCount = 0;
+          let isTrulyCompleted = false;
+          let isAdminClosed = false;
 
-          try {
-            const detail = await routesApi.getById(r.routeId);
-            customerCount = detail.customers?.length ?? detail.customerCount;
-            description   = detail.description;
-          } catch {}
+          if (r.isMine) {
+            try {
+              const exec = await routesApi.getCurrentExecution(r.id);
+              if (exec?.executionId) {
+                executionId = exec.executionId;
+                const totalCustomers = exec.totalCustomers ?? 0;
+                const pending = exec.pendingCount ?? 0;
+                // The real backend status is the trustworthy "did admin close
+                // this" signal — Completed now only ever happens via admin's
+                // Close Day action. This takes priority over the pendingCount
+                // heuristic below: even if every stop got visited, the route
+                // is only LOCKED once admin has actually closed it.
+                isAdminClosed = exec.status === 'Completed';
+                // "All stops visited" — the salesman is done, but the route
+                // stays editable until admin closes it. Not the same thing
+                // as isAdminClosed.
+                isTrulyCompleted = totalCustomers > 0 && pending === 0;
+                ordersAllSubmitted = isTrulyCompleted;
+                submittedCount = (exec.customers ?? []).filter(c => c.visitStatus === 'OrderPlaced').length;
+                executionStatus = isAdminClosed
+                  ? 'Completed'
+                  : isTrulyCompleted
+                    ? 'Completed'
+                    : exec.status === 'InProgress' ? 'InProgress' : null;
+              }
+            } catch {}
+          }
 
-          try {
-            const exec = await routesApi.getCurrentExecution(r.routeId);
-            if (exec?.executionId) {
-              executionStatus = exec.status === 'InProgress'  ? 'InProgress'
-                              : exec.status === 'Completed'   ? 'Completed'
-                              : null;
-            }
-          } catch {}
-
-          return { ...r, executionStatus, customerCount, description };
+          return {
+            ...base,
+            takenByOther: false,
+            executionStatus,
+            executionId,
+            ordersAllSubmitted,
+            submittedCount,
+            isTrulyCompleted,
+            isAdminClosed,
+          };
         })
       );
 
       setRoutes(enriched);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load routes');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
+  // Reload on mount
   useEffect(() => { load(); }, []);
+
+  // Reload when React Router navigates back to this page
+  useEffect(() => { load(); }, [location.key]);
+
+  // Reload when tab becomes visible again
+  useEffect(() => {
+    function onVisible() { if (document.visibilityState === 'visible') load(); }
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
+  // ── COMPLETION CHECK — backed by real visit counts from the execution,
+  // not order-history guesswork (see load() above) ──
+  function isEffectivelyCompleted(r: EnrichedRoute): boolean {
+    return !!r.isTrulyCompleted || r.executionStatus === 'Completed' || !!r.ordersAllSubmitted;
+  }
+
+  // ── IN PROGRESS CHECK ──
+  function isGenuinelyInProgress(r: EnrichedRoute): boolean {
+    if (!r.executionId) return false;
+    if (r.executionStatus !== 'InProgress') return false;
+    if (isEffectivelyCompleted(r)) return false;
+    return true;
+  }
+
+  function isRouteAlreadyCompleted(routeId: string): boolean {
+    const route = routes.find(r => r.routeId === routeId);
+    return route ? isEffectivelyCompleted(route) : false;
+  }
+
+  const activeRoute = routes.find(r => isGenuinelyInProgress(r));
 
   async function handleStartOrderTaking(routeId: string) {
     if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
-      setError('Invalid route selected. Please refresh and try again.');
+      setError('Invalid route selected.'); return;
+    }
+
+    if (isRouteAlreadyCompleted(routeId)) {
+      setError('This route is already completed for today.');
+      await load();
       return;
     }
-    setStarting(routeId);
-    setActiveMode('order');
+
+    setStarting(routeId); setActiveMode('order');
     try {
+      const existing = await routesApi.getCurrentExecution(routeId).catch(() => null);
+
+      if (existing?.executionId && existing.status === 'Completed') {
+        setError('This route is already completed for today.');
+        await load();
+        return;
+      }
+
+      if (existing?.executionId && existing.status === 'InProgress') {
+        // Existing in-progress execution — navigate directly back into it.
+        // Don't block based on order states; the salesman may want to edit.
+        navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'order-taking' } });
+        return;
+      }
+
       await routesApi.startOrderTaking(routeId);
       navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'order-taking' } });
     } catch (err: unknown) {
+      // If another salesman grabbed this route between page-load and tapping
+      // Start, the backend now returns a clear "already started by X" message —
+      // surface it as-is and refresh so the card flips to "Taken by X".
       setError(err instanceof Error ? err.message : 'Failed to start order taking');
-    } finally {
-      setStarting(null);
-      setActiveMode(null);
-    }
+      await load();
+    } finally { setStarting(null); setActiveMode(null); }
   }
 
   async function handleStartDelivery(routeId: string) {
     if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
-      setError('Invalid route selected. Please refresh and try again.');
+      setError('Invalid route selected.'); return;
+    }
+
+    if (isRouteAlreadyCompleted(routeId)) {
+      setError('This route is already completed for today.');
       return;
     }
-    
-    // Check if day is closed before attempting delivery
+
     if (!isDayClosed) {
-      setError('Cannot start delivery. The day has not been closed by Admin yet. Please wait for admin to close today\'s operations.');
+      setError("Cannot start delivery. Admin must close today's operations first.");
       return;
     }
-    
-    setStarting(routeId);
-    setActiveMode('delivery');
+    setStarting(routeId); setActiveMode('delivery');
     try {
       const execution = await routesApi.getCurrentExecution(routeId).catch(() => null);
       if (execution?.executionId && execution.status === 'InProgress') {
@@ -121,82 +263,225 @@ export function SalesmanRoutes() {
       navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'delivery' } });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to start delivery');
-    } finally {
-      setStarting(null);
-      setActiveMode(null);
-    }
+      await load();
+    } finally { setStarting(null); setActiveMode(null); }
   }
-
-  function handleViewCustomers(routeId: string) {
-    navigate(`/salesman/routes/${routeId}/customers`);
-  }
-
-  function handleViewOrders(routeId: string) {
-    navigate(`/salesman/routes/${routeId}/orders`);
-  }
-
-  const activeRoute    = routes.find(r => r.executionStatus === 'InProgress');
-  const overrides      = routes.filter(r => r.isOverride);
-  const permanentRoutes = routes.filter(r => !r.isOverride);
 
   if (loading) return <PageLoader />;
 
+  const completedCount = routes.filter(r => isEffectivelyCompleted(r)).length;
+  const firstName = user?.name?.split(' ')[0] ?? 'Salesman';
+  const greeting  = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
+  const showRouteSearch = routes.length > 6; // most salesmen have a handful of routes; only show search once it's worth it
+  const visibleRoutes = showRouteSearch && search.trim()
+    ? routes.filter(r => r.routeName?.toLowerCase().includes(search.trim().toLowerCase()))
+    : routes;
+
   return (
-    <div className="min-h-screen bg-slate-50 pb-10">
+    <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 80 }}>
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-5 py-4 shadow-sm">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl font-bold text-slate-800">My Routes</h1>
-          <p className="text-base text-slate-500 mt-1">
-            {activeRoute ? (
-              <span className="text-amber-600 font-semibold">⚠️ Complete your active route before starting another</span>
-            ) : routes.length > 0 ? (
-              <span>{routes.length} route{routes.length !== 1 ? 's' : ''} assigned for today</span>
-            ) : (
-              <span>No routes assigned for today. Contact your admin.</span>
+      <div style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 20,
+        background: D.bg,
+        borderBottom: `1px solid ${D.border}`,
+        padding: '16px 20px',
+      }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+              }}>
+                {firstName.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h1 style={{ fontSize: 18, fontWeight: 900, color: D.text, margin: 0, letterSpacing: '-0.02em' }}>
+                  {greeting}, {firstName} 👋
+                </h1>
+                <p style={{ fontSize: 13, color: D.muted, margin: '2px 0 0' }}>
+                  {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={load}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 16px',
+                borderRadius: 10,
+                border: `1px solid ${D.border}`,
+                background: D.surface,
+                color: D.muted,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.15s',
+                flexShrink: 0,
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.text; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
+            >
+              <RefreshCw size={14} /> Refresh
+            </button>
+          </div>
+
+          {/* Route search — only shown once there are enough routes to need it */}
+          {showRouteSearch && (
+            <div style={{ position: 'relative', marginTop: 14 }}>
+              <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: D.sub }} />
+              <input
+                type="text"
+                placeholder="Search routes by name..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 36px 9px 36px',
+                  fontSize: 13,
+                  border: `1px solid ${D.border}`,
+                  borderRadius: 10,
+                  background: D.surface,
+                  color: D.text,
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                  transition: 'border-color 0.15s',
+                }}
+                onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+                onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer' }}
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Status chips — compact row instead of stacked full-width banners */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontSize: 12, fontWeight: 600, padding: '6px 14px',
+              borderRadius: 20,
+              background: isDayClosed ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
+              border: `1px solid ${isDayClosed ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
+              color: isDayClosed ? D.green : D.amber,
+            }}>
+              {isDayClosed ? <CheckCircle2 size={12} /> : <Lock size={12} />}
+              {isDayClosed ? 'Day closed — Delivery available' : 'Day not closed — Delivery disabled'}
+            </span>
+
+            {completedCount > 0 && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                fontSize: 12, fontWeight: 600, padding: '6px 14px',
+                borderRadius: 20,
+                background: 'rgba(59,130,246,0.12)',
+                border: '1px solid rgba(59,130,246,0.25)',
+                color: '#3B82F6',
+              }}>
+                <CheckCircle2 size={12} /> {completedCount} of {routes.length} route{routes.length !== 1 ? 's' : ''} completed today
+              </span>
             )}
-          </p>
-          {/* Day closure status indicator */}
-          {!isDayClosed && (
-            <div className="mt-2 text-sm text-amber-600 bg-amber-50 inline-block px-3 py-1 rounded-full">
-              <Lock size={12} className="inline mr-1" /> Day not closed - Delivery disabled
-            </div>
-          )}
-          {isDayClosed && (
-            <div className="mt-2 text-sm text-green-600 bg-green-50 inline-block px-3 py-1 rounded-full">
-              ✓ Day closed - Delivery available
-            </div>
-          )}
+
+            {activeRoute && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                fontSize: 12, fontWeight: 600, padding: '6px 14px',
+                borderRadius: 20,
+                background: 'rgba(245,158,11,0.12)',
+                border: '1px solid rgba(245,158,11,0.25)',
+                color: D.amber,
+              }}>
+                <AlertTriangle size={12} /> Complete <strong style={{ color: D.text }}>{activeRoute.routeName}</strong> before starting another
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      {error && <Alert variant="error">{error}</Alert>}
+      {error && (
+        <div style={{
+          margin: '12px 20px 0',
+          background: 'rgba(239,68,68,0.10)',
+          border: `1px solid rgba(239,68,68,0.25)`,
+          borderRadius: 10,
+          padding: '12px 16px',
+          color: D.red,
+          fontSize: 13,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <span>{error}</span>
+          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: D.red, cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>✕</button>
+        </div>
+      )}
 
-      <div className="max-w-7xl mx-auto px-5 py-5">
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 20px' }}>
         {routes.length === 0 ? (
-          <EmptyState
-            title="No routes assigned for today"
-            message="Your admin hasn't assigned any routes to you for today. Please contact them."
-            icon={Route}
-          />
+          <div style={{
+            background: D.surface,
+            borderRadius: 16,
+            border: `1px solid ${D.border}`,
+            padding: '48px 24px',
+            textAlign: 'center',
+          }}>
+            <Route size={48} style={{ color: D.border, margin: '0 auto 16px' }} />
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: '0 0 8px' }}>No active routes</h3>
+            <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>Ask your admin to create a route — once it's active, it shows up here for every salesman.</p>
+          </div>
+        ) : visibleRoutes.length === 0 ? (
+          <div style={{
+            background: D.surface,
+            borderRadius: 16,
+            border: `1px solid ${D.border}`,
+            padding: '48px 24px',
+            textAlign: 'center',
+          }}>
+            <Search size={48} style={{ color: D.border, margin: '0 auto 16px' }} />
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: '0 0 8px' }}>No routes match your search</h3>
+            <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>Nothing found for "{search}".</p>
+          </div>
         ) : (
-          <div className="space-y-4">
-            {routes.map(route => (
-              <RouteCard
-                key={route.routeId}
-                route={route}
-                isActive={!!activeRoute && activeRoute.routeId !== route.routeId}
-                isInProgress={route.executionStatus === 'InProgress'}
-                isCompleted={route.executionStatus === 'Completed'}
-                onStartOrderTaking={() => handleStartOrderTaking(route.routeId)}
-                onStartDelivery={() => handleStartDelivery(route.routeId)}
-                onViewCustomers={() => handleViewCustomers(route.routeId)}
-                onViewOrders={() => handleViewOrders(route.routeId)}
-                starting={starting === route.routeId}
-                activeMode={activeMode}
-                isDayClosed={isDayClosed}
-              />
-            ))}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
+            {visibleRoutes.map(route => {
+              const completed   = isEffectivelyCompleted(route);
+              const inProgress  = isGenuinelyInProgress(route);
+              const blocked     = !!activeRoute && activeRoute.routeId !== route.routeId && !completed;
+              return (
+                <RouteCard
+                  key={route.routeId}
+                  route={route}
+                  isCompleted={completed}
+                  isInProgress={inProgress}
+                  isBlocked={blocked}
+                  isDayClosed={isDayClosed}
+                  starting={starting === route.routeId}
+                  activeMode={activeMode}
+                  onStartOrderTaking={() => handleStartOrderTaking(route.routeId)}
+                  onContinueOrderTaking={() => {
+                    navigate(`/salesman/routes/${route.routeId}/execute`, { state: { mode: 'order-taking' } });
+                  }}
+                  onStartDelivery={() => handleStartDelivery(route.routeId)}
+                  onViewCustomers={() => navigate(`/salesman/routes/${route.routeId}/customers`)}
+                  onViewOrders={() => navigate(`/salesman/routes/${route.routeId}/orders`)}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -204,164 +489,450 @@ export function SalesmanRoutes() {
   );
 }
 
-// ── Route Card Component with Expandable Section ──
 function RouteCard({
-  route,
-  isActive,
-  isInProgress,
-  isCompleted,
-  onStartOrderTaking,
-  onStartDelivery,
-  onViewCustomers,
-  onViewOrders,
-  starting,
-  activeMode,
-  isDayClosed,
+  route, isCompleted, isInProgress, isBlocked, isDayClosed,
+  starting, activeMode,
+  onStartOrderTaking, onContinueOrderTaking, onStartDelivery,
+  onViewCustomers, onViewOrders,
 }: {
   route: EnrichedRoute;
-  isActive: boolean;
-  isInProgress: boolean;
   isCompleted: boolean;
+  isInProgress: boolean;
+  isBlocked: boolean;
+  isDayClosed: boolean;
+  starting: boolean;
+  activeMode: 'order' | 'delivery' | null;
   onStartOrderTaking: () => void;
+  onContinueOrderTaking: () => void;
   onStartDelivery: () => void;
   onViewCustomers: () => void;
   onViewOrders: () => void;
-  starting: boolean;
-  activeMode: 'order' | 'delivery' | null;
-  isDayClosed: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const isDisabled = isActive && !isInProgress;
-  const isDeliveryDisabled = isDisabled || !isDayClosed;
-  const isTodayOverride = route.isOverride;
 
-  return (
-    <div className={`bg-white rounded-xl border transition-all ${isInProgress ? 'border-blue-400 shadow-md' : 'border-slate-200 hover:shadow-md'}`}>
-      {/* Main row - always visible */}
-      <div className="p-4">
-        <div className="flex items-start justify-between">
-          {/* Left section */}
-          <div className="flex items-start gap-3 flex-1">
-            {/* Icon */}
-            <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${
-              isInProgress ? 'bg-blue-500' : isCompleted ? 'bg-green-500' : 'bg-slate-100'
-            }`}>
-              {isCompleted ? (
-                <CheckCircle2 size={26} color="#fff" />
-              ) : isInProgress ? (
-                <Truck size={26} color="#fff" />
-              ) : (
-                <Route size={26} className="text-blue-500" />
-              )}
-            </div>
-
-            {/* Info */}
-            <div className="flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-slate-800 text-lg">{route.routeName}</h3>
-                {isInProgress && <Badge variant="primary">🟢 Active</Badge>}
-                {isCompleted && <Badge variant="green">✓ Completed</Badge>}
-                {isTodayOverride && !isInProgress && !isCompleted && <Badge variant="amber">📋 Today Only</Badge>}
-              </div>
-
-              {route.description && (
-                <p className="text-sm text-slate-500 mt-1">{route.description}</p>
-              )}
-
-              <div className="flex flex-wrap gap-4 mt-2 text-sm text-slate-500">
-                <span className="flex items-center gap-1.5">
-                  <Users size={14} /> {route.customerCount ?? 0} customers
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <MapPin size={14} /> {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                </span>
-              </div>
-
-              {isTodayOverride && route.notes && !isCompleted && (
-                <div className="mt-2 text-sm text-amber-600 bg-amber-50 inline-block px-2 py-1 rounded">
-                  📋 {route.notes}
-                </div>
-              )}
-
-              {/* Disabled warning */}
-              {isDisabled && (
-                <div className="mt-2 text-sm text-amber-600 bg-amber-50 inline-block px-2 py-1 rounded">
-                  ⚠️ Complete your active route first
-                </div>
-              )}
-              
-              {/* Day not closed warning for delivery */}
-              {!isDayClosed && !isCompleted && (
-                <div className="mt-2 text-sm text-amber-600 bg-amber-50 inline-block px-2 py-1 rounded">
-                  <Lock size={12} className="inline mr-1" /> Admin must close the day before delivery
-                </div>
-              )}
+  // ── TAKEN BY ANOTHER SALESMAN ── (locked — first to tap Start gets it)
+  if (route.takenByOther) {
+    return (
+      <div style={{
+        background: D.surface,
+        borderRadius: 14,
+        border: `1px solid ${D.amber}44`,
+        opacity: 0.8,
+      }}>
+        <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 14,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+            background: 'rgba(245,158,11,0.15)',
+          }}>
+            <UserX size={26} style={{ color: D.amber }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: D.text, margin: 0 }}>{route.routeName}</h3>
+            <div style={{ display: 'flex', gap: 16, marginTop: 4, fontSize: 13, color: D.sub }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Users size={13} /> {route.customerCount ?? 0} customers
+              </span>
             </div>
           </div>
+        </div>
+        <div style={{
+          padding: '10px 18px',
+          borderTop: `1px solid ${D.amber}33`,
+          background: 'rgba(245,158,11,0.05)',
+          borderRadius: '0 0 14px 14px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: D.amber }}>
+            🔴 Taken by {route.takenByName ?? 'another salesman'}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-          {/* Action buttons - horizontal layout */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            {!isCompleted && (
+  // ── CLOSED BY ADMIN ── (locked — read-only, will be fresh again tomorrow)
+  if (route.isAdminClosed) {
+    return (
+      <div style={{
+        background: D.surface,
+        borderRadius: 14,
+        border: `1px solid ${D.border}`,
+        opacity: 0.7,
+      }}>
+        <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 14,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+            background: D.bg,
+          }}>
+            <Lock size={24} style={{ color: D.sub }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: D.text, margin: 0 }}>{route.routeName}</h3>
+              <span style={{
+                fontSize: 10, fontWeight: 700,
+                padding: '2px 10px', borderRadius: 12,
+                background: D.bg,
+                color: D.sub,
+                border: `1px solid ${D.border}`,
+              }}>Closed</span>
+            </div>
+            <div style={{ display: 'flex', gap: 16, marginTop: 4, fontSize: 13, color: D.sub }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Users size={13} /> {route.customerCount ?? 0} customers
+              </span>
+            </div>
+          </div>
+        </div>
+        <div style={{
+          padding: '10px 18px',
+          borderTop: `1px solid ${D.border}`,
+          background: D.bg,
+          borderRadius: '0 0 14px 14px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: D.sub }}>
+            <Lock size={13} />
+            Closed by admin — fresh again tomorrow
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── COMPLETED (all shops visited, waiting for admin to close day) ──
+  if (isCompleted) {
+    return (
+      <div
+        onClick={onContinueOrderTaking}
+        style={{
+          background: D.surface,
+          borderRadius: 14,
+          border: `2px solid #4f46e5`,
+          cursor: 'pointer',
+          transition: 'all 0.15s',
+        }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+          (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(79,70,229,0.15)';
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+          (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+        }}
+      >
+        <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 14,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+            background: 'linear-gradient(135deg,#4f46e5,#7c3aed)',
+          }}>
+            <CheckCircle2 size={26} color="#fff" />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: D.text, margin: 0 }}>{route.routeName}</h3>
+              <span style={{
+                fontSize: 10, fontWeight: 700,
+                padding: '2px 10px', borderRadius: 12,
+                background: 'rgba(79,70,229,0.15)',
+                color: '#818cf8',
+                border: '1px solid rgba(79,70,229,0.25)',
+              }}>✓ Done</span>
+            </div>
+            <div style={{ display: 'flex', gap: 16, marginTop: 4, fontSize: 13, color: D.sub }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Users size={13} /> {route.customerCount ?? 0} customers
+              </span>
+            </div>
+          </div>
+          <ChevronRight size={18} style={{ color: D.sub, flexShrink: 0 }} />
+        </div>
+        <div style={{
+          padding: '10px 18px',
+          borderTop: `1px solid rgba(79,70,229,0.15)`,
+          background: 'rgba(79,70,229,0.05)',
+          borderRadius: '0 0 14px 14px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#818cf8' }}>
+            <CheckCircle2 size={13} />
+            {route.submittedCount
+              ? `${route.submittedCount} order${route.submittedCount > 1 ? 's' : ''} saved — Tap to view or edit 📋`
+              : 'Orders saved — Tap to view or edit 📋'}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── ACTIVE or PENDING ──
+  return (
+    <div style={{
+      background: D.surface,
+      borderRadius: 14,
+      border: `1px solid ${isInProgress ? D.accent : isBlocked ? `${D.amber}44` : D.border}`,
+      boxShadow: isInProgress ? `0 2px 12px ${D.accentGlow}` : 'none',
+      opacity: isBlocked ? 0.6 : 1,
+      transition: 'all 0.15s',
+    }}>
+      <div style={{ padding: '16px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 14,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+            background: isInProgress ? D.accent : D.bg,
+          }}>
+            {isInProgress
+              ? <Truck size={26} color="#fff" />
+              : <Route size={26} style={{ color: D.accent }} />}
+          </div>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: D.text, margin: 0 }}>{route.routeName}</h3>
+              {isInProgress && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700,
+                  padding: '2px 10px', borderRadius: 12,
+                  background: 'rgba(234,88,12,0.15)',
+                  color: D.accent,
+                  border: `1px solid ${D.accent}44`,
+                }}>🟢 Active</span>
+              )}
+              {route.isDedicatedToAnother && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700,
+                  padding: '2px 10px', borderRadius: 12,
+                  background: 'rgba(245,158,11,0.15)',
+                  color: D.amber,
+                  border: `1px solid ${D.amber}44`,
+                }}>📋 Dedicated route</span>
+              )}
+            </div>
+            {route.description && (
+              <p style={{ fontSize: 13, color: D.muted, margin: '4px 0 0' }}>{route.description}</p>
+            )}
+            <div style={{ display: 'flex', gap: 16, marginTop: 4, fontSize: 13, color: D.sub }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Users size={13} /> {route.customerCount ?? 0} customers
+              </span>
+            </div>
+            {isBlocked && (
+              <div style={{
+                marginTop: 8,
+                display: 'flex', alignItems: 'center', gap: 6,
+                fontSize: 12, color: D.amber,
+                background: 'rgba(245,158,11,0.08)',
+                padding: '4px 10px',
+                borderRadius: 6,
+                border: `1px solid ${D.amber}33`,
+              }}>
+                <AlertTriangle size={12} /> Complete active route first
+              </div>
+            )}
+            {!isDayClosed && !isBlocked && (
+              <div style={{
+                marginTop: 6,
+                display: 'flex', alignItems: 'center', gap: 4,
+                fontSize: 11, color: D.amber,
+              }}>
+                <Lock size={11} /> Admin must close day before delivery
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+            {isInProgress ? (
+              <button
+                onClick={onContinueOrderTaking}
+                disabled={starting}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 16px',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: starting ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                  boxShadow: `0 4px 14px ${D.accentGlow}`,
+                  transition: 'all 0.15s',
+                  opacity: starting ? 0.6 : 1,
+                }}
+                onMouseEnter={e => {
+                  if (!starting) {
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${D.accentGlow}`;
+                  }
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                  if (!starting) {
+                    (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${D.accentGlow}`;
+                  }
+                }}
+              >
+                <Play size={15} /> Continue
+              </button>
+            ) : (
               <>
                 <button
                   onClick={onStartOrderTaking}
-                  disabled={starting || isDisabled}
-                  className="flex items-center gap-2 px-4 py-2.5 text-base font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 active:scale-95 disabled:opacity-50 transition-all"
+                  disabled={starting || isBlocked}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '8px 16px',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: starting && activeMode === 'order'
+                      ? D.border
+                      : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                    color: '#fff',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: starting || isBlocked ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit',
+                    boxShadow: starting || isBlocked ? 'none' : `0 4px 14px ${D.accentGlow}`,
+                    transition: 'all 0.15s',
+                    opacity: (starting || isBlocked) ? 0.5 : 1,
+                  }}
+                  onMouseEnter={e => {
+                    if (!starting && !isBlocked) {
+                      (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                      (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${D.accentGlow}`;
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                    if (!starting && !isBlocked) {
+                      (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${D.accentGlow}`;
+                    }
+                  }}
                 >
-                  {starting && activeMode === 'order' ? <Spinner size={16} /> : <ShoppingBag size={16} />}
-                  Take Orders
+                  <ShoppingBag size={15} /> Take Orders
                 </button>
                 <button
                   onClick={onStartDelivery}
-                  disabled={starting || isDeliveryDisabled}
-                  className="flex items-center gap-2 px-4 py-2.5 text-base font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 active:scale-95 disabled:opacity-50 transition-all"
-                  title={!isDayClosed ? "Day not closed by admin yet" : ""}
+                  disabled={starting || isBlocked || !isDayClosed}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '8px 16px',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: (starting || isBlocked || !isDayClosed)
+                      ? D.border
+                      : `linear-gradient(135deg, #3B82F6, #2563EB)`,
+                    color: '#fff',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: (starting || isBlocked || !isDayClosed) ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit',
+                    boxShadow: (starting || isBlocked || !isDayClosed) ? 'none' : '0 4px 14px rgba(59,130,246,0.25)',
+                    transition: 'all 0.15s',
+                    opacity: (starting || isBlocked || !isDayClosed) ? 0.5 : 1,
+                  }}
+                  onMouseEnter={e => {
+                    if (!starting && !isBlocked && isDayClosed) {
+                      (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                      (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 20px rgba(59,130,246,0.30)';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                    if (!starting && !isBlocked && isDayClosed) {
+                      (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 14px rgba(59,130,246,0.25)';
+                    }
+                  }}
                 >
-                  {starting && activeMode === 'delivery' ? <Spinner size={16} /> : <Truck size={16} />}
-                  Start Delivery
+                  <Truck size={15} /> Delivery
                 </button>
               </>
             )}
             <button
               onClick={() => setExpanded(!expanded)}
-              className="p-2 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
+              style={{
+                padding: '4px 8px',
+                background: 'none',
+                border: 'none',
+                color: D.sub,
+                cursor: 'pointer',
+                alignSelf: 'flex-end',
+                transition: 'transform 0.2s',
+                transform: expanded ? 'rotate(90deg)' : 'rotate(0)',
+              }}
             >
-              <ChevronRight size={20} className={`transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`} />
+              <ChevronRight size={18} />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Expanded section - only shown when expanded */}
       {expanded && (
-        <div className="border-t border-slate-100 px-4 py-3 bg-slate-50 rounded-b-xl">
-          <div className="flex flex-wrap gap-3">
+        <div style={{
+          borderTop: `1px solid ${D.border}`,
+          padding: '12px 18px',
+          background: D.bg,
+          borderRadius: '0 0 14px 14px',
+        }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button
               onClick={onViewCustomers}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 14px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.surface,
+                color: D.muted,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.12s',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.borderColor = D.accent;
+                (e.currentTarget as HTMLElement).style.color = D.text;
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.borderColor = D.border;
+                (e.currentTarget as HTMLElement).style.color = D.muted;
+              }}
             >
-              <Users size={14} /> View Customers ({route.customerCount ?? 0})
+              <Users size={13} /> Customers ({route.customerCount ?? 0})
             </button>
             <button
               onClick={onViewOrders}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 14px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.surface,
+                color: D.muted,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.12s',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.borderColor = D.accent;
+                (e.currentTarget as HTMLElement).style.color = D.text;
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.borderColor = D.border;
+                (e.currentTarget as HTMLElement).style.color = D.muted;
+              }}
             >
-              <Package size={14} /> View Orders
+              <Package size={13} /> Orders
             </button>
-            {isTodayOverride && route.permanentSalesmanName && (
-              <div className="text-sm text-slate-400 bg-slate-100 px-3 py-2 rounded-lg">
-                Regular: {route.permanentSalesmanName}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Completed message - shown outside expanded section */}
-      {isCompleted && (
-        <div className="border-t border-green-100 px-4 py-2 bg-green-50 rounded-b-xl">
-          <div className="flex items-center gap-2 text-sm text-green-700">
-            <CheckCircle2 size={14} /> Route completed — Great job today! 🎉
           </div>
         </div>
       )}

@@ -1,4 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿// PATH: src/FMCG.Distribution.Infrastructure/Persistence/ApplicationDbContext.cs
+// CHANGE: Added NextOrderSequenceAsync() method for atomic PostgreSQL sequence-based order numbering
+
+using System.Data;
+using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Domain.Entities;
 using FMCG.Distribution.Domain.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
@@ -25,6 +29,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<ProductIncentive> ProductIncentives { get; set; }
     public DbSet<RouteExecution> RouteExecutions { get; set; }
     public DbSet<CustomerVisit> CustomerVisits { get; set; }
+    public DbSet<UserSession> UserSessions { get; set; }
     public DbSet<RouteAssignment> RouteAssignments => Set<RouteAssignment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -37,12 +42,20 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
             entity.HasIndex(e => e.Email).IsUnique();
+            // ── NEW: UserName configuration ──
+            entity.Property(e => e.UserName).HasMaxLength(50);
+            entity.HasIndex(e => e.UserName)
+                .IsUnique()
+                .HasFilter("\"UserName\" IS NOT NULL");  // PostgreSQL syntax
             entity.Property(e => e.PasswordHash).IsRequired();
             entity.Property(e => e.FullName).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Role).IsRequired().HasConversion<int>();
             entity.Property(e => e.IsActive).IsRequired();
             entity.Property(e => e.RefreshToken).HasMaxLength(500);
             entity.HasQueryFilter(e => !e.IsDeleted);
+            entity.Property(e => e.PinHash);
+            entity.Property(e => e.PinFailCount);
+            entity.Property(e => e.PinLockedUntil);
         });
 
         // Route configuration
@@ -55,7 +68,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.IsActive).IsRequired();
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Relationship with User (Salesman)
             entity.HasOne(e => e.AssignedSalesman)
                   .WithMany(u => u.AssignedRoutes)
                   .HasForeignKey(e => e.AssignedSalesmanId)
@@ -74,11 +86,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.IsActive).IsRequired();
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Index for Malayalam search
             entity.HasIndex(e => e.NameMalayalam);
             entity.HasIndex(e => new { e.RouteId, e.SequenceOrder });
 
-            // Relationship with Route
             entity.HasOne(e => e.Route)
                   .WithMany(r => r.Customers)
                   .HasForeignKey(e => e.RouteId)
@@ -105,7 +115,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
 
-
         // ProductUnitPrice configuration
         modelBuilder.Entity<ProductUnitPrice>(entity =>
         {
@@ -129,7 +138,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.IsDefault).IsRequired();
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Relationships
             entity.HasOne(e => e.Product)
                 .WithMany(p => p.UnitPrices)
                 .HasForeignKey(e => e.ProductId)
@@ -140,11 +148,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .HasForeignKey(e => e.ProductUnitId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Indexes
             entity.HasIndex(e => new { e.ProductId, e.ProductUnitId });
             entity.HasIndex(e => e.IsDefault);
         });
-        // Product configuration
+
         // Product configuration
         modelBuilder.Entity<Product>(entity =>
         {
@@ -155,19 +162,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.IsActive).IsRequired();
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Index for Malayalam search
             entity.HasIndex(e => e.NameMalayalam);
 
-            // Relationships
             entity.HasOne(e => e.ProductGroup)
                   .WithMany(g => g.Products)
                   .HasForeignKey(e => e.ProductGroupId)
                   .OnDelete(DeleteBehavior.Restrict);
 
-            // CHANGE ProductUnit to DefaultUnit
             entity.HasOne(e => e.DefaultUnit)
                   .WithMany(u => u.Products)
-                  .HasForeignKey(e => e.DefaultUnitId)  // ← CHANGE ProductUnitId to DefaultUnitId
+                  .HasForeignKey(e => e.DefaultUnitId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -189,7 +193,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.ExpectedPaymentAmount).HasPrecision(18, 2);
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Indexes for performance
             entity.HasIndex(e => e.CustomerId);
             entity.HasIndex(e => e.RouteId);
             entity.HasIndex(e => e.SalesmanId);
@@ -198,7 +201,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasIndex(e => new { e.RouteId, e.Status });
             entity.HasIndex(e => new { e.CustomerId, e.OrderDate });
 
-            // Relationships
             entity.HasOne(e => e.Customer)
                   .WithMany()
                   .HasForeignKey(e => e.CustomerId)
@@ -214,14 +216,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   .HasForeignKey(e => e.SalesmanId)
                   .OnDelete(DeleteBehavior.Restrict);
 
-            // Relationship with CustomerVisit
             entity.HasOne(o => o.CustomerVisit)
                   .WithMany()
                   .HasForeignKey(o => o.CustomerVisitId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // RouteAssignment
+        // RouteAssignment configuration
         modelBuilder.Entity<RouteAssignment>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -239,7 +240,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .HasForeignKey(e => e.SalesmanId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Unique: one assignment per route per date (ignoring soft-deleted)
             entity.HasIndex(e => new { e.RouteId, e.AssignmentDate })
                 .IsUnique()
                 .HasFilter("\"IsDeleted\" = false");
@@ -255,11 +255,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.UnitId).IsRequired();
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Indexes
             entity.HasIndex(e => e.OrderId);
             entity.HasIndex(e => e.ProductId);
 
-            // Relationships
             entity.HasOne(e => e.Order)
                   .WithMany(o => o.Items)
                   .HasForeignKey(e => e.OrderId)
@@ -286,12 +284,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.Reason).HasMaxLength(500);
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Indexes
             entity.HasIndex(e => e.ProductId);
             entity.HasIndex(e => new { e.ProductId, e.IsActive });
             entity.HasIndex(e => e.EffectiveDate);
 
-            // Relationship with Product
             entity.HasOne(e => e.Product)
                   .WithMany()
                   .HasForeignKey(e => e.ProductId)
@@ -309,12 +305,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.ModifiedBy).IsRequired().HasMaxLength(100);
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Indexes
             entity.HasIndex(e => e.ProductId);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.Action);
 
-            // Relationship with Product
             entity.HasOne(e => e.Product)
                   .WithMany()
                   .HasForeignKey(e => e.ProductId)
@@ -480,15 +474,29 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         foreach (var entry in entries)
         {
             if (entry.State == EntityState.Added)
-            {
                 entry.Entity.CreatedAt = DateTime.UtcNow;
-            }
             else if (entry.State == EntityState.Modified)
-            {
                 entry.Entity.UpdatedAt = DateTime.UtcNow;
-            }
         }
-
         return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets the next value from the PostgreSQL order_number_seq sequence.
+    /// Atomic at the database level — guaranteed unique even under thousands of
+    /// concurrent requests across multiple server instances.
+    /// </summary>
+    public async Task<long> NextOrderSequenceAsync(CancellationToken cancellationToken = default)
+    {
+        var connection = Database.GetDbConnection();
+
+        if (connection.State != ConnectionState.Open)
+            await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT nextval('order_number_seq')";
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt64(result);
     }
 }

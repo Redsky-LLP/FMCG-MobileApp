@@ -33,7 +33,7 @@ interface NavItem {
 
 const NAV_ITEMS: Record<string, NavItem[]> = {
   Salesman: [
-    { to: '/salesman/routes', label: 'Routes', icon: MapPin, roles: ['Salesman'] },
+    { to: '/salesman/routes', label: 'My Routes', icon: MapPin, roles: ['Salesman'] },
     { to: '/salesman/orders', label: 'Orders', icon: ShoppingCart, roles: ['Salesman'] },
     { to: '/salesman/incentives', label: 'Incentives', icon: TrendingUp, roles: ['Salesman'] },
   ],
@@ -121,8 +121,9 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
   const roleColor = ROLE_COLORS[role] || ROLE_COLORS.Admin;
 
   const isActive = (to: string) => {
-    // Special case for Salesman orders page
-    if (to === '/salesman/orders' && location.pathname.includes('/salesman/routes/')) {
+    // Any sub-page of a route (execute / order entry / review-orders / customers)
+    // belongs to the "My Routes" tab, not "Orders"
+    if (to === '/salesman/routes' && location.pathname.includes('/salesman/routes')) {
       return true;
     }
     // Handle dashboard routes
@@ -166,9 +167,9 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
     return 'FMCG Dist';
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    await logout();
+    navigate('/pin-login');
     setDrawerOpen(false);
   };
 

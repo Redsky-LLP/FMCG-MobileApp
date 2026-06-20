@@ -84,12 +84,18 @@ apiClient.interceptors.response.use(
         const response = await axios.post(`${BASE_URL}/api/v1/auth/refresh`, {
           refreshToken,
         });
-        const { token } = response.data;
+        // Backend wraps every response in a Result<T> envelope: { isSuccess, data: {...} }
+        const payload = response.data?.data ?? response.data;
+        const { token, refreshToken: newRefreshToken } = payload;
+        if (!token) throw new Error('Refresh response missing token');
 
         const auth = JSON.parse(localStorage.getItem('fmcg_auth') || '{}');
         if (auth.state) {
           auth.state.user.token = token;
           auth.state.token = token;
+          // Rotate: the old refresh token is now invalid server-side, so we
+          // must save the new one or the NEXT refresh attempt will fail.
+          if (newRefreshToken) auth.state.user.refreshToken = newRefreshToken;
           localStorage.setItem('fmcg_auth', JSON.stringify(auth));
         }
 
@@ -99,7 +105,7 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError as Error, null);
         localStorage.removeItem('fmcg_auth');
-        window.location.href = '/login';
+        window.location.href = '/pin-login';
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

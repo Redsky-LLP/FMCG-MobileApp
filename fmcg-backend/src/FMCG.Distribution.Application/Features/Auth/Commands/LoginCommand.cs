@@ -17,4 +17,6 @@ public class LoginResponse
     public string Email { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
+    /// <summary>The UserSession.Id created at login — pass this to POST /api/v1/auth/logout.</summary>
+    public Guid SessionId { get; set; }
 }

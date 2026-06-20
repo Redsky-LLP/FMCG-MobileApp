@@ -36,6 +36,27 @@ public class SetPinCommandHandler(IApplicationDbContext context)
             return Result<bool>.Failure("User not found.");
         }
 
+        // ── Reject duplicate PINs ────────────────────────────────────────────
+        // PinLoginCommandHandler finds a user by scanning every PinHash and
+        // stopping at the first BCrypt match — it has no other way to tell two
+        // same-PIN users apart. If two users shared a PIN, whichever one the
+        // scan reaches first would "win" every login attempt, silently locking
+        // the other person out of their own account. The frontend already
+        // shows a live "already taken" hint, but this is the check that
+        // actually prevents it from happening.
+        var others = await context.Users
+            .Where(u => u.IsActive && u.Id != request.UserId && u.PinHash != null)
+            .Select(u => new { u.FullName, u.PinHash })
+            .ToListAsync(cancellationToken);
+
+        foreach (var other in others)
+        {
+            if (BCrypt.Net.BCrypt.Verify(request.Pin, other.PinHash))
+            {
+                return Result<bool>.Failure($"This PIN is already used by {other.FullName}. Choose a different one.");
+            }
+        }
+
         user.PinHash = BCrypt.Net.BCrypt.HashPassword(request.Pin);
         user.PinFailCount = 0;
         user.PinLockedUntil = null;

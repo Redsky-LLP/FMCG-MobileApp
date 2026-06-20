@@ -91,10 +91,12 @@ public class SettlementController(IMediator mediator, IApplicationDbContext cont
         var isAdmin = IsAdmin();
         var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
-        // Salesman can only see their assigned route's outstanding
-        if (userRole == "Salesman" && !isAdmin)
+        // Salesman viewing without an explicit routeId: scope to their
+        // permanently assigned route if they have one. Routes are open to
+        // anyone by default now, so NOT having a permanent assignment isn't
+        // an error — it just means there's nothing route-specific to scope to.
+        if (userRole == "Salesman" && !isAdmin && !routeId.HasValue)
         {
-            // Get salesman's assigned route
             var routeIdForSalesman = await context.Routes
                 .Where(r => r.AssignedSalesmanId == userId && !r.IsDeleted)
                 .Select(r => r.Id)
@@ -103,10 +105,6 @@ public class SettlementController(IMediator mediator, IApplicationDbContext cont
             if (routeIdForSalesman != Guid.Empty)
             {
                 routeId = routeIdForSalesman;
-            }
-            else
-            {
-                return BadRequest(Result<OutstandingSummaryDto>.Failure("No route assigned to this salesman."));
             }
         }
 

@@ -18,6 +18,11 @@ public class UpdateProductCommandHandler(IApplicationDbContext context)
             return Result<UpdateProductResponse>.Failure("Product not found.");
         }
 
+        if (string.IsNullOrWhiteSpace(request.ItemCode))
+        {
+            return Result<UpdateProductResponse>.Failure("Item Code is required.");
+        }
+
         // Verify ProductGroup exists if changed
         if (product.ProductGroupId != request.ProductGroupId)
         {
@@ -46,6 +51,13 @@ public class UpdateProductCommandHandler(IApplicationDbContext context)
         product.DefaultUnitId = request.ProductUnitId;  // ← CHANGE THIS
         product.BasePrice = request.BasePrice;
         product.IsActive = request.IsActive;
+        product.ItemCode = request.ItemCode;
+        product.Sku = request.Sku;
+        product.HSNCode = request.HSNCode;
+        product.Supplier = request.Supplier;
+        if (request.ClosingStock.HasValue) product.ClosingStock = request.ClosingStock.Value;
+        product.MinOrderQty = request.MinOrderQty;
+        product.MaxOrderQty = request.MaxOrderQty;
         product.UpdateTimestamp("system");
 
         await context.SaveChangesAsync(cancellationToken);
@@ -58,7 +70,8 @@ public class UpdateProductCommandHandler(IApplicationDbContext context)
             ProductGroupId = product.ProductGroupId,
             ProductUnitId = product.DefaultUnitId,  // ← CHANGE THIS
             BasePrice = product.BasePrice,
-            IsActive = product.IsActive
+            IsActive = product.IsActive,
+            ItemCode = product.ItemCode
         }, "Product updated successfully.");
     }
 }

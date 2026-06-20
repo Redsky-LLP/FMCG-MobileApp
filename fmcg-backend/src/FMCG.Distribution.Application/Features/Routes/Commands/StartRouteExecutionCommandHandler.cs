@@ -36,8 +36,18 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
         if (salesman == null)
             return Result<StartRouteExecutionResponse>.Failure("Salesman not found or not authorized.");
 
-        if (route.AssignedSalesmanId != request.SalesmanId)
-            return Result<StartRouteExecutionResponse>.Failure("You are not assigned to this route.");
+        // Routes are open to any salesman by default — admin coordinates who takes
+        // what informally (WhatsApp/call). A route only locks to one specific
+        // salesman here if Admin has explicitly set a *permanent* AssignedSalesmanId
+        // on it (the "Assign Route" feature) — and even then, an Admin/SuperAdmin
+        // can still start it on a salesman's behalf.
+        if (route.AssignedSalesmanId.HasValue
+            && route.AssignedSalesmanId != request.SalesmanId
+            && !request.IsAdmin)
+        {
+            return Result<StartRouteExecutionResponse>.Failure(
+                "This route is permanently assigned to another salesman. Ask your admin to reassign it if needed.");
+        }
 
         var executionDate = request.ExecutionDate.HasValue && request.IsAdmin
             ? request.ExecutionDate.Value.Date
@@ -52,6 +62,17 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
 
         if (existingExecution != null)
         {
+            // ── LOCK: this is what makes "Taken by X" mean something. Without this
+            // check, a second salesman tapping Start on the same open route would
+            // silently be handed the first salesman's in-progress execution. ──
+            if (existingExecution.SalesmanId != request.SalesmanId && !request.IsAdmin)
+            {
+                var owner = await context.Users
+                    .FirstOrDefaultAsync(u => u.Id == existingExecution.SalesmanId, cancellationToken);
+                return Result<StartRouteExecutionResponse>.Failure(
+                    $"This route was already started by {owner?.FullName ?? "another salesman"} today.");
+            }
+
             if (existingExecution.Status == ExecutionStatus.Draft)
             {
                 existingExecution.Start();

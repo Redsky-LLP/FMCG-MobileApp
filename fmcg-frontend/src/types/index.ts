@@ -77,11 +77,13 @@ export type UserRole = 'SuperAdmin' | 'Admin' | 'Salesman' | 'Accounts' | 'Wareh
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export interface AuthUser {
-  id:    string;
-  email: string;
-  name:  string;
-  role:  UserRole;
-  token: string;
+  id:           string;
+  email:        string;
+  name:         string;
+  role:         UserRole;
+  token:        string;
+  refreshToken?: string;  // needed for silent session refresh — was missing before
+  sessionId?:   string;   // UserSession.Id — passed to logout endpoint
 }
 
 export interface UserDto {
@@ -99,6 +101,7 @@ export interface LoginResponse {
   email:        string;
   fullName:     string;
   role:         string;
+  sessionId:    string;
 }
 
 // ── API Envelope ──────────────────────────────────────────────────────────────
@@ -125,6 +128,18 @@ export interface RouteDto {
     isTodayOverride?:      boolean;
     overrideNotes?:        string | null;
     hasOverrideToday?:     boolean;
+}
+
+export interface RouteCardDto {
+    id: string;
+    name: string;
+    description?: string;
+    customerCount: number;
+    isActive: boolean;
+    isStarted: boolean;
+    isMine: boolean;
+    startedBy?: string;
+    startedBySalesmanId?: string;
 }
 
 export interface RouteDetailDto extends RouteDto {
@@ -290,10 +305,16 @@ export interface CreateProductCommand {
   nameEnglish:    string;
   nameMalayalam?: string;
   sku?:           string;
+  itemCode?:      string;
+  hsnCode?:       string;
+  supplier?:      string;
   productGroupId: string;
   productUnitId?: string;
   basePrice:      number;
   defaultPackSize?: number;
+  closingStock?:  number;
+  minOrderQty?:   number;
+  maxOrderQty?:   number;
 }
 
 export interface UpdateProductCommand extends CreateProductCommand {
@@ -346,13 +367,17 @@ export interface LoadingSheetStopDto {
 }
 
 // ── Order ─────────────────────────────────────────────────────────────────────
-// UPDATED: 5 values matching backend OrderStatus enum
+// IMPORTANT: string values, not numbers. The backend now serializes every enum
+// as its name (see Program.cs JsonStringEnumConverter) — these values must match
+// the backend's OrderStatus names exactly ("Draft", "PendingApproval", etc.), or
+// every status comparison in the app (isDraft checks, badge colors, filtering)
+// silently breaks because a string from the API never equals a TS number.
 export enum OrderStatus {
-  Draft           = 1,
-  PendingApproval = 2,
-  Approved        = 3,
-  Packed          = 4,
-  Closed          = 5,
+  Draft           = 'Draft',
+  PendingApproval = 'PendingApproval',
+  Approved        = 'Approved',
+  Packed          = 'Packed',
+  Closed          = 'Closed',
 }
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
@@ -642,6 +667,21 @@ export interface TodayRouteDto {
     isOverride:    boolean;
     notes?:        string;
     permanentSalesmanName?: string;
+}
+
+// All active routes, visible to every salesman — the "no admin assignment
+// step required" view. A route shows as taken once any salesman starts it.
+export interface ActiveRouteDto {
+    id:                   string;
+    name:                 string;
+    description?:         string;
+    customerCount:        number;
+    isActive:             boolean;
+    isStarted:            boolean;
+    startedBy?:            string;
+    startedBySalesmanId?: string;
+    isMine:               boolean;
+    isDedicatedToAnother: boolean;
 }
 
 export interface RoutePerformanceResponseDto {

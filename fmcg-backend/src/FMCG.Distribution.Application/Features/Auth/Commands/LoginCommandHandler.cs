@@ -29,6 +29,18 @@ public class LoginCommandHandler(IApplicationDbContext context, IConfiguration c
 
         user.RefreshToken = refreshToken;
         user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+
+        // ── Record login session ──
+        var session = new UserSession
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            LoginAt = DateTime.UtcNow,
+            LoginMethod = "Email",
+            CreatedAt = DateTime.UtcNow,
+        };
+        context.UserSessions.Add(session);
+
         await context.SaveChangesAsync(cancellationToken);
 
         return Result<LoginResponse>.Success(new LoginResponse
@@ -38,7 +50,8 @@ public class LoginCommandHandler(IApplicationDbContext context, IConfiguration c
             UserId = user.Id,
             Email = user.Email,
             FullName = user.FullName,
-            Role = user.Role.ToString()
+            Role = user.Role.ToString(),
+            SessionId = session.Id,
         });
     }
 

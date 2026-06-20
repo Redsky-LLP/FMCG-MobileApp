@@ -21,11 +21,16 @@ public class GetRouteByIdQueryHandler(IApplicationDbContext context)
             return Result<RouteDetailDto>.Failure("Route not found.");
         }
 
-        // Authorization: Non-admin users can only view their assigned route
+        // Authorization: routes are open to any salesman by default (see
+        // GetActiveRoutesQueryHandler / StartRouteExecutionCommandHandler — this
+        // mirrors the same rule). Only block if the route is permanently
+        // dedicated to a DIFFERENT specific salesman; unassigned routes are
+        // viewable by anyone, since any salesman may have started one today.
         if (!request.IsAdmin && request.CurrentUserId.HasValue &&
+            route.AssignedSalesmanId.HasValue &&
             route.AssignedSalesmanId != request.CurrentUserId.Value)
         {
-            return Result<RouteDetailDto>.Failure("You are not authorized to view this route.");
+            return Result<RouteDetailDto>.Failure("This route is permanently assigned to another salesman.");
         }
 
         var dto = new RouteDetailDto

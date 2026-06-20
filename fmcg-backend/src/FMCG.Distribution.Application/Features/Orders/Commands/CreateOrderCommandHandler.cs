@@ -1,6 +1,8 @@
 ﻿// PATH: src/FMCG.Distribution.Application/Features/Orders/Commands/CreateOrderCommandHandler.cs
-// FIXED: OrderStatus.Submitted replaced with OrderStatus.Draft
-//        (new orders start as Draft; salesman must explicitly submit them)
+// FIX: Replaced SemaphoreSlim + SELECT-based order number generation with
+//      PostgreSQL sequence (order_number_seq) via IApplicationDbContext.NextOrderSequenceAsync().
+//      PostgreSQL sequences are atomic at the database level — no duplicate keys possible,
+//      no race conditions, works correctly across multiple server instances.
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -15,38 +17,44 @@ namespace FMCG.Distribution.Application.Features.Orders.Commands;
 public class CreateOrderCommandHandler(IApplicationDbContext context)
     : IRequestHandler<CreateOrderCommand, Result<OrderDetailDto>>
 {
+    // SemaphoreSlim REMOVED — was the root cause of duplicate key errors.
+    // The lock prevented parallel execution within one process but:
+    //  a) didn't protect against multiple server instances
+    //  b) the SELECT-then-INSERT is still not atomic — a gap exists between
+    //     reading the max number and writing the new order.
+    // PostgreSQL sequence is atomic at the DB level — zero gap possible.
+
     public async Task<Result<OrderDetailDto>> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
-        // Validate Customer
+        // ── Validate Customer ──────────────────────────────────────────────────
         var customer = await context.Customers
             .FirstOrDefaultAsync(c => c.Id == request.CustomerId && !c.IsDeleted, cancellationToken);
 
         if (customer == null)
             return Result<OrderDetailDto>.Failure("Customer not found.");
 
-        // Validate Salesman
+        // ── Validate Salesman ──────────────────────────────────────────────────
         var salesman = await context.Users
             .FirstOrDefaultAsync(u => u.Id == request.SalesmanId && u.IsActive && u.Role == UserRole.Salesman, cancellationToken);
 
         if (salesman == null)
             return Result<OrderDetailDto>.Failure("Salesman not found.");
 
-        // Validate salesman is assigned to this customer's route
-        // (use route-assignment table as well as the legacy direct assignment)
+        // ── Validate Route ─────────────────────────────────────────────────────
         var route = await context.Routes
             .FirstOrDefaultAsync(r => r.Id == customer.RouteId && !r.IsDeleted, cancellationToken);
 
         if (route == null)
             return Result<OrderDetailDto>.Failure("Route not found for this customer.");
 
-        // Build order items
+        // ── Build order items ──────────────────────────────────────────────────
         var orderItems = new List<OrderItem>();
         var itemDtos = new List<OrderItemDto>();
 
         foreach (var item in request.Items)
         {
             var product = await context.Products
-                .Include(p => p.DefaultUnit)  // ← Use DefaultUnit instead of ProductUnit
+                .Include(p => p.DefaultUnit)
                 .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.IsActive && !p.IsDeleted, cancellationToken);
 
             if (product == null)
@@ -99,10 +107,12 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
         if (orderItems.Count == 0)
             return Result<OrderDetailDto>.Failure("At least one item is required to create an order.");
 
-        var orderNumber = await GenerateOrderNumberAsync(context, cancellationToken);
+        // ── Generate unique order number via PostgreSQL sequence ───────────────
+        // nextval('order_number_seq') is atomic — the DB guarantees each call
+        // returns a unique value, even with thousands of concurrent requests.
+        var orderNumber = await GenerateOrderNumberAsync(cancellationToken);
 
-        // ── FIXED: Status = Draft (was Submitted) ─────────────────────────────
-        // Salesman creates a Draft; they must call /submit to move to PendingApproval.
+        // ── Create the order ───────────────────────────────────────────────────
         var order = new Order
         {
             Id = Guid.NewGuid(),
@@ -111,7 +121,7 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             RouteId = customer.RouteId,
             SalesmanId = request.SalesmanId,
             OrderDate = DateTime.UtcNow,
-            Status = OrderStatus.Draft,          // ← was OrderStatus.Submitted
+            Status = OrderStatus.Draft,
             Remarks = request.Remarks,
             Items = orderItems,
             CustomerVisitId = request.CustomerVisitId,
@@ -120,18 +130,47 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
         await context.Orders.AddAsync(order, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 
-        // Link to customer visit if provided
+        // ── Link to customer visit ──────────────────────────────────────────────
+        // Prefer the explicit ids the caller passed (fast, unambiguous). But not
+        // every page that can create an order necessarily has execution context
+        // in hand — fall back to resolving the visit from whatever in-progress
+        // execution this salesman has for this route right now. Without this
+        // fallback, an order created from such a page silently never marks its
+        // stop as done, so the route execution page keeps showing it as Pending
+        // forever even though a perfectly good order exists.
+        CustomerVisit? visit = null;
+
         if (request.CustomerVisitId.HasValue && request.ExecutionId.HasValue)
         {
-            var visit = await context.CustomerVisits
+            visit = await context.CustomerVisits
                 .FirstOrDefaultAsync(v => v.Id == request.CustomerVisitId.Value
-                    && v.RouteExecutionId == request.ExecutionId.Value, cancellationToken);
+                    && v.RouteExecutionId == request.ExecutionId.Value
+                    && !v.IsDeleted, cancellationToken);
+        }
 
-            if (visit != null && visit.Status == VisitStatus.Pending)
+        if (visit == null)
+        {
+            var inProgressExecution = await context.RouteExecutions
+                .Where(e => e.RouteId == customer.RouteId
+                    && e.SalesmanId == request.SalesmanId
+                    && e.Status == ExecutionStatus.InProgress
+                    && !e.IsDeleted)
+                .OrderByDescending(e => e.StartedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (inProgressExecution != null)
             {
-                visit.RecordOrder(order.Id);
-                await context.SaveChangesAsync(cancellationToken);
+                visit = await context.CustomerVisits
+                    .FirstOrDefaultAsync(v => v.RouteExecutionId == inProgressExecution.Id
+                        && v.CustomerId == request.CustomerId
+                        && !v.IsDeleted, cancellationToken);
             }
+        }
+
+        if (visit != null && visit.Status == VisitStatus.Pending)
+        {
+            visit.RecordOrder(order.Id);
+            await context.SaveChangesAsync(cancellationToken);
         }
 
         var routeDetails = await context.Routes
@@ -153,31 +192,28 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             TotalAmount = itemDtos.Sum(i => i.SellingPrice * i.Quantity),
             Remarks = order.Remarks,
             SubmittedAt = order.SubmittedAt,
+            ApprovedAt = order.ApprovedAt,
             ClosedAt = order.ClosedAt,
             CreatedAt = order.CreatedAt,
             Items = itemDtos,
         }, "Order created successfully.");
     }
 
-    private static async Task<string> GenerateOrderNumberAsync(IApplicationDbContext dbContext, CancellationToken _)
+    // ── Generate order number using PostgreSQL atomic sequence ─────────────────
+    // Format: ORD-YYYYMMDD-NNNN  (e.g. ORD-20260616-1042)
+    // The sequence value is globally unique across all dates, so we combine it
+    // with the date prefix for human readability.
+    // Even if the sequence wraps across days, the date prefix ensures no collisions.
+    private async Task<string> GenerateOrderNumberAsync(CancellationToken cancellationToken)
     {
         var datePart = DateTime.UtcNow.ToString("yyyyMMdd");
-        var prefix = $"ORD-{datePart}-";
 
-        var lastOrder = await dbContext.Orders
-            .Where(o => o.OrderNumber.StartsWith(prefix))
-            .OrderByDescending(o => o.OrderNumber)
-            .FirstOrDefaultAsync(_);
+        // This single DB call is atomic — PostgreSQL guarantees uniqueness
+        var seqValue = await context.NextOrderSequenceAsync(cancellationToken);
 
-        int nextNumber = 1;
-        if (lastOrder != null)
-        {
-            var lastNumberStr = lastOrder.OrderNumber[(prefix.Length)..];
-            if (int.TryParse(lastNumberStr, out int lastNumber))
-                nextNumber = lastNumber + 1;
-        }
-
-        return $"{prefix}{nextNumber:D4}";
+        // Format: ORD-20260616-1042
+        // Use seqValue directly (no date-based reset) to keep it globally unique
+        return $"ORD-{datePart}-{seqValue:D4}";
     }
 
     private static decimal ResolveQuantity(decimal rawQty, int? bags, int? boxes, int? tins)

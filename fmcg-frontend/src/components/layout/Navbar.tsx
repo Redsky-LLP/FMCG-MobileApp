@@ -8,7 +8,7 @@ import {
   Package, Route, Users, ShoppingCart, BarChart3, FileText,
   Settings, LogOut, Menu, X, Warehouse, Calculator, Home,
   TrendingUp, Gift, UserCog, CalendarDays, Boxes, ChevronRight,
-  Bell, Search,
+  Bell, Search, Clock,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
@@ -32,7 +32,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/admin/reports',     label: 'Reports',          icon: FileText,     roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/analytics',   label: 'Analytics',        icon: BarChart3,    roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/incentives',  label: 'Incentives',       icon: Gift,         roles: ['Admin', 'SuperAdmin'] },
-  { to: '/admin/users',       label: 'Users',            icon: UserCog,      roles: ['Admin', 'SuperAdmin'] },
+  { to: '/admin/users',        label: 'Users',            icon: UserCog,      roles: ['Admin', 'SuperAdmin'] },
+  { to: '/admin/session-log',  label: 'Session Log',      icon: Clock,        roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/settings',    label: 'Settings',         icon: Settings,     roles: ['Admin', 'SuperAdmin'] },
 
   // Salesman
@@ -80,9 +81,9 @@ export function Navbar() {
   const shortcuts    = allItems.filter(n => shortcutKeys.includes(n.to));
   const roleColor    = ROLE_COLORS[user.role] ?? { bg: '#EFF6FF', text: '#1D4ED8' };
 
-  function handleLogout() {
-    logout();
-    navigate('/login');
+  async function handleLogout() {
+    await logout();
+    navigate('/pin-login');
   }
 
   function isActive(to: string) {

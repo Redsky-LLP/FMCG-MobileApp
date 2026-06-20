@@ -79,20 +79,15 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         var errors = new List<string>();
         var targetDate = date ?? DateTime.UtcNow.Date;
 
-        // Check for any draft orders
-        var draftOrdersQuery = context.Orders
-            .Where(o => !o.IsDeleted && o.Status == OrderStatus.Draft);
-
-        if (routeId.HasValue)
-        {
-            draftOrdersQuery = draftOrdersQuery.Where(o => o.RouteId == routeId.Value);
-        }
-
-        var draftOrderCount = await draftOrdersQuery.CountAsync(cancellationToken);
-        if (draftOrderCount > 0)
-        {
-            errors.Add($"Cannot close day: {draftOrderCount} draft order(s) need to be submitted.");
-        }
+        // NOTE: deliberately NOT blocking on draft orders here. Under the
+        // current workflow there's no "Submit All" step — orders are created
+        // as Draft and stay that way until admin individually reviews/approves
+        // them, which can be indefinitely. Drafts are already excluded from
+        // the settlement totals below (CalculateExpectedCashAsync filters
+        // them out), so they have zero effect on the closure's accuracy.
+        // Requiring zero drafts to ever close the day would mean the day can
+        // never close as long as a single never-actioned draft exists
+        // anywhere in the system — which defeats the point of Close Day.
 
         // Check if day is already closed
         var existingClosure = await context.DailyClosures
@@ -175,6 +170,12 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
                 && o.OrderDate <= closureDate)
             .ToListAsync(cancellationToken);
 
+        // Informational only — these are NOT included in today's settlement
+        // totals and do NOT block closing. Surfaced in the result message so
+        // admin knows they're still sitting there awaiting review.
+        var draftCountAsOfClosure = await context.Orders
+            .CountAsync(o => !o.IsDeleted && o.Status == OrderStatus.Draft && o.OrderDate <= closureDate, cancellationToken);
+
         // Lock each order
         foreach (var order in ordersToLock)
         {
@@ -199,6 +200,31 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
 
         await context.DailyClosures.AddAsync(closure, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
+
+        // ── Also close every open route execution ───────────────────────────
+        // Without this, the settlement closure above locks orders and creates
+        // the DailyClosure record, but route execution status never changes —
+        // so order-taking routes would stay stuck at "in progress" forever and
+        // never go back to a fresh, startable state for the next day. This is
+        // what actually makes route cards reset.
+        // Non-blocking: if this fails for any reason, the settlement closure
+        // itself has already succeeded and should not be rolled back over it.
+        int closedRouteCount = 0;
+        try
+        {
+            var closeDayResult = await mediator.Send(
+                new FMCG.Distribution.Application.Features.Routes.Commands.CloseDayCommand
+                {
+                    AdminUserId = closedByUserId,
+                },
+                cancellationToken);
+
+            if (closeDayResult.IsSuccess && closeDayResult.Data != null)
+            {
+                closedRouteCount = closeDayResult.Data.ClosedRouteCount;
+            }
+        }
+        catch { /* swallow — settlement closure itself already succeeded */ }
 
         // ── Auto-generate reports post-closure ────────────────────────────────
         // Non-blocking: report failures do not roll back the closure.
@@ -244,9 +270,20 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
             TotalOutstanding = closure.TotalOutstanding,
             ExpectedCash = closure.ExpectedCash,
             Success = true,
-            Message = $"Operational day closed successfully. Expected cash: {closure.ExpectedCash:C}",
+            Message = BuildClosureMessage(closure.ExpectedCash, closedRouteCount, draftCountAsOfClosure),
             LoadingSheetUrl = loadingUrl,
             BillingSheetUrl = billingUrl,
+            ClosedRouteCount = closedRouteCount,
         };
+    }
+
+    private static string BuildClosureMessage(decimal expectedCash, int closedRouteCount, int draftCount)
+    {
+        var parts = new List<string> { $"Operational day closed successfully. Expected cash: {expectedCash:C}." };
+        if (closedRouteCount > 0)
+            parts.Add($"{closedRouteCount} route(s) closed and ready fresh tomorrow.");
+        if (draftCount > 0)
+            parts.Add($"Note: {draftCount} draft order(s) weren't included (still awaiting review) — they're untouched and can still be edited.");
+        return string.Join(" ", parts);
     }
 }

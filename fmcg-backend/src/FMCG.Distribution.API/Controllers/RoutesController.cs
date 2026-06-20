@@ -5,13 +5,16 @@ using FMCG.Distribution.Application.Features.Routes.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using FMCG.Distribution.Application.Common.Interfaces;
+using FMCG.Distribution.Domain.Enums;
 
 namespace FMCG.Distribution.API.Controllers;
 
 [ApiController]
 [Route("api/v1/[controller]")]
-[Authorize]                          // ← any authenticated user; per-method narrows it
-public class RoutesController(IMediator mediator) : ControllerBase
+[Authorize]
+public class RoutesController(IMediator mediator, IApplicationDbContext context) : ControllerBase
 {
     private Guid GetCurrentUserId()
     {
@@ -58,7 +61,7 @@ public class RoutesController(IMediator mediator) : ControllerBase
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
-    // ── Read ops: all roles (with filtering for salesman) ─────────────────────
+    // ── Read ops: all roles ─────────────────────────────────────────────────
 
     [HttpGet]
     [Authorize(Roles = "Admin,SuperAdmin,Salesman,Accounts,Warehouse")]
@@ -113,9 +116,9 @@ public class RoutesController(IMediator mediator) : ControllerBase
         {
             RouteId = routeId,
             SalesmanId = userId,
-            ExecutionDate = executionDate,   // null → handler defaults to today
-            IsAdmin = IsAdmin(),              // handler enforces today for non-admins
-            IsOrderTaking = false             // Delivery mode
+            ExecutionDate = executionDate,
+            IsAdmin = IsAdmin(),
+            IsOrderTaking = false
         };
 
         var result = await mediator.Send(command);
@@ -172,7 +175,22 @@ public class RoutesController(IMediator mediator) : ControllerBase
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
-    // ── NEW: Order Taking Mode (visits all customers, no pre-submitted orders needed) ──
+    // ── Close Day (Admin only) — closes EVERY open route execution at once ──
+    // POST /api/v1/routes/close-day
+    // This is what makes routes fresh again for the next day. Not the same
+    // as completeRouteExecution above (which is per-route, salesman-facing,
+    // and requires all stops visited) — this is a hard admin cutoff.
+    [HttpPost("close-day")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<Result<CloseDayResponse>>> CloseDay()
+    {
+        var userId = GetCurrentUserId();
+        var command = new CloseDayCommand { AdminUserId = userId };
+        var result = await mediator.Send(command);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    // ── NEW: Order Taking Mode ──────────────────────────────────────────────
     [HttpPost("{routeId}/start-order-taking")]
     [Authorize(Roles = "Salesman,Admin,SuperAdmin")]
     public async Task<ActionResult<Result<StartRouteExecutionResponse>>> StartOrderTaking(
@@ -189,10 +207,71 @@ public class RoutesController(IMediator mediator) : ControllerBase
             SalesmanId = userId,
             ExecutionDate = executionDate,
             IsAdmin = IsAdmin(),
-            IsOrderTaking = true   // Order Taking mode - visits all customers
+            IsOrderTaking = true
         };
 
         var result = await mediator.Send(command);
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
+
+    // ── NEW: Reset CustomerVisit when order is cancelled ────────────────────
+    [HttpPost("reset-visit")]
+    [Authorize(Roles = "Salesman")]
+    public async Task<ActionResult<Result<bool>>> ResetVisit([FromBody] ResetVisitRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == Guid.Empty)
+            return BadRequest(Result<bool>.Failure("User not authenticated."));
+
+        var visit = await context.CustomerVisits
+            .FirstOrDefaultAsync(v => v.Id == request.VisitId && !v.IsDeleted);
+
+        if (visit == null)
+        {
+            return NotFound(Result<bool>.Failure("Visit not found."));
+        }
+
+        // Verify salesman owns this visit
+        var execution = await context.RouteExecutions
+            .FirstOrDefaultAsync(e => e.Id == visit.RouteExecutionId && !e.IsDeleted);
+
+        if (execution == null || execution.SalesmanId != userId)
+        {
+            return Unauthorized(Result<bool>.Failure("You are not authorized to reset this visit."));
+        }
+
+        // Reset the visit
+        visit.Status = VisitStatus.Pending;
+        visit.OrderId = null;
+        visit.VisitedAt = null;
+        visit.UpdatedAt = DateTime.UtcNow;
+        visit.UpdatedBy = userId.ToString();
+
+        await context.SaveChangesAsync();
+
+        return Ok(Result<bool>.Success(true, "Visit reset successfully. You can now take a new order for this customer."));
+    }
+
+    // ── All active routes, visible to every salesman (no admin assignment step required) ──
+    [HttpGet("active")]
+    [Authorize(Roles = "Salesman")]
+    public async Task<ActionResult<Result<List<ActiveRouteDto>>>> GetActiveRoutes()
+    {
+        var userId = GetCurrentUserId();
+        var query = new GetActiveRoutesQuery { SalesmanId = userId };
+        var result = await mediator.Send(query);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    // NOTE: the old "/start" endpoint (StartRouteCommand) was removed for good reason —
+    // it had no order-taking/delivery distinction and no day-closed gating. Starting a
+    // route now always goes through "/start-order-taking" or "/start-execution" above,
+    // which were fixed to support the open (unassigned) route model — see
+    // StartRouteExecutionCommandHandler for the locking logic.
+}
+
+// ── DTO for reset visit ──────────────────────────────────────────────────────
+public class ResetVisitRequest
+{
+    public Guid VisitId { get; set; }
 }

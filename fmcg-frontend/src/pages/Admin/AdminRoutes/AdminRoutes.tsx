@@ -1,9 +1,5 @@
 // PATH: src/pages/Admin/AdminRoutes/AdminRoutes.tsx
-// UPDATED:
-// 1. Modern UI — gradient header, stat pills, card-based table
-// 2. Delete opens a new page (DeleteRoutePage) instead of modal
-// 3. Back arrow in top-left corner
-// 4. Override removed from RoutesTable props
+// UPDATED: Dark theme with orange accent
 
 import { useEffect, useState } from 'react';
 import { Plus, X, RefreshCw, Route, ArrowLeft, Map, Users, Activity } from 'lucide-react';
@@ -14,6 +10,24 @@ import { PageLoader, Alert, EmptyState } from '../../../components/ui';
 import { RoutesTable } from './components/RoutesTable';
 import { AddRouteCard } from './components/AddRouteCard';
 import type { RouteFormData } from './types';
+
+// ── Dark theme tokens ─────────────────────────────────────────────────────────
+const D = {
+  bg:       '#0f172a',
+  surface:  '#1e293b',
+  surface2: '#243447',
+  border:   '#334155',
+  accent:   '#ea580c',
+  accentH:  '#c2410c',
+  accentGlow: 'rgba(234,88,12,0.25)',
+  text:     '#f1f5f9',
+  muted:    '#94a3b8',
+  sub:      '#64748b',
+  green:    '#22c55e',
+  red:      '#ef4444',
+  amber:    '#f59e0b',
+  card:     '#1e293b',
+};
 
 export function AdminRoutes() {
   const navigate = useNavigate();
@@ -64,7 +78,6 @@ export function AdminRoutes() {
     navigate(`/admin/routes/assign/${route.id}`, { state: { routeId: route.id, routeName: route.name } });
   }
 
-  // Delete navigates to a dedicated page instead of modal
   function handleDelete(routeId: string) {
     const route = routes.find(r => String(r.id) === routeId);
     navigate(`/admin/routes/delete/${routeId}`, {
@@ -77,15 +90,20 @@ export function AdminRoutes() {
   const assignedCount = routes.filter(r => r.assignedSalesmanName).length;
   const totalCustomers = routes.reduce((s, r) => s + (r.customerCount ?? 0), 0);
 
-  if (loading) return <PageLoader />;
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: D.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <PageLoader />
+    </div>
+  );
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8FAFC' }}>
+    <div style={{ minHeight: '100vh', background: D.bg, padding: '0 0 40px' }}>
 
       {/* ── Hero Header ──────────────────────────────────────── */}
       <div style={{
-        background: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #2563EB 100%)',
-        padding: '0 0 0',
+        background: `linear-gradient(135deg, #0F172A 0%, #1E293B 60%, ${D.accent}22 100%)`,
+        padding: '20px 24px 28px',
+        borderBottom: `1px solid ${D.border}`,
         position: 'relative',
         overflow: 'hidden',
       }}>
@@ -93,15 +111,15 @@ export function AdminRoutes() {
         <div style={{
           position: 'absolute', top: -40, right: -40,
           width: 200, height: 200, borderRadius: '50%',
-          background: 'rgba(255,255,255,0.04)', pointerEvents: 'none',
+          background: 'rgba(234,88,12,0.05)', pointerEvents: 'none',
         }} />
         <div style={{
           position: 'absolute', bottom: -60, left: 100,
           width: 280, height: 280, borderRadius: '50%',
-          background: 'rgba(255,255,255,0.03)', pointerEvents: 'none',
+          background: 'rgba(234,88,12,0.03)', pointerEvents: 'none',
         }} />
 
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 24px 28px' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           {/* Back arrow + breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
             <button
@@ -109,20 +127,20 @@ export function AdminRoutes() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '6px 12px', borderRadius: 8,
-                background: 'rgba(255,255,255,0.10)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                color: 'rgba(255,255,255,0.85)', cursor: 'pointer',
+                background: 'rgba(255,255,255,0.06)',
+                border: `1px solid rgba(255,255,255,0.10)`,
+                color: D.muted, cursor: 'pointer',
                 fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
                 transition: 'all 0.15s',
               }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.18)'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.10)'}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.12)'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'}
             >
               <ArrowLeft size={14} />
               Dashboard
             </button>
-            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>/</span>
-            <span style={{ color: 'rgba(255,255,255,0.70)', fontSize: 13, fontWeight: 600 }}>Routes</span>
+            <span style={{ color: D.sub, fontSize: 13 }}>/</span>
+            <span style={{ color: D.muted, fontSize: 13, fontWeight: 600 }}>Routes</span>
           </div>
 
           {/* Title row */}
@@ -130,20 +148,20 @@ export function AdminRoutes() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <div style={{
                 width: 52, height: 52, borderRadius: 14,
-                background: 'rgba(255,255,255,0.12)',
-                border: '1.5px solid rgba(255,255,255,0.20)',
+                background: `${D.accent}22`,
+                border: `1px solid ${D.accent}44`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <Map size={24} color="#fff" strokeWidth={1.8} />
+                <Map size={24} color={D.accent} strokeWidth={1.8} />
               </div>
               <div>
                 <h1 style={{
-                  fontSize: 26, fontWeight: 800, color: '#fff',
+                  fontSize: 26, fontWeight: 900, color: D.text,
                   margin: 0, letterSpacing: '-0.04em', lineHeight: 1.1,
                 }}>
                   Route Management
                 </h1>
-                <p style={{ color: 'rgba(255,255,255,0.60)', fontSize: 13, margin: '5px 0 0', fontWeight: 500 }}>
+                <p style={{ color: D.muted, fontSize: 13, margin: '5px 0 0', fontWeight: 500 }}>
                   {routes.length} route{routes.length !== 1 ? 's' : ''} configured
                 </p>
               </div>
@@ -156,13 +174,13 @@ export function AdminRoutes() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '9px 14px', borderRadius: 9,
-                  background: 'rgba(255,255,255,0.10)',
-                  border: '1px solid rgba(255,255,255,0.20)',
-                  color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
+                  background: D.surface,
+                  border: `1px solid ${D.border}`,
+                  color: D.muted, cursor: 'pointer', fontFamily: 'inherit',
                   fontSize: 13, fontWeight: 600, transition: 'all 0.15s',
                 }}
-                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.18)'}
-                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.10)'}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
               >
                 <RefreshCw size={13} />
                 Refresh
@@ -173,12 +191,12 @@ export function AdminRoutes() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 7,
                   padding: '9px 20px', borderRadius: 9,
-                  background: showAddCard ? 'rgba(255,255,255,0.10)' : '#fff',
-                  border: showAddCard ? '1px solid rgba(255,255,255,0.20)' : 'none',
-                  color: showAddCard ? '#fff' : '#1E3A8A',
+                  background: showAddCard ? D.surface : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                  border: showAddCard ? `1px solid ${D.border}` : 'none',
+                  color: showAddCard ? D.muted : '#fff',
                   cursor: 'pointer', fontFamily: 'inherit',
                   fontSize: 14, fontWeight: 700,
-                  boxShadow: showAddCard ? 'none' : '0 4px 14px rgba(0,0,0,0.20)',
+                  boxShadow: showAddCard ? 'none' : `0 4px 14px ${D.accentGlow}`,
                   transition: 'all 0.18s',
                 }}
               >
@@ -190,19 +208,19 @@ export function AdminRoutes() {
           {/* Stat pills */}
           <div style={{ display: 'flex', gap: 10, marginTop: 22, flexWrap: 'wrap' }}>
             {[
-              { icon: Activity, label: 'Active Routes',     value: activeCount,      color: '#4ADE80' },
-              { icon: Users,    label: 'Assigned',           value: assignedCount,    color: '#93C5FD' },
-              { icon: Users,    label: 'Total Customers',   value: totalCustomers,   color: '#FCD34D' },
+              { icon: Activity, label: 'Active Routes',     value: activeCount,      color: D.green },
+              { icon: Users,    label: 'Assigned',           value: assignedCount,    color: '#3B82F6' },
+              { icon: Users,    label: 'Total Customers',   value: totalCustomers,   color: D.amber },
             ].map(s => (
               <div key={s.label} style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '7px 14px', borderRadius: 8,
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.12)',
+                background: D.surface,
+                border: `1px solid ${D.border}`,
               }}>
                 <s.icon size={13} style={{ color: s.color }} />
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', fontWeight: 500 }}>{s.label}:</span>
-                <span style={{ fontSize: 13, color: '#fff', fontWeight: 800 }}>{s.value}</span>
+                <span style={{ fontSize: 12, color: D.muted, fontWeight: 500 }}>{s.label}:</span>
+                <span style={{ fontSize: 13, color: D.text, fontWeight: 800 }}>{s.value}</span>
               </div>
             ))}
           </div>

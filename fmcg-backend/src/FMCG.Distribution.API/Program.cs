@@ -2,6 +2,7 @@ using QuestPDF;
 using QuestPDF.Infrastructure;
 using System.Text;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -115,7 +116,18 @@ builder.Services.AddCors(options =>
 // ============================================================
 // 7. Controllers + API Explorer
 // ============================================================
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // The frontend sends/expects enum values as strings everywhere
+        // (e.g. status: "NoOrder", "Completed", "InProgress"). Without this,
+        // System.Text.Json defaults to numeric enum binding, so any string
+        // enum value fails model validation with an automatic 400 — before
+        // the request even reaches a handler. This was the root cause of
+        // "No Order" / "Skip" failing while OrderPlaced (set directly in C#,
+        // never round-tripped through JSON) appeared to work fine.
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 
 // ============================================================

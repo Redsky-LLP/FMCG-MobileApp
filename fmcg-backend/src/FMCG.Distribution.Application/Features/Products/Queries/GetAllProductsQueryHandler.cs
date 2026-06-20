@@ -40,7 +40,14 @@ public class GetAllProductsQueryHandler(IApplicationDbContext context)
                 ProductUnitSymbol = p.DefaultUnit != null ? p.DefaultUnit.Symbol : null,  // ← CHANGE THIS
                 BasePrice = p.BasePrice,
                 IsActive = p.IsActive,
-                CreatedAt = p.CreatedAt
+                CreatedAt = p.CreatedAt,
+                ItemCode = p.ItemCode,
+                Sku = p.Sku,
+                HSNCode = p.HSNCode,
+                Supplier = p.Supplier,
+                ClosingStock = p.ClosingStock,
+                MinOrderQty = p.MinOrderQty,
+                MaxOrderQty = p.MaxOrderQty
             })
             .ToListAsync(cancellationToken);
 

@@ -1,5 +1,5 @@
 ﻿// PATH: src/FMCG.Distribution.Application/Features/Routes/Commands/RecordCustomerVisitCommandHandler.cs
-// COMPLETE FIXED VERSION
+// COMPLETE FIXED VERSION - Handles all edge cases properly
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -14,9 +14,10 @@ public class RecordCustomerVisitCommandHandler(IApplicationDbContext context)
 {
     public async Task<Result<RecordCustomerVisitResponse>> Handle(RecordCustomerVisitCommand request, CancellationToken cancellationToken)
     {
-        // Validate execution exists and is in progress
+        // ── Validate execution exists and is in progress ──
         var execution = await context.RouteExecutions
-            .Include(e => e.Visits)
+            .Include(e => e.Visits!)
+                .ThenInclude(v => v.Customer)
             .FirstOrDefaultAsync(e => e.Id == request.ExecutionId && !e.IsDeleted, cancellationToken);
 
         if (execution == null)
@@ -24,19 +25,28 @@ public class RecordCustomerVisitCommandHandler(IApplicationDbContext context)
             return Result<RecordCustomerVisitResponse>.Failure("Route execution not found.");
         }
 
-        if (execution.Status != ExecutionStatus.InProgress)
+        // ── Check if execution is already completed ──
+        if (execution.Status == ExecutionStatus.Completed)
         {
-            return Result<RecordCustomerVisitResponse>.Failure($"Cannot record visit. Execution is in '{execution.Status}' status.");
+            return Result<RecordCustomerVisitResponse>.Failure(
+                "This route execution is already completed. Please refresh the page.");
         }
 
-        // Verify salesman owns this execution
+        if (execution.Status != ExecutionStatus.InProgress)
+        {
+            return Result<RecordCustomerVisitResponse>.Failure(
+                $"Cannot record visit. Execution is in '{execution.Status}' status.");
+        }
+
+        // ── Verify salesman owns this execution ──
         if (execution.SalesmanId != request.SalesmanId)
         {
             return Result<RecordCustomerVisitResponse>.Failure("You are not authorized to modify this execution.");
         }
 
-        // Find the visit - FIX: Use CustomerId to find visit
+        // ── Find the visit by CustomerId ──
         var visit = execution.Visits?.FirstOrDefault(v => v.CustomerId == request.CustomerId);
+
         if (visit == null)
         {
             // Try to find by OrderId if provided
@@ -51,11 +61,10 @@ public class RecordCustomerVisitCommandHandler(IApplicationDbContext context)
             }
         }
 
-        // FIX: Allow updating visit status even if already recorded (for retry scenarios)
-        // Don't block on "already recorded" - just update if needed
-        if (visit.Status != VisitStatus.Pending && visit.Status == request.Status)
+        // ── CRITICAL FIX: If visit is already recorded, return success without changing ──
+        // Don't allow changing status if already recorded (prevent OrderPlaced → NoOrder)
+        if (visit.Status != VisitStatus.Pending)
         {
-            // Same status, just return success
             var customer = await context.Customers
                 .FirstOrDefaultAsync(c => c.Id == request.CustomerId, cancellationToken);
 
@@ -76,11 +85,11 @@ public class RecordCustomerVisitCommandHandler(IApplicationDbContext context)
             }, $"Visit already recorded as {visit.Status}.");
         }
 
-        // Get customer name for response
+        // ── Get customer name for response ──
         var customerInfo = await context.Customers
             .FirstOrDefaultAsync(c => c.Id == request.CustomerId, cancellationToken);
 
-        // Record the visit based on status
+        // ── Record the visit based on status ──
         switch (request.Status)
         {
             case VisitStatus.OrderPlaced:
@@ -90,22 +99,35 @@ public class RecordCustomerVisitCommandHandler(IApplicationDbContext context)
                 }
                 visit.RecordOrder(request.OrderId.Value);
                 break;
+
             case VisitStatus.Skipped:
                 visit.RecordSkip(request.SkipReason);
                 break;
+
             case VisitStatus.NoOrder:
                 visit.RecordNoOrder();
                 break;
+
             default:
                 return Result<RecordCustomerVisitResponse>.Failure($"Invalid visit status: {request.Status}");
         }
 
         await context.SaveChangesAsync(cancellationToken);
 
-        // Calculate completion stats
+        // ── Calculate completion stats ──
         var completedCountAfter = execution.Visits!.Count(v => v.Status != VisitStatus.Pending);
         var totalCountAfter = execution.Visits.Count;
         var isCompleteAfter = completedCountAfter == totalCountAfter;
+
+        // ── If all visits are completed, auto-complete the execution ──
+        if (isCompleteAfter)
+        {
+            execution.Status = ExecutionStatus.Completed;
+            execution.CompletedAt = DateTime.UtcNow;
+            execution.UpdatedAt = DateTime.UtcNow;
+            execution.UpdatedBy = request.SalesmanId.ToString();
+            await context.SaveChangesAsync(cancellationToken);
+        }
 
         return Result<RecordCustomerVisitResponse>.Success(new RecordCustomerVisitResponse
         {

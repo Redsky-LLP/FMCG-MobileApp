@@ -153,6 +153,34 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
 
         await context.SaveChangesAsync(cancellationToken);
 
+        // ── Link to customer visit, if this order isn't linked yet ─────────────
+        // UpdateOrderCommand has no execution context to go on, so resolve it
+        // from whatever in-progress execution this salesman has for this route
+        // right now. This is what makes editing/saving an order taken from a
+        // page without execution context (e.g. a plain customer list) finally
+        // mark that stop as done on the route execution page.
+        var inProgressExecution = await context.RouteExecutions
+            .Where(e => e.RouteId == order.RouteId
+                && e.SalesmanId == request.SalesmanId
+                && e.Status == ExecutionStatus.InProgress
+                && !e.IsDeleted)
+            .OrderByDescending(e => e.StartedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (inProgressExecution != null)
+        {
+            var visit = await context.CustomerVisits
+                .FirstOrDefaultAsync(v => v.RouteExecutionId == inProgressExecution.Id
+                    && v.CustomerId == request.CustomerId
+                    && !v.IsDeleted, cancellationToken);
+
+            if (visit != null && visit.Status == VisitStatus.Pending)
+            {
+                visit.RecordOrder(order.Id);
+                await context.SaveChangesAsync(cancellationToken);
+            }
+        }
+
         var updatedOrder = await context.Orders
             .Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.Id == order.Id, cancellationToken);

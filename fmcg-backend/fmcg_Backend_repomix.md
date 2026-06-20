@@ -1,46 +1,44 @@
-This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
 
-<file_summary>
-This section contains a summary of this file.
+# File Summary
 
-<purpose>
-This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+## Purpose
+This file contains a packed representation of the entire repository's contents.
 It is designed to be easily consumable by AI systems for analysis, code review,
 or other automated processes.
-</purpose>
 
-<file_format>
+## File Format
 The content is organized as follows:
 1. This summary section
 2. Repository information
 3. Directory structure
 4. Repository files (if enabled)
 5. Multiple file entries, each consisting of:
-  - File path as an attribute
-  - Full contents of the file
-</file_format>
+  a. A header with the file path (## File: path/to/file)
+  b. The full contents of the file in a code block
 
-<usage_guidelines>
+## Usage Guidelines
 - This file should be treated as read-only. Any changes should be made to the
   original repository files, not this packed version.
 - When processing this file, use the file path to distinguish
   between different files in the repository.
 - Be aware that this file may contain sensitive information. Handle it with
   the same level of security as you would the original repository.
-</usage_guidelines>
 
-<notes>
+## Notes
 - Some files may have been excluded based on .gitignore rules and Repomix's configuration
 - Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
-- Only files matching these patterns are included: src/**/*.cs
 - Files matching patterns in .gitignore are excluded
 - Files matching default ignore patterns are excluded
 - Files are sorted by Git change count (files with more changes are at the bottom)
-</notes>
 
-</file_summary>
-
-<directory_structure>
+# Directory Structure
+```
+.dockerignore
+Dockerfile
+FMCG.Distribution.Core.slnx
+src/FMCG.Distribution.API/appsettings.Development.json
+src/FMCG.Distribution.API/appsettings.json
 src/FMCG.Distribution.API/Controllers/AnalyticsController.cs
 src/FMCG.Distribution.API/Controllers/AuthController.cs
 src/FMCG.Distribution.API/Controllers/CustomersController.cs
@@ -56,7 +54,10 @@ src/FMCG.Distribution.API/Controllers/SettlementController.cs
 src/FMCG.Distribution.API/Controllers/TestController.cs
 src/FMCG.Distribution.API/Controllers/UsersController.cs
 src/FMCG.Distribution.API/Controllers/WarehouseController.cs
+src/FMCG.Distribution.API/FMCG.Distribution.API.csproj
+src/FMCG.Distribution.API/FMCG.Distribution.API.http
 src/FMCG.Distribution.API/Program.cs
+src/FMCG.Distribution.API/Properties/launchSettings.json
 src/FMCG.Distribution.Application/Application_GlobalUsings.cs
 src/FMCG.Distribution.Application/Class1.cs
 src/FMCG.Distribution.Application/Common/Behaviors/ValidationBehavior.cs
@@ -89,10 +90,14 @@ src/FMCG.Distribution.Application/Features/Auth/Commands/LoginCommand.cs
 src/FMCG.Distribution.Application/Features/Auth/Commands/LoginCommandHandler.cs
 src/FMCG.Distribution.Application/Features/Auth/Commands/PinLoginCommand.cs
 src/FMCG.Distribution.Application/Features/Auth/Commands/PinLoginCommandHandler.cs
+src/FMCG.Distribution.Application/Features/Auth/Commands/RefreshTokenCommand.cs
+src/FMCG.Distribution.Application/Features/Auth/Commands/RefreshTokenCommandHandler.cs
 src/FMCG.Distribution.Application/Features/Auth/Commands/RegisterCommand.cs
 src/FMCG.Distribution.Application/Features/Auth/Commands/RegisterCommandHandler.cs
 src/FMCG.Distribution.Application/Features/Auth/Commands/SetPinCommand.cs
 src/FMCG.Distribution.Application/Features/Auth/Commands/SetPinCommandHandler.cs
+src/FMCG.Distribution.Application/Features/Auth/Queries/CheckPinAvailabilityQuery.cs
+src/FMCG.Distribution.Application/Features/Auth/Queries/CheckPinAvailabilityQueryHandler.cs
 src/FMCG.Distribution.Application/Features/BasePrices/Commands/UpdateBasePriceCommand.cs
 src/FMCG.Distribution.Application/Features/BasePrices/Commands/UpdateBasePriceCommandHandler.cs
 src/FMCG.Distribution.Application/Features/BasePrices/Queries/GetProductPriceHistoryQuery.cs
@@ -180,6 +185,8 @@ src/FMCG.Distribution.Application/Features/Reports/Queries/GetProductSummaryRepo
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetProductSummaryReportQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetRouteSummaryReportQuery.cs
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetRouteSummaryReportQueryHandler.cs
+src/FMCG.Distribution.Application/Features/Routes/Commands/CloseDayCommand.cs
+src/FMCG.Distribution.Application/Features/Routes/Commands/CloseDayCommandHandler.cs
 src/FMCG.Distribution.Application/Features/Routes/Commands/CompleteRouteExecutionCommand.cs
 src/FMCG.Distribution.Application/Features/Routes/Commands/CompleteRouteExecutionCommandHandler.cs
 src/FMCG.Distribution.Application/Features/Routes/Commands/CreateRouteCommand.cs
@@ -192,6 +199,8 @@ src/FMCG.Distribution.Application/Features/Routes/Commands/StartRouteExecutionCo
 src/FMCG.Distribution.Application/Features/Routes/Commands/StartRouteExecutionCommandHandler.cs
 src/FMCG.Distribution.Application/Features/Routes/Commands/UpdateRouteCommand.cs
 src/FMCG.Distribution.Application/Features/Routes/Commands/UpdateRouteCommandHandler.cs
+src/FMCG.Distribution.Application/Features/Routes/Queries/GetActiveRoutesQuery.cs
+src/FMCG.Distribution.Application/Features/Routes/Queries/GetActiveRoutesQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Routes/Queries/GetAllRoutesQuery.cs
 src/FMCG.Distribution.Application/Features/Routes/Queries/GetAllRoutesQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionQuery.cs
@@ -209,6 +218,9 @@ src/FMCG.Distribution.Application/Features/Settlement/Queries/GetOutstandingByCu
 src/FMCG.Distribution.Application/Features/Settlement/Queries/GetOutstandingByCustomerQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Settlement/Queries/GetSettlementSummaryQuery.cs
 src/FMCG.Distribution.Application/Features/Settlement/Queries/GetSettlementSummaryQueryHandler.cs
+src/FMCG.Distribution.Application/Features/Users/Commands/CreateSalesmanCommand.cs
+src/FMCG.Distribution.Application/Features/Users/Commands/CreateSalesmanCommandHandler.cs
+src/FMCG.Distribution.Application/FMCG.Distribution.Application.csproj
 src/FMCG.Distribution.Domain/Class1.cs
 src/FMCG.Distribution.Domain/Common/BaseEntity.cs
 src/FMCG.Distribution.Domain/Entities/BasePrice.cs
@@ -229,6 +241,7 @@ src/FMCG.Distribution.Domain/Entities/RouteAssignment.cs
 src/FMCG.Distribution.Domain/Entities/RouteExecution.cs
 src/FMCG.Distribution.Domain/Entities/SettlementPayment.cs
 src/FMCG.Distribution.Domain/Entities/User.cs
+src/FMCG.Distribution.Domain/Entities/UserSession.cs
 src/FMCG.Distribution.Domain/Enums/ExecutionStatus.cs
 src/FMCG.Distribution.Domain/Enums/ExecutionType.cs
 src/FMCG.Distribution.Domain/Enums/IncentiveType.cs
@@ -238,7 +251,9 @@ src/FMCG.Distribution.Domain/Enums/PricingAction.cs
 src/FMCG.Distribution.Domain/Enums/SettlementStatus.cs
 src/FMCG.Distribution.Domain/Enums/UserRole.cs
 src/FMCG.Distribution.Domain/Enums/VisitStatus.cs
+src/FMCG.Distribution.Domain/FMCG.Distribution.Domain.csproj
 src/FMCG.Distribution.Infrastructure/Class1.cs
+src/FMCG.Distribution.Infrastructure/FMCG.Distribution.Infrastructure.csproj
 src/FMCG.Distribution.Infrastructure/Migrations/20260514032859_InitialCreate.cs
 src/FMCG.Distribution.Infrastructure/Migrations/20260514032859_InitialCreate.Designer.cs
 src/FMCG.Distribution.Infrastructure/Migrations/20260514100158_AddMasterDataEntities.cs
@@ -277,6 +292,10 @@ src/FMCG.Distribution.Infrastructure/Migrations/20260526051747_AddOrderStatusVal
 src/FMCG.Distribution.Infrastructure/Migrations/20260526051747_AddOrderStatusValues.Designer.cs
 src/FMCG.Distribution.Infrastructure/Migrations/20260527073557_UpdateProductSchemaAndAddUnitPrices.cs
 src/FMCG.Distribution.Infrastructure/Migrations/20260527073557_UpdateProductSchemaAndAddUnitPrices.Designer.cs
+src/FMCG.Distribution.Infrastructure/Migrations/20260616145815_AddOrderNumberSequence.cs
+src/FMCG.Distribution.Infrastructure/Migrations/20260616145815_AddOrderNumberSequence.Designer.cs
+src/FMCG.Distribution.Infrastructure/Migrations/20260619065404_AddUserSessions.cs
+src/FMCG.Distribution.Infrastructure/Migrations/20260619065404_AddUserSessions.Designer.cs
 src/FMCG.Distribution.Infrastructure/Migrations/ApplicationDbContextModelSnapshot.cs
 src/FMCG.Distribution.Infrastructure/Persistence/ApplicationDbContext.cs
 src/FMCG.Distribution.Infrastructure/Persistence/DbInitializer.cs
@@ -285,12 +304,150 @@ src/FMCG.Distribution.Infrastructure/Persistence/UnitOfWork.cs
 src/FMCG.Distribution.Infrastructure/Services/IncentiveService.cs
 src/FMCG.Distribution.Infrastructure/Services/SettlementService.cs
 src/FMCG.Distribution.Shared/Class1.cs
-</directory_structure>
+src/FMCG.Distribution.Shared/FMCG.Distribution.Shared.csproj
+```
 
-<files>
-This section contains the contents of the repository's files.
+# Files
 
-<file path="src/FMCG.Distribution.API/Controllers/AnalyticsController.cs">
+## File: .dockerignore
+```
+**/.classpath
+**/.dockerignore
+**/.env
+**/.git
+**/.gitignore
+**/.project
+**/.settings
+**/.toolstarget
+**/.vs
+**/.vscode
+**/*.*proj.user
+**/*.dbmdl
+**/*.jfm
+**/bin
+**/charts
+**/docker-compose*
+**/compose*
+**/Dockerfile*
+**/node_modules
+**/npm-debug.log
+**/obj
+**/secrets.dev.yaml
+**/values.dev.yaml
+README.md
+```
+
+## File: Dockerfile
+```dockerfile
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY ["src/FMCG.Distribution.API/FMCG.Distribution.API.csproj", "src/FMCG.Distribution.API/"]
+COPY ["src/FMCG.Distribution.Application/FMCG.Distribution.Application.csproj", "src/FMCG.Distribution.Application/"]
+COPY ["src/FMCG.Distribution.Domain/FMCG.Distribution.Domain.csproj", "src/FMCG.Distribution.Domain/"]
+COPY ["src/FMCG.Distribution.Infrastructure/FMCG.Distribution.Infrastructure.csproj", "src/FMCG.Distribution.Infrastructure/"]
+COPY ["src/FMCG.Distribution.Shared/FMCG.Distribution.Shared.csproj", "src/FMCG.Distribution.Shared/"]
+RUN dotnet restore "src/FMCG.Distribution.API/FMCG.Distribution.API.csproj"
+COPY . .
+WORKDIR "/src/src/FMCG.Distribution.API"
+RUN dotnet build "FMCG.Distribution.API.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "FMCG.Distribution.API.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "FMCG.Distribution.API.dll"]
+```
+
+## File: FMCG.Distribution.Core.slnx
+```
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="proxy-server.js" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/FMCG.Distribution.API/FMCG.Distribution.API.csproj" />
+    <Project Path="src/FMCG.Distribution.Application/FMCG.Distribution.Application.csproj" />
+    <Project Path="src/FMCG.Distribution.Domain/FMCG.Distribution.Domain.csproj" />
+    <Project Path="src/FMCG.Distribution.Infrastructure/FMCG.Distribution.Infrastructure.csproj" />
+    <Project Path="src/FMCG.Distribution.Shared/FMCG.Distribution.Shared.csproj" />
+  </Folder>
+</Solution>
+```
+
+## File: src/FMCG.Distribution.API/appsettings.Development.json
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "AllowedOrigins": [
+    "http://localhost:5173",
+    "https://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:4200"
+  ],
+  "Jwt": {
+    "Key": "FMCG_Distribution_SuperSecretKey_32Chars_2024!",
+    "Issuer": "FMCG.Distribution",
+    "Audience": "FMCG.Distribution.Frontend",
+    "ExpiryMinutes": 480
+  },
+  "DatabaseSettings": {
+    "Provider": "PostgreSQL"
+  },
+  "ConnectionStrings": {
+    "PostgresConnection": "Host=aws-1-ap-northeast-1.pooler.supabase.com;Database=postgres;Username=postgres.guczkzraryugkxfhrafo;Password=Asdfg@12345!&;SSL Mode=Require;Trust Server Certificate=true",
+    "SqlServerConnection": "Server=(localdb)\\mssqllocaldb;Database=FMCG_Distribution;Trusted_Connection=True;TrustServerCertificate=true"
+  }
+}
+```
+
+## File: src/FMCG.Distribution.API/appsettings.json
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "AllowedOrigins": [
+    "http://localhost:5173",
+    "https://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:4200",
+    "https://willowy-sawine-450377.netlify.app"
+  ],
+  "Jwt": {
+    "Key": "FMCG_Distribution_SuperSecretKey_32Chars_2024!",
+    "Issuer": "FMCG.Distribution",
+    "Audience": "FMCG.Distribution.Frontend",
+    "ExpiryMinutes": 480
+  },
+  "DatabaseSettings": {
+    "Provider": "PostgreSQL"
+  },
+  "ConnectionStrings": {
+    "PostgresConnection": "Host=dpg-d8h9qgdckfvc73dp7bh0-a;Port=5432;Database=fmcg_db_mdrh;Username=fmcg_user;Password=a8XfgAftW9635YQZOzAHEP6IDwzSTA2p",
+    "SqlServerConnection": "Server=(localdb)\\mssqllocaldb;Database=FMCG_Distribution;Trusted_Connection=True;TrustServerCertificate=true"
+  }
+}
+```
+
+## File: src/FMCG.Distribution.API/Controllers/AnalyticsController.cs
+```csharp
 // PATH: src/FMCG.Distribution.API/Controllers/AnalyticsController.cs
 // UPDATED: Added GET /api/v1/analytics/public-stats  [AllowAnonymous]
 //          Returns lightweight aggregate counts for the public landing page.
@@ -599,15 +756,20 @@ public class AnalyticsController(IMediator mediator, IApplicationDbContext conte
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.API/Controllers/AuthController.cs">
+## File: src/FMCG.Distribution.API/Controllers/AuthController.cs
+```csharp
+// PATH: src/FMCG.Distribution.API/Controllers/AuthController.cs
+using FMCG.Distribution.Application.Common;
+using FMCG.Distribution.Application.Features.Auth.Commands;
+using FMCG.Distribution.Application.Features.Auth.Queries;
+using FMCG.Distribution.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using FMCG.Distribution.Application.Common;
-using FMCG.Distribution.Application.Features.Auth.Commands;
 
 namespace FMCG.Distribution.API.Controllers;
 
@@ -615,6 +777,7 @@ namespace FMCG.Distribution.API.Controllers;
 [Route("api/v1/[controller]")]
 public class AuthController(IMediator mediator) : ControllerBase
 {
+    // ── Admin/Accounts Login (Email + Password) ──
     [HttpPost("login")]
     public async Task<ActionResult<Result<LoginResponse>>> Login([FromBody] LoginCommand command)
     {
@@ -622,6 +785,7 @@ public class AuthController(IMediator mediator) : ControllerBase
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
+    // ── Register (Admin creates users) ──
     [HttpPost("register")]
     public async Task<ActionResult<Result<RegisterResponse>>> Register([FromBody] RegisterCommand command)
     {
@@ -629,9 +793,20 @@ public class AuthController(IMediator mediator) : ControllerBase
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
-    // ── PIN Login ─────────────────────────────────────────────────────────────
+    // ── Refresh — silently renews the access token using the refresh token ──
+    // POST /api/v1/auth/refresh
+    // No [Authorize] — the access token has likely already expired by the
+    // time this is called; the refresh token itself is the credential here.
+    [HttpPost("refresh")]
+    public async Task<ActionResult<Result<RefreshTokenResponse>>> Refresh([FromBody] RefreshTokenCommand command)
+    {
+        var result = await mediator.Send(command);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    // ── PIN Login (Salesman, Admin, SuperAdmin) ──
     // POST /api/v1/auth/pin-login
-    // No [Authorize] — this is the authentication entry point.
+    // No [Authorize] — this is the authentication entry point for PIN users.
     [HttpPost("pin-login")]
     public async Task<ActionResult<Result<LoginResponse>>> PinLogin([FromBody] PinLoginCommand command)
     {
@@ -639,6 +814,7 @@ public class AuthController(IMediator mediator) : ControllerBase
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
+    // ── Set/Change PIN ──
     // POST /api/v1/auth/set-pin
     // Authenticated — user sets their own PIN after initial password login.
     // Admin may call on behalf of a salesman by passing userId in body;
@@ -662,11 +838,132 @@ public class AuthController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(command);
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
-    // ─────────────────────────────────────────────────────────────────────────
-}
-</file>
 
-<file path="src/FMCG.Distribution.API/Controllers/CustomersController.cs">
+    // ── Check PIN availability (Instagram-style "already taken" check) ──
+    // POST /api/v1/auth/check-pin-availability
+    // Admin/SuperAdmin only — this still relies on BCrypt.Verify under the
+    // hood (PINs are never stored in reversible form), but exposing it
+    // without restriction would let anyone brute-force which 4–6 digit PINs
+    // are in use, so only trusted admin callers can ask.
+    [HttpPost("check-pin-availability")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<Result<CheckPinAvailabilityResponse>>> CheckPinAvailability(
+        [FromBody] CheckPinAvailabilityQuery query)
+    {
+        var result = await mediator.Send(query);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    // ── Logout — records the logout time for the session ──
+    // POST /api/v1/auth/logout
+    // No [Authorize] — deliberately. If the access token has already expired
+    // by the time the user logs out (the exact scenario this exists to
+    // handle), requiring a valid Bearer token here would 401 and the logout
+    // time would never get recorded. The sessionId itself (an unguessable
+    // random GUID) is sufficient — worst case someone marks an arbitrary
+    // session as logged out early, which is low severity.
+    [HttpPost("logout")]
+    public async Task<ActionResult<Result<bool>>> Logout(
+        [FromBody] LogoutRequest request,
+        [FromServices] Infrastructure.Persistence.ApplicationDbContext context)
+    {
+        UserSession? session = null;
+
+        // Prefer the exact session the frontend told us about.
+        if (request.SessionId != Guid.Empty)
+        {
+            session = await context.UserSessions
+                .FirstOrDefaultAsync(s => s.Id == request.SessionId && s.LogoutAt == null,
+                    HttpContext.RequestAborted);
+        }
+
+        // Fallback: close the authenticated user's most recent still-open
+        // session. This is the safety net — if the frontend ever fails to
+        // pass a sessionId (e.g. an older cached build, or it just never
+        // got threaded through), logout still gets recorded correctly
+        // instead of silently doing nothing.
+        if (session == null)
+        {
+            var callerIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (Guid.TryParse(callerIdStr, out var callerId))
+            {
+                session = await context.UserSessions
+                    .Where(s => s.UserId == callerId && s.LogoutAt == null)
+                    .OrderByDescending(s => s.LoginAt)
+                    .FirstOrDefaultAsync(HttpContext.RequestAborted);
+            }
+        }
+
+        if (session != null)
+        {
+            session.LogoutAt = DateTime.UtcNow;
+            await context.SaveChangesAsync(HttpContext.RequestAborted);
+        }
+
+        return Ok(Result<bool>.Success(true));
+    }
+
+    // ── Get session history (admin only) ──
+    // GET /api/v1/auth/sessions?userId=...&limit=50
+    [HttpGet("sessions")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<Result<List<UserSessionDto>>>> GetSessions(
+        [FromQuery] Guid? userId,
+        [FromQuery] int limit,
+        [FromServices] Infrastructure.Persistence.ApplicationDbContext context)
+    {
+        var query = context.UserSessions
+            .Include(s => s.User)
+            .Where(s => !s.IsDeleted);
+
+        if (userId.HasValue)
+            query = query.Where(s => s.UserId == userId.Value);
+
+        var take = limit > 0 ? limit : 50;
+
+        var sessions = await query
+            .OrderByDescending(s => s.LoginAt)
+            .Take(take)
+            .Select(s => new UserSessionDto
+            {
+                SessionId = s.Id,
+                UserId = s.UserId,
+                FullName = s.User!.FullName,
+                Role = s.User.Role.ToString(),
+                LoginAt = s.LoginAt,
+                LogoutAt = s.LogoutAt,
+                LoginMethod = s.LoginMethod,
+                DurationMinutes = s.LogoutAt.HasValue
+                    ? (int)(s.LogoutAt.Value - s.LoginAt).TotalMinutes
+                    : (int)(DateTime.UtcNow - s.LoginAt).TotalMinutes,
+            })
+            .ToListAsync(HttpContext.RequestAborted);
+
+        return Ok(Result<List<UserSessionDto>>.Success(sessions));
+    }
+}
+
+// ── DTOs for logout/session-log endpoints ──────────────────────────────────────
+public class LogoutRequest
+{
+    public Guid SessionId { get; set; }
+}
+
+public class UserSessionDto
+{
+    public Guid SessionId { get; set; }
+    public Guid UserId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public DateTime LoginAt { get; set; }
+    public DateTime? LogoutAt { get; set; }
+    public string LoginMethod { get; set; } = string.Empty;
+    public int DurationMinutes { get; set; }
+}
+```
+
+## File: src/FMCG.Distribution.API/Controllers/CustomersController.cs
+```csharp
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
 using FMCG.Distribution.Application.Features.Customers.Commands;
@@ -809,9 +1106,10 @@ public class ReorderCustomersRequest
     public Guid CustomerId { get; set; }
     public int NewSequenceOrder { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.API/Controllers/IncentivesController.cs">
+## File: src/FMCG.Distribution.API/Controllers/IncentivesController.cs
+```csharp
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Analytics.Queries;
 using FMCG.Distribution.Application.Features.Incentives.Commands;
@@ -968,9 +1266,10 @@ public class IncentivesController(IMediator mediator) : ControllerBase
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.API/Controllers/OrdersController.cs">
+## File: src/FMCG.Distribution.API/Controllers/OrdersController.cs
+```csharp
 // PATH: src/FMCG.Distribution.API/Controllers/OrdersController.cs
 // UPDATED:
 //  • POST /{id}/submit  → now salesman-only; sets PendingApproval
@@ -1230,9 +1529,10 @@ public class OrdersController(IMediator mediator, IApplicationDbContext context)
         return Ok(Result<int>.Success(count));
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.API/Controllers/ProductGroupsController.cs">
+## File: src/FMCG.Distribution.API/Controllers/ProductGroupsController.cs
+```csharp
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -1282,9 +1582,10 @@ public class ProductGroupsController(IMediator mediator) : ControllerBase
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.API/Controllers/ProductsController.cs">
+## File: src/FMCG.Distribution.API/Controllers/ProductsController.cs
+```csharp
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.BasePrices.Commands;
 using FMCG.Distribution.Application.Features.BasePrices.Queries;
@@ -1642,9 +1943,10 @@ public class ProductsController(IMediator mediator, IApplicationDbContext contex
         return Ok(Result<bool>.Success(true, "Unit price deleted successfully."));
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.API/Controllers/ProductUnitsController.cs">
+## File: src/FMCG.Distribution.API/Controllers/ProductUnitsController.cs
+```csharp
 // PATH: src/FMCG.Distribution.API/Controllers/ProductUnitsController.cs
 // UPDATED: With null checks for enhanced unit fields
 
@@ -1825,9 +2127,10 @@ public class UpdateEnhancedUnitRequest
     public decimal? BaseUnitValue { get; set; }
     public string? BaseUnitName { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.API/Controllers/ReportsController.cs">
+## File: src/FMCG.Distribution.API/Controllers/ReportsController.cs
+```csharp
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -2005,9 +2308,10 @@ public class ReportsController(IMediator mediator) : ControllerBase
         return File(result.Data!, "application/pdf", fileName);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.API/Controllers/RouteAssignmentsController.cs">
+## File: src/FMCG.Distribution.API/Controllers/RouteAssignmentsController.cs
+```csharp
 // PATH: src/FMCG.Distribution.API/Controllers/RouteAssignmentsController.cs
 // NEW FILE — daily route assignment management
 
@@ -2271,9 +2575,10 @@ public class UpsertRouteAssignmentRequest
     public DateTime AssignmentDate { get; set; }
     public string? Notes { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.API/Controllers/RoutesController.cs">
+## File: src/FMCG.Distribution.API/Controllers/RoutesController.cs
+```csharp
 using System.Security.Claims;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Routes.Commands;
@@ -2281,13 +2586,16 @@ using FMCG.Distribution.Application.Features.Routes.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using FMCG.Distribution.Application.Common.Interfaces;
+using FMCG.Distribution.Domain.Enums;
 
 namespace FMCG.Distribution.API.Controllers;
 
 [ApiController]
 [Route("api/v1/[controller]")]
-[Authorize]                          // ← any authenticated user; per-method narrows it
-public class RoutesController(IMediator mediator) : ControllerBase
+[Authorize]
+public class RoutesController(IMediator mediator, IApplicationDbContext context) : ControllerBase
 {
     private Guid GetCurrentUserId()
     {
@@ -2334,7 +2642,7 @@ public class RoutesController(IMediator mediator) : ControllerBase
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
-    // ── Read ops: all roles (with filtering for salesman) ─────────────────────
+    // ── Read ops: all roles ─────────────────────────────────────────────────
 
     [HttpGet]
     [Authorize(Roles = "Admin,SuperAdmin,Salesman,Accounts,Warehouse")]
@@ -2389,9 +2697,9 @@ public class RoutesController(IMediator mediator) : ControllerBase
         {
             RouteId = routeId,
             SalesmanId = userId,
-            ExecutionDate = executionDate,   // null → handler defaults to today
-            IsAdmin = IsAdmin(),              // handler enforces today for non-admins
-            IsOrderTaking = false             // Delivery mode
+            ExecutionDate = executionDate,
+            IsAdmin = IsAdmin(),
+            IsOrderTaking = false
         };
 
         var result = await mediator.Send(command);
@@ -2448,7 +2756,22 @@ public class RoutesController(IMediator mediator) : ControllerBase
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
-    // ── NEW: Order Taking Mode (visits all customers, no pre-submitted orders needed) ──
+    // ── Close Day (Admin only) — closes EVERY open route execution at once ──
+    // POST /api/v1/routes/close-day
+    // This is what makes routes fresh again for the next day. Not the same
+    // as completeRouteExecution above (which is per-route, salesman-facing,
+    // and requires all stops visited) — this is a hard admin cutoff.
+    [HttpPost("close-day")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<Result<CloseDayResponse>>> CloseDay()
+    {
+        var userId = GetCurrentUserId();
+        var command = new CloseDayCommand { AdminUserId = userId };
+        var result = await mediator.Send(command);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    // ── NEW: Order Taking Mode ──────────────────────────────────────────────
     [HttpPost("{routeId}/start-order-taking")]
     [Authorize(Roles = "Salesman,Admin,SuperAdmin")]
     public async Task<ActionResult<Result<StartRouteExecutionResponse>>> StartOrderTaking(
@@ -2465,16 +2788,78 @@ public class RoutesController(IMediator mediator) : ControllerBase
             SalesmanId = userId,
             ExecutionDate = executionDate,
             IsAdmin = IsAdmin(),
-            IsOrderTaking = true   // Order Taking mode - visits all customers
+            IsOrderTaking = true
         };
 
         var result = await mediator.Send(command);
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
-}
-</file>
 
-<file path="src/FMCG.Distribution.API/Controllers/SettlementController.cs">
+    // ── NEW: Reset CustomerVisit when order is cancelled ────────────────────
+    [HttpPost("reset-visit")]
+    [Authorize(Roles = "Salesman")]
+    public async Task<ActionResult<Result<bool>>> ResetVisit([FromBody] ResetVisitRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == Guid.Empty)
+            return BadRequest(Result<bool>.Failure("User not authenticated."));
+
+        var visit = await context.CustomerVisits
+            .FirstOrDefaultAsync(v => v.Id == request.VisitId && !v.IsDeleted);
+
+        if (visit == null)
+        {
+            return NotFound(Result<bool>.Failure("Visit not found."));
+        }
+
+        // Verify salesman owns this visit
+        var execution = await context.RouteExecutions
+            .FirstOrDefaultAsync(e => e.Id == visit.RouteExecutionId && !e.IsDeleted);
+
+        if (execution == null || execution.SalesmanId != userId)
+        {
+            return Unauthorized(Result<bool>.Failure("You are not authorized to reset this visit."));
+        }
+
+        // Reset the visit
+        visit.Status = VisitStatus.Pending;
+        visit.OrderId = null;
+        visit.VisitedAt = null;
+        visit.UpdatedAt = DateTime.UtcNow;
+        visit.UpdatedBy = userId.ToString();
+
+        await context.SaveChangesAsync();
+
+        return Ok(Result<bool>.Success(true, "Visit reset successfully. You can now take a new order for this customer."));
+    }
+
+    // ── All active routes, visible to every salesman (no admin assignment step required) ──
+    [HttpGet("active")]
+    [Authorize(Roles = "Salesman")]
+    public async Task<ActionResult<Result<List<ActiveRouteDto>>>> GetActiveRoutes()
+    {
+        var userId = GetCurrentUserId();
+        var query = new GetActiveRoutesQuery { SalesmanId = userId };
+        var result = await mediator.Send(query);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    // NOTE: the old "/start" endpoint (StartRouteCommand) was removed for good reason —
+    // it had no order-taking/delivery distinction and no day-closed gating. Starting a
+    // route now always goes through "/start-order-taking" or "/start-execution" above,
+    // which were fixed to support the open (unassigned) route model — see
+    // StartRouteExecutionCommandHandler for the locking logic.
+}
+
+// ── DTO for reset visit ──────────────────────────────────────────────────────
+public class ResetVisitRequest
+{
+    public Guid VisitId { get; set; }
+}
+```
+
+## File: src/FMCG.Distribution.API/Controllers/SettlementController.cs
+```csharp
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -2568,10 +2953,12 @@ public class SettlementController(IMediator mediator, IApplicationDbContext cont
         var isAdmin = IsAdmin();
         var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
-        // Salesman can only see their assigned route's outstanding
-        if (userRole == "Salesman" && !isAdmin)
+        // Salesman viewing without an explicit routeId: scope to their
+        // permanently assigned route if they have one. Routes are open to
+        // anyone by default now, so NOT having a permanent assignment isn't
+        // an error — it just means there's nothing route-specific to scope to.
+        if (userRole == "Salesman" && !isAdmin && !routeId.HasValue)
         {
-            // Get salesman's assigned route
             var routeIdForSalesman = await context.Routes
                 .Where(r => r.AssignedSalesmanId == userId && !r.IsDeleted)
                 .Select(r => r.Id)
@@ -2580,10 +2967,6 @@ public class SettlementController(IMediator mediator, IApplicationDbContext cont
             if (routeIdForSalesman != Guid.Empty)
             {
                 routeId = routeIdForSalesman;
-            }
-            else
-            {
-                return BadRequest(Result<OutstandingSummaryDto>.Failure("No route assigned to this salesman."));
             }
         }
 
@@ -2686,9 +3069,10 @@ public class RecordPaymentRequest
     public string? PaymentMode { get; set; }
     public string? Remarks { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.API/Controllers/TestController.cs">
+## File: src/FMCG.Distribution.API/Controllers/TestController.cs
+```csharp
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -2734,32 +3118,54 @@ public class TestController : ControllerBase
         return Ok(new { message = "Welcome Salesman!" });
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.API/Controllers/UsersController.cs">
+## File: src/FMCG.Distribution.API/Controllers/UsersController.cs
+```csharp
 // PATH: src/FMCG.Distribution.API/Controllers/UsersController.cs
-// MODIFIED — added GET /all (includes inactive) and PATCH /{id}/toggle-active
+// FIXED: Added IMediator injection
 
+using FMCG.Distribution.Application.Common;
+using FMCG.Distribution.Application.Common.Interfaces;
+using FMCG.Distribution.Application.Features.Users.Commands;
+using FMCG.Distribution.Domain.Enums;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using FMCG.Distribution.Application.Common;
-using FMCG.Distribution.Application.Common.Interfaces;
-using FMCG.Distribution.Domain.Enums;
 
 namespace FMCG.Distribution.API.Controllers;
 
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize(Roles = "Admin,SuperAdmin")]
-public class UsersController(IApplicationDbContext context) : ControllerBase
+public class UsersController : ControllerBase
 {
+    private readonly IApplicationDbContext _context;
+    private readonly IMediator _mediator;
+
+    // ── FIX: Inject both context AND mediator ──
+    public UsersController(IApplicationDbContext context, IMediator mediator)
+    {
+        _context = context;
+        _mediator = mediator;
+    }
+
+    // ── Create Salesman Endpoint ──
+    [HttpPost("salesman")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<Result<CreateSalesmanResponse>>> CreateSalesman(
+        [FromBody] CreateSalesmanCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
     // GET /api/v1/users?role=Salesman
-    // Returns active users only. Used for dropdowns (e.g. route salesman assignment).
     [HttpGet]
     public async Task<ActionResult<Result<List<UserDto>>>> GetUsers([FromQuery] UserRole? role)
     {
-        var query = context.Users
+        var query = _context.Users
             .Where(u => !u.IsDeleted && u.IsActive);
 
         if (role.HasValue)
@@ -2781,11 +3187,10 @@ public class UsersController(IApplicationDbContext context) : ControllerBase
     }
 
     // GET /api/v1/users/all?role=Salesman
-    // Returns ALL users including inactive. Used for the Admin Users management page.
     [HttpGet("all")]
     public async Task<ActionResult<Result<List<UserDto>>>> GetAllUsers([FromQuery] UserRole? role)
     {
-        var query = context.Users
+        var query = _context.Users
             .Where(u => !u.IsDeleted);
 
         if (role.HasValue)
@@ -2807,21 +3212,18 @@ public class UsersController(IApplicationDbContext context) : ControllerBase
     }
 
     // PATCH /api/v1/users/{id}/toggle-active
-    // Flips IsActive. Admin can deactivate resigned salesmen immediately.
-    // SuperAdmin can deactivate/reactivate any role.
     [HttpPatch("{id}/toggle-active")]
     public async Task<ActionResult<Result<bool>>> ToggleActive(Guid id)
     {
         var callerRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
 
-        var user = await context.Users
+        var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
 
         if (user == null)
             return NotFound(Result<bool>.Failure("User not found."));
 
         // Prevent Admin from toggling SuperAdmin or other Admin accounts.
-        // Only SuperAdmin can manage Admin-level accounts.
         if (callerRole == "Admin" &&
             (user.Role == UserRole.SuperAdmin || user.Role == UserRole.Admin))
         {
@@ -2830,7 +3232,7 @@ public class UsersController(IApplicationDbContext context) : ControllerBase
         }
 
         user.IsActive = !user.IsActive;
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
 
         var msg = user.IsActive ? "User activated successfully." : "User deactivated successfully.";
         return Ok(Result<bool>.Success(true, msg));
@@ -2846,9 +3248,10 @@ public class UserDto
     public string Role { get; set; } = string.Empty;
     public bool IsActive { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.API/Controllers/WarehouseController.cs">
+## File: src/FMCG.Distribution.API/Controllers/WarehouseController.cs
+```csharp
 // PATH: src/FMCG.Distribution.API/Controllers/WarehouseController.cs
 // ADD these missing using directives at the top:
 
@@ -3173,13 +3576,56 @@ public class RoutePackingOrderDto
     public string OrderNumber { get; set; } = string.Empty;
     public int PackingStatus { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.API/Program.cs">
+## File: src/FMCG.Distribution.API/FMCG.Distribution.API.csproj
+```
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="MediatR" Version="14.1.0" />
+    <PackageReference Include="QuestPDF" Version="2026.5.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.14.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FMCG.Distribution.Infrastructure\FMCG.Distribution.Infrastructure.csproj" />
+    <ProjectReference Include="..\FMCG.Distribution.Application\FMCG.Distribution.Application.csproj" />
+  </ItemGroup>
+
+</Project>
+```
+
+## File: src/FMCG.Distribution.API/FMCG.Distribution.API.http
+```
+@FMCG.Distribution.API_HostAddress = http://localhost:5002
+
+GET {{FMCG.Distribution.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+```
+
+## File: src/FMCG.Distribution.API/Program.cs
+```csharp
 using QuestPDF;
 using QuestPDF.Infrastructure;
 using System.Text;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -3293,7 +3739,18 @@ builder.Services.AddCors(options =>
 // ============================================================
 // 7. Controllers + API Explorer
 // ============================================================
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // The frontend sends/expects enum values as strings everywhere
+        // (e.g. status: "NoOrder", "Completed", "InProgress"). Without this,
+        // System.Text.Json defaults to numeric enum binding, so any string
+        // enum value fails model validation with an automatic 400 — before
+        // the request even reaches a handler. This was the root cause of
+        // "No Order" / "Skip" failing while OrderPlaced (set directly in C#,
+        // never round-tripped through JSON) appeared to work fine.
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 
 // ============================================================
@@ -3413,22 +3870,70 @@ Console.WriteLine($"Database Provider: {(usePostgres ? "PostgreSQL" : "SQL Serve
 Console.WriteLine("=".PadRight(60, '='));
 
 await app.RunAsync();
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Application_GlobalUsings.cs">
+## File: src/FMCG.Distribution.API/Properties/launchSettings.json
+```json
+{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:27544",
+      "sslPort": 44396
+    }
+  },
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:5002",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "https": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "https://localhost:7220;http://localhost:5002",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+```
+
+## File: src/FMCG.Distribution.Application/Application_GlobalUsings.cs
+```csharp
 global using FMCG.Distribution.Domain.Enums;
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Class1.cs">
+## File: src/FMCG.Distribution.Application/Class1.cs
+```csharp
 namespace FMCG.Distribution.Application;
 
 public class Class1
 {
 
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Common/Behaviors/ValidationBehavior.cs">
+## File: src/FMCG.Distribution.Application/Common/Behaviors/ValidationBehavior.cs
+```csharp
 using FluentValidation;
 using MediatR;
 
@@ -3455,10 +3960,12 @@ public class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TReq
         return await next();
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Common/Interfaces/IApplicationDbContext.cs">
+## File: src/FMCG.Distribution.Application/Common/Interfaces/IApplicationDbContext.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Common/Interfaces/IApplicationDbContext.cs
+// CHANGE: Added Task<long> NextOrderSequenceAsync() for atomic order number generation
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -3474,7 +3981,7 @@ public interface IApplicationDbContext
     DbSet<Product> Products { get; }
     DbSet<ProductGroup> ProductGroups { get; }
     DbSet<ProductUnit> ProductUnits { get; }
-    DbSet<ProductUnitPrice> ProductUnitPrices { get; }  // ← ADD THIS
+    DbSet<ProductUnitPrice> ProductUnitPrices { get; }
     DbSet<Order> Orders { get; }
     DbSet<OrderItem> OrderItems { get; }
     DbSet<BasePrice> BasePrices { get; }
@@ -3486,14 +3993,22 @@ public interface IApplicationDbContext
     DbSet<RouteExecution> RouteExecutions { get; }
     DbSet<RouteAssignment> RouteAssignments { get; }
     DbSet<CustomerVisit> CustomerVisits { get; }
+    DbSet<UserSession> UserSessions { get; }
 
     ChangeTracker ChangeTracker { get; }
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
-}
-</file>
 
-<file path="src/FMCG.Distribution.Application/Common/Interfaces/IIncentiveService.cs">
+    /// <summary>
+    /// Gets the next value from the PostgreSQL order_number_seq sequence.
+    /// This is atomic and safe for concurrent requests — no duplicate keys possible.
+    /// </summary>
+    Task<long> NextOrderSequenceAsync(CancellationToken cancellationToken = default);
+}
+```
+
+## File: src/FMCG.Distribution.Application/Common/Interfaces/IIncentiveService.cs
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -3523,9 +4038,10 @@ public interface IIncentiveService
         DateTime asOfDate,
         CancellationToken cancellationToken = default);
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Common/Interfaces/IRepository.cs">
+## File: src/FMCG.Distribution.Application/Common/Interfaces/IRepository.cs
+```csharp
 using System.Linq.Expressions;
 
 namespace FMCG.Distribution.Application.Common.Interfaces;
@@ -3540,9 +4056,10 @@ public interface IRepository<T> where T : class
     Task DeleteAsync(T entity, CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Common/Interfaces/ISettlementService.cs">
+## File: src/FMCG.Distribution.Application/Common/Interfaces/ISettlementService.cs
+```csharp
 using FMCG.Distribution.Application.Features.Settlement.DTOs;
 
 namespace FMCG.Distribution.Application.Common.Interfaces;
@@ -3554,9 +4071,10 @@ public interface ISettlementService
     Task<OutstandingSummaryDto> GetOutstandingTotalsAsync(Guid? routeId, Guid? customerId, CancellationToken cancellationToken = default);
     Task<DailyClosureResultDto> CloseOperationalDayAsync(Guid closedByUserId, DateTime closureDate, string? notes, CancellationToken cancellationToken = default);
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Common/Interfaces/IUnitOfWork.cs">
+## File: src/FMCG.Distribution.Application/Common/Interfaces/IUnitOfWork.cs
+```csharp
 namespace FMCG.Distribution.Application.Common.Interfaces;
 
 public interface IUnitOfWork
@@ -3564,9 +4082,10 @@ public interface IUnitOfWork
     IRepository<T> Repository<T>() where T : class;
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Common/Result.cs">
+## File: src/FMCG.Distribution.Application/Common/Result.cs
+```csharp
 namespace FMCG.Distribution.Application.Common;
 
 public class Result
@@ -3605,9 +4124,10 @@ public class Result<T> : Result
     public new static Result<T> Failure(string error)
         => new(false, default, error, null);
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/DTOs/AnalyticsDtos.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/DTOs/AnalyticsDtos.cs
+```csharp
 namespace FMCG.Distribution.Application.Features.Analytics.DTOs;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -3827,9 +4347,10 @@ public class ComparisonSummaryDto
     public decimal OrderCountChange { get; set; }
     public string Trend { get; set; } = "stable";  // "improving", "declining", "stable"
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetDashboardKpisQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetDashboardKpisQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Analytics.DTOs;
@@ -3840,9 +4361,10 @@ public class GetDashboardKpisQuery : IRequest<Result<DashboardKpisDto>>
 {
     public DateTime? Date { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetDashboardKpisQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetDashboardKpisQueryHandler.cs
+```csharp
 #pragma warning disable CS9236
 
 using MediatR;
@@ -3993,9 +4515,10 @@ public class GetDashboardKpisQueryHandler(IApplicationDbContext context)
 }
 
 #pragma warning restore CS9236
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetOrderMarginQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetOrderMarginQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -4035,9 +4558,10 @@ public class OrderItemMarginDto
     public decimal Variance { get; set; }
     public bool IsProfitable => Variance > 0;
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetOrderMarginQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetOrderMarginQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -4118,9 +4642,10 @@ public class GetOrderMarginQueryHandler : IRequestHandler<GetOrderMarginQuery, R
         return Result<OrderMarginDto>.Success(result);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetPeriodComparisonQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetPeriodComparisonQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Analytics.DTOs;
@@ -4134,9 +4659,10 @@ public class GetPeriodComparisonQuery : IRequest<Result<PeriodComparisonResponse
     public bool CompareWithPrevious { get; set; } = true;
     public Guid? RouteId { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetPeriodComparisonQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetPeriodComparisonQueryHandler.cs
+```csharp
 #pragma warning disable CS9236
 
 using MediatR;
@@ -4269,9 +4795,10 @@ public class GetPeriodComparisonQueryHandler(IApplicationDbContext context)
 }
 
 #pragma warning restore CS9236
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetProductPerformanceQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetProductPerformanceQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Analytics.DTOs;
@@ -4286,9 +4813,10 @@ public class GetProductPerformanceQuery : IRequest<Result<ProductPerformanceResp
     public int? Limit { get; set; }
     public string? SortBy { get; set; }  // "sales", "margin", "quantity"
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetProductPerformanceQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetProductPerformanceQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -4427,9 +4955,10 @@ public class GetProductPerformanceQueryHandler(IApplicationDbContext context)
         return Result<ProductPerformanceResponseDto>.Success(result);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetProductProfitabilityQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetProductProfitabilityQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -4457,9 +4986,10 @@ public class ProductProfitabilityDto
     public int OrderCount { get; set; }
     public bool IsProfitable => TotalVariance > 0;
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetProductProfitabilityQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetProductProfitabilityQueryHandler.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetProductProfitabilityQueryHandler.cs
 // FIXED: OrderStatus.Submitted no longer exists.
 //        Analytics should include all orders that have passed the Draft stage
@@ -4538,9 +5068,10 @@ public class GetProductProfitabilityQueryHandler(IApplicationDbContext context)
         return Result<List<ProductProfitabilityDto>>.Success(productProfitability);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetRoutePerformanceQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetRoutePerformanceQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Analytics.DTOs;
@@ -4553,9 +5084,10 @@ public class GetRoutePerformanceQuery : IRequest<Result<RoutePerformanceResponse
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetRoutePerformanceQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetRoutePerformanceQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -4669,9 +5201,10 @@ public class GetRoutePerformanceQueryHandler(IApplicationDbContext context)
         return Result<RoutePerformanceResponseDto>.Success(result);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetRouteProfitabilityQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetRouteProfitabilityQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -4696,9 +5229,10 @@ public class RouteProfitabilityDto
     public int CustomerCount { get; set; }
     public bool IsProfitable => TotalVariance > 0;
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetRouteProfitabilityQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetRouteProfitabilityQueryHandler.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetRouteProfitabilityQueryHandler.cs
 // FIXED: OrderStatus.Submitted no longer exists.
 //        Analytics should include all orders that have passed the Draft stage
@@ -4764,9 +5298,10 @@ public class GetRouteProfitabilityQueryHandler(IApplicationDbContext context)
         return Result<List<RouteProfitabilityDto>>.Success(routeProfitability);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetSalesmanIncentiveQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetSalesmanIncentiveQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Incentives.DTOs;
@@ -4779,9 +5314,10 @@ public class GetSalesmanIncentiveQuery : IRequest<Result<SalesmanIncentiveSummar
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetSalesmanIncentiveQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetSalesmanIncentiveQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -4831,9 +5367,10 @@ public class GetSalesmanIncentiveQueryHandler(
         return Result<SalesmanIncentiveSummaryDto>.Success(result);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetTopProductsQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetTopProductsQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Analytics.DTOs;
@@ -4848,9 +5385,10 @@ public class GetTopProductsQuery : IRequest<Result<List<TopProductDto>>>
     public DateTime? ToDate { get; set; }
     public Guid? ProductGroupId { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Analytics/Queries/GetTopProductsQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Analytics/Queries/GetTopProductsQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -4926,9 +5464,10 @@ public class GetTopProductsQueryHandler(IApplicationDbContext context)
         return Result<List<TopProductDto>>.Success(products);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Auth/Commands/LoginCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Auth/Commands/LoginCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -4948,10 +5487,13 @@ public class LoginResponse
     public string Email { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
+    /// <summary>The UserSession.Id created at login — pass this to POST /api/v1/auth/logout.</summary>
+    public Guid SessionId { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Auth/Commands/LoginCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Auth/Commands/LoginCommandHandler.cs
+```csharp
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -4983,6 +5525,18 @@ public class LoginCommandHandler(IApplicationDbContext context, IConfiguration c
 
         user.RefreshToken = refreshToken;
         user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+
+        // ── Record login session ──
+        var session = new UserSession
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            LoginAt = DateTime.UtcNow,
+            LoginMethod = "Email",
+            CreatedAt = DateTime.UtcNow,
+        };
+        context.UserSessions.Add(session);
+
         await context.SaveChangesAsync(cancellationToken);
 
         return Result<LoginResponse>.Success(new LoginResponse
@@ -4992,7 +5546,8 @@ public class LoginCommandHandler(IApplicationDbContext context, IConfiguration c
             UserId = user.Id,
             Email = user.Email,
             FullName = user.FullName,
-            Role = user.Role.ToString()
+            Role = user.Role.ToString(),
+            SessionId = session.Id,
         });
     }
 
@@ -5025,39 +5580,202 @@ public class LoginCommandHandler(IApplicationDbContext context, IConfiguration c
         return Convert.ToBase64String(Guid.NewGuid().ToByteArray());
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Auth/Commands/PinLoginCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Auth/Commands/PinLoginCommand.cs
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+// Application/Features/Auth/Commands/PinLoginCommand.cs
+using MediatR;
+using FMCG.Distribution.Application.Common;
 
+namespace FMCG.Distribution.Application.Features.Auth.Commands;
+
+public class PinLoginCommand : IRequest<Result<LoginResponse>>
+{
+    public string Pin { get; set; } = string.Empty;  // ← ONLY PIN
+}
+```
+
+## File: src/FMCG.Distribution.Application/Features/Auth/Commands/PinLoginCommandHandler.cs
+```csharp
+// Application/Features/Auth/Commands/PinLoginCommandHandler.cs
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using FMCG.Distribution.Application.Common;
+using FMCG.Distribution.Application.Common.Interfaces;
+using FMCG.Distribution.Domain.Entities;
+using FMCG.Distribution.Domain.Enums;
+
+namespace FMCG.Distribution.Application.Features.Auth.Commands;
+
+public class PinLoginCommandHandler : IRequestHandler<PinLoginCommand, Result<LoginResponse>>
+{
+    private readonly IApplicationDbContext _context;
+    private readonly IConfiguration _configuration;
+    private const int MaxPinAttempts = 5;
+    private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
+
+    public PinLoginCommandHandler(IApplicationDbContext context, IConfiguration configuration)
+    {
+        _context = context;
+        _configuration = configuration;
+    }
+
+    public async Task<Result<LoginResponse>> Handle(PinLoginCommand request, CancellationToken cancellationToken)
+    {
+        // ── Find user by PIN (Salesman, Admin, SuperAdmin) ──
+        // Get all active users with PIN hashes, for roles that may use PIN login.
+        // Accounts/Warehouse aren't included — they still use email+password only.
+        var candidates = await _context.Users
+            .Where(u => u.IsActive
+                && u.PinHash != null
+                && (u.Role == UserRole.Salesman || u.Role == UserRole.Admin || u.Role == UserRole.SuperAdmin))
+            .ToListAsync(cancellationToken);
+
+        User? user = null;
+        foreach (var candidate in candidates)
+        {
+            if (BCrypt.Net.BCrypt.Verify(request.Pin, candidate.PinHash))
+            {
+                user = candidate;
+                break;
+            }
+        }
+
+        // ── No user found with this PIN ──
+        if (user == null)
+        {
+            return Result<LoginResponse>.Failure("Invalid PIN.");
+        }
+
+        // ── Check lockout ──
+        if (user.PinLockedUntil.HasValue && user.PinLockedUntil.Value > DateTime.UtcNow)
+        {
+            var remaining = (int)(user.PinLockedUntil.Value - DateTime.UtcNow).TotalMinutes + 1;
+            return Result<LoginResponse>.Failure($"Account locked. Try again in {remaining} minute(s).");
+        }
+
+        // ── Success ──
+        user.PinFailCount = 0;
+        user.PinLockedUntil = null;
+
+        var token = GenerateJwtToken(user);
+        var refreshToken = GenerateRefreshToken();
+
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+
+        // ── Record login session ──
+        var session = new UserSession
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            LoginAt = DateTime.UtcNow,
+            LoginMethod = "PIN",
+            CreatedAt = DateTime.UtcNow,
+        };
+        _context.UserSessions.Add(session);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result<LoginResponse>.Success(new LoginResponse
+        {
+            Token = token,
+            RefreshToken = refreshToken,
+            UserId = user.Id,
+            Email = user.Email,
+            FullName = user.FullName,
+            Role = user.Role.ToString(),
+            SessionId = session.Id,
+        });
+    }
+
+    // ── Helper methods ──
+    private string GenerateJwtToken(User user)
+    {
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
+            _configuration["Jwt:Key"] ?? "FMCG_Distribution_SuperSecretKey_32Chars_2024!"));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Name, user.FullName),
+            new Claim(ClaimTypes.Role, user.Role.ToString())
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"] ?? "FMCG.Distribution",
+            audience: _configuration["Jwt:Audience"] ?? "FMCG.Distribution.Frontend",
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(double.Parse(_configuration["Jwt:ExpiryMinutes"] ?? "480")),
+            signingCredentials: credentials);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static string GenerateRefreshToken()
+        => Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+}
+```
+
+## File: src/FMCG.Distribution.Application/Features/Auth/Commands/RefreshTokenCommand.cs
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+// PATH: src/FMCG.Distribution.Application/Features/Auth/Commands/RefreshTokenCommand.cs
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
 namespace FMCG.Distribution.Application.Features.Auth.Commands;
 
 /// <summary>
-/// Authenticates a salesman using their 4–6 digit PIN.
-/// Returns the same LoginResponse as the password-based login
-/// so the frontend can treat both flows identically.
+/// Silently renews an access token using the refresh token, without requiring
+/// the user to log in again. This is what keeps a field salesman logged in
+/// through gaps between shop visits, lunch breaks, or even overnight, as long
+/// as they open the app at least once within the refresh token's lifetime.
 /// </summary>
-public class PinLoginCommand : IRequest<Result<LoginResponse>>
+public class RefreshTokenCommand : IRequest<Result<RefreshTokenResponse>>
 {
-    public string Email { get; set; } = string.Empty;   // identifies the user
-    public string Pin { get; set; } = string.Empty;
+    public string RefreshToken { get; set; } = string.Empty;
 }
-</file>
 
-<file path="src/FMCG.Distribution.Application/Features/Auth/Commands/PinLoginCommandHandler.cs">
+public class RefreshTokenResponse
+{
+    public string Token { get; set; } = string.Empty;
+    /// <summary>
+    /// The refresh token is rotated on every use (sliding expiry) — the old
+    /// one becomes invalid immediately. This means an actively-used session
+    /// effectively never expires; only true inactivity (7+ days with the app
+    /// never opened) forces a real re-login.
+    /// </summary>
+    public string RefreshToken { get; set; } = string.Empty;
+}
+```
+
+## File: src/FMCG.Distribution.Application/Features/Auth/Commands/RefreshTokenCommandHandler.cs
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+// PATH: src/FMCG.Distribution.Application/Features/Auth/Commands/RefreshTokenCommandHandler.cs
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -5071,77 +5789,52 @@ using FMCG.Distribution.Domain.Entities;
 
 namespace FMCG.Distribution.Application.Features.Auth.Commands;
 
-public class PinLoginCommandHandler(IApplicationDbContext context, IConfiguration configuration)
-    : IRequestHandler<PinLoginCommand, Result<LoginResponse>>
+public class RefreshTokenCommandHandler(IApplicationDbContext context, IConfiguration configuration)
+    : IRequestHandler<RefreshTokenCommand, Result<RefreshTokenResponse>>
 {
-    private const int MaxPinFailAttempts = 5;
-    private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
-
-    public async Task<Result<LoginResponse>> Handle(PinLoginCommand request, CancellationToken cancellationToken)
+    public async Task<Result<RefreshTokenResponse>> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
     {
-        // 1. Find active user by email
-        var user = await context.Users
-            .FirstOrDefaultAsync(u => u.Email == request.Email && u.IsActive, cancellationToken);
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            return Result<RefreshTokenResponse>.Failure("Refresh token is required.");
+        }
 
+        var user = await context.Users.FirstOrDefaultAsync(
+            u => u.RefreshToken == request.RefreshToken && u.IsActive, cancellationToken);
+
+        // Invalid token, or it doesn't match any user (e.g. already rotated
+        // out by a previous refresh, or the account was deactivated).
         if (user == null)
         {
-            return Result<LoginResponse>.Failure("Invalid credentials.");
+            return Result<RefreshTokenResponse>.Failure("Invalid or expired session. Please log in again.");
         }
 
-        // 2. Check PIN is configured
-        if (string.IsNullOrEmpty(user.PinHash))
+        // Refresh token itself has a 7-day expiry — past that, force a real login
+        // rather than renewing forever on a token nobody has used in a week.
+        if (user.RefreshTokenExpiry == null || user.RefreshTokenExpiry.Value < DateTime.UtcNow)
         {
-            return Result<LoginResponse>.Failure("PIN not set. Please contact your administrator.");
+            return Result<RefreshTokenResponse>.Failure("Session expired. Please log in again.");
         }
 
-        // 3. Check lockout
-        if (user.PinLockedUntil.HasValue && user.PinLockedUntil.Value > DateTime.UtcNow)
-        {
-            var remaining = (int)(user.PinLockedUntil.Value - DateTime.UtcNow).TotalMinutes + 1;
-            return Result<LoginResponse>.Failure($"Account locked due to too many failed PIN attempts. Try again in {remaining} minute(s).");
-        }
+        // ── Issue a new access token, and rotate the refresh token ──
+        // Rotating on every use means an actively-used app effectively never
+        // needs a manual re-login — only 7+ days of total inactivity does.
+        // NOTE: this does NOT touch UserSessions — a silent refresh is a
+        // continuation of the same session, not a new login/logout event.
+        var newAccessToken = GenerateJwtToken(user);
+        var newRefreshToken = GenerateRefreshToken();
 
-        // 4. Verify PIN
-        if (!BCrypt.Net.BCrypt.Verify(request.Pin, user.PinHash))
-        {
-            user.PinFailCount += 1;
-
-            if (user.PinFailCount >= MaxPinFailAttempts)
-            {
-                user.PinLockedUntil = DateTime.UtcNow.Add(LockoutDuration);
-                user.PinFailCount = 0;
-                await context.SaveChangesAsync(cancellationToken);
-                return Result<LoginResponse>.Failure($"Too many failed attempts. Account locked for {(int)LockoutDuration.TotalMinutes} minutes.");
-            }
-
-            await context.SaveChangesAsync(cancellationToken);
-            return Result<LoginResponse>.Failure($"Invalid PIN. {MaxPinFailAttempts - user.PinFailCount} attempt(s) remaining.");
-        }
-
-        // 5. Success — reset fail count, issue tokens
-        user.PinFailCount = 0;
-        user.PinLockedUntil = null;
-
-        var jwtToken = GenerateJwtToken(user);
-        var refreshToken = GenerateRefreshToken();
-
-        user.RefreshToken = refreshToken;
+        user.RefreshToken = newRefreshToken;
         user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
-
         await context.SaveChangesAsync(cancellationToken);
 
-        return Result<LoginResponse>.Success(new LoginResponse
+        return Result<RefreshTokenResponse>.Success(new RefreshTokenResponse
         {
-            Token = jwtToken,
-            RefreshToken = refreshToken,
-            UserId = user.Id,
-            Email = user.Email,
-            FullName = user.FullName,
-            Role = user.Role.ToString()
+            Token = newAccessToken,
+            RefreshToken = newRefreshToken,
         });
     }
 
-    // ── Duplicated from LoginCommandHandler intentionally (no shared service yet) ──
     private string GenerateJwtToken(User user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
@@ -5169,9 +5862,10 @@ public class PinLoginCommandHandler(IApplicationDbContext context, IConfiguratio
     private static string GenerateRefreshToken()
         => Convert.ToBase64String(Guid.NewGuid().ToByteArray());
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Auth/Commands/RegisterCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Auth/Commands/RegisterCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -5192,9 +5886,10 @@ public class RegisterResponse
     public string FullName { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Auth/Commands/RegisterCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Auth/Commands/RegisterCommandHandler.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Auth/Commands/RegisterCommandHandler.cs
 // MODIFIED — blocks self-registration to Admin/SuperAdmin roles
 
@@ -5259,9 +5954,10 @@ public class RegisterCommandHandler(IApplicationDbContext context)
         }, "User registered successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Auth/Commands/SetPinCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Auth/Commands/SetPinCommand.cs
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -5282,9 +5978,10 @@ public class SetPinCommand : IRequest<Result<bool>>
     public Guid UserId { get; set; }
     public string Pin { get; set; } = string.Empty;       // 4–6 digits, validated here
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Auth/Commands/SetPinCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Auth/Commands/SetPinCommandHandler.cs
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -5323,6 +6020,27 @@ public class SetPinCommandHandler(IApplicationDbContext context)
             return Result<bool>.Failure("User not found.");
         }
 
+        // ── Reject duplicate PINs ────────────────────────────────────────────
+        // PinLoginCommandHandler finds a user by scanning every PinHash and
+        // stopping at the first BCrypt match — it has no other way to tell two
+        // same-PIN users apart. If two users shared a PIN, whichever one the
+        // scan reaches first would "win" every login attempt, silently locking
+        // the other person out of their own account. The frontend already
+        // shows a live "already taken" hint, but this is the check that
+        // actually prevents it from happening.
+        var others = await context.Users
+            .Where(u => u.IsActive && u.Id != request.UserId && u.PinHash != null)
+            .Select(u => new { u.FullName, u.PinHash })
+            .ToListAsync(cancellationToken);
+
+        foreach (var other in others)
+        {
+            if (BCrypt.Net.BCrypt.Verify(request.Pin, other.PinHash))
+            {
+                return Result<bool>.Failure($"This PIN is already used by {other.FullName}. Choose a different one.");
+            }
+        }
+
         user.PinHash = BCrypt.Net.BCrypt.HashPassword(request.Pin);
         user.PinFailCount = 0;
         user.PinLockedUntil = null;
@@ -5333,9 +6051,103 @@ public class SetPinCommandHandler(IApplicationDbContext context)
         return Result<bool>.Success(true, "PIN set successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/BasePrices/Commands/UpdateBasePriceCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Auth/Queries/CheckPinAvailabilityQuery.cs
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using MediatR;
+using FMCG.Distribution.Application.Common;
+
+namespace FMCG.Distribution.Application.Features.Auth.Queries;
+
+/// <summary>
+/// Checks whether a PIN is already in use by another active user — so the
+/// admin gets an Instagram-style "already taken" warning while typing,
+/// before two people end up sharing the same PIN.
+///
+/// This does NOT require storing PINs in plaintext. PinHash stays a one-way
+/// hash; checking "does this PIN match any existing hash" only needs the
+/// same BCrypt.Verify() the login flow already does, just run proactively
+/// against the candidate value instead of against a login attempt.
+/// </summary>
+public class CheckPinAvailabilityQuery : IRequest<Result<CheckPinAvailabilityResponse>>
+{
+    public string Pin { get; set; } = string.Empty;
+
+    /// <summary>The user currently being edited, if any — excluded from the
+    /// conflict check so re-saving someone's own existing PIN doesn't flag
+    /// itself as a collision.</summary>
+    public Guid? ExcludeUserId { get; set; }
+}
+
+public class CheckPinAvailabilityResponse
+{
+    public bool IsAvailable { get; set; }
+    public string? ConflictingUserName { get; set; }
+}
+```
+
+## File: src/FMCG.Distribution.Application/Features/Auth/Queries/CheckPinAvailabilityQueryHandler.cs
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using FMCG.Distribution.Application.Common;
+using FMCG.Distribution.Application.Common.Interfaces;
+
+namespace FMCG.Distribution.Application.Features.Auth.Queries;
+
+public class CheckPinAvailabilityQueryHandler(IApplicationDbContext context)
+    : IRequestHandler<CheckPinAvailabilityQuery, Result<CheckPinAvailabilityResponse>>
+{
+    public async Task<Result<CheckPinAvailabilityResponse>> Handle(
+        CheckPinAvailabilityQuery request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Pin) || !request.Pin.All(char.IsDigit))
+        {
+            return Result<CheckPinAvailabilityResponse>.Success(
+                new CheckPinAvailabilityResponse { IsAvailable = true });
+        }
+
+        var candidates = await context.Users
+            .Where(u => u.IsActive
+                && u.PinHash != null
+                && (request.ExcludeUserId == null || u.Id != request.ExcludeUserId.Value))
+            .Select(u => new { u.Id, u.FullName, u.PinHash })
+            .ToListAsync(cancellationToken);
+
+        foreach (var candidate in candidates)
+        {
+            if (BCrypt.Net.BCrypt.Verify(request.Pin, candidate.PinHash))
+            {
+                return Result<CheckPinAvailabilityResponse>.Success(new CheckPinAvailabilityResponse
+                {
+                    IsAvailable = false,
+                    ConflictingUserName = candidate.FullName,
+                });
+            }
+        }
+
+        return Result<CheckPinAvailabilityResponse>.Success(
+            new CheckPinAvailabilityResponse { IsAvailable = true });
+    }
+}
+```
+
+## File: src/FMCG.Distribution.Application/Features/BasePrices/Commands/UpdateBasePriceCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -5357,9 +6169,10 @@ public class UpdateBasePriceResponse
     public decimal NewPrice { get; set; }
     public DateTime EffectiveDate { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/BasePrices/Commands/UpdateBasePriceCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/BasePrices/Commands/UpdateBasePriceCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -5457,9 +6270,10 @@ public class UpdateBasePriceCommandHandler : IRequestHandler<UpdateBasePriceComm
         }, "Base price updated successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/BasePrices/Queries/GetProductPriceHistoryQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/BasePrices/Queries/GetProductPriceHistoryQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -5481,9 +6295,10 @@ public class ProductPriceHistoryDto
     public string? Reason { get; set; }
     public DateTime CreatedAt { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/BasePrices/Queries/GetProductPriceHistoryQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/BasePrices/Queries/GetProductPriceHistoryQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -5538,9 +6353,10 @@ public class GetProductPriceHistoryQueryHandler : IRequestHandler<GetProductPric
         return Result<List<ProductPriceHistoryDto>>.Success(result);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Customers/Commands/CreateCustomerCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Customers/Commands/CreateCustomerCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -5567,9 +6383,10 @@ public class CreateCustomerResponse
     public int SequenceOrder { get; set; }
     public bool IsActive { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Customers/Commands/CreateCustomerCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Customers/Commands/CreateCustomerCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -5624,9 +6441,10 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
         }, "Customer created successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Customers/Commands/DeleteCustomerCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Customers/Commands/DeleteCustomerCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -5636,9 +6454,10 @@ public class DeleteCustomerCommand : IRequest<Result<bool>>
 {
     public Guid Id { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Customers/Commands/DeleteCustomerCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Customers/Commands/DeleteCustomerCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -5670,9 +6489,10 @@ public class DeleteCustomerCommandHandler : IRequestHandler<DeleteCustomerComman
         return Result<bool>.Success(true, "Customer deleted successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Customers/Commands/UpdateCustomerCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Customers/Commands/UpdateCustomerCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -5701,9 +6521,10 @@ public class UpdateCustomerResponse
     public int SequenceOrder { get; set; }
     public bool IsActive { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Customers/Commands/UpdateCustomerCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Customers/Commands/UpdateCustomerCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -5763,9 +6584,10 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
         }, "Customer updated successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Customers/Queries/GetAllCustomersQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Customers/Queries/GetAllCustomersQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -5792,9 +6614,10 @@ public class CustomerDto
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Customers/Queries/GetAllCustomersQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Customers/Queries/GetAllCustomersQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -5853,9 +6676,10 @@ public class GetAllCustomersQueryHandler(IApplicationDbContext context)
         return Result<List<CustomerDto>>.Success(customers);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Customers/Queries/GetCustomerByIdQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Customers/Queries/GetCustomerByIdQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -5881,9 +6705,10 @@ public class CustomerDetailDto
     public DateTime CreatedAt { get; set; }
     public int? TotalOrdersCount { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Customers/Queries/GetCustomerByIdQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Customers/Queries/GetCustomerByIdQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -5924,9 +6749,10 @@ public class GetCustomerByIdQueryHandler(IApplicationDbContext context)
         return Result<CustomerDetailDto>.Success(dto);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Incentives/Commands/CreateProductIncentiveCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Incentives/Commands/CreateProductIncentiveCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Domain.Enums;
@@ -5956,9 +6782,10 @@ public class CreateProductIncentiveResponse
     public bool IsActive { get; set; }
     public string? Description { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Incentives/Commands/CreateProductIncentiveCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Incentives/Commands/CreateProductIncentiveCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -6035,9 +6862,10 @@ public class CreateProductIncentiveCommandHandler(IApplicationDbContext context)
         }, "Product incentive created successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Incentives/Commands/DeleteProductIncentiveCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Incentives/Commands/DeleteProductIncentiveCommand.cs
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6054,9 +6882,10 @@ public class DeleteProductIncentiveCommand : IRequest<Result<bool>>
     public Guid Id { get; set; }
     public Guid AdminId { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Incentives/Commands/DeleteProductIncentiveCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Incentives/Commands/DeleteProductIncentiveCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -6083,9 +6912,10 @@ public class DeleteProductIncentiveCommandHandler(IApplicationDbContext context)
         return Result<bool>.Success(true, "Product incentive deleted successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Incentives/Commands/UpdateProductIncentiveCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Incentives/Commands/UpdateProductIncentiveCommand.cs
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6121,9 +6951,10 @@ public class UpdateProductIncentiveResponse
     public bool IsActive { get; set; }
     public string? Description { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Incentives/Commands/UpdateProductIncentiveCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Incentives/Commands/UpdateProductIncentiveCommandHandler.cs
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6195,9 +7026,10 @@ public class UpdateProductIncentiveCommandHandler(IApplicationDbContext context)
         }, "Product incentive updated successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Incentives/DTOs/IncentiveDtos.cs">
+## File: src/FMCG.Distribution.Application/Features/Incentives/DTOs/IncentiveDtos.cs
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6287,9 +7119,10 @@ public class RouteIncentiveSummaryDto
     public int ActiveSalesmenCount { get; set; }
     public List<SalesmanIncentiveSummaryDto> Salesmen { get; set; } = [];
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Incentives/Queries/GetProductIncentivesQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Incentives/Queries/GetProductIncentivesQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Incentives.DTOs;
@@ -6301,9 +7134,10 @@ public class GetProductIncentivesQuery : IRequest<Result<List<ProductIncentiveDt
     public Guid? ProductId { get; set; }
     public bool? IsActive { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Incentives/Queries/GetProductIncentivesQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Incentives/Queries/GetProductIncentivesQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -6352,9 +7186,10 @@ public class GetProductIncentivesQueryHandler(IApplicationDbContext context)
         return Result<List<ProductIncentiveDto>>.Success(incentives);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Commands/ApproveOrderCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Commands/ApproveOrderCommand.cs
+```csharp
 // ApproveOrderCommand.cs - Should be clean and simple
 using MediatR;
 using FMCG.Distribution.Application.Common;
@@ -6367,9 +7202,10 @@ public class ApproveOrderCommand : IRequest<Result<OrderDetailDto>>
     public Guid Id { get; set; }
     public Guid AdminId { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Commands/ApproveOrderCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Commands/ApproveOrderCommandHandler.cs
+```csharp
 // ApproveOrderCommandHandler.cs - Should be a single class implementation
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -6474,9 +7310,10 @@ public class ApproveOrderCommandHandler(IApplicationDbContext context)
         return Result<OrderDetailDto>.Success(resultDto, "Order approved successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Commands/CloseOrderCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Commands/CloseOrderCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Orders.DTOs;
@@ -6488,9 +7325,10 @@ public class CloseOrderCommand : IRequest<Result<OrderDetailDto>>
     public Guid Id { get; set; }
     public Guid AdminId { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Commands/CloseOrderCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Commands/CloseOrderCommandHandler.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Orders/Commands/CloseOrderCommandHandler.cs
 // FIXED: OrderStatus.Submitted no longer exists.
 //        Close is now allowed from Approved or Packed status (matching Order.cs domain method).
@@ -6595,9 +7433,10 @@ public class CloseOrderCommandHandler : IRequestHandler<CloseOrderCommand, Resul
         }, "Order closed successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Commands/CreateOrderCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Commands/CreateOrderCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Orders.DTOs;
@@ -6615,12 +7454,15 @@ public class CreateOrderCommand : IRequest<Result<OrderDetailDto>>
     public Guid? ExecutionId { get; set; }
     public Guid? CustomerVisitId { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Commands/CreateOrderCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Commands/CreateOrderCommandHandler.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Orders/Commands/CreateOrderCommandHandler.cs
-// FIXED: OrderStatus.Submitted replaced with OrderStatus.Draft
-//        (new orders start as Draft; salesman must explicitly submit them)
+// FIX: Replaced SemaphoreSlim + SELECT-based order number generation with
+//      PostgreSQL sequence (order_number_seq) via IApplicationDbContext.NextOrderSequenceAsync().
+//      PostgreSQL sequences are atomic at the database level — no duplicate keys possible,
+//      no race conditions, works correctly across multiple server instances.
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -6635,38 +7477,44 @@ namespace FMCG.Distribution.Application.Features.Orders.Commands;
 public class CreateOrderCommandHandler(IApplicationDbContext context)
     : IRequestHandler<CreateOrderCommand, Result<OrderDetailDto>>
 {
+    // SemaphoreSlim REMOVED — was the root cause of duplicate key errors.
+    // The lock prevented parallel execution within one process but:
+    //  a) didn't protect against multiple server instances
+    //  b) the SELECT-then-INSERT is still not atomic — a gap exists between
+    //     reading the max number and writing the new order.
+    // PostgreSQL sequence is atomic at the DB level — zero gap possible.
+
     public async Task<Result<OrderDetailDto>> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
-        // Validate Customer
+        // ── Validate Customer ──────────────────────────────────────────────────
         var customer = await context.Customers
             .FirstOrDefaultAsync(c => c.Id == request.CustomerId && !c.IsDeleted, cancellationToken);
 
         if (customer == null)
             return Result<OrderDetailDto>.Failure("Customer not found.");
 
-        // Validate Salesman
+        // ── Validate Salesman ──────────────────────────────────────────────────
         var salesman = await context.Users
             .FirstOrDefaultAsync(u => u.Id == request.SalesmanId && u.IsActive && u.Role == UserRole.Salesman, cancellationToken);
 
         if (salesman == null)
             return Result<OrderDetailDto>.Failure("Salesman not found.");
 
-        // Validate salesman is assigned to this customer's route
-        // (use route-assignment table as well as the legacy direct assignment)
+        // ── Validate Route ─────────────────────────────────────────────────────
         var route = await context.Routes
             .FirstOrDefaultAsync(r => r.Id == customer.RouteId && !r.IsDeleted, cancellationToken);
 
         if (route == null)
             return Result<OrderDetailDto>.Failure("Route not found for this customer.");
 
-        // Build order items
+        // ── Build order items ──────────────────────────────────────────────────
         var orderItems = new List<OrderItem>();
         var itemDtos = new List<OrderItemDto>();
 
         foreach (var item in request.Items)
         {
             var product = await context.Products
-                .Include(p => p.DefaultUnit)  // ← Use DefaultUnit instead of ProductUnit
+                .Include(p => p.DefaultUnit)
                 .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.IsActive && !p.IsDeleted, cancellationToken);
 
             if (product == null)
@@ -6719,10 +7567,12 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
         if (orderItems.Count == 0)
             return Result<OrderDetailDto>.Failure("At least one item is required to create an order.");
 
-        var orderNumber = await GenerateOrderNumberAsync(context, cancellationToken);
+        // ── Generate unique order number via PostgreSQL sequence ───────────────
+        // nextval('order_number_seq') is atomic — the DB guarantees each call
+        // returns a unique value, even with thousands of concurrent requests.
+        var orderNumber = await GenerateOrderNumberAsync(cancellationToken);
 
-        // ── FIXED: Status = Draft (was Submitted) ─────────────────────────────
-        // Salesman creates a Draft; they must call /submit to move to PendingApproval.
+        // ── Create the order ───────────────────────────────────────────────────
         var order = new Order
         {
             Id = Guid.NewGuid(),
@@ -6731,7 +7581,7 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             RouteId = customer.RouteId,
             SalesmanId = request.SalesmanId,
             OrderDate = DateTime.UtcNow,
-            Status = OrderStatus.Draft,          // ← was OrderStatus.Submitted
+            Status = OrderStatus.Draft,
             Remarks = request.Remarks,
             Items = orderItems,
             CustomerVisitId = request.CustomerVisitId,
@@ -6740,18 +7590,47 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
         await context.Orders.AddAsync(order, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 
-        // Link to customer visit if provided
+        // ── Link to customer visit ──────────────────────────────────────────────
+        // Prefer the explicit ids the caller passed (fast, unambiguous). But not
+        // every page that can create an order necessarily has execution context
+        // in hand — fall back to resolving the visit from whatever in-progress
+        // execution this salesman has for this route right now. Without this
+        // fallback, an order created from such a page silently never marks its
+        // stop as done, so the route execution page keeps showing it as Pending
+        // forever even though a perfectly good order exists.
+        CustomerVisit? visit = null;
+
         if (request.CustomerVisitId.HasValue && request.ExecutionId.HasValue)
         {
-            var visit = await context.CustomerVisits
+            visit = await context.CustomerVisits
                 .FirstOrDefaultAsync(v => v.Id == request.CustomerVisitId.Value
-                    && v.RouteExecutionId == request.ExecutionId.Value, cancellationToken);
+                    && v.RouteExecutionId == request.ExecutionId.Value
+                    && !v.IsDeleted, cancellationToken);
+        }
 
-            if (visit != null && visit.Status == VisitStatus.Pending)
+        if (visit == null)
+        {
+            var inProgressExecution = await context.RouteExecutions
+                .Where(e => e.RouteId == customer.RouteId
+                    && e.SalesmanId == request.SalesmanId
+                    && e.Status == ExecutionStatus.InProgress
+                    && !e.IsDeleted)
+                .OrderByDescending(e => e.StartedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (inProgressExecution != null)
             {
-                visit.RecordOrder(order.Id);
-                await context.SaveChangesAsync(cancellationToken);
+                visit = await context.CustomerVisits
+                    .FirstOrDefaultAsync(v => v.RouteExecutionId == inProgressExecution.Id
+                        && v.CustomerId == request.CustomerId
+                        && !v.IsDeleted, cancellationToken);
             }
+        }
+
+        if (visit != null && visit.Status == VisitStatus.Pending)
+        {
+            visit.RecordOrder(order.Id);
+            await context.SaveChangesAsync(cancellationToken);
         }
 
         var routeDetails = await context.Routes
@@ -6773,31 +7652,28 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             TotalAmount = itemDtos.Sum(i => i.SellingPrice * i.Quantity),
             Remarks = order.Remarks,
             SubmittedAt = order.SubmittedAt,
+            ApprovedAt = order.ApprovedAt,
             ClosedAt = order.ClosedAt,
             CreatedAt = order.CreatedAt,
             Items = itemDtos,
         }, "Order created successfully.");
     }
 
-    private static async Task<string> GenerateOrderNumberAsync(IApplicationDbContext dbContext, CancellationToken _)
+    // ── Generate order number using PostgreSQL atomic sequence ─────────────────
+    // Format: ORD-YYYYMMDD-NNNN  (e.g. ORD-20260616-1042)
+    // The sequence value is globally unique across all dates, so we combine it
+    // with the date prefix for human readability.
+    // Even if the sequence wraps across days, the date prefix ensures no collisions.
+    private async Task<string> GenerateOrderNumberAsync(CancellationToken cancellationToken)
     {
         var datePart = DateTime.UtcNow.ToString("yyyyMMdd");
-        var prefix = $"ORD-{datePart}-";
 
-        var lastOrder = await dbContext.Orders
-            .Where(o => o.OrderNumber.StartsWith(prefix))
-            .OrderByDescending(o => o.OrderNumber)
-            .FirstOrDefaultAsync(_);
+        // This single DB call is atomic — PostgreSQL guarantees uniqueness
+        var seqValue = await context.NextOrderSequenceAsync(cancellationToken);
 
-        int nextNumber = 1;
-        if (lastOrder != null)
-        {
-            var lastNumberStr = lastOrder.OrderNumber[(prefix.Length)..];
-            if (int.TryParse(lastNumberStr, out int lastNumber))
-                nextNumber = lastNumber + 1;
-        }
-
-        return $"{prefix}{nextNumber:D4}";
+        // Format: ORD-20260616-1042
+        // Use seqValue directly (no date-based reset) to keep it globally unique
+        return $"ORD-{datePart}-{seqValue:D4}";
     }
 
     private static decimal ResolveQuantity(decimal rawQty, int? bags, int? boxes, int? tins)
@@ -6807,9 +7683,10 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
         return rawQty;
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Commands/DeleteOrderCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Commands/DeleteOrderCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -6820,9 +7697,13 @@ public class DeleteOrderCommand : IRequest<Result<bool>>
     public Guid Id { get; set; }
     public Guid SalesmanId { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Commands/DeleteOrderCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Commands/DeleteOrderCommandHandler.cs
+```csharp
+// PATH: src/FMCG.Distribution.Application/Features/Orders/Commands/DeleteOrderCommandHandler.cs
+// FIX: Use primary constructor (IDE0290)
+
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -6831,19 +7712,15 @@ using FMCG.Distribution.Domain.Enums;
 
 namespace FMCG.Distribution.Application.Features.Orders.Commands;
 
-public class DeleteOrderCommandHandler : IRequestHandler<DeleteOrderCommand, Result<bool>>
+// ── Primary constructor (fixes IDE0290) ──
+public class DeleteOrderCommandHandler(IApplicationDbContext context)
+    : IRequestHandler<DeleteOrderCommand, Result<bool>>
 {
-    private readonly IApplicationDbContext _context;
-
-    public DeleteOrderCommandHandler(IApplicationDbContext context)
-    {
-        _context = context;
-    }
-
     public async Task<Result<bool>> Handle(DeleteOrderCommand request, CancellationToken cancellationToken)
     {
-        // Get existing order
-        var order = await _context.Orders
+        // ── 1. Get existing order with CustomerVisit included ──
+        var order = await context.Orders
+            .Include(o => o.CustomerVisit)
             .FirstOrDefaultAsync(o => o.Id == request.Id && !o.IsDeleted, cancellationToken);
 
         if (order == null)
@@ -6851,29 +7728,47 @@ public class DeleteOrderCommandHandler : IRequestHandler<DeleteOrderCommand, Res
             return Result<bool>.Failure("Order not found.");
         }
 
-        // Verify salesman owns this order
+        // ── 2. Verify salesman owns this order ──
         if (order.SalesmanId != request.SalesmanId)
         {
             return Result<bool>.Failure("You are not authorized to delete this order.");
         }
 
-        // Only Draft orders can be deleted
+        // ── 3. Only Draft orders can be deleted ──
         if (order.Status != OrderStatus.Draft)
         {
             return Result<bool>.Failure($"Cannot delete order in '{order.Status}' status. Only Draft orders can be deleted.");
         }
 
-        // Soft delete the order (OrderItems will be cascade deleted)
+        // ── 4. FIX: Reset the associated CustomerVisit ──
+        if (order.CustomerVisit != null)
+        {
+            var visit = order.CustomerVisit;
+
+            // Reset visit to Pending
+            visit.Status = VisitStatus.Pending;
+            visit.OrderId = null;
+            visit.VisitedAt = null;
+            visit.UpdatedAt = DateTime.UtcNow;
+            visit.UpdatedBy = request.SalesmanId.ToString();
+
+            // Also update the VisitStatus in the order
+            order.CustomerVisitId = null;
+        }
+
+        // ── 5. Soft delete the order ──
         order.SoftDelete(request.SalesmanId.ToString());
 
-        await _context.SaveChangesAsync(cancellationToken);
+        // ── 6. Save all changes ──
+        await context.SaveChangesAsync(cancellationToken);
 
-        return Result<bool>.Success(true, "Order deleted successfully.");
+        return Result<bool>.Success(true, "Order cancelled successfully. You can now take a new order for this customer.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Commands/SubmitOrderCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Commands/SubmitOrderCommand.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Orders/Commands/SubmitOrderCommand.cs
 // Clean single definition — the handler is in SubmitOrderCommandHandler.cs
 
@@ -6888,12 +7783,12 @@ public class SubmitOrderCommand : IRequest<Result<OrderDetailDto>>
     public Guid Id { get; set; }
     public Guid SalesmanId { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Commands/SubmitOrderCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Commands/SubmitOrderCommandHandler.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Orders/Commands/SubmitOrderCommandHandler.cs
-// CHANGED: Salesman submits Draft → PendingApproval.
-// NOTE: SubmitOrderCommand is defined in SubmitOrderCommand.cs — not duplicated here.
+// COMPLETE FIX: Auto-completes RouteExecution when all orders for the route are submitted.
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -6929,13 +7824,17 @@ public class SubmitOrderCommandHandler(IApplicationDbContext context)
             return Result<OrderDetailDto>.Failure(
                 "Cannot submit an empty order. Please add at least one item.");
 
-        // Draft → PendingApproval
+        // ── Draft → PendingApproval ──
         order.Status = OrderStatus.PendingApproval;
         order.SubmittedAt = DateTime.UtcNow;
         order.MarkModified(request.SalesmanId.ToString());
 
         await context.SaveChangesAsync(cancellationToken);
 
+        // ── CRITICAL FIX: Auto-complete RouteExecution if ALL orders for today are submitted ──
+        await AutoCompleteRouteExecutionIfAllSubmitted(order.RouteId, cancellationToken);
+
+        // ── Build response DTO ──
         var customer = await context.Customers
             .FirstOrDefaultAsync(c => c.Id == order.CustomerId && !c.IsDeleted, cancellationToken);
 
@@ -6989,10 +7888,90 @@ public class SubmitOrderCommandHandler(IApplicationDbContext context)
             Items = itemDtos,
         }, "Order submitted for admin approval.");
     }
-}
-</file>
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Commands/UpdateOrderCommand.cs">
+    /// <summary>
+    /// Auto-completes the RouteExecution when ALL orders for this route today are submitted.
+    /// This prevents the "active route execution" blocking issue.
+    /// </summary>
+    private async Task AutoCompleteRouteExecutionIfAllSubmitted(Guid routeId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var today = DateTime.UtcNow.Date;
+
+            // ── Get ALL orders for this route today ──
+            var allOrders = await context.Orders
+                .Where(o => o.RouteId == routeId
+                    && o.OrderDate.Date == today
+                    && !o.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            // If no orders, nothing to do
+            if (allOrders.Count == 0)
+                return;
+
+            // ── Check if there are ANY draft orders ──
+            var hasDraftOrders = allOrders.Any(o => o.Status == OrderStatus.Draft);
+            var hasSubmittedOrders = allOrders.Any(o => o.Status != OrderStatus.Draft);
+
+            // ── If there are submitted orders AND no drafts, auto-complete ──
+            if (hasSubmittedOrders && !hasDraftOrders)
+            {
+                // Find the active RouteExecution for this route today
+                var execution = await context.RouteExecutions
+                    .FirstOrDefaultAsync(e => e.RouteId == routeId
+                        && e.ExecutionDate.Date == today
+                        && e.Status == ExecutionStatus.InProgress
+                        && !e.IsDeleted,
+                        cancellationToken);
+
+                if (execution != null)
+                {
+                    // ── Complete the execution ──
+                    execution.Status = ExecutionStatus.Completed;
+                    execution.CompletedAt = DateTime.UtcNow;
+                    execution.UpdatedAt = DateTime.UtcNow;
+                    execution.UpdatedBy = "system";
+
+                    await context.SaveChangesAsync(cancellationToken);
+
+                    Console.WriteLine($"[Auto-Complete] RouteExecution {execution.Id} auto-completed for route {routeId}. All {allOrders.Count} orders submitted.");
+                }
+                else
+                {
+                    // Try to find any execution (including Draft) and complete it
+                    var anyExecution = await context.RouteExecutions
+                        .FirstOrDefaultAsync(e => e.RouteId == routeId
+                            && e.ExecutionDate.Date == today
+                            && !e.IsDeleted
+                            && (e.Status == ExecutionStatus.InProgress || e.Status == ExecutionStatus.Draft),
+                            cancellationToken);
+
+                    if (anyExecution != null)
+                    {
+                        anyExecution.Status = ExecutionStatus.Completed;
+                        anyExecution.CompletedAt = DateTime.UtcNow;
+                        anyExecution.UpdatedAt = DateTime.UtcNow;
+                        anyExecution.UpdatedBy = "system";
+
+                        await context.SaveChangesAsync(cancellationToken);
+
+                        Console.WriteLine($"[Auto-Complete] RouteExecution {anyExecution.Id} auto-completed from {anyExecution.Status} for route {routeId}.");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // ── Non-blocking: If auto-complete fails, don't fail the order submission ──
+            Console.WriteLine($"[Auto-Complete] Failed to auto-complete RouteExecution for route {routeId}: {ex.Message}");
+        }
+    }
+}
+```
+
+## File: src/FMCG.Distribution.Application/Features/Orders/Commands/UpdateOrderCommand.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Orders/Commands/UpdateOrderCommand.cs
 // FIXED: Class defined ONLY here. The duplicate definition inside UpdateOrderCommandHandler.cs
 //        caused CS0229 "Ambiguity" errors — remove the class block from that file.
@@ -7012,9 +7991,10 @@ public class UpdateOrderCommand : IRequest<Result<OrderDetailDto>>
     public string? Remarks { get; set; }
     public List<UpdateOrderItemDto> Items { get; set; } = [];
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Commands/UpdateOrderCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Commands/UpdateOrderCommandHandler.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Orders/Commands/UpdateOrderCommandHandler.cs
 // UPDATED: Allow Admin to edit Approved orders (not just Draft/PendingApproval)
 
@@ -7170,6 +8150,34 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
 
         await context.SaveChangesAsync(cancellationToken);
 
+        // ── Link to customer visit, if this order isn't linked yet ─────────────
+        // UpdateOrderCommand has no execution context to go on, so resolve it
+        // from whatever in-progress execution this salesman has for this route
+        // right now. This is what makes editing/saving an order taken from a
+        // page without execution context (e.g. a plain customer list) finally
+        // mark that stop as done on the route execution page.
+        var inProgressExecution = await context.RouteExecutions
+            .Where(e => e.RouteId == order.RouteId
+                && e.SalesmanId == request.SalesmanId
+                && e.Status == ExecutionStatus.InProgress
+                && !e.IsDeleted)
+            .OrderByDescending(e => e.StartedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (inProgressExecution != null)
+        {
+            var visit = await context.CustomerVisits
+                .FirstOrDefaultAsync(v => v.RouteExecutionId == inProgressExecution.Id
+                    && v.CustomerId == request.CustomerId
+                    && !v.IsDeleted, cancellationToken);
+
+            if (visit != null && visit.Status == VisitStatus.Pending)
+            {
+                visit.RecordOrder(order.Id);
+                await context.SaveChangesAsync(cancellationToken);
+            }
+        }
+
         var updatedOrder = await context.Orders
             .Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.Id == order.Id, cancellationToken);
@@ -7229,9 +8237,10 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
         return (bags ?? 0) + (boxes ?? 0) + (tins ?? 0);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/DTOs/CreateOrderDto.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/DTOs/CreateOrderDto.cs
+```csharp
 namespace FMCG.Distribution.Application.Features.Orders.DTOs;
 
 public class CreateOrderDto
@@ -7254,9 +8263,10 @@ public class CreateOrderItemDto
     public int? QuantityTins { get; set; }
     // ─────────────────────────────────────────────────────────────────────────
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/DTOs/CustomerOrderHistoryDto.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/DTOs/CustomerOrderHistoryDto.cs
+```csharp
 namespace FMCG.Distribution.Application.Features.Orders.DTOs;
 
 public class CustomerOrderHistoryDto
@@ -7284,9 +8294,10 @@ public class OrderHistoryItemDto
     public int? QuantityTins { get; set; }
     // ─────────────────────────────────────────────────────────────────────────
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/DTOs/OrderDetailDto.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/DTOs/OrderDetailDto.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Orders/DTOs/OrderDetailDto.cs
 
 namespace FMCG.Distribution.Application.Features.Orders.DTOs;
@@ -7296,9 +8307,10 @@ public class OrderDetailDto : OrderDto
     public List<OrderItemDto> Items { get; set; } = [];
     public DateTime? ApprovedAt { get; set; }      // ← ADD THIS
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/DTOs/OrderDto.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/DTOs/OrderDto.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Orders/DTOs/OrderDto.cs
 
 namespace FMCG.Distribution.Application.Features.Orders.DTOs;
@@ -7327,9 +8339,10 @@ public class OrderDto
     public DateTime CreatedAt { get; set; }
     public List<OrderItemDto>? Items { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/DTOs/OrderItemDto.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/DTOs/OrderItemDto.cs
+```csharp
 namespace FMCG.Distribution.Application.Features.Orders.DTOs;
 
 public class OrderItemDto
@@ -7352,9 +8365,10 @@ public class OrderItemDto
     public int? QuantityTins { get; set; }
     // ─────────────────────────────────────────────────────────────────────────
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/DTOs/UpdateOrderDto.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/DTOs/UpdateOrderDto.cs
+```csharp
 namespace FMCG.Distribution.Application.Features.Orders.DTOs;
 
 public class UpdateOrderDto
@@ -7378,9 +8392,10 @@ public class UpdateOrderItemDto
     public int? QuantityTins { get; set; }
     // ─────────────────────────────────────────────────────────────────────────
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Queries/GetCustomerOrderHistoryQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Queries/GetCustomerOrderHistoryQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Orders.DTOs;
@@ -7394,9 +8409,10 @@ public class GetCustomerOrderHistoryQuery : IRequest<Result<List<CustomerOrderHi
     public bool IsAdmin { get; set; }
     public int Limit { get; set; } = 10;
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Queries/GetCustomerOrderHistoryQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Queries/GetCustomerOrderHistoryQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -7426,15 +8442,17 @@ public class GetCustomerOrderHistoryQueryHandler : IRequestHandler<GetCustomerOr
             return Result<List<CustomerOrderHistoryDto>>.Failure("Customer not found.");
         }
 
-        // Authorization: Salesman can only view customers on their assigned route
+        // Authorization: routes are open to any salesman by default (see
+        // GetActiveRoutesQueryHandler) — only block if the customer's route is
+        // permanently dedicated to a DIFFERENT specific salesman.
         if (!request.IsAdmin && request.SalesmanId.HasValue)
         {
             var route = await _context.Routes
-                .FirstOrDefaultAsync(r => r.Id == customer.RouteId && r.AssignedSalesmanId == request.SalesmanId.Value && !r.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(r => r.Id == customer.RouteId && !r.IsDeleted, cancellationToken);
 
-            if (route == null)
+            if (route != null && route.AssignedSalesmanId.HasValue && route.AssignedSalesmanId != request.SalesmanId.Value)
             {
-                return Result<List<CustomerOrderHistoryDto>>.Failure("You are not authorized to view orders for this customer.");
+                return Result<List<CustomerOrderHistoryDto>>.Failure("This route is permanently assigned to another salesman.");
             }
         }
 
@@ -7488,9 +8506,10 @@ public class GetCustomerOrderHistoryQueryHandler : IRequestHandler<GetCustomerOr
         return Result<List<CustomerOrderHistoryDto>>.Success(result);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Queries/GetOrderByIdQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Queries/GetOrderByIdQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Orders.DTOs;
@@ -7503,9 +8522,10 @@ public class GetOrderByIdQuery : IRequest<Result<OrderDetailDto>>
     public Guid? SalesmanId { get; set; }
     public bool IsAdmin { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Queries/GetOrderByIdQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Queries/GetOrderByIdQueryHandler.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Orders/Queries/GetOrderByIdQueryHandler.cs
 // FIXED: Use primary constructor
 
@@ -7592,9 +8612,10 @@ public class GetOrderByIdQueryHandler(IApplicationDbContext context)
         return Result<OrderDetailDto>.Success(resultDto);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Queries/GetOrdersByRouteQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Queries/GetOrdersByRouteQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Orders.DTOs;
@@ -7608,9 +8629,10 @@ public class GetOrdersByRouteQuery : IRequest<Result<List<OrderDto>>>
     public Guid? SalesmanId { get; set; }
     public OrderStatus? Status { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Orders/Queries/GetOrdersByRouteQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Orders/Queries/GetOrdersByRouteQueryHandler.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Orders/Queries/GetOrdersByRouteQueryHandler.cs
 // FIXED: Use the correct DTO structure
 
@@ -7691,9 +8713,10 @@ public class GetOrdersByRouteQueryHandler(IApplicationDbContext context)
         return Result<List<OrderDto>>.Success(result);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/PricingAudit/Queries/GetPricingAuditLogQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/PricingAudit/Queries/GetPricingAuditLogQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Domain.Enums;
@@ -7721,9 +8744,10 @@ public class PricingAuditLogDto
     public string ModifiedBy { get; set; } = string.Empty;
     public DateTime ModifiedAt { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/PricingAudit/Queries/GetPricingAuditLogQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/PricingAudit/Queries/GetPricingAuditLogQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -7794,9 +8818,10 @@ public class GetPricingAuditLogQueryHandler : IRequestHandler<GetPricingAuditLog
         return Result<List<PricingAuditLogDto>>.Success(auditLogs);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/ProductGroups/Commands/CreateProductGroupCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/ProductGroups/Commands/CreateProductGroupCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -7815,9 +8840,10 @@ public class CreateProductGroupResponse
     public string? Description { get; set; }
     public bool IsActive { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/ProductGroups/Commands/CreateProductGroupCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/ProductGroups/Commands/CreateProductGroupCommandHandler.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
@@ -7856,9 +8882,10 @@ public class CreateProductGroupCommandHandler : IRequestHandler<CreateProductGro
         }, "Product group created successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/ProductGroups/Commands/DeleteProductGroupCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/ProductGroups/Commands/DeleteProductGroupCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -7868,9 +8895,10 @@ public class DeleteProductGroupCommand : IRequest<Result<bool>>
 {
     public Guid Id { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/ProductGroups/Commands/DeleteProductGroupCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/ProductGroups/Commands/DeleteProductGroupCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -7904,9 +8932,10 @@ public class DeleteProductGroupCommandHandler(IApplicationDbContext context)
         return Result<bool>.Success(true, "Product group deleted successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/ProductGroups/Commands/UpdateProductGroupCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/ProductGroups/Commands/UpdateProductGroupCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -7927,9 +8956,10 @@ public class UpdateProductGroupResponse
     public string? Description { get; set; }
     public bool IsActive { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/ProductGroups/Commands/UpdateProductGroupCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/ProductGroups/Commands/UpdateProductGroupCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -7971,9 +9001,10 @@ public class UpdateProductGroupCommandHandler : IRequestHandler<UpdateProductGro
         }, "Product group updated successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/ProductGroups/Queries/GetAllProductGroupsQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/ProductGroups/Queries/GetAllProductGroupsQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -8019,9 +9050,10 @@ public class GetAllProductGroupsQueryHandler(IApplicationDbContext context)
         return Result<List<ProductGroupDto>>.Success(groups);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Products/Commands/CreateProductCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Products/Commands/CreateProductCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -8034,6 +9066,13 @@ public class CreateProductCommand : IRequest<Result<CreateProductResponse>>
     public Guid ProductGroupId { get; set; }
     public Guid ProductUnitId { get; set; }
     public decimal BasePrice { get; set; }
+    public string? ItemCode { get; set; }
+    public string? Sku { get; set; }
+    public string? HSNCode { get; set; }
+    public string? Supplier { get; set; }
+    public decimal? ClosingStock { get; set; }
+    public decimal? MinOrderQty { get; set; }
+    public decimal? MaxOrderQty { get; set; }
 }
 
 public class CreateProductResponse
@@ -8045,10 +9084,12 @@ public class CreateProductResponse
     public Guid ProductUnitId { get; set; }
     public decimal BasePrice { get; set; }
     public bool IsActive { get; set; }
+    public string? ItemCode { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Products/Commands/CreateProductCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Products/Commands/CreateProductCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -8062,6 +9103,15 @@ public class CreateProductCommandHandler(IApplicationDbContext context)
 {
     public async Task<Result<CreateProductResponse>> Handle(CreateProductCommand request, CancellationToken cancellationToken)
     {
+        // ItemCode is mandatory for every product — enforced here too, not just
+        // in the admin UI, since it's also where the price comes from (the
+        // "1000-90" convention: the admin form parses the price out of it
+        // client-side, but the server shouldn't trust that alone).
+        if (string.IsNullOrWhiteSpace(request.ItemCode))
+        {
+            return Result<CreateProductResponse>.Failure("Item Code is required.");
+        }
+
         // Verify ProductGroup exists
         var productGroup = await context.ProductGroups
             .FirstOrDefaultAsync(g => g.Id == request.ProductGroupId && !g.IsDeleted, cancellationToken);
@@ -8086,6 +9136,13 @@ public class CreateProductCommandHandler(IApplicationDbContext context)
             ProductGroupId = request.ProductGroupId,
             DefaultUnitId = request.ProductUnitId,  // ← CHANGE THIS
             BasePrice = request.BasePrice,
+            ItemCode = request.ItemCode,
+            Sku = request.Sku,
+            HSNCode = request.HSNCode,
+            Supplier = request.Supplier,
+            ClosingStock = request.ClosingStock ?? 0,
+            MinOrderQty = request.MinOrderQty,
+            MaxOrderQty = request.MaxOrderQty,
             IsActive = true
         };
 
@@ -8100,13 +9157,15 @@ public class CreateProductCommandHandler(IApplicationDbContext context)
             ProductGroupId = product.ProductGroupId,
             ProductUnitId = product.DefaultUnitId,  // ← CHANGE THIS (mapping to response)
             BasePrice = product.BasePrice,
-            IsActive = product.IsActive
+            IsActive = product.IsActive,
+            ItemCode = product.ItemCode
         }, "Product created successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Products/Commands/DeleteProductCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Products/Commands/DeleteProductCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -8116,9 +9175,10 @@ public class DeleteProductCommand : IRequest<Result<bool>>
 {
     public Guid Id { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Products/Commands/DeleteProductCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Products/Commands/DeleteProductCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -8150,9 +9210,10 @@ public class DeleteProductCommandHandler : IRequestHandler<DeleteProductCommand,
         return Result<bool>.Success(true, "Product deleted successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Products/Commands/UpdateProductCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Products/Commands/UpdateProductCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -8167,6 +9228,13 @@ public class UpdateProductCommand : IRequest<Result<UpdateProductResponse>>
     public Guid ProductUnitId { get; set; }
     public decimal BasePrice { get; set; }
     public bool IsActive { get; set; }
+    public string? ItemCode { get; set; }
+    public string? Sku { get; set; }
+    public string? HSNCode { get; set; }
+    public string? Supplier { get; set; }
+    public decimal? ClosingStock { get; set; }
+    public decimal? MinOrderQty { get; set; }
+    public decimal? MaxOrderQty { get; set; }
 }
 
 public class UpdateProductResponse
@@ -8178,10 +9246,12 @@ public class UpdateProductResponse
     public Guid ProductUnitId { get; set; }
     public decimal BasePrice { get; set; }
     public bool IsActive { get; set; }
+    public string? ItemCode { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Products/Commands/UpdateProductCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Products/Commands/UpdateProductCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -8200,6 +9270,11 @@ public class UpdateProductCommandHandler(IApplicationDbContext context)
         if (product == null)
         {
             return Result<UpdateProductResponse>.Failure("Product not found.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ItemCode))
+        {
+            return Result<UpdateProductResponse>.Failure("Item Code is required.");
         }
 
         // Verify ProductGroup exists if changed
@@ -8230,6 +9305,13 @@ public class UpdateProductCommandHandler(IApplicationDbContext context)
         product.DefaultUnitId = request.ProductUnitId;  // ← CHANGE THIS
         product.BasePrice = request.BasePrice;
         product.IsActive = request.IsActive;
+        product.ItemCode = request.ItemCode;
+        product.Sku = request.Sku;
+        product.HSNCode = request.HSNCode;
+        product.Supplier = request.Supplier;
+        if (request.ClosingStock.HasValue) product.ClosingStock = request.ClosingStock.Value;
+        product.MinOrderQty = request.MinOrderQty;
+        product.MaxOrderQty = request.MaxOrderQty;
         product.UpdateTimestamp("system");
 
         await context.SaveChangesAsync(cancellationToken);
@@ -8242,13 +9324,15 @@ public class UpdateProductCommandHandler(IApplicationDbContext context)
             ProductGroupId = product.ProductGroupId,
             ProductUnitId = product.DefaultUnitId,  // ← CHANGE THIS
             BasePrice = product.BasePrice,
-            IsActive = product.IsActive
+            IsActive = product.IsActive,
+            ItemCode = product.ItemCode
         }, "Product updated successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Products/DTOs/ProductUnitPriceDto.cs">
+## File: src/FMCG.Distribution.Application/Features/Products/DTOs/ProductUnitPriceDto.cs
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8317,9 +9401,10 @@ public class UpdateProductUnitPriceDto : CreateProductUnitPriceDto
     public Guid Id { get; set; }
     public bool IsActive { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Products/Queries/GetAllProductsQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Products/Queries/GetAllProductsQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -8344,10 +9429,20 @@ public class ProductDto
     public decimal BasePrice { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
-}
-</file>
 
-<file path="src/FMCG.Distribution.Application/Features/Products/Queries/GetAllProductsQueryHandler.cs">
+    // ── Client-requested fields (now wired end-to-end) ──
+    public string? ItemCode { get; set; }
+    public string? Sku { get; set; }
+    public string? HSNCode { get; set; }
+    public string? Supplier { get; set; }
+    public decimal ClosingStock { get; set; }
+    public decimal? MinOrderQty { get; set; }
+    public decimal? MaxOrderQty { get; set; }
+}
+```
+
+## File: src/FMCG.Distribution.Application/Features/Products/Queries/GetAllProductsQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -8390,16 +9485,24 @@ public class GetAllProductsQueryHandler(IApplicationDbContext context)
                 ProductUnitSymbol = p.DefaultUnit != null ? p.DefaultUnit.Symbol : null,  // ← CHANGE THIS
                 BasePrice = p.BasePrice,
                 IsActive = p.IsActive,
-                CreatedAt = p.CreatedAt
+                CreatedAt = p.CreatedAt,
+                ItemCode = p.ItemCode,
+                Sku = p.Sku,
+                HSNCode = p.HSNCode,
+                Supplier = p.Supplier,
+                ClosingStock = p.ClosingStock,
+                MinOrderQty = p.MinOrderQty,
+                MaxOrderQty = p.MaxOrderQty
             })
             .ToListAsync(cancellationToken);
 
         return Result<List<ProductDto>>.Success(products);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Products/Queries/GetProductByIdQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Products/Queries/GetProductByIdQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -8424,10 +9527,20 @@ public class ProductDetailDto
     public decimal BasePrice { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
-}
-</file>
 
-<file path="src/FMCG.Distribution.Application/Features/Products/Queries/GetProductByIdQueryHandler.cs">
+    // ── Client-requested fields ──
+    public string? ItemCode { get; set; }
+    public string? Sku { get; set; }
+    public string? HSNCode { get; set; }
+    public string? Supplier { get; set; }
+    public decimal ClosingStock { get; set; }
+    public decimal? MinOrderQty { get; set; }
+    public decimal? MaxOrderQty { get; set; }
+}
+```
+
+## File: src/FMCG.Distribution.Application/Features/Products/Queries/GetProductByIdQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -8463,15 +9576,23 @@ public class GetProductByIdQueryHandler(IApplicationDbContext context)
             ProductUnitSymbol = product.DefaultUnit?.Symbol,  // ← CHANGE THIS
             BasePrice = product.BasePrice,
             IsActive = product.IsActive,
-            CreatedAt = product.CreatedAt
+            CreatedAt = product.CreatedAt,
+            ItemCode = product.ItemCode,
+            Sku = product.Sku,
+            HSNCode = product.HSNCode,
+            Supplier = product.Supplier,
+            ClosingStock = product.ClosingStock,
+            MinOrderQty = product.MinOrderQty,
+            MaxOrderQty = product.MaxOrderQty
         };
 
         return Result<ProductDetailDto>.Success(dto);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Products/Queries/SearchProductsQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Products/Queries/SearchProductsQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -8497,10 +9618,12 @@ public class ProductSearchDto
     public string UnitSymbol { get; set; } = string.Empty;
     public decimal BasePrice { get; set; }
     public bool IsActive { get; set; }
+    public string? ItemCode { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Products/Queries/SearchProductsQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Products/Queries/SearchProductsQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -8554,16 +9677,18 @@ public class SearchProductsQueryHandler(IApplicationDbContext context)
                 UnitName = p.DefaultUnit != null ? p.DefaultUnit.Name : string.Empty,  // ← CHANGE THIS
                 UnitSymbol = p.DefaultUnit != null ? p.DefaultUnit.Symbol : string.Empty,  // ← CHANGE THIS
                 BasePrice = p.BasePrice,
-                IsActive = p.IsActive
+                IsActive = p.IsActive,
+                ItemCode = p.ItemCode
             })
             .ToListAsync(cancellationToken);
 
         return Result<List<ProductSearchDto>>.Success(products);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/ProductUnits/Commands/CreateProductUnitCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/ProductUnits/Commands/CreateProductUnitCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -8582,9 +9707,10 @@ public class CreateProductUnitResponse
     public string? Symbol { get; set; }
     public bool IsActive { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/ProductUnits/Commands/CreateProductUnitCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/ProductUnits/Commands/CreateProductUnitCommandHandler.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
@@ -8617,9 +9743,10 @@ public class CreateProductUnitCommandHandler(IApplicationDbContext context)
         }, "Unit created successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/ProductUnits/Commands/DeleteProductUnitCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/ProductUnits/Commands/DeleteProductUnitCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -8629,9 +9756,10 @@ public class DeleteProductUnitCommand : IRequest<Result<bool>>
 {
     public Guid Id { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/ProductUnits/Commands/DeleteProductUnitCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/ProductUnits/Commands/DeleteProductUnitCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -8664,9 +9792,10 @@ public class DeleteProductUnitCommandHandler(IApplicationDbContext context)
         return Result<bool>.Success(true, "Unit deleted successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/ProductUnits/Commands/UpdateProductUnitCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/ProductUnits/Commands/UpdateProductUnitCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -8687,9 +9816,10 @@ public class UpdateProductUnitResponse
     public string? Symbol { get; set; }
     public bool IsActive { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/ProductUnits/Commands/UpdateProductUnitCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/ProductUnits/Commands/UpdateProductUnitCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -8725,9 +9855,10 @@ public class UpdateProductUnitCommandHandler(IApplicationDbContext context)
         }, "Unit updated successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/ProductUnits/Queries/GetAllProductUnitsQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/ProductUnits/Queries/GetAllProductUnitsQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -8766,9 +9897,10 @@ public class GetAllProductUnitsQueryHandler(IApplicationDbContext context)
         return Result<List<ProductUnitDto>>.Success(units);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Reports/DTOs/ReportDtos.cs">
+## File: src/FMCG.Distribution.Application/Features/Reports/DTOs/ReportDtos.cs
+```csharp
 namespace FMCG.Distribution.Application.Features.Reports.DTOs;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -8959,9 +10091,10 @@ public class DailySummaryReportDataDto
     public bool IsDayClosed { get; set; }
     public DateTime? ClosedAt { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Reports/Queries/GetBillingSheetQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetBillingSheetQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Reports.DTOs;
@@ -8973,9 +10106,10 @@ public class GetBillingSheetQuery : IRequest<Result<byte[]>>
     public Guid? RouteId { get; set; }
     public DateTime? Date { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Reports/Queries/GetBillingSheetQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetBillingSheetQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
@@ -9213,9 +10347,10 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
         }).GeneratePdf();
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Reports/Queries/GetDailySummaryReportQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetDailySummaryReportQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Reports.DTOs;
@@ -9226,9 +10361,10 @@ public class GetDailySummaryReportQuery : IRequest<Result<byte[]>>
 {
     public DateTime? Date { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Reports/Queries/GetDailySummaryReportQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetDailySummaryReportQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
@@ -9473,9 +10609,10 @@ public class GetDailySummaryReportQueryHandler(IApplicationDbContext context)
         }).GeneratePdf();
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Reports/Queries/GetLoadingSheetQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetLoadingSheetQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Reports.DTOs;
@@ -9487,9 +10624,10 @@ public class GetLoadingSheetQuery : IRequest<Result<byte[]>>
     public Guid? RouteId { get; set; }
     public DateTime? Date { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Reports/Queries/GetLoadingSheetQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetLoadingSheetQueryHandler.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Reports/Queries/GetLoadingSheetQueryHandler.cs
 // FIXED: Null reference exceptions and better error handling
 
@@ -10075,9 +11213,10 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
         }).GeneratePdf();
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Reports/Queries/GetProductSummaryReportQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetProductSummaryReportQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Reports.DTOs;
@@ -10090,9 +11229,10 @@ public class GetProductSummaryReportQuery : IRequest<Result<byte[]>>
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Reports/Queries/GetProductSummaryReportQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetProductSummaryReportQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
@@ -10325,9 +11465,10 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
         }).GeneratePdf();
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Reports/Queries/GetRouteSummaryReportQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetRouteSummaryReportQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Reports.DTOs;
@@ -10340,9 +11481,10 @@ public class GetRouteSummaryReportQuery : IRequest<Result<byte[]>>
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Reports/Queries/GetRouteSummaryReportQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetRouteSummaryReportQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
@@ -10557,9 +11699,103 @@ public class GetRouteSummaryReportQueryHandler(IApplicationDbContext context)
         }).GeneratePdf();
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Commands/CompleteRouteExecutionCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Commands/CloseDayCommand.cs
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+// PATH: src/FMCG.Distribution.Application/Features/Routes/Commands/CloseDayCommand.cs
+using MediatR;
+using FMCG.Distribution.Application.Common;
+
+namespace FMCG.Distribution.Application.Features.Routes.Commands;
+
+/// <summary>
+/// Admin-only, single action that closes EVERY still-open route execution at
+/// once — not per-route. This is what makes routes "fresh" again for the
+/// next day: once an execution is Completed, nothing matches it as the
+/// active/in-progress execution for that route anymore, so starting that
+/// route again creates a brand new execution.
+///
+/// Unlike the salesman-facing CompleteRouteExecutionCommand, this does NOT
+/// require all stops to be visited — admin closing the day is a hard cutoff,
+/// not a "did you finish" check. Whatever wasn't visited just stays Pending
+/// on the closed (historical) record.
+/// </summary>
+public class CloseDayCommand : IRequest<Result<CloseDayResponse>>
+{
+    public Guid AdminUserId { get; set; }
+}
+
+public class CloseDayResponse
+{
+    public int ClosedRouteCount { get; set; }
+    public List<string> ClosedRouteNames { get; set; } = [];
+}
+```
+
+## File: src/FMCG.Distribution.Application/Features/Routes/Commands/CloseDayCommandHandler.cs
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+// PATH: src/FMCG.Distribution.Application/Features/Routes/Commands/CloseDayCommandHandler.cs
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using FMCG.Distribution.Application.Common;
+using FMCG.Distribution.Application.Common.Interfaces;
+using FMCG.Distribution.Domain.Enums;
+
+namespace FMCG.Distribution.Application.Features.Routes.Commands;
+
+public class CloseDayCommandHandler(IApplicationDbContext context)
+    : IRequestHandler<CloseDayCommand, Result<CloseDayResponse>>
+{
+    public async Task<Result<CloseDayResponse>> Handle(CloseDayCommand request, CancellationToken cancellationToken)
+    {
+        var openExecutions = await context.RouteExecutions
+            .Include(e => e.Route)
+            .Where(e => e.Status == ExecutionStatus.InProgress && !e.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        if (openExecutions.Count == 0)
+        {
+            return Result<CloseDayResponse>.Success(new CloseDayResponse
+            {
+                ClosedRouteCount = 0,
+                ClosedRouteNames = [],
+            }, "No open routes to close.");
+        }
+
+        var names = new List<string>();
+        foreach (var execution in openExecutions)
+        {
+            // Domain method only checks Status == InProgress — it does NOT
+            // require all stops visited, which is exactly what we want here:
+            // admin closing the day is a hard cutoff, not a completion check.
+            execution.Complete();
+            names.Add(execution.Route?.Name ?? "Unknown route");
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        return Result<CloseDayResponse>.Success(new CloseDayResponse
+        {
+            ClosedRouteCount = openExecutions.Count,
+            ClosedRouteNames = names,
+        }, $"Closed {openExecutions.Count} route(s). They'll be fresh and available again.");
+    }
+}
+```
+
+## File: src/FMCG.Distribution.Application/Features/Routes/Commands/CompleteRouteExecutionCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -10584,9 +11820,10 @@ public class CompleteRouteExecutionResponse
     public int SkippedCount { get; set; }
     public int NoOrderCount { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Commands/CompleteRouteExecutionCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Commands/CompleteRouteExecutionCommandHandler.cs
+```csharp
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
 using FMCG.Distribution.Domain.Entities;
@@ -10661,9 +11898,10 @@ public class CompleteRouteExecutionCommandHandler : IRequestHandler<CompleteRout
         }, "Route execution completed successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Commands/CreateRouteCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Commands/CreateRouteCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -10686,9 +11924,10 @@ public class CreateRouteResponse
     public Guid? AssignedSalesmanId { get; set; }
     public bool IsActive { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Commands/CreateRouteCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Commands/CreateRouteCommandHandler.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
@@ -10731,9 +11970,10 @@ public class CreateRouteCommandHandler : IRequestHandler<CreateRouteCommand, Res
         }, "Route created successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Commands/DeleteRouteCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Commands/DeleteRouteCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -10743,9 +11983,10 @@ public class DeleteRouteCommand : IRequest<Result<bool>>
 {
     public Guid Id { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Commands/DeleteRouteCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Commands/DeleteRouteCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -10784,9 +12025,10 @@ public class DeleteRouteCommandHandler : IRequestHandler<DeleteRouteCommand, Res
         return Result<bool>.Success(true, "Route deleted successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Commands/RecordCustomerVisitCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Commands/RecordCustomerVisitCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Domain.Enums;
@@ -10814,11 +12056,12 @@ public class RecordCustomerVisitResponse
     public int TotalCount { get; set; }
     public bool IsExecutionComplete { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Commands/RecordCustomerVisitCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Commands/RecordCustomerVisitCommandHandler.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Routes/Commands/RecordCustomerVisitCommandHandler.cs
-// COMPLETE FIXED VERSION
+// COMPLETE FIXED VERSION - Handles all edge cases properly
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -10833,9 +12076,10 @@ public class RecordCustomerVisitCommandHandler(IApplicationDbContext context)
 {
     public async Task<Result<RecordCustomerVisitResponse>> Handle(RecordCustomerVisitCommand request, CancellationToken cancellationToken)
     {
-        // Validate execution exists and is in progress
+        // ── Validate execution exists and is in progress ──
         var execution = await context.RouteExecutions
-            .Include(e => e.Visits)
+            .Include(e => e.Visits!)
+                .ThenInclude(v => v.Customer)
             .FirstOrDefaultAsync(e => e.Id == request.ExecutionId && !e.IsDeleted, cancellationToken);
 
         if (execution == null)
@@ -10843,19 +12087,28 @@ public class RecordCustomerVisitCommandHandler(IApplicationDbContext context)
             return Result<RecordCustomerVisitResponse>.Failure("Route execution not found.");
         }
 
-        if (execution.Status != ExecutionStatus.InProgress)
+        // ── Check if execution is already completed ──
+        if (execution.Status == ExecutionStatus.Completed)
         {
-            return Result<RecordCustomerVisitResponse>.Failure($"Cannot record visit. Execution is in '{execution.Status}' status.");
+            return Result<RecordCustomerVisitResponse>.Failure(
+                "This route execution is already completed. Please refresh the page.");
         }
 
-        // Verify salesman owns this execution
+        if (execution.Status != ExecutionStatus.InProgress)
+        {
+            return Result<RecordCustomerVisitResponse>.Failure(
+                $"Cannot record visit. Execution is in '{execution.Status}' status.");
+        }
+
+        // ── Verify salesman owns this execution ──
         if (execution.SalesmanId != request.SalesmanId)
         {
             return Result<RecordCustomerVisitResponse>.Failure("You are not authorized to modify this execution.");
         }
 
-        // Find the visit - FIX: Use CustomerId to find visit
+        // ── Find the visit by CustomerId ──
         var visit = execution.Visits?.FirstOrDefault(v => v.CustomerId == request.CustomerId);
+
         if (visit == null)
         {
             // Try to find by OrderId if provided
@@ -10870,11 +12123,10 @@ public class RecordCustomerVisitCommandHandler(IApplicationDbContext context)
             }
         }
 
-        // FIX: Allow updating visit status even if already recorded (for retry scenarios)
-        // Don't block on "already recorded" - just update if needed
-        if (visit.Status != VisitStatus.Pending && visit.Status == request.Status)
+        // ── CRITICAL FIX: If visit is already recorded, return success without changing ──
+        // Don't allow changing status if already recorded (prevent OrderPlaced → NoOrder)
+        if (visit.Status != VisitStatus.Pending)
         {
-            // Same status, just return success
             var customer = await context.Customers
                 .FirstOrDefaultAsync(c => c.Id == request.CustomerId, cancellationToken);
 
@@ -10895,11 +12147,11 @@ public class RecordCustomerVisitCommandHandler(IApplicationDbContext context)
             }, $"Visit already recorded as {visit.Status}.");
         }
 
-        // Get customer name for response
+        // ── Get customer name for response ──
         var customerInfo = await context.Customers
             .FirstOrDefaultAsync(c => c.Id == request.CustomerId, cancellationToken);
 
-        // Record the visit based on status
+        // ── Record the visit based on status ──
         switch (request.Status)
         {
             case VisitStatus.OrderPlaced:
@@ -10909,22 +12161,35 @@ public class RecordCustomerVisitCommandHandler(IApplicationDbContext context)
                 }
                 visit.RecordOrder(request.OrderId.Value);
                 break;
+
             case VisitStatus.Skipped:
                 visit.RecordSkip(request.SkipReason);
                 break;
+
             case VisitStatus.NoOrder:
                 visit.RecordNoOrder();
                 break;
+
             default:
                 return Result<RecordCustomerVisitResponse>.Failure($"Invalid visit status: {request.Status}");
         }
 
         await context.SaveChangesAsync(cancellationToken);
 
-        // Calculate completion stats
+        // ── Calculate completion stats ──
         var completedCountAfter = execution.Visits!.Count(v => v.Status != VisitStatus.Pending);
         var totalCountAfter = execution.Visits.Count;
         var isCompleteAfter = completedCountAfter == totalCountAfter;
+
+        // ── If all visits are completed, auto-complete the execution ──
+        if (isCompleteAfter)
+        {
+            execution.Status = ExecutionStatus.Completed;
+            execution.CompletedAt = DateTime.UtcNow;
+            execution.UpdatedAt = DateTime.UtcNow;
+            execution.UpdatedBy = request.SalesmanId.ToString();
+            await context.SaveChangesAsync(cancellationToken);
+        }
 
         return Result<RecordCustomerVisitResponse>.Success(new RecordCustomerVisitResponse
         {
@@ -10939,9 +12204,10 @@ public class RecordCustomerVisitCommandHandler(IApplicationDbContext context)
         }, $"Visit recorded as {request.Status}.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Commands/StartRouteExecutionCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Commands/StartRouteExecutionCommand.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Routes/Commands/StartRouteExecutionCommand.cs
 
 using MediatR;
@@ -10975,9 +12241,10 @@ public class StartRouteExecutionResponse
     public int TotalCustomers { get; set; }
     public bool IsOrderTaking { get; set; } = false;
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Commands/StartRouteExecutionCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Commands/StartRouteExecutionCommandHandler.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Routes/Commands/StartRouteExecutionCommandHandler.cs
 // UPDATED: Delivery mode now requires day closure and CLOSED orders
 
@@ -11016,8 +12283,18 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
         if (salesman == null)
             return Result<StartRouteExecutionResponse>.Failure("Salesman not found or not authorized.");
 
-        if (route.AssignedSalesmanId != request.SalesmanId)
-            return Result<StartRouteExecutionResponse>.Failure("You are not assigned to this route.");
+        // Routes are open to any salesman by default — admin coordinates who takes
+        // what informally (WhatsApp/call). A route only locks to one specific
+        // salesman here if Admin has explicitly set a *permanent* AssignedSalesmanId
+        // on it (the "Assign Route" feature) — and even then, an Admin/SuperAdmin
+        // can still start it on a salesman's behalf.
+        if (route.AssignedSalesmanId.HasValue
+            && route.AssignedSalesmanId != request.SalesmanId
+            && !request.IsAdmin)
+        {
+            return Result<StartRouteExecutionResponse>.Failure(
+                "This route is permanently assigned to another salesman. Ask your admin to reassign it if needed.");
+        }
 
         var executionDate = request.ExecutionDate.HasValue && request.IsAdmin
             ? request.ExecutionDate.Value.Date
@@ -11032,6 +12309,17 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
 
         if (existingExecution != null)
         {
+            // ── LOCK: this is what makes "Taken by X" mean something. Without this
+            // check, a second salesman tapping Start on the same open route would
+            // silently be handed the first salesman's in-progress execution. ──
+            if (existingExecution.SalesmanId != request.SalesmanId && !request.IsAdmin)
+            {
+                var owner = await context.Users
+                    .FirstOrDefaultAsync(u => u.Id == existingExecution.SalesmanId, cancellationToken);
+                return Result<StartRouteExecutionResponse>.Failure(
+                    $"This route was already started by {owner?.FullName ?? "another salesman"} today.");
+            }
+
             if (existingExecution.Status == ExecutionStatus.Draft)
             {
                 existingExecution.Start();
@@ -11236,9 +12524,10 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
         await context.SaveChangesAsync(cancellationToken);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Commands/UpdateRouteCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Commands/UpdateRouteCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -11263,9 +12552,10 @@ public class UpdateRouteResponse
     public Guid? AssignedSalesmanId { get; set; }
     public bool IsActive { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Commands/UpdateRouteCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Commands/UpdateRouteCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -11312,9 +12602,117 @@ public class UpdateRouteCommandHandler : IRequestHandler<UpdateRouteCommand, Res
         }, "Route updated successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Queries/GetAllRoutesQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Queries/GetActiveRoutesQuery.cs
+```csharp
+using MediatR;
+using FMCG.Distribution.Application.Common;
+
+namespace FMCG.Distribution.Application.Features.Routes.Queries;
+
+// Restored: this is the "all active routes are visible to every salesman" listing
+// the product is designed around — admin coordinates who takes what informally
+// (WhatsApp/call), and the system just needs to show what's available vs. already
+// started by someone else today. See GetActiveRoutesQueryHandler for the locking
+// semantics tied to StartRouteExecutionCommandHandler.
+public class GetActiveRoutesQuery : IRequest<Result<List<ActiveRouteDto>>>
+{
+    public Guid SalesmanId { get; set; }
+}
+
+public class ActiveRouteDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int CustomerCount { get; set; }
+    public bool IsActive { get; set; }
+    public bool IsStarted { get; set; }
+    public string? StartedBy { get; set; }
+    public Guid? StartedBySalesmanId { get; set; }
+    public bool IsMine { get; set; }
+    // True when the route has a permanent AssignedSalesmanId set to someone else —
+    // i.e. it's a dedicated route, not open for anyone to pick up.
+    public bool IsDedicatedToAnother { get; set; }
+}
+```
+
+## File: src/FMCG.Distribution.Application/Features/Routes/Queries/GetActiveRoutesQueryHandler.cs
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using FMCG.Distribution.Application.Common;
+using FMCG.Distribution.Application.Common.Interfaces;
+using FMCG.Distribution.Domain.Enums;
+
+namespace FMCG.Distribution.Application.Features.Routes.Queries;
+
+public class GetActiveRoutesQueryHandler : IRequestHandler<GetActiveRoutesQuery, Result<List<ActiveRouteDto>>>
+{
+    private readonly IApplicationDbContext _context;
+
+    public GetActiveRoutesQueryHandler(IApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Result<List<ActiveRouteDto>>> Handle(GetActiveRoutesQuery request, CancellationToken cancellationToken)
+    {
+        var today = DateTime.UtcNow.Date;
+
+        // Every active route is visible to every salesman — there is no admin
+        // "assign route to salesman" step required for day-to-day use.
+        var routes = await _context.Routes
+            .Include(r => r.Customers)
+            .Where(r => r.IsActive && !r.IsDeleted)
+            .OrderBy(r => r.SequenceOrder)
+            .ToListAsync(cancellationToken);
+
+        // Today's executions across ALL salesmen — this is what makes a route
+        // show as "taken" to everyone else once one salesman starts it.
+        var executions = await _context.RouteExecutions
+            .Include(e => e.Salesman)
+            .Where(e => e.ExecutionDate.Date == today
+                        && e.Status != ExecutionStatus.Completed
+                        && e.Status != ExecutionStatus.Abandoned
+                        && !e.IsDeleted)
+            .ToDictionaryAsync(e => e.RouteId, e => e, cancellationToken);
+
+        var result = routes.Select(r =>
+        {
+            var execution = executions.GetValueOrDefault(r.Id);
+            var isStarted = execution != null;
+
+            return new ActiveRouteDto
+            {
+                Id = r.Id,
+                Name = r.Name,
+                Description = r.Description,
+                CustomerCount = r.Customers?.Count(c => !c.IsDeleted && c.IsActive) ?? 0,
+                IsActive = r.IsActive,
+                IsStarted = isStarted,
+                StartedBy = execution?.Salesman?.FullName,
+                StartedBySalesmanId = execution?.SalesmanId,
+                IsMine = isStarted && execution?.SalesmanId == request.SalesmanId,
+                // A route is only "closed off" if it's permanently dedicated to a
+                // DIFFERENT specific salesman. Unassigned routes are open to anyone.
+                IsDedicatedToAnother = r.AssignedSalesmanId.HasValue && r.AssignedSalesmanId != request.SalesmanId,
+            };
+        }).ToList();
+
+        return Result<List<ActiveRouteDto>>.Success(result);
+    }
+}
+```
+
+## File: src/FMCG.Distribution.Application/Features/Routes/Queries/GetAllRoutesQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -11346,9 +12744,10 @@ public class RouteDto
     // For Admin view - indicates if route has any override for today
     public bool HasOverrideToday { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Queries/GetAllRoutesQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Queries/GetAllRoutesQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -11447,9 +12846,10 @@ public class GetAllRoutesQueryHandler(IApplicationDbContext context)
         return Result<List<RouteDto>>.Success(adminRoutes);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionQuery.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionQuery.cs
 // FIX: IDE0028 — simplified collection initialization
 
@@ -11491,9 +12891,10 @@ public class CustomerVisitStatusDto
     public string? SkipReason { get; set; }
     public bool IsCompleted => VisitStatus != "Pending";
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionQueryHandler.cs
+```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionQueryHandler.cs
 // FIXES:
 //   IDE0290: Use primary constructor
@@ -11627,9 +13028,10 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
         });
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Queries/GetRouteByIdQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Queries/GetRouteByIdQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -11657,9 +13059,10 @@ public class CustomerBriefDto
     public int SequenceOrder { get; set; }
     public bool IsActive { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Routes/Queries/GetRouteByIdQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Routes/Queries/GetRouteByIdQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -11683,11 +13086,16 @@ public class GetRouteByIdQueryHandler(IApplicationDbContext context)
             return Result<RouteDetailDto>.Failure("Route not found.");
         }
 
-        // Authorization: Non-admin users can only view their assigned route
+        // Authorization: routes are open to any salesman by default (see
+        // GetActiveRoutesQueryHandler / StartRouteExecutionCommandHandler — this
+        // mirrors the same rule). Only block if the route is permanently
+        // dedicated to a DIFFERENT specific salesman; unassigned routes are
+        // viewable by anyone, since any salesman may have started one today.
         if (!request.IsAdmin && request.CurrentUserId.HasValue &&
+            route.AssignedSalesmanId.HasValue &&
             route.AssignedSalesmanId != request.CurrentUserId.Value)
         {
-            return Result<RouteDetailDto>.Failure("You are not authorized to view this route.");
+            return Result<RouteDetailDto>.Failure("This route is permanently assigned to another salesman.");
         }
 
         var dto = new RouteDetailDto
@@ -11716,9 +13124,10 @@ public class GetRouteByIdQueryHandler(IApplicationDbContext context)
         return Result<RouteDetailDto>.Success(dto);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Settlement/Commands/CloseOperationalDayCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Settlement/Commands/CloseOperationalDayCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Settlement.DTOs;
@@ -11731,9 +13140,10 @@ public class CloseOperationalDayCommand : IRequest<Result<DailyClosureResultDto>
     public string? Notes { get; set; }
     public Guid AdminId { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Settlement/Commands/CloseOperationalDayCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Settlement/Commands/CloseOperationalDayCommandHandler.cs
+```csharp
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
 using FMCG.Distribution.Application.Features.Settlement.DTOs;
@@ -11760,9 +13170,10 @@ public class CloseOperationalDayCommandHandler(ISettlementService settlementServ
         return Result<DailyClosureResultDto>.Success(result, result.Message);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Settlement/Commands/RecordSettlementPaymentCommand.cs">
+## File: src/FMCG.Distribution.Application/Features/Settlement/Commands/RecordSettlementPaymentCommand.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 
@@ -11790,9 +13201,10 @@ public class RecordSettlementPaymentResponse
     public string? PaymentReference { get; set; }
     public bool FullySettled { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Settlement/Commands/RecordSettlementPaymentCommandHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Settlement/Commands/RecordSettlementPaymentCommandHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -11917,9 +13329,10 @@ public class RecordSettlementPaymentCommandHandler(IApplicationDbContext context
         }, "Payment recorded successfully.");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Settlement/DTOs/SettlementDtos.cs">
+## File: src/FMCG.Distribution.Application/Features/Settlement/DTOs/SettlementDtos.cs
+```csharp
 namespace FMCG.Distribution.Application.Features.Settlement.DTOs;
 
 public class ExpectedCashDto
@@ -11971,11 +13384,15 @@ public class DailyClosureResultDto
     // Null if report generation was skipped or failed (non-blocking).
     public string? LoadingSheetUrl { get; set; }
     public string? BillingSheetUrl { get; set; }
+    // How many route executions were force-closed as part of this — these
+    // routes become fresh/startable again immediately after this completes.
+    public int ClosedRouteCount { get; set; }
     // ─────────────────────────────────────────────────────────────────────
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Settlement/Queries/GetDailyClosureStatusQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Settlement/Queries/GetDailyClosureStatusQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Settlement.DTOs;
@@ -11999,9 +13416,10 @@ public class DailyClosureStatusDto
     public decimal? ExpectedCash { get; set; }
     public string? Notes { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Settlement/Queries/GetDailyClosureStatusQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Settlement/Queries/GetDailyClosureStatusQueryHandler.cs
+```csharp
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
@@ -12042,9 +13460,10 @@ public class GetDailyClosureStatusQueryHandler(IApplicationDbContext context)
         });
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Settlement/Queries/GetOutstandingByCustomerQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Settlement/Queries/GetOutstandingByCustomerQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Settlement.DTOs;
@@ -12056,9 +13475,10 @@ public class GetOutstandingByCustomerQuery : IRequest<Result<OutstandingSummaryD
     public Guid? CustomerId { get; set; }
     public Guid? RouteId { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Settlement/Queries/GetOutstandingByCustomerQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Settlement/Queries/GetOutstandingByCustomerQueryHandler.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
@@ -12079,9 +13499,10 @@ public class GetOutstandingByCustomerQueryHandler(ISettlementService settlementS
         return Result<OutstandingSummaryDto>.Success(result);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Settlement/Queries/GetSettlementSummaryQuery.cs">
+## File: src/FMCG.Distribution.Application/Features/Settlement/Queries/GetSettlementSummaryQuery.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Settlement.DTOs;
@@ -12093,9 +13514,10 @@ public class GetSettlementSummaryQuery : IRequest<Result<ExpectedCashDto>>
     public Guid? RouteId { get; set; }
     public DateTime? AsOfDate { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Application/Features/Settlement/Queries/GetSettlementSummaryQueryHandler.cs">
+## File: src/FMCG.Distribution.Application/Features/Settlement/Queries/GetSettlementSummaryQueryHandler.cs
+```csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
@@ -12116,18 +13538,176 @@ public class GetSettlementSummaryQueryHandler(ISettlementService settlementServi
         return Result<ExpectedCashDto>.Success(result);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Class1.cs">
+## File: src/FMCG.Distribution.Application/Features/Users/Commands/CreateSalesmanCommand.cs
+```csharp
+// Application/Features/Users/Commands/CreateSalesmanCommand.cs
+using MediatR;
+using FMCG.Distribution.Application.Common;
+
+namespace FMCG.Distribution.Application.Features.Users.Commands;
+
+public class CreateSalesmanCommand : IRequest<Result<CreateSalesmanResponse>>
+{
+    public string UserName { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Pin { get; set; } = string.Empty;
+    public string? Email { get; set; }
+}
+
+public class CreateSalesmanResponse
+{
+    public Guid Id { get; set; }
+    public string UserName { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string? Email { get; set; }
+    public bool IsActive { get; set; }
+}
+```
+
+## File: src/FMCG.Distribution.Application/Features/Users/Commands/CreateSalesmanCommandHandler.cs
+```csharp
+// Application/Features/Users/Commands/CreateSalesmanCommandHandler.cs
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using FMCG.Distribution.Application.Common;
+using FMCG.Distribution.Application.Common.Interfaces;
+using FMCG.Distribution.Domain.Entities;
+using FMCG.Distribution.Domain.Enums;
+
+namespace FMCG.Distribution.Application.Features.Users.Commands;
+
+public class CreateSalesmanCommandHandler : IRequestHandler<CreateSalesmanCommand, Result<CreateSalesmanResponse>>
+{
+    private readonly IApplicationDbContext _context;
+
+    public CreateSalesmanCommandHandler(IApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Result<CreateSalesmanResponse>> Handle(CreateSalesmanCommand request, CancellationToken cancellationToken)
+    {
+        // ── Validate Username ──
+        if (string.IsNullOrWhiteSpace(request.UserName))
+        {
+            return Result<CreateSalesmanResponse>.Failure("Username is required.");
+        }
+
+        // Check uniqueness
+        var exists = await _context.Users.AnyAsync(
+            u => u.UserName == request.UserName, cancellationToken);
+        if (exists)
+        {
+            return Result<CreateSalesmanResponse>.Failure("Username already taken.");
+        }
+
+        // ── Validate Full Name ──
+        if (string.IsNullOrWhiteSpace(request.FullName))
+        {
+            return Result<CreateSalesmanResponse>.Failure("Full name is required.");
+        }
+
+        // ── Validate PIN ──
+        if (string.IsNullOrWhiteSpace(request.Pin) ||
+            request.Pin.Length < 4 ||
+            request.Pin.Length > 6 ||
+            !request.Pin.All(char.IsDigit))
+        {
+            return Result<CreateSalesmanResponse>.Failure("PIN must be 4-6 digits.");
+        }
+
+        // ── Reject duplicate PINs ────────────────────────────────────────────
+        // Same reasoning as SetPinCommandHandler: PIN login scans every active
+        // user's PinHash and stops at the first BCrypt match, so two people
+        // sharing a PIN means one of them silently logs in as the other. This
+        // check was missing here even after being added to Set PIN, which is
+        // exactly how multiple salesmen ended up sharing the same PIN.
+        var existingPinUsers = await _context.Users
+            .Where(u => u.IsActive && u.PinHash != null)
+            .Select(u => new { u.FullName, u.PinHash })
+            .ToListAsync(cancellationToken);
+
+        foreach (var existing in existingPinUsers)
+        {
+            if (BCrypt.Net.BCrypt.Verify(request.Pin, existing.PinHash))
+            {
+                return Result<CreateSalesmanResponse>.Failure(
+                    $"This PIN is already used by {existing.FullName}. Choose a different one.");
+            }
+        }
+
+        // ── Create User ──
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            UserName = request.UserName,
+            Email = request.Email ?? $"{request.UserName}@fmcg.local",
+            FullName = request.FullName,
+            Role = UserRole.Salesman,
+            IsActive = true,
+            PinHash = BCrypt.Net.BCrypt.HashPassword(request.Pin),
+            PinFailCount = 0,
+            PinLockedUntil = null
+        };
+
+        await _context.Users.AddAsync(user, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result<CreateSalesmanResponse>.Success(new CreateSalesmanResponse
+        {
+            Id = user.Id,
+            UserName = user.UserName,
+            FullName = user.FullName,
+            Email = user.Email,
+            IsActive = user.IsActive
+        }, $"Salesman '{request.FullName}' created successfully.");
+    }
+}
+```
+
+## File: src/FMCG.Distribution.Application/FMCG.Distribution.Application.csproj
+```
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="14.1.0" />
+    <PackageReference Include="FluentValidation" Version="11.11.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.14.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="QuestPDF" Version="2026.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FMCG.Distribution.Domain\FMCG.Distribution.Domain.csproj" />
+  </ItemGroup>
+
+</Project>
+```
+
+## File: src/FMCG.Distribution.Domain/Class1.cs
+```csharp
 namespace FMCG.Distribution.Domain;
 
 public class Class1
 {
 
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Common/BaseEntity.cs">
+## File: src/FMCG.Distribution.Domain/Common/BaseEntity.cs
+```csharp
 namespace FMCG.Distribution.Domain.Common;
 
 public abstract class BaseEntity
@@ -12152,9 +13732,10 @@ public abstract class BaseEntity
         UpdatedBy = updatedBy;
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/BasePrice.cs">
+## File: src/FMCG.Distribution.Domain/Entities/BasePrice.cs
+```csharp
 using FMCG.Distribution.Domain.Common;
 
 namespace FMCG.Distribution.Domain.Entities;
@@ -12170,9 +13751,10 @@ public class BasePrice : BaseEntity
     // Navigation property
     public virtual Product? Product { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/Customer.cs">
+## File: src/FMCG.Distribution.Domain/Entities/Customer.cs
+```csharp
 using FMCG.Distribution.Domain.Common;
 
 namespace FMCG.Distribution.Domain.Entities;
@@ -12190,9 +13772,10 @@ public class Customer : BaseEntity
     // Navigation properties
     public virtual Route? Route { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/CustomerVisit.cs">
+## File: src/FMCG.Distribution.Domain/Entities/CustomerVisit.cs
+```csharp
 using FMCG.Distribution.Domain.Common;
 using FMCG.Distribution.Domain.Enums;
 
@@ -12237,9 +13820,10 @@ public class CustomerVisit : BaseEntity
         UpdateTimestamp(RouteExecution?.SalesmanId.ToString() ?? "system");
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/DailyClosure.cs">
+## File: src/FMCG.Distribution.Domain/Entities/DailyClosure.cs
+```csharp
 using FMCG.Distribution.Domain.Common;
 
 namespace FMCG.Distribution.Domain.Entities;
@@ -12258,9 +13842,10 @@ public class DailyClosure : BaseEntity
     // Navigation property
     public virtual User? ClosedByUser { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/Order.cs">
+## File: src/FMCG.Distribution.Domain/Entities/Order.cs
+```csharp
 // PATH: src/FMCG.Distribution.Domain/Entities/Order.cs
 
 using FMCG.Distribution.Domain.Common;
@@ -12338,9 +13923,10 @@ public class Order : BaseEntity
         UpdateTimestamp(modifiedBy);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/OrderItem.cs">
+## File: src/FMCG.Distribution.Domain/Entities/OrderItem.cs
+```csharp
 using FMCG.Distribution.Domain.Common;
 
 namespace FMCG.Distribution.Domain.Entities;
@@ -12371,9 +13957,10 @@ public class OrderItem : BaseEntity
     public virtual Product? Product { get; set; }
     public virtual ProductUnit? Unit { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/Outstanding.cs">
+## File: src/FMCG.Distribution.Domain/Entities/Outstanding.cs
+```csharp
 using FMCG.Distribution.Domain.Common;
 using FMCG.Distribution.Domain.Enums;
 
@@ -12393,9 +13980,10 @@ public class Outstanding : BaseEntity
     public virtual Customer? Customer { get; set; }
     public virtual Order? Order { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/PricingAuditLog.cs">
+## File: src/FMCG.Distribution.Domain/Entities/PricingAuditLog.cs
+```csharp
 using FMCG.Distribution.Domain.Common;
 using FMCG.Distribution.Domain.Enums;
 
@@ -12413,9 +14001,10 @@ public class PricingAuditLog : BaseEntity
     // Navigation property
     public virtual Product? Product { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/Product.cs">
+## File: src/FMCG.Distribution.Domain/Entities/Product.cs
+```csharp
 using FMCG.Distribution.Domain.Common;
 
 namespace FMCG.Distribution.Domain.Entities;
@@ -12449,9 +14038,10 @@ public class Product : BaseEntity
     public virtual ProductUnit? DefaultUnit { get; set; }
     public virtual ICollection<ProductUnitPrice>? UnitPrices { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/ProductGroup.cs">
+## File: src/FMCG.Distribution.Domain/Entities/ProductGroup.cs
+```csharp
 using FMCG.Distribution.Domain.Common;
 
 namespace FMCG.Distribution.Domain.Entities;
@@ -12466,9 +14056,10 @@ public class ProductGroup : BaseEntity
     // Navigation property
     public virtual ICollection<Product>? Products { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/ProductIncentive.cs">
+## File: src/FMCG.Distribution.Domain/Entities/ProductIncentive.cs
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12492,9 +14083,10 @@ public class ProductIncentive : BaseEntity
     // Navigation property
     public virtual Product? Product { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/ProductUnit.cs">
+## File: src/FMCG.Distribution.Domain/Entities/ProductUnit.cs
+```csharp
 // PATH: src/FMCG.Distribution.Domain/Entities/ProductUnit.cs
 // ADDED: Enhanced unit fields for measurement type, base unit value, and base unit name
 
@@ -12526,9 +14118,10 @@ public class ProductUnit : BaseEntity
     // Navigation property
     public virtual ICollection<Product>? Products { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/ProductUnitPrice.cs">
+## File: src/FMCG.Distribution.Domain/Entities/ProductUnitPrice.cs
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12580,9 +14173,10 @@ public class ProductUnitPrice : BaseEntity
     public virtual Product? Product { get; set; }
     public virtual ProductUnit? ProductUnit { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/Route.cs">
+## File: src/FMCG.Distribution.Domain/Entities/Route.cs
+```csharp
 using FMCG.Distribution.Domain.Common;
 
 namespace FMCG.Distribution.Domain.Entities;
@@ -12599,9 +14193,10 @@ public class Route : BaseEntity
     public virtual User? AssignedSalesman { get; set; }
     public virtual ICollection<Customer>? Customers { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/RouteAssignment.cs">
+## File: src/FMCG.Distribution.Domain/Entities/RouteAssignment.cs
+```csharp
 // PATH: src/FMCG.Distribution.Domain/Entities/RouteAssignment.cs
 // NEW FILE — daily route assignment, overrides Route.AssignedSalesmanId for a specific date
 
@@ -12625,9 +14220,10 @@ public class RouteAssignment : BaseEntity
     public virtual Route? Route { get; set; }
     public virtual User? Salesman { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/RouteExecution.cs">
+## File: src/FMCG.Distribution.Domain/Entities/RouteExecution.cs
+```csharp
 // PATH: src/FMCG.Distribution.Domain/Entities/RouteExecution.cs
 // ADD ExecutionType property
 
@@ -12685,9 +14281,10 @@ public class RouteExecution : BaseEntity
         UpdateTimestamp(SalesmanId.ToString());
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/SettlementPayment.cs">
+## File: src/FMCG.Distribution.Domain/Entities/SettlementPayment.cs
+```csharp
 using FMCG.Distribution.Domain.Common;
 
 namespace FMCG.Distribution.Domain.Entities;
@@ -12706,9 +14303,11 @@ public class SettlementPayment : BaseEntity
     public virtual Customer? Customer { get; set; }
     public virtual User? RecordedByUser { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Entities/User.cs">
+## File: src/FMCG.Distribution.Domain/Entities/User.cs
+```csharp
+// Domain/Entities/User.cs
 using FMCG.Distribution.Domain.Common;
 using FMCG.Distribution.Domain.Enums;
 
@@ -12716,6 +14315,7 @@ namespace FMCG.Distribution.Domain.Entities;
 
 public class User : BaseEntity
 {
+    // ── EXISTING FIELDS ──
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
@@ -12724,18 +14324,58 @@ public class User : BaseEntity
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiry { get; set; }
 
-    // ── PIN Login ─────────────────────────────────────────────────────────────
-    public string? PinHash { get; set; }              // BCrypt hash of the 4–6 digit PIN
-    public int PinFailCount { get; set; } = 0;        // consecutive failed PIN attempts
-    public DateTime? PinLockedUntil { get; set; }     // null = not locked
-    // ─────────────────────────────────────────────────────────────────────────
+    // ── PIN Login (EXISTING) ──
+    public string? PinHash { get; set; }
+    public int PinFailCount { get; set; } = 0;
+    public DateTime? PinLockedUntil { get; set; }
+
+    // ── NEW: Username for Salesman ──
+    public string? UserName { get; set; }
 
     // Navigation property
     public virtual ICollection<Route>? AssignedRoutes { get; set; }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Enums/ExecutionStatus.cs">
+## File: src/FMCG.Distribution.Domain/Entities/UserSession.cs
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+// PATH: src/FMCG.Distribution.Domain/Entities/UserSession.cs
+using FMCG.Distribution.Domain.Common;
+
+namespace FMCG.Distribution.Domain.Entities;
+
+/// <summary>
+/// Records every login and logout event for a user.
+/// Each row is one session: LoginAt is always set; LogoutAt is null
+/// until the user explicitly logs out (or the session is invalidated).
+/// </summary>
+public class UserSession : BaseEntity
+{
+    public Guid UserId { get; set; }
+    public virtual User? User { get; set; }
+
+    public DateTime LoginAt { get; set; }
+    public DateTime? LogoutAt { get; set; }
+
+    /// <summary>
+    /// "Email", "PIN" — so the admin can see which login method was used.
+    /// </summary>
+    public string LoginMethod { get; set; } = "Email";
+
+    /// <summary>
+    /// Rough location hint from the browser User-Agent header (device type).
+    /// </summary>
+    public string? DeviceHint { get; set; }
+}
+```
+
+## File: src/FMCG.Distribution.Domain/Enums/ExecutionStatus.cs
+```csharp
 namespace FMCG.Distribution.Domain.Enums;
 
 public enum ExecutionStatus
@@ -12746,9 +14386,10 @@ public enum ExecutionStatus
     Abandoned = 4,
     OrderTaking = 5  // NEW: Separate mode for taking orders
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Enums/ExecutionType.cs">
+## File: src/FMCG.Distribution.Domain/Enums/ExecutionType.cs
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12762,9 +14403,10 @@ public enum ExecutionType
     Delivery = 1,      // Default - only visit customers with submitted orders
     OrderTaking = 2    // Visit all customers to take new orders
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Enums/IncentiveType.cs">
+## File: src/FMCG.Distribution.Domain/Enums/IncentiveType.cs
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12778,9 +14420,10 @@ public enum IncentiveType
     PerUnit = 1,
     Percentage = 2
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Enums/OrderStatus.cs">
+## File: src/FMCG.Distribution.Domain/Enums/OrderStatus.cs
+```csharp
 // PATH: src/FMCG.Distribution.Domain/Enums/OrderStatus.cs
 
 namespace FMCG.Distribution.Domain.Enums;
@@ -12793,9 +14436,10 @@ public enum OrderStatus
     Packed = 4,            // ← ADD THIS
     Closed = 5
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Enums/PackingStatus.cs">
+## File: src/FMCG.Distribution.Domain/Enums/PackingStatus.cs
+```csharp
 // PATH: src/FMCG.Distribution.Domain/Enums/PackingStatus.cs
 // NEW FILE — tracks warehouse packing state per order
 
@@ -12807,9 +14451,10 @@ public enum PackingStatus
     Packed = 1,   // all items packed and ready for loading
     PartiallyPacked = 2,   // some items packed (e.g. stock shortage)
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Enums/PricingAction.cs">
+## File: src/FMCG.Distribution.Domain/Enums/PricingAction.cs
+```csharp
 namespace FMCG.Distribution.Domain.Enums;
 
 public enum PricingAction
@@ -12818,9 +14463,10 @@ public enum PricingAction
     Update = 2,
     Delete = 3
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Enums/SettlementStatus.cs">
+## File: src/FMCG.Distribution.Domain/Enums/SettlementStatus.cs
+```csharp
 namespace FMCG.Distribution.Domain.Enums;
 
 public enum SettlementStatus
@@ -12829,9 +14475,10 @@ public enum SettlementStatus
     Settled = 2,
     PartiallySettled = 3
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Enums/UserRole.cs">
+## File: src/FMCG.Distribution.Domain/Enums/UserRole.cs
+```csharp
 namespace FMCG.Distribution.Domain.Enums;
 
 public enum UserRole
@@ -12842,9 +14489,10 @@ public enum UserRole
     Accounts = 4,
     Warehouse = 5
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Domain/Enums/VisitStatus.cs">
+## File: src/FMCG.Distribution.Domain/Enums/VisitStatus.cs
+```csharp
 namespace FMCG.Distribution.Domain.Enums;
 
 public enum VisitStatus
@@ -12854,18 +14502,73 @@ public enum VisitStatus
     Skipped = 3,
     NoOrder = 4
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Class1.cs">
+## File: src/FMCG.Distribution.Domain/FMCG.Distribution.Domain.csproj
+```
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>
+```
+
+## File: src/FMCG.Distribution.Infrastructure/Class1.cs
+```csharp
 namespace FMCG.Distribution.Infrastructure;
 
 public class Class1
 {
 
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260514032859_InitialCreate.cs">
+## File: src/FMCG.Distribution.Infrastructure/FMCG.Distribution.Infrastructure.csproj
+```
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.14.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
+    <PackageReference Include="QuestPDF" Version="2026.5.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FMCG.Distribution.Application\FMCG.Distribution.Application.csproj" />
+    <ProjectReference Include="..\FMCG.Distribution.Domain\FMCG.Distribution.Domain.csproj" />
+  </ItemGroup>
+
+</Project>
+```
+
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260514032859_InitialCreate.cs
+```csharp
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -12917,9 +14620,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260514032859_InitialCreate.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260514032859_InitialCreate.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -13006,9 +14710,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260514100158_AddMasterDataEntities.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260514100158_AddMasterDataEntities.cs
+```csharp
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -13201,9 +14906,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260514100158_AddMasterDataEntities.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260514100158_AddMasterDataEntities.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -13585,9 +15291,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260514175234_AddProductUnitsAndProductGroups.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260514175234_AddProductUnitsAndProductGroups.cs
+```csharp
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -13695,9 +15402,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260514175234_AddProductUnitsAndProductGroups.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260514175234_AddProductUnitsAndProductGroups.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -14079,9 +15787,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260515063201_AddOrderModule.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260515063201_AddOrderModule.cs
+```csharp
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -14241,9 +15950,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260515063201_AddOrderModule.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260515063201_AddOrderModule.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -14807,9 +16517,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260515122232_AddPricingModule.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260515122232_AddPricingModule.cs
+```csharp
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -14942,9 +16653,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260515122232_AddPricingModule.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260515122232_AddPricingModule.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -15640,9 +17352,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260515173637_AddSettlementAndDailyClosure.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260515173637_AddSettlementAndDailyClosure.cs
+```csharp
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -15854,9 +17567,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260515173637_AddSettlementAndDailyClosure.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260515173637_AddSettlementAndDailyClosure.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -16783,9 +18497,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260516054057_AddReportsSupport.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260516054057_AddReportsSupport.cs
+```csharp
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -16808,9 +18523,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260516054057_AddReportsSupport.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260516054057_AddReportsSupport.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -17737,9 +19453,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260516081717_AddProductIncentiveTable.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260516081717_AddProductIncentiveTable.cs
+```csharp
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -17811,9 +19528,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260516081717_AddProductIncentiveTable.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260516081717_AddProductIncentiveTable.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -18808,9 +20526,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260516135807_AddMissingColumns_Sku_NameMl_Abbreviation.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260516135807_AddMissingColumns_Sku_NameMl_Abbreviation.cs
+```csharp
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -19540,9 +21259,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260516135807_AddMissingColumns_Sku_NameMl_Abbreviation.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260516135807_AddMissingColumns_Sku_NameMl_Abbreviation.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -20546,9 +22266,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260516172924_AddRouteExecutionAndCustomerVisit.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260516172924_AddRouteExecutionAndCustomerVisit.cs
+```csharp
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -20684,9 +22405,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260516172924_AddRouteExecutionAndCustomerVisit.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260516172924_AddRouteExecutionAndCustomerVisit.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -21846,9 +23568,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260516183328_AddOrderVisitLink.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260516183328_AddOrderVisitLink.cs
+```csharp
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -21899,9 +23622,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260516183328_AddOrderVisitLink.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260516183328_AddOrderVisitLink.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -23073,9 +24797,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260518102737_AddPinFieldsToUsers.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260518102737_AddPinFieldsToUsers.cs
+```csharp
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -23126,9 +24851,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260518102737_AddPinFieldsToUsers.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260518102737_AddPinFieldsToUsers.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -24309,9 +26035,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260519052954_AddUnitTypesToOrderItems.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260519052954_AddUnitTypesToOrderItems.cs
+```csharp
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -24360,9 +26087,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260519052954_AddUnitTypesToOrderItems.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260519052954_AddUnitTypesToOrderItems.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -25552,9 +27280,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260519175139_AddPackingStatusAndRouteAssignments.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260519175139_AddPackingStatusAndRouteAssignments.cs
+```csharp
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -25653,9 +27382,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260519175139_AddPackingStatusAndRouteAssignments.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260519175139_AddPackingStatusAndRouteAssignments.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -26925,9 +28655,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260519190914_AddLoadingPriorityToProductUnits.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260519190914_AddLoadingPriorityToProductUnits.cs
+```csharp
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -26957,9 +28688,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260519190914_AddLoadingPriorityToProductUnits.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260519190914_AddLoadingPriorityToProductUnits.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -28232,9 +29964,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260522144441_AddEnhancedUnitFields.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260522144441_AddEnhancedUnitFields.cs
+```csharp
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -28283,9 +30016,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260522144441_AddEnhancedUnitFields.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260522144441_AddEnhancedUnitFields.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -29567,9 +31301,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260525072719_AddExecutionTypeToRouteExecutions.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260525072719_AddExecutionTypeToRouteExecutions.cs
+```csharp
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -29599,9 +31334,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260525072719_AddExecutionTypeToRouteExecutions.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260525072719_AddExecutionTypeToRouteExecutions.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -30886,9 +32622,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260526051747_AddOrderStatusValues.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260526051747_AddOrderStatusValues.cs
+```csharp
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -30928,9 +32665,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260526051747_AddOrderStatusValues.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260526051747_AddOrderStatusValues.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -32221,9 +33959,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260527073557_UpdateProductSchemaAndAddUnitPrices.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260527073557_UpdateProductSchemaAndAddUnitPrices.cs
+```csharp
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -32414,9 +34153,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/20260527073557_UpdateProductSchemaAndAddUnitPrices.Designer.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260527073557_UpdateProductSchemaAndAddUnitPrices.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
@@ -33856,14 +35596,42 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Migrations/ApplicationDbContextModelSnapshot.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260616145815_AddOrderNumberSequence.cs
+```csharp
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace FMCG.Distribution.Infrastructure.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddOrderNumberSequence : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+
+        }
+    }
+}
+```
+
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260616145815_AddOrderNumberSequence.Designer.cs
+```csharp
 // <auto-generated />
 using System;
 using FMCG.Distribution.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -33872,9 +35640,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FMCG.Distribution.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260616145815_AddOrderNumberSequence")]
+    partial class AddOrderNumberSequence
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -35295,9 +37065,3103 @@ namespace FMCG.Distribution.Infrastructure.Migrations
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Persistence/ApplicationDbContext.cs">
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260619065404_AddUserSessions.cs
+```csharp
+using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace FMCG.Distribution.Infrastructure.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddUserSessions : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.AddColumn<string>(
+                name: "UserName",
+                table: "Users",
+                type: "character varying(50)",
+                maxLength: 50,
+                nullable: true);
+
+            migrationBuilder.CreateTable(
+                name: "UserSessions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    LoginAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    LogoutAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    LoginMethod = table.Column<string>(type: "text", nullable: false),
+                    DeviceHint = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserSessions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserSessions_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_UserName",
+                table: "Users",
+                column: "UserName",
+                unique: true,
+                filter: "\"UserName\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserSessions_UserId",
+                table: "UserSessions",
+                column: "UserId");
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "UserSessions");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Users_UserName",
+                table: "Users");
+
+            migrationBuilder.DropColumn(
+                name: "UserName",
+                table: "Users");
+        }
+    }
+}
+```
+
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260619065404_AddUserSessions.Designer.cs
+```csharp
+// <auto-generated />
+using System;
+using FMCG.Distribution.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+
+#nullable disable
+
+namespace FMCG.Distribution.Infrastructure.Migrations
+{
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260619065404_AddUserSessions")]
+    partial class AddUserSessions
+    {
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        {
+#pragma warning disable 612, 618
+            modelBuilder
+                .HasAnnotation("ProductVersion", "8.0.0")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.BasePrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("EffectiveDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EffectiveDate");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductId", "IsActive");
+
+                    b.ToTable("BasePrices");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Customer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NameEnglish")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NameMalayalam")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SequenceOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NameMalayalam");
+
+                    b.HasIndex("RouteId", "SequenceOrder");
+
+                    b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.CustomerVisit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RouteExecutionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SequenceOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SkipReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("VisitedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("RouteExecutionId");
+
+                    b.HasIndex("RouteExecutionId", "SequenceOrder");
+
+                    b.ToTable("CustomerVisits");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.DailyClosure", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ClosedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("ClosedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ClosureDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("ExpectedCash")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("TotalOutstanding")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalSales")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClosedByUserId");
+
+                    b.HasIndex("ClosureDate");
+
+                    b.ToTable("DailyClosures");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Order", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CustomerVisitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("ExpectedPaymentAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("PackedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("PackedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("PackingStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SettlementStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("CustomerVisitId");
+
+                    b.HasIndex("IsLocked");
+
+                    b.HasIndex("OrderNumber")
+                        .IsUnique();
+
+                    b.HasIndex("RouteId");
+
+                    b.HasIndex("SalesmanId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("CustomerId", "OrderDate");
+
+                    b.HasIndex("RouteId", "Status");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.OrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BasePriceAtTime")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<int?>("QuantityBags")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("QuantityBoxes")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("QuantityTins")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("SellingPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("UnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UnitId");
+
+                    b.ToTable("OrderItems");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Outstanding", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("OutstandingAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("SettledAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("SettlementReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SettlementStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("SettlementStatus");
+
+                    b.ToTable("Outstandings");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.PricingAuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Action")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("NewPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("OldPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Action");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("PricingAuditLogs");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Product", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BasePrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("ClosingStock")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("DefaultUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("HSNCode")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ItemCode")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("MaxOrderQty")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal?>("MinOrderQty")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("NameEnglish")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NameMalayalam")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("ProductGroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Sku")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Supplier")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DefaultUnitId");
+
+                    b.HasIndex("NameMalayalam");
+
+                    b.HasIndex("ProductGroupId");
+
+                    b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NameMl")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ProductGroups");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductIncentive", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("EffectiveDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("IncentiveType")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("IncentiveValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EffectiveDate");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductId", "EffectiveDate");
+
+                    b.HasIndex("ProductId", "IsActive");
+
+                    b.ToTable("ProductIncentives");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Abbreviation")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BaseUnitName")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("BaseUnitValue")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("LoadingPriority")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MeasurementType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Symbol")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ProductUnits");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnitPrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Discount1")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Discount2")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Discount3")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Discount4")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("FloodCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("LandingCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("MOP")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("MRP")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PurchaseRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice2")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice3")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice4")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("UnitSize")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<string>("UnitSizeLabel")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("VAT")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDefault");
+
+                    b.HasIndex("ProductUnitId");
+
+                    b.HasIndex("ProductId", "ProductUnitId");
+
+                    b.ToTable("ProductUnitPrices");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Route", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AssignedSalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SequenceOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedSalesmanId");
+
+                    b.ToTable("Routes");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AssignmentDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsOverride")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SalesmanId");
+
+                    b.HasIndex("RouteId", "AssignmentDate")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("RouteAssignments");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteExecution", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExecutionDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("ExecutionType")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SalesmanId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("RouteId", "ExecutionDate");
+
+                    b.ToTable("RouteExecutions");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.SettlementPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("PaymentMode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PaymentReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("RecordedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("PaymentDate");
+
+                    b.HasIndex("RecordedByUserId");
+
+                    b.ToTable("SettlementPayments");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("PinFailCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PinHash")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PinLockedUntil")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("RefreshToken")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("RefreshTokenExpiry")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("UserName")
+                        .IsUnique()
+                        .HasFilter("\"UserName\" IS NOT NULL");
+
+                    b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.UserSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceHint")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LoginAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("LoginMethod")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LogoutAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserSessions");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.BasePrice", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Customer", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany("Customers")
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Route");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.CustomerVisit", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.RouteExecution", "RouteExecution")
+                        .WithMany("Visits")
+                        .HasForeignKey("RouteExecutionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("RouteExecution");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.DailyClosure", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "ClosedByUser")
+                        .WithMany()
+                        .HasForeignKey("ClosedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ClosedByUser");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Order", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.CustomerVisit", "CustomerVisit")
+                        .WithMany()
+                        .HasForeignKey("CustomerVisitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany()
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "Salesman")
+                        .WithMany()
+                        .HasForeignKey("SalesmanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("CustomerVisit");
+
+                    b.Navigation("Route");
+
+                    b.Navigation("Salesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.OrderItem", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Order", "Order")
+                        .WithMany("Items")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductUnit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Outstanding", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.PricingAuditLog", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Product", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductUnit", "DefaultUnit")
+                        .WithMany("Products")
+                        .HasForeignKey("DefaultUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductGroup", "ProductGroup")
+                        .WithMany("Products")
+                        .HasForeignKey("ProductGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DefaultUnit");
+
+                    b.Navigation("ProductGroup");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductIncentive", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnitPrice", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany("UnitPrices")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductUnit", "ProductUnit")
+                        .WithMany()
+                        .HasForeignKey("ProductUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ProductUnit");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Route", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "AssignedSalesman")
+                        .WithMany("AssignedRoutes")
+                        .HasForeignKey("AssignedSalesmanId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("AssignedSalesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteAssignment", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany()
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "Salesman")
+                        .WithMany()
+                        .HasForeignKey("SalesmanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Route");
+
+                    b.Navigation("Salesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteExecution", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany()
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "Salesman")
+                        .WithMany()
+                        .HasForeignKey("SalesmanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Route");
+
+                    b.Navigation("Salesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.SettlementPayment", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "RecordedByUser")
+                        .WithMany()
+                        .HasForeignKey("RecordedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("RecordedByUser");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.UserSession", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Order", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Product", b =>
+                {
+                    b.Navigation("UnitPrices");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductGroup", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnit", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Route", b =>
+                {
+                    b.Navigation("Customers");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteExecution", b =>
+                {
+                    b.Navigation("Visits");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.User", b =>
+                {
+                    b.Navigation("AssignedRoutes");
+                });
+#pragma warning restore 612, 618
+        }
+    }
+}
+```
+
+## File: src/FMCG.Distribution.Infrastructure/Migrations/ApplicationDbContextModelSnapshot.cs
+```csharp
+// <auto-generated />
+using System;
+using FMCG.Distribution.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+
+#nullable disable
+
+namespace FMCG.Distribution.Infrastructure.Migrations
+{
+    [DbContext(typeof(ApplicationDbContext))]
+    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    {
+        protected override void BuildModel(ModelBuilder modelBuilder)
+        {
+#pragma warning disable 612, 618
+            modelBuilder
+                .HasAnnotation("ProductVersion", "8.0.0")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.BasePrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("EffectiveDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EffectiveDate");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductId", "IsActive");
+
+                    b.ToTable("BasePrices");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Customer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NameEnglish")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NameMalayalam")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SequenceOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NameMalayalam");
+
+                    b.HasIndex("RouteId", "SequenceOrder");
+
+                    b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.CustomerVisit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RouteExecutionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SequenceOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SkipReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("VisitedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("RouteExecutionId");
+
+                    b.HasIndex("RouteExecutionId", "SequenceOrder");
+
+                    b.ToTable("CustomerVisits");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.DailyClosure", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ClosedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("ClosedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ClosureDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("ExpectedCash")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("TotalOutstanding")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalSales")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClosedByUserId");
+
+                    b.HasIndex("ClosureDate");
+
+                    b.ToTable("DailyClosures");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Order", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CustomerVisitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("ExpectedPaymentAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("PackedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("PackedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("PackingStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SettlementStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("CustomerVisitId");
+
+                    b.HasIndex("IsLocked");
+
+                    b.HasIndex("OrderNumber")
+                        .IsUnique();
+
+                    b.HasIndex("RouteId");
+
+                    b.HasIndex("SalesmanId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("CustomerId", "OrderDate");
+
+                    b.HasIndex("RouteId", "Status");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.OrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BasePriceAtTime")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<int?>("QuantityBags")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("QuantityBoxes")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("QuantityTins")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("SellingPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("UnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UnitId");
+
+                    b.ToTable("OrderItems");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Outstanding", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("OutstandingAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("SettledAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("SettlementReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SettlementStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("SettlementStatus");
+
+                    b.ToTable("Outstandings");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.PricingAuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Action")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("NewPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("OldPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Action");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("PricingAuditLogs");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Product", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BasePrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("ClosingStock")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("DefaultUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("HSNCode")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ItemCode")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("MaxOrderQty")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal?>("MinOrderQty")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("NameEnglish")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NameMalayalam")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("ProductGroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Sku")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Supplier")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DefaultUnitId");
+
+                    b.HasIndex("NameMalayalam");
+
+                    b.HasIndex("ProductGroupId");
+
+                    b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NameMl")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ProductGroups");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductIncentive", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("EffectiveDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("IncentiveType")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("IncentiveValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EffectiveDate");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductId", "EffectiveDate");
+
+                    b.HasIndex("ProductId", "IsActive");
+
+                    b.ToTable("ProductIncentives");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Abbreviation")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BaseUnitName")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("BaseUnitValue")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("LoadingPriority")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MeasurementType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Symbol")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ProductUnits");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnitPrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Discount1")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Discount2")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Discount3")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Discount4")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("FloodCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("LandingCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("MOP")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("MRP")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PurchaseRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice2")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice3")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice4")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("UnitSize")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<string>("UnitSizeLabel")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("VAT")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDefault");
+
+                    b.HasIndex("ProductUnitId");
+
+                    b.HasIndex("ProductId", "ProductUnitId");
+
+                    b.ToTable("ProductUnitPrices");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Route", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AssignedSalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SequenceOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedSalesmanId");
+
+                    b.ToTable("Routes");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AssignmentDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsOverride")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SalesmanId");
+
+                    b.HasIndex("RouteId", "AssignmentDate")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("RouteAssignments");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteExecution", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExecutionDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("ExecutionType")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SalesmanId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("RouteId", "ExecutionDate");
+
+                    b.ToTable("RouteExecutions");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.SettlementPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("PaymentMode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PaymentReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("RecordedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("PaymentDate");
+
+                    b.HasIndex("RecordedByUserId");
+
+                    b.ToTable("SettlementPayments");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("PinFailCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PinHash")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PinLockedUntil")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("RefreshToken")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("RefreshTokenExpiry")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("UserName")
+                        .IsUnique()
+                        .HasFilter("\"UserName\" IS NOT NULL");
+
+                    b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.UserSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceHint")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LoginAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("LoginMethod")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LogoutAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserSessions");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.BasePrice", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Customer", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany("Customers")
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Route");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.CustomerVisit", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.RouteExecution", "RouteExecution")
+                        .WithMany("Visits")
+                        .HasForeignKey("RouteExecutionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("RouteExecution");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.DailyClosure", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "ClosedByUser")
+                        .WithMany()
+                        .HasForeignKey("ClosedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ClosedByUser");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Order", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.CustomerVisit", "CustomerVisit")
+                        .WithMany()
+                        .HasForeignKey("CustomerVisitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany()
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "Salesman")
+                        .WithMany()
+                        .HasForeignKey("SalesmanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("CustomerVisit");
+
+                    b.Navigation("Route");
+
+                    b.Navigation("Salesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.OrderItem", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Order", "Order")
+                        .WithMany("Items")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductUnit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Outstanding", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.PricingAuditLog", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Product", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductUnit", "DefaultUnit")
+                        .WithMany("Products")
+                        .HasForeignKey("DefaultUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductGroup", "ProductGroup")
+                        .WithMany("Products")
+                        .HasForeignKey("ProductGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DefaultUnit");
+
+                    b.Navigation("ProductGroup");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductIncentive", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnitPrice", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany("UnitPrices")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductUnit", "ProductUnit")
+                        .WithMany()
+                        .HasForeignKey("ProductUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ProductUnit");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Route", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "AssignedSalesman")
+                        .WithMany("AssignedRoutes")
+                        .HasForeignKey("AssignedSalesmanId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("AssignedSalesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteAssignment", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany()
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "Salesman")
+                        .WithMany()
+                        .HasForeignKey("SalesmanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Route");
+
+                    b.Navigation("Salesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteExecution", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany()
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "Salesman")
+                        .WithMany()
+                        .HasForeignKey("SalesmanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Route");
+
+                    b.Navigation("Salesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.SettlementPayment", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "RecordedByUser")
+                        .WithMany()
+                        .HasForeignKey("RecordedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("RecordedByUser");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.UserSession", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Order", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Product", b =>
+                {
+                    b.Navigation("UnitPrices");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductGroup", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnit", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Route", b =>
+                {
+                    b.Navigation("Customers");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteExecution", b =>
+                {
+                    b.Navigation("Visits");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.User", b =>
+                {
+                    b.Navigation("AssignedRoutes");
+                });
+#pragma warning restore 612, 618
+        }
+    }
+}
+```
+
+## File: src/FMCG.Distribution.Infrastructure/Persistence/ApplicationDbContext.cs
+```csharp
+// PATH: src/FMCG.Distribution.Infrastructure/Persistence/ApplicationDbContext.cs
+// CHANGE: Added NextOrderSequenceAsync() method for atomic PostgreSQL sequence-based order numbering
+
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Domain.Entities;
 using FMCG.Distribution.Domain.Common;
@@ -35325,6 +40189,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<ProductIncentive> ProductIncentives { get; set; }
     public DbSet<RouteExecution> RouteExecutions { get; set; }
     public DbSet<CustomerVisit> CustomerVisits { get; set; }
+    public DbSet<UserSession> UserSessions { get; set; }
     public DbSet<RouteAssignment> RouteAssignments => Set<RouteAssignment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -35337,12 +40202,20 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
             entity.HasIndex(e => e.Email).IsUnique();
+            // ── NEW: UserName configuration ──
+            entity.Property(e => e.UserName).HasMaxLength(50);
+            entity.HasIndex(e => e.UserName)
+                .IsUnique()
+                .HasFilter("\"UserName\" IS NOT NULL");  // PostgreSQL syntax
             entity.Property(e => e.PasswordHash).IsRequired();
             entity.Property(e => e.FullName).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Role).IsRequired().HasConversion<int>();
             entity.Property(e => e.IsActive).IsRequired();
             entity.Property(e => e.RefreshToken).HasMaxLength(500);
             entity.HasQueryFilter(e => !e.IsDeleted);
+            entity.Property(e => e.PinHash);
+            entity.Property(e => e.PinFailCount);
+            entity.Property(e => e.PinLockedUntil);
         });
 
         // Route configuration
@@ -35355,7 +40228,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.IsActive).IsRequired();
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Relationship with User (Salesman)
             entity.HasOne(e => e.AssignedSalesman)
                   .WithMany(u => u.AssignedRoutes)
                   .HasForeignKey(e => e.AssignedSalesmanId)
@@ -35374,11 +40246,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.IsActive).IsRequired();
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Index for Malayalam search
             entity.HasIndex(e => e.NameMalayalam);
             entity.HasIndex(e => new { e.RouteId, e.SequenceOrder });
 
-            // Relationship with Route
             entity.HasOne(e => e.Route)
                   .WithMany(r => r.Customers)
                   .HasForeignKey(e => e.RouteId)
@@ -35405,7 +40275,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
 
-
         // ProductUnitPrice configuration
         modelBuilder.Entity<ProductUnitPrice>(entity =>
         {
@@ -35429,7 +40298,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.IsDefault).IsRequired();
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Relationships
             entity.HasOne(e => e.Product)
                 .WithMany(p => p.UnitPrices)
                 .HasForeignKey(e => e.ProductId)
@@ -35440,11 +40308,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .HasForeignKey(e => e.ProductUnitId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Indexes
             entity.HasIndex(e => new { e.ProductId, e.ProductUnitId });
             entity.HasIndex(e => e.IsDefault);
         });
-        // Product configuration
+
         // Product configuration
         modelBuilder.Entity<Product>(entity =>
         {
@@ -35455,19 +40322,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.IsActive).IsRequired();
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Index for Malayalam search
             entity.HasIndex(e => e.NameMalayalam);
 
-            // Relationships
             entity.HasOne(e => e.ProductGroup)
                   .WithMany(g => g.Products)
                   .HasForeignKey(e => e.ProductGroupId)
                   .OnDelete(DeleteBehavior.Restrict);
 
-            // CHANGE ProductUnit to DefaultUnit
             entity.HasOne(e => e.DefaultUnit)
                   .WithMany(u => u.Products)
-                  .HasForeignKey(e => e.DefaultUnitId)  // ← CHANGE ProductUnitId to DefaultUnitId
+                  .HasForeignKey(e => e.DefaultUnitId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -35489,7 +40353,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.ExpectedPaymentAmount).HasPrecision(18, 2);
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Indexes for performance
             entity.HasIndex(e => e.CustomerId);
             entity.HasIndex(e => e.RouteId);
             entity.HasIndex(e => e.SalesmanId);
@@ -35498,7 +40361,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasIndex(e => new { e.RouteId, e.Status });
             entity.HasIndex(e => new { e.CustomerId, e.OrderDate });
 
-            // Relationships
             entity.HasOne(e => e.Customer)
                   .WithMany()
                   .HasForeignKey(e => e.CustomerId)
@@ -35514,14 +40376,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   .HasForeignKey(e => e.SalesmanId)
                   .OnDelete(DeleteBehavior.Restrict);
 
-            // Relationship with CustomerVisit
             entity.HasOne(o => o.CustomerVisit)
                   .WithMany()
                   .HasForeignKey(o => o.CustomerVisitId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // RouteAssignment
+        // RouteAssignment configuration
         modelBuilder.Entity<RouteAssignment>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -35539,7 +40400,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .HasForeignKey(e => e.SalesmanId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Unique: one assignment per route per date (ignoring soft-deleted)
             entity.HasIndex(e => new { e.RouteId, e.AssignmentDate })
                 .IsUnique()
                 .HasFilter("\"IsDeleted\" = false");
@@ -35555,11 +40415,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.UnitId).IsRequired();
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Indexes
             entity.HasIndex(e => e.OrderId);
             entity.HasIndex(e => e.ProductId);
 
-            // Relationships
             entity.HasOne(e => e.Order)
                   .WithMany(o => o.Items)
                   .HasForeignKey(e => e.OrderId)
@@ -35586,12 +40444,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.Reason).HasMaxLength(500);
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Indexes
             entity.HasIndex(e => e.ProductId);
             entity.HasIndex(e => new { e.ProductId, e.IsActive });
             entity.HasIndex(e => e.EffectiveDate);
 
-            // Relationship with Product
             entity.HasOne(e => e.Product)
                   .WithMany()
                   .HasForeignKey(e => e.ProductId)
@@ -35609,12 +40465,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.ModifiedBy).IsRequired().HasMaxLength(100);
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // Indexes
             entity.HasIndex(e => e.ProductId);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.Action);
 
-            // Relationship with Product
             entity.HasOne(e => e.Product)
                   .WithMany()
                   .HasForeignKey(e => e.ProductId)
@@ -35780,21 +40634,36 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         foreach (var entry in entries)
         {
             if (entry.State == EntityState.Added)
-            {
                 entry.Entity.CreatedAt = DateTime.UtcNow;
-            }
             else if (entry.State == EntityState.Modified)
-            {
                 entry.Entity.UpdatedAt = DateTime.UtcNow;
-            }
         }
-
         return await base.SaveChangesAsync(cancellationToken);
     }
-}
-</file>
 
-<file path="src/FMCG.Distribution.Infrastructure/Persistence/DbInitializer.cs">
+    /// <summary>
+    /// Gets the next value from the PostgreSQL order_number_seq sequence.
+    /// Atomic at the database level — guaranteed unique even under thousands of
+    /// concurrent requests across multiple server instances.
+    /// </summary>
+    public async Task<long> NextOrderSequenceAsync(CancellationToken cancellationToken = default)
+    {
+        var connection = Database.GetDbConnection();
+
+        if (connection.State != ConnectionState.Open)
+            await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT nextval('order_number_seq')";
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt64(result);
+    }
+}
+```
+
+## File: src/FMCG.Distribution.Infrastructure/Persistence/DbInitializer.cs
+```csharp
 using FMCG.Distribution.Domain.Entities;
 using FMCG.Distribution.Domain.Enums;
 
@@ -35898,9 +40767,10 @@ public static class DbInitializer
         }
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Persistence/Repository.cs">
+## File: src/FMCG.Distribution.Infrastructure/Persistence/Repository.cs
+```csharp
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common.Interfaces;
@@ -35950,9 +40820,10 @@ public class Repository<T>(ApplicationDbContext context) : IRepository<T> where 
         return await _dbSet.AnyAsync(predicate, cancellationToken);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Persistence/UnitOfWork.cs">
+## File: src/FMCG.Distribution.Infrastructure/Persistence/UnitOfWork.cs
+```csharp
 using FMCG.Distribution.Application.Common.Interfaces;
 
 namespace FMCG.Distribution.Infrastructure.Persistence;
@@ -35977,9 +40848,10 @@ public class UnitOfWork(ApplicationDbContext context) : IUnitOfWork
         return await context.SaveChangesAsync(cancellationToken);
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Services/IncentiveService.cs">
+## File: src/FMCG.Distribution.Infrastructure/Services/IncentiveService.cs
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36150,9 +41022,10 @@ public class IncentiveService(IApplicationDbContext context) : IIncentiveService
         return incentive?.IncentiveValue ?? 0;
     }
 }
-</file>
+```
 
-<file path="src/FMCG.Distribution.Infrastructure/Services/SettlementService.cs">
+## File: src/FMCG.Distribution.Infrastructure/Services/SettlementService.cs
+```csharp
 using FMCG.Distribution.Application.Common.Interfaces;
 using FMCG.Distribution.Application.Features.Settlement.DTOs;
 using FMCG.Distribution.Domain.Entities;
@@ -36234,20 +41107,15 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         var errors = new List<string>();
         var targetDate = date ?? DateTime.UtcNow.Date;
 
-        // Check for any draft orders
-        var draftOrdersQuery = context.Orders
-            .Where(o => !o.IsDeleted && o.Status == OrderStatus.Draft);
-
-        if (routeId.HasValue)
-        {
-            draftOrdersQuery = draftOrdersQuery.Where(o => o.RouteId == routeId.Value);
-        }
-
-        var draftOrderCount = await draftOrdersQuery.CountAsync(cancellationToken);
-        if (draftOrderCount > 0)
-        {
-            errors.Add($"Cannot close day: {draftOrderCount} draft order(s) need to be submitted.");
-        }
+        // NOTE: deliberately NOT blocking on draft orders here. Under the
+        // current workflow there's no "Submit All" step — orders are created
+        // as Draft and stay that way until admin individually reviews/approves
+        // them, which can be indefinitely. Drafts are already excluded from
+        // the settlement totals below (CalculateExpectedCashAsync filters
+        // them out), so they have zero effect on the closure's accuracy.
+        // Requiring zero drafts to ever close the day would mean the day can
+        // never close as long as a single never-actioned draft exists
+        // anywhere in the system — which defeats the point of Close Day.
 
         // Check if day is already closed
         var existingClosure = await context.DailyClosures
@@ -36330,6 +41198,12 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
                 && o.OrderDate <= closureDate)
             .ToListAsync(cancellationToken);
 
+        // Informational only — these are NOT included in today's settlement
+        // totals and do NOT block closing. Surfaced in the result message so
+        // admin knows they're still sitting there awaiting review.
+        var draftCountAsOfClosure = await context.Orders
+            .CountAsync(o => !o.IsDeleted && o.Status == OrderStatus.Draft && o.OrderDate <= closureDate, cancellationToken);
+
         // Lock each order
         foreach (var order in ordersToLock)
         {
@@ -36354,6 +41228,31 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
 
         await context.DailyClosures.AddAsync(closure, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
+
+        // ── Also close every open route execution ───────────────────────────
+        // Without this, the settlement closure above locks orders and creates
+        // the DailyClosure record, but route execution status never changes —
+        // so order-taking routes would stay stuck at "in progress" forever and
+        // never go back to a fresh, startable state for the next day. This is
+        // what actually makes route cards reset.
+        // Non-blocking: if this fails for any reason, the settlement closure
+        // itself has already succeeded and should not be rolled back over it.
+        int closedRouteCount = 0;
+        try
+        {
+            var closeDayResult = await mediator.Send(
+                new FMCG.Distribution.Application.Features.Routes.Commands.CloseDayCommand
+                {
+                    AdminUserId = closedByUserId,
+                },
+                cancellationToken);
+
+            if (closeDayResult.IsSuccess && closeDayResult.Data != null)
+            {
+                closedRouteCount = closeDayResult.Data.ClosedRouteCount;
+            }
+        }
+        catch { /* swallow — settlement closure itself already succeeded */ }
 
         // ── Auto-generate reports post-closure ────────────────────────────────
         // Non-blocking: report failures do not roll back the closure.
@@ -36399,21 +41298,48 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
             TotalOutstanding = closure.TotalOutstanding,
             ExpectedCash = closure.ExpectedCash,
             Success = true,
-            Message = $"Operational day closed successfully. Expected cash: {closure.ExpectedCash:C}",
+            Message = BuildClosureMessage(closure.ExpectedCash, closedRouteCount, draftCountAsOfClosure),
             LoadingSheetUrl = loadingUrl,
             BillingSheetUrl = billingUrl,
+            ClosedRouteCount = closedRouteCount,
         };
     }
-}
-</file>
 
-<file path="src/FMCG.Distribution.Shared/Class1.cs">
+    private static string BuildClosureMessage(decimal expectedCash, int closedRouteCount, int draftCount)
+    {
+        var parts = new List<string> { $"Operational day closed successfully. Expected cash: {expectedCash:C}." };
+        if (closedRouteCount > 0)
+            parts.Add($"{closedRouteCount} route(s) closed and ready fresh tomorrow.");
+        if (draftCount > 0)
+            parts.Add($"Note: {draftCount} draft order(s) weren't included (still awaiting review) — they're untouched and can still be edited.");
+        return string.Join(" ", parts);
+    }
+}
+```
+
+## File: src/FMCG.Distribution.Shared/Class1.cs
+```csharp
 namespace FMCG.Distribution.Shared;
 
 public class Class1
 {
 
 }
-</file>
+```
 
-</files>
+## File: src/FMCG.Distribution.Shared/FMCG.Distribution.Shared.csproj
+```
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\FMCG.Distribution.Domain\FMCG.Distribution.Domain.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
+```

@@ -51,7 +51,8 @@ public class SearchProductsQueryHandler(IApplicationDbContext context)
                 UnitName = p.DefaultUnit != null ? p.DefaultUnit.Name : string.Empty,  // ← CHANGE THIS
                 UnitSymbol = p.DefaultUnit != null ? p.DefaultUnit.Symbol : string.Empty,  // ← CHANGE THIS
                 BasePrice = p.BasePrice,
-                IsActive = p.IsActive
+                IsActive = p.IsActive,
+                ItemCode = p.ItemCode
             })
             .ToListAsync(cancellationToken);
 

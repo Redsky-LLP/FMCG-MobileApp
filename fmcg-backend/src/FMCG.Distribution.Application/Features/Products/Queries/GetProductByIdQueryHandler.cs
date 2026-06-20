@@ -33,7 +33,14 @@ public class GetProductByIdQueryHandler(IApplicationDbContext context)
             ProductUnitSymbol = product.DefaultUnit?.Symbol,  // ← CHANGE THIS
             BasePrice = product.BasePrice,
             IsActive = product.IsActive,
-            CreatedAt = product.CreatedAt
+            CreatedAt = product.CreatedAt,
+            ItemCode = product.ItemCode,
+            Sku = product.Sku,
+            HSNCode = product.HSNCode,
+            Supplier = product.Supplier,
+            ClosingStock = product.ClosingStock,
+            MinOrderQty = product.MinOrderQty,
+            MaxOrderQty = product.MaxOrderQty
         };
 
         return Result<ProductDetailDto>.Success(dto);

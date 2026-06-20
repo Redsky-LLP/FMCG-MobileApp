@@ -1,564 +1,482 @@
 // PATH: src/pages/Salesman/SalesmanOrders.tsx
-// UPDATED: Added SubmitAllOrdersModal and improved order status display
+// UPDATED:
+//  - Shows "No Order" shops section (customers visited with NoOrder status)
+//  - Salesman/admin can call customer directly from No Order card
+//  - Dark theme matching other pages
+//  - Fixed TypeScript errors with status types
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  ArrowLeft, Plus, ChevronRight, CheckCircle2, Clock, 
-  Calendar, Package, Eye, List, User, Search, Send, 
-  RefreshCw, AlertCircle, Edit2, ClipboardList, Truck,
-  Filter, X, CheckCircle
+import {
+  ArrowLeft, CheckCircle2, Clock, Calendar, Package, Eye,
+  User, Search, Send, RefreshCw, Edit2, ClipboardList,
+  Filter, X, CheckCircle, Ban, Phone, MapPin, AlertCircle,
 } from 'lucide-react';
 import { customersApi, ordersApi, routesApi } from '../../api/services';
 import { CustomerDto, OrderDto, RouteDto, OrderStatus, fmt, OrderItemDto } from '../../types';
-import { Spinner, EmptyState, Badge, Alert } from '../../components/ui';
+import { Spinner } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
-import { SubmitAllOrdersModal } from '../../components/salesman/SubmitAllOrdersModal';
 
-// Status badge component - UPDATED to show appropriate action
-function OrderStatusBadge({ status }: { status: number }) {
-  const config: Record<number, { label: string; bg: string; text: string; icon: React.ReactNode; canEdit: boolean }> = {
-    1: { label: 'Draft', bg: 'bg-amber-50', text: 'text-amber-700', icon: <Edit2 size={12} />, canEdit: true },
-    2: { label: 'Pending Approval', bg: 'bg-blue-50', text: 'text-blue-700', icon: <Clock size={12} />, canEdit: false },
-    3: { label: 'Approved', bg: 'bg-indigo-50', text: 'text-indigo-700', icon: <CheckCircle size={12} />, canEdit: false },
-    4: { label: 'Packed', bg: 'bg-purple-50', text: 'text-purple-700', icon: <Package size={12} />, canEdit: false },
-    5: { label: 'Closed', bg: 'bg-green-50', text: 'text-green-700', icon: <CheckCircle2 size={12} />, canEdit: false },
+// ── Dark theme tokens ─────────────────────────────────────────────────────────
+const D = {
+  bg:       '#0f172a',
+  surface:  '#1e293b',
+  surface2: '#243447',
+  border:   '#334155',
+  accent:   '#ea580c',
+  accentH:  '#c2410c',
+  accentGlow: 'rgba(234,88,12,0.25)',
+  text:     '#f1f5f9',
+  muted:    '#94a3b8',
+  sub:      '#64748b',
+  green:    '#22c55e',
+  red:      '#ef4444',
+  amber:    '#f59e0b',
+  card:     '#1e293b',
+};
+
+// ── Status badge ───────────────────────────────────────────────
+function OrderStatusBadge({ status }: { status: OrderStatus }) {
+  const cfg: Record<OrderStatus, { label: string; bg: string; color: string; icon: React.ReactNode }> = {
+    [OrderStatus.Draft]:            { label: 'Draft',            bg: 'rgba(234,88,12,0.15)', color: D.accent, icon: <Edit2 size={11} /> },
+    [OrderStatus.PendingApproval]:  { label: 'Pending Approval', bg: 'rgba(59,130,246,0.15)', color: '#3B82F6', icon: <Clock size={11} /> },
+    [OrderStatus.Approved]:         { label: 'Approved',         bg: 'rgba(79,70,229,0.15)', color: '#4F46E5', icon: <CheckCircle size={11} /> },
+    [OrderStatus.Packed]:           { label: 'Packed',           bg: 'rgba(124,58,237,0.15)', color: '#7C3AED', icon: <Package size={11} /> },
+    [OrderStatus.Closed]:           { label: 'Closed',           bg: 'rgba(34,197,94,0.15)', color: D.green, icon: <CheckCircle2 size={11} /> },
   };
-  const c = config[status] || config[1];
+  const c = cfg[status] || cfg[OrderStatus.Draft];
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${c.bg} ${c.text}`}>
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '3px 9px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+      background: c.bg, color: c.color,
+    }}>
       {c.icon} {c.label}
     </span>
   );
 }
 
-// Order item card component - UPDATED with delivery status
-function OrderItemCard({ 
-  order, 
-  routeId, 
-  onNavigate,
-  onEdit 
-}: { 
-  order: OrderDto; 
-  routeId: string; 
-  onNavigate: (customerId: string) => void;
-  onEdit: (orderId: string, customerId: string) => void;
+// ── Order card ─────────────────────────────────────────────────
+function OrderCard({
+  order, routeId, onEdit,
+}: {
+  order: OrderDto;
+  routeId: string;
+  onEdit: (customerId: string) => void;
 }) {
   const [showItems, setShowItems] = useState(false);
-  const itemCount = order.items?.length ?? 0;
-  const totalQuantity = order.items?.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
-  const isDraft = order.status === OrderStatus.Draft;
-  const isPendingApproval = order.status === OrderStatus.PendingApproval;
+  const isDraft   = order.status === OrderStatus.Draft;
+  const isClosed  = order.status === OrderStatus.Closed;
+  const isPending = order.status === OrderStatus.PendingApproval;
   const isApproved = order.status === OrderStatus.Approved;
-  const isPacked = order.status === OrderStatus.Packed;
-  const isClosed = order.status === OrderStatus.Closed;
-  
-  // Determine delivery status message
-  let deliveryStatus = null;
-  if (isPendingApproval) {
-    deliveryStatus = { text: 'Waiting for admin approval', color: 'text-blue-600', bg: 'bg-blue-50' };
-  } else if (isApproved) {
-    deliveryStatus = { text: 'Approved - Ready for packing', color: 'text-indigo-600', bg: 'bg-indigo-50' };
-  } else if (isPacked) {
-    deliveryStatus = { text: 'Packed - Ready for delivery', color: 'text-purple-600', bg: 'bg-purple-50' };
-  } else if (isClosed) {
-    deliveryStatus = { text: 'Delivered ✓', color: 'text-green-600', bg: 'bg-green-50' };
-  }
+  const isPacked  = order.status === OrderStatus.Packed;
 
-  const getProductName = (item: OrderItemDto): string => {
-    return item.productName || item.productNameMl || 'Unknown';
-  };
-
-  const getUnitSymbol = (item: OrderItemDto): string => {
-    return item.unitSymbol || item.unitName || 'pc';
-  };
+  const deliveryMsg =
+    isPending  ? { text: 'Waiting for admin approval', color: '#3B82F6', bg: 'rgba(59,130,246,0.08)' } :
+    isApproved ? { text: 'Approved — ready for packing', color: '#4F46E5', bg: 'rgba(79,70,229,0.08)' } :
+    isPacked   ? { text: 'Packed — ready for delivery', color: '#7C3AED', bg: 'rgba(124,58,237,0.08)' } :
+    isClosed   ? { text: 'Delivered ✓', color: D.green, bg: 'rgba(34,197,94,0.08)' } : null;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden transition-all hover:shadow-md">
-      <div className="p-4 cursor-pointer" onClick={() => onNavigate(String(order.customerId))}>
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-              <User size={18} className="text-blue-600" />
+    <div style={{ background: D.surface, borderRadius: 12, overflow: 'hidden', border: `1px solid ${D.border}`, marginBottom: 8 }}>
+      <div style={{ padding: '12px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+            <div style={{ width: 38, height: 38, borderRadius: '50%', background: `${D.accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <User size={17} color={D.accent} />
             </div>
-            <div>
-              <p className="text-base font-semibold text-slate-800">{order.customerName}</p>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: D.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {order.customerName}
+              </p>
               {order.customerNameMalayalam && (
-                <p className="text-sm text-slate-500" lang="ml">{order.customerNameMalayalam}</p>
+                <p style={{ margin: '1px 0 0', fontSize: 12, color: D.sub }} lang="ml">{order.customerNameMalayalam}</p>
               )}
             </div>
           </div>
           <OrderStatusBadge status={order.status} />
         </div>
 
-        <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center gap-4 flex-wrap text-sm text-slate-500">
-            <span className="flex items-center gap-1.5">📦 {itemCount} item{itemCount !== 1 ? 's' : ''}</span>
-            <span className="flex items-center gap-1.5">📊 {totalQuantity} units</span>
-            <span className="flex items-center gap-1.5">🕐 {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12, color: D.sub }}>📦 {order.items?.length ?? 0} items</span>
+            <span style={{ fontSize: 12, color: D.sub }}>📊 {order.items?.reduce((s, i) => s + i.quantity, 0) ?? 0} units</span>
+            <span style={{ fontSize: 12, color: D.sub }}>
+              🕐 {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+            </span>
           </div>
-          <div className="text-right">
-            <p className="text-xl font-bold text-slate-800">{fmt(order.totalAmount ?? 0)}</p>
-          </div>
+          <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: D.text }}>₹{fmt(order.totalAmount ?? 0)}</p>
         </div>
-        
-        {/* Delivery Status Indicator */}
-        {deliveryStatus && (
-          <div className={`mt-3 pt-2 ${deliveryStatus.bg} rounded-lg px-3 py-2 text-sm ${deliveryStatus.color} flex items-center gap-2`}>
-            {isPendingApproval && <Clock size={14} />}
-            {isApproved && <CheckCircle size={14} />}
-            {isPacked && <Package size={14} />}
-            {isClosed && <CheckCircle2 size={14} />}
-            <span>{deliveryStatus.text}</span>
+
+        {/* Delivery status */}
+        {deliveryMsg && (
+          <div style={{ marginTop: 8, padding: '6px 10px', background: deliveryMsg.bg, borderRadius: 7, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Clock size={12} color={deliveryMsg.color} />
+            <span style={{ fontSize: 12, color: deliveryMsg.color, fontWeight: 600 }}>{deliveryMsg.text}</span>
           </div>
         )}
-        
-        {order.items && order.items.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-slate-100">
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowItems(!showItems); }}
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 transition-colors"
-            >
-              <Eye size={14} />
-              {showItems ? 'Hide items' : `View ${order.items.length} item(s)`}
-            </button>
-            {showItems && (
-              <div className="mt-2 space-y-2">
-                {order.items.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-sm bg-slate-50 p-3 rounded-lg">
-                    <div className="flex-1">
-                      <p className="text-slate-700 text-base font-medium">{getProductName(item)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-slate-700">{item.quantity} {getUnitSymbol(item)}</p>
-                      <p className="text-sm font-semibold text-slate-800">{fmt(item.sellingPrice * item.quantity)}</p>
-                    </div>
-                  </div>
-                ))}
+
+        {/* Items toggle */}
+        {(order.items?.length ?? 0) > 0 && (
+          <button
+            onClick={() => setShowItems(!showItems)}
+            style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: D.accent, fontSize: 12, cursor: 'pointer', padding: 0, fontFamily: 'inherit', fontWeight: 600, touchAction: 'manipulation' }}
+          >
+            <Eye size={13} /> {showItems ? 'Hide items' : `View ${order.items!.length} item(s)`}
+          </button>
+        )}
+
+        {showItems && (
+          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {(order.items ?? []).map((item, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: D.bg, borderRadius: 7 }}>
+                <span style={{ fontSize: 13, color: D.muted, flex: 1 }}>{item.productName ?? 'Product'}</span>
+                <span style={{ fontSize: 12, color: D.sub, marginRight: 10 }}>{item.quantity} {item.unitSymbol || 'pc'}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: D.accent }}>₹{fmt(item.sellingPrice * item.quantity)}</span>
               </div>
-            )}
+            ))}
           </div>
         )}
       </div>
 
-      {/* Only show Edit button for Draft orders */}
+      {/* Edit button for drafts */}
       {isDraft && (
-        <div className="border-t border-slate-100 bg-slate-50 px-4 py-2 flex justify-end">
+        <div style={{ borderTop: `1px solid ${D.border}`, padding: '8px 14px', background: D.bg, display: 'flex', justifyContent: 'flex-end' }}>
           <button
-            onClick={(e) => { e.stopPropagation(); onEdit(String(order.id), String(order.customerId)); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+            onClick={() => onEdit(String(order.customerId))}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', background: `${D.accent}22`, border: `1px solid ${D.accent}44`, borderRadius: 8, fontSize: 12, fontWeight: 700, color: D.accent, cursor: 'pointer', fontFamily: 'inherit', touchAction: 'manipulation' }}
           >
-            <Edit2 size={14} /> Edit Order
+            <Edit2 size={13} /> Edit Order
           </button>
         </div>
       )}
-      
-      {/* Show Completed message for Closed orders */}
-      {isClosed && (
-        <div className="border-t border-green-100 px-4 py-2 bg-green-50">
-          <div className="flex items-center gap-2 text-sm text-green-700">
-            <CheckCircle2 size={14} /> Order completed and delivered
-          </div>
+    </div>
+  );
+}
+
+// ── No Order card ──────────────────────────────────────────────
+function NoOrderCard({ customer }: { customer: CustomerDto & { skipReason?: string } }) {
+  return (
+    <div style={{
+      background: 'rgba(245,158,11,0.08)', borderRadius: 12, overflow: 'hidden',
+      border: `1px solid ${D.amber}44`, marginBottom: 8,
+    }}>
+      <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Ban size={17} color={D.amber} />
         </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: D.text }}>{customer.nameEnglish}</p>
+          {customer.nameMalayalam && (
+            <p style={{ margin: '1px 0 0', fontSize: 12, color: D.sub }} lang="ml">{customer.nameMalayalam}</p>
+          )}
+          <div style={{ display: 'flex', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
+            {customer.address && (
+              <span style={{ fontSize: 11, color: D.amber, display: 'flex', alignItems: 'center', gap: 3 }}>
+                <MapPin size={11} />{customer.address}
+              </span>
+            )}
+          </div>
+          {(customer as any).skipReason && (
+            <p style={{ margin: '4px 0 0', fontSize: 11, color: D.amber, background: 'rgba(245,158,11,0.10)', padding: '3px 8px', borderRadius: 5 }}>
+              Note: {(customer as any).skipReason}
+            </p>
+          )}
+        </div>
+        <span style={{ fontSize: 10, padding: '3px 9px', borderRadius: 20, background: 'rgba(245,158,11,0.15)', color: D.amber, fontWeight: 700, flexShrink: 0 }}>
+          No Order
+        </span>
+      </div>
+      {customer.phoneNumber && (
+        <a
+          href={`tel:${customer.phoneNumber}`}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            padding: '10px', borderTop: `1px solid ${D.amber}44`,
+            background: 'rgba(245,158,11,0.05)', color: D.amber, fontWeight: 700, fontSize: 13,
+            textDecoration: 'none',
+          }}
+        >
+          <Phone size={14} /> Call {customer.phoneNumber}
+        </a>
       )}
     </div>
   );
 }
 
-// Customer list item component
-function CustomerListItem({ customer, routeId, onNavigate }: {
-  customer: CustomerDto;
-  routeId: string;
-  onNavigate: (customerId: string) => void;
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 transition-all hover:shadow-md">
-      <button
-        onClick={() => onNavigate(String(customer.id))}
-        className="w-full text-left"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-              <User size={20} className="text-blue-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-slate-800 text-base truncate">{customer.nameEnglish}</span>
-                {customer.nameMalayalam && (
-                  <span className="text-sm text-slate-500 truncate" lang="ml">{customer.nameMalayalam}</span>
-                )}
-              </div>
-              <p className="text-sm text-slate-500 mt-0.5">{customer.phoneNumber ?? customer.address ?? 'No contact'}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full font-medium bg-blue-50 text-blue-600 border border-blue-200">
-              <Plus size={14} /> New Order
-            </span>
-            <ChevronRight size={18} className="text-slate-400" />
-          </div>
-        </div>
-      </button>
-    </div>
-  );
-}
-
+// ─────────────────────────────────────────────────────────────
 export default function SalesmanOrders() {
   const { routeId } = useParams<{ routeId: string }>();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user } = useAuthStore();
-  const [route, setRoute] = useState<RouteDto | null>(null);
-  const [customers, setCustomers] = useState<CustomerDto[]>([]);
-  const [orders, setOrders] = useState<OrderDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<number | 'all'>('all');
-  const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-  const [submittingAll, setSubmittingAll] = useState(false);
-  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const navigate    = useNavigate();
+  const location    = useLocation();
+  const { user }    = useAuthStore();
 
-  // Get today's date in YYYY-MM-DD format
+  const [route,        setRoute]        = useState<RouteDto | null>(null);
+  const [customers,    setCustomers]    = useState<CustomerDto[]>([]);
+  const [orders,       setOrders]       = useState<OrderDto[]>([]);
+  const [noOrderCustomers, setNoOrderCustomers] = useState<CustomerDto[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [search,       setSearch]       = useState('');
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
+  const [error,        setError]        = useState('');
+  const [successMsg,   setSuccessMsg]   = useState('');
+  const [submittingAll, setSubmittingAll] = useState(false);
+
   const today = new Date().toISOString().slice(0, 10);
 
   async function load() {
     if (!routeId || routeId === 'NaN' || routeId === 'undefined') {
-      setError('Invalid route selected. Please go back and select a valid route.');
+      setError('Invalid route selected.');
       setLoading(false);
       return;
     }
-    
-    setLoading(true);
-    setError('');
-    
+    setLoading(true); setError('');
     try {
-      const id = routeId;
       const [r, c, o] = await Promise.all([
-        routesApi.getById(id),
-        customersApi.list(id),
-        ordersApi.getByRoute(id),
+        routesApi.getById(routeId),
+        customersApi.list(routeId),
+        ordersApi.getByRoute(routeId),
       ]);
       setRoute(r);
       setCustomers(c);
-      
-      // Filter orders to show only TODAY's orders
-      const todayOrders = o.filter(order => order.orderDate?.startsWith(today));
-      const sortedOrders = [...todayOrders].sort((a, b) => 
-        new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
-      );
-      setOrders(sortedOrders);
+      const todayOrders = o
+        .filter(order => order.orderDate?.startsWith(today))
+        .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
+      setOrders(todayOrders);
+
+      // Get NoOrder customers from today's execution
+      try {
+        const exec = await routesApi.getCurrentExecution(routeId);
+        if (exec?.customers) {
+          const noOrderIds = new Set(
+            exec.customers
+              .filter(v => v.visitStatus === 'NoOrder')
+              .map(v => String(v.customerId))
+          );
+          const noOrderCusts = c.filter(cu => noOrderIds.has(String(cu.id)));
+          setNoOrderCustomers(noOrderCusts);
+        }
+      } catch { setNoOrderCustomers([]); }
+
     } catch (err: any) {
-      console.error('Error loading data:', err);
       setError(err.message || 'Failed to load data');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
-  useEffect(() => {
-    load();
-  }, [routeId, location.state]);
+  useEffect(() => { load(); }, [routeId, location.state]);
 
-  // Submit all draft orders at once
-  const handleSubmitAllOrders = async () => {
-    const draftOrders = orders.filter(o => o.status === OrderStatus.Draft);
-    if (draftOrders.length === 0) {
-      setError('No draft orders to submit.');
-      return;
-    }
-    
-    setSubmittingAll(true);
-    setError('');
-    setSuccessMsg('');
-    
+  const handleSubmitAll = async () => {
+    const drafts = orders.filter(o => o.status === OrderStatus.Draft);
+    if (drafts.length === 0) { setError('No draft orders to submit.'); return; }
+    setSubmittingAll(true); setError('');
     try {
-      let submitted = 0;
-      for (const order of draftOrders) {
-        await ordersApi.submit(String(order.id));
-        submitted++;
-      }
-      setSuccessMsg(`✅ ${submitted} order(s) submitted for admin approval!`);
-      setShowSubmitConfirm(false);
-      await load(); // Refresh the page to show updated status
-      
-      setTimeout(() => {
-        setSuccessMsg('');
-      }, 4000);
-      
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Submission failed';
-      setError(errorMessage);
-    } finally {
-      setSubmittingAll(false);
-    }
+      for (const order of drafts) await ordersApi.submit(String(order.id));
+      setSuccessMsg(`${drafts.length} order${drafts.length > 1 ? 's' : ''} submitted ✓`);
+      await load();
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Submission failed');
+    } finally { setSubmittingAll(false); }
   };
 
-  const customersWithOrders = new Set(orders.map(o => String(o.customerId)));
-  const customersWithoutOrders = customers.filter(c => !customersWithOrders.has(String(c.id)));
-
-  const filteredCustomers = customersWithoutOrders.filter(c =>
-    c.nameEnglish.toLowerCase().includes(search.toLowerCase()) ||    
-    (c.nameMalayalam && c.nameMalayalam.toLowerCase().includes(search.toLowerCase())) ||
-    (c.phoneNumber && c.phoneNumber.includes(search))
-  );
+  const draftCount    = orders.filter(o => o.status === OrderStatus.Draft).length;
+  const pendingCount  = orders.filter(o => o.status === OrderStatus.PendingApproval).length;
+  const approvedCount = orders.filter(o => [OrderStatus.Approved, OrderStatus.Packed].includes(o.status)).length;
+  const closedCount   = orders.filter(o => o.status === OrderStatus.Closed).length;
+  const totalAmount   = orders.reduce((s, o) => s + (o.totalAmount ?? 0), 0);
 
   const filteredOrders = orders.filter(order => {
     if (statusFilter !== 'all' && order.status !== statusFilter) return false;
     if (!search) return true;
-    return order.customerName?.toLowerCase().includes(search.toLowerCase());
+    return order.customerName?.toLowerCase().includes(search.toLowerCase()) ||
+           order.customerNameMalayalam?.toLowerCase().includes(search.toLowerCase());
   });
 
-  const draftCount = orders.filter(o => o.status === OrderStatus.Draft).length;
-  const pendingCount = orders.filter(o => o.status === OrderStatus.PendingApproval).length;
-  const approvedCount = orders.filter(o => o.status === OrderStatus.Approved || o.status === OrderStatus.Packed).length;
-  const closedCount = orders.filter(o => o.status === OrderStatus.Closed).length;
-  const totalAmount = orders.reduce((s, o) => s + (o.totalAmount ?? 0), 0);
-
-  const handleNavigateToOrder = (customerId: string) => {
-    navigate(`/salesman/routes/${routeId}/order/${customerId}`);
-  };
-
-  const handleEditOrder = (orderId: string, customerId: string) => {
-    navigate(`/salesman/routes/${routeId}/order/${customerId}`);
-  };
+  const orderedCustomerIds = new Set(orders.map(o => String(o.customerId)));
+  const unvisitedCustomers = customers.filter(c =>
+    !orderedCustomerIds.has(String(c.id)) &&
+    !noOrderCustomers.some(nc => String(nc.id) === String(c.id))
+  );
 
   if (loading) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+    <div style={{ minHeight: '100vh', background: D.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <Spinner size={40} />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 py-4 shadow-sm">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={() => navigate('/salesman/routes')} 
-                className="flex items-center gap-2 text-slate-600 hover:text-blue-600 font-semibold text-base transition-colors"
+    <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 100 }}>
+
+      {/* ── Sticky header ───────────────────────────────── */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})` }}>
+        <div style={{ padding: '12px 14px 10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                onClick={() => navigate('/salesman/routes')}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.20)', border: 'none', borderRadius: 8, padding: '6px 10px', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', touchAction: 'manipulation' }}
               >
-                <ArrowLeft size={20} />
-                <span className="text-base">Routes</span>
+                <ArrowLeft size={15} /> Routes
               </button>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={load}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-                title="Refresh"
-              >
-                <RefreshCw size={14} /> Refresh
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={load} style={{ background: 'rgba(255,255,255,0.20)', border: 'none', borderRadius: 8, padding: '7px 10px', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', touchAction: 'manipulation' }}>
+                <RefreshCw size={13} /> Refresh
               </button>
               {draftCount > 0 && (
                 <button
-                  onClick={() => setShowSubmitConfirm(true)}
+                  onClick={handleSubmitAll}
                   disabled={submittingAll}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 shadow-sm"
+                  style={{ background: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', color: D.accent, cursor: submittingAll ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 800, fontFamily: 'inherit', touchAction: 'manipulation', opacity: submittingAll ? 0.6 : 1 }}
                 >
-                  <Send size={16} />
+                  {submittingAll ? <Spinner size={13} /> : <Send size={13} />}
                   Submit All ({draftCount})
                 </button>
               )}
             </div>
           </div>
-          
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">{route?.name ?? 'Route Orders'}</h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              {customers.length} customers · {fmt(totalAmount)} total · {today}
-            </p>
-          </div>
 
-          {/* Stats chips */}
-          <div className="flex gap-3 mt-3 mb-3 overflow-x-auto pb-1">
-            <div className="shrink-0 bg-white border border-slate-200 rounded-lg px-4 py-2 shadow-sm">
-              <span className="text-sm text-slate-500">Orders Today</span>
-              <span className="ml-2 font-bold text-slate-800">{orders.length}/{customers.length}</span>
+          <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>
+            {route?.name ?? 'Route Orders'}
+          </h1>
+          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>
+            {customers.length} customers · ₹{fmt(totalAmount)} total · {today}
+          </p>
+        </div>
+
+        {/* Stats strip */}
+        <div style={{ display: 'flex', gap: 0, background: 'rgba(0,0,0,0.15)', overflowX: 'auto', padding: '0 14px 10px' }}>
+          {[
+            { label: 'All', val: orders.length, active: statusFilter === 'all', onClick: () => setStatusFilter('all') },
+            { label: 'Draft', val: draftCount, active: statusFilter === OrderStatus.Draft, onClick: () => setStatusFilter(OrderStatus.Draft) },
+            { label: 'Pending', val: pendingCount, active: statusFilter === OrderStatus.PendingApproval, onClick: () => setStatusFilter(OrderStatus.PendingApproval) },
+            { label: 'Approved', val: approvedCount, active: statusFilter === OrderStatus.Approved, onClick: () => setStatusFilter(OrderStatus.Approved) },
+            { label: 'Closed', val: closedCount, active: statusFilter === OrderStatus.Closed, onClick: () => setStatusFilter(OrderStatus.Closed) },
+          ].map(s => (
+            <button key={s.label} onClick={s.onClick} style={{ flexShrink: 0, background: s.active ? '#fff' : 'rgba(255,255,255,0.18)', border: 'none', borderRadius: 20, padding: '4px 12px', marginRight: 6, color: s.active ? D.accent : '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', touchAction: 'manipulation' }}>
+              {s.label} {s.val}
+            </button>
+          ))}
+        </div>
+
+        {/* Progress bar */}
+        {customers.length > 0 && (
+          <div style={{ margin: '0 14px 10px' }}>
+            <div style={{ height: 4, background: 'rgba(255,255,255,0.25)', borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{ width: `${(orders.length / customers.length) * 100}%`, height: '100%', background: '#fff', borderRadius: 2, transition: 'width 0.4s' }} />
             </div>
-            <div className="shrink-0 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
-              <span className="text-sm text-amber-600">Draft</span>
-              <span className="ml-2 font-bold text-amber-700">{draftCount}</span>
-            </div>
-            <div className="shrink-0 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
-              <span className="text-sm text-blue-600">Pending Approval</span>
-              <span className="ml-2 font-bold text-blue-700">{pendingCount}</span>
-            </div>
-            <div className="shrink-0 bg-green-50 border border-green-200 rounded-lg px-4 py-2">
-              <span className="text-sm text-green-600">Completed</span>
-              <span className="ml-2 font-bold text-green-700">{closedCount}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Order Progress</span>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: 700 }}>{orders.length} of {customers.length} customers</span>
             </div>
           </div>
+        )}
 
-          {/* Progress indicator */}
-          {customers.length > 0 && (
-            <div className="mt-2 mb-3">
-              <div className="flex justify-between text-xs text-slate-500 mb-1">
-                <span>Order Progress</span>
-                <span>{orders.length} of {customers.length} customers</span>
-              </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-emerald-500 rounded-full transition-all duration-300"
-                  style={{ width: `${(orders.length / customers.length) * 100}%` }}
-                />
-              </div>
-            </div>
+        {/* Search */}
+        <div style={{ margin: '0 14px 12px', position: 'relative' }}>
+          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.6)', pointerEvents: 'none' }} />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search customer or order..."
+            style={{ width: '100%', padding: '8px 34px 8px 32px', background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 8, fontSize: 13, color: '#fff', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+          />
+          {search && (
+            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 2, touchAction: 'manipulation' }}>
+              <X size={14} />
+            </button>
           )}
-
-          {/* Filter chips */}
-          <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
-            <button
-              onClick={() => setStatusFilter('all')}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                statusFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
-              }`}
-            >
-              All ({orders.length})
-            </button>
-            <button
-              onClick={() => setStatusFilter(OrderStatus.Draft)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                statusFilter === OrderStatus.Draft ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700'
-              }`}
-            >
-              Draft ({draftCount})
-            </button>
-            <button
-              onClick={() => setStatusFilter(OrderStatus.PendingApproval)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                statusFilter === OrderStatus.PendingApproval ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700'
-              }`}
-            >
-              Pending ({pendingCount})
-            </button>
-            <button
-              onClick={() => setStatusFilter(OrderStatus.Approved)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                statusFilter === OrderStatus.Approved ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-700'
-              }`}
-            >
-              Approved ({approvedCount})
-            </button>
-            <button
-              onClick={() => setStatusFilter(OrderStatus.Closed)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                statusFilter === OrderStatus.Closed ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700'
-              }`}
-            >
-              Completed ({closedCount})
-            </button>
-          </div>
-
-          {/* Search input */}
-          <div className="relative mt-3">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-base focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-              placeholder="Search customer or order…"
-              lang="ml"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            {search && (
-              <button
-                onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
         </div>
       </div>
 
-      {/* Error/Success messages */}
+      {/* Alerts */}
       {error && (
-        <div className="max-w-7xl mx-auto px-4 mt-4">
-          <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center justify-between">
-            <span className="text-sm text-red-700">{error}</span>
-            <button onClick={() => setError('')} className="text-red-400 hover:text-red-600">✕</button>
-          </div>
+        <div style={{ margin: '10px 10px 0', padding: '10px 14px', background: 'rgba(239,68,68,0.10)', border: `1px solid ${D.red}33`, borderRadius: 10, color: D.red, fontSize: 13, display: 'flex', justifyContent: 'space-between' }}>
+          <span>{error}</span>
+          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: D.red, cursor: 'pointer', fontFamily: 'inherit' }}>✕</button>
         </div>
       )}
       {successMsg && (
-        <div className="max-w-7xl mx-auto px-4 mt-4">
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between">
-            <span className="text-sm text-emerald-700">{successMsg}</span>
-            <button onClick={() => setSuccessMsg('')} className="text-emerald-400 hover:text-emerald-600">✕</button>
-          </div>
+        <div style={{ margin: '10px 10px 0', padding: '10px 14px', background: 'rgba(34,197,94,0.10)', border: `1px solid ${D.green}33`, borderRadius: 10, color: D.green, fontSize: 13, fontWeight: 700 }}>
+          {successMsg}
         </div>
       )}
 
-      {/* Today's Orders */}
-      <div className="max-w-7xl mx-auto px-4 mt-4">
-        <h2 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
-          <ClipboardList size={16} /> Today's Orders
-        </h2>
-        
-        {filteredOrders.length === 0 && !search && statusFilter === 'all' && (
-          <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
-            <Package size={48} className="mx-auto text-slate-300 mb-3 opacity-40" />
-            <p className="text-slate-500">No orders yet today</p>
-            <p className="text-sm text-slate-400 mt-1">Create orders from the customer list below</p>
-          </div>
-        )}
-        
-        {filteredOrders.length === 0 && (search || statusFilter !== 'all') && (
-          <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
-            <p className="text-slate-500">No orders match your filters</p>
-            <button 
-              onClick={() => { setSearch(''); setStatusFilter('all'); }}
-              className="mt-2 text-sm text-blue-600 hover:text-blue-700"
-            >
-              Clear filters
-            </button>
-          </div>
-        )}
+      <div style={{ padding: '10px 10px' }}>
 
-        <div className="space-y-3">
-          {filteredOrders.map(order => (
-            <OrderItemCard 
-              key={order.id} 
-              order={order} 
-              routeId={routeId!} 
-              onNavigate={handleNavigateToOrder}
-              onEdit={handleEditOrder}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Customers without orders - New Order section */}
-      {filteredCustomers.length > 0 && (
-        <div className="max-w-7xl mx-auto px-4 mt-6 mb-8">
-          <h2 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
-            <Plus size={16} /> New Orders Needed
-          </h2>
-          <div className="space-y-3">
-            {filteredCustomers.map(customer => (
-              <CustomerListItem 
-                key={customer.id}
-                customer={customer}
+        {/* ── Today's Orders ─────────────────────────────────── */}
+        {filteredOrders.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: D.muted, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <ClipboardList size={13} /> Today's Orders ({filteredOrders.length})
+            </p>
+            {filteredOrders.map(order => (
+              <OrderCard
+                key={order.id}
+                order={order}
                 routeId={routeId!}
-                onNavigate={handleNavigateToOrder}
+                onEdit={(cid) => navigate(`/salesman/routes/${routeId}/order/${cid}`)}
               />
             ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Submit All Orders Modal */}
-      <SubmitAllOrdersModal
-        isOpen={showSubmitConfirm}
-        draftCount={draftCount}
-        isSubmitting={submittingAll}
-        onConfirm={handleSubmitAllOrders}
-        onCancel={() => setShowSubmitConfirm(false)}
-      />
+        {/* Empty orders state */}
+        {filteredOrders.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '32px 20px', background: D.surface, borderRadius: 12, border: `1px solid ${D.border}`, marginBottom: 16 }}>
+            <Package size={40} color={D.border} style={{ marginBottom: 8 }} />
+            <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>
+              {search || statusFilter !== 'all' ? 'No orders match your filters' : 'No orders today yet'}
+            </p>
+            {(search || statusFilter !== 'all') && (
+              <button onClick={() => { setSearch(''); setStatusFilter('all'); }} style={{ marginTop: 8, fontSize: 12, color: D.accent, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── No Order section ───────────────────────────────── */}
+        {noOrderCustomers.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: D.amber, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Ban size={13} /> No Order Shops ({noOrderCustomers.length})
+            </p>
+            <div style={{ marginBottom: 8, padding: '8px 12px', background: 'rgba(245,158,11,0.08)', border: `1px solid ${D.amber}44`, borderRadius: 8, fontSize: 12, color: D.amber }}>
+              💡 These shops were visited but had no orders today. You or admin can call them to follow up.
+            </div>
+            {noOrderCustomers.map(c => (
+              <NoOrderCard key={c.id} customer={c} />
+            ))}
+          </div>
+        )}
+
+        {/* ── Unvisited customers ────────────────────── */}
+        {unvisitedCustomers.length > 0 && !search && (
+          <div>
+            <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Remaining Shops ({unvisitedCustomers.length})
+            </p>
+            {unvisitedCustomers.map(c => (
+              <div key={c.id} style={{ background: D.surface, borderRadius: 10, border: `1px solid ${D.border}`, padding: '10px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: D.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <User size={16} color={D.sub} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: D.text }}>{c.nameEnglish}</p>
+                  {c.nameMalayalam && <p style={{ margin: '1px 0 0', fontSize: 11, color: D.sub }} lang="ml">{c.nameMalayalam}</p>}
+                </div>
+                <button
+                  onClick={() => navigate(`/salesman/routes/${routeId}/order/${c.id}`)}
+                  style={{ padding: '6px 12px', background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', touchAction: 'manipulation', flexShrink: 0 }}
+                >
+                  + Order
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

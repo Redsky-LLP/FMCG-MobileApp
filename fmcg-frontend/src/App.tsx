@@ -6,9 +6,10 @@
 // Fix: read localStorage SYNCHRONOUSLY with getTokenFromStorage().
 // No new dependencies, no hooks needed.
 
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore, useIsAdmin, useIsSalesman, useIsAccounts, useIsWarehouse } from './store/authStore';
+import { setupProactiveTokenRefresh } from './api/tokenRefresh';
 import { Navbar } from './components/layout/Navbar';
 import { PageLoader } from './components/ui';
 import { useIsMobile } from './hooks/useIsMobile';
@@ -41,16 +42,11 @@ const RegisterPage = lazy(() => import('./pages/Auth/RegisterPage').then(m => ({
 
 // ── Home Hub ───────────────────────────────────────────────────────────────
 const HomeHub = lazy(() => import('./pages/Dashboard/HomeHub').then(m => ({ default: m.HomeHub })));
-const MainHub = lazy(() => import('./pages/Dashboard/MainHub').then(m => ({ default: m.MainHub })));
 
 // ── Landing Page ───────────────────────────────────────────────────────────
-// The original import was failing (module not found). Use a safe fallback inline
-// component to prevent build errors when the module is missing. If the real
-// LandingPage component exists at a different path, update this import.
 const LandingPage = lazy(() => import('./pages/Landing/LandingPage_live').then(m => ({ default: m.LandingPage })));
 
 // ── Admin ───────────────────────────────────────────────────────────────────
-const AdminDashboard  = lazy(() => import('./pages/Admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const AdminRoutes     = lazy(() => import('./pages/Admin/AdminRoutes/AdminRoutes').then(m => ({ default: m.AdminRoutes })));
 const EditRoutePage = lazy(() => import('./pages/Admin/AdminRoutes/EditRoutePage'));
 const AssignRoutePage = lazy(() => import('./pages/Admin/AdminRoutes/AssignRoutePage'));
@@ -64,8 +60,8 @@ const AdminSettlement = lazy(() => import('./pages/Admin/AdminSettlement').then(
 const AdminReports    = lazy(() => import('./pages/Admin/AdminReports').then(m => ({ default: m.AdminReports })));
 const AdminAnalytics  = lazy(() => import('./pages/Admin/AdminAnalytics').then(m => ({ default: m.AdminAnalytics })));
 const AdminIncentives = lazy(() => import('./pages/Admin/AdminIncentives').then(m => ({ default: m.AdminIncentives })));
-const AdminSettings   = lazy(() => import('./pages/Admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
 const AdminUsers      = lazy(() => import('./pages/Admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
+const AdminSessionLog = lazy(() => import('./pages/Admin/AdminSessionLog'));
 const AdminDailyAssignment = lazy(() =>
   import('./pages/Admin/AdminDailyAssignment').then(m => ({ default: m.AdminDailyAssignment }))
 );
@@ -77,7 +73,7 @@ const WarehouseDashboard = lazy(() =>
 const SalesmanRoutes    = lazy(() => import('./pages/Salesman/SalesmanRoutes').then(m => ({ default: m.SalesmanRoutes })));
 const SalesmanOrders    = lazy(() => import('./pages/Salesman/SalesmanOrders'));
 const OrderEntry = lazy(() => import('./pages/Salesman/OrderEntry/OrderEntry'));
-const ReviewOrdersPage = lazy(() => import('./pages/Salesman/ReviewOrdersPage'));
+// ReviewOrdersPage removed — submit-all now happens directly on the execute page
 const SalesmanIncentives = lazy(() => import('./pages/Salesman/SalesmanIncentives'));
 const RouteExecution    = lazy(() => import('./pages/Salesman/RouteExecution'));
 const SalesmanCustomers = lazy(() => import('./pages/Salesman/SalesmanCustomers'));
@@ -102,14 +98,14 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const zustandToken = useAuthStore(s => s.token);
 
   if (!stored?.token && !zustandToken) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/pin-login" state={{ from: location }} replace />;
   }
   return <>{children}</>;
 }
 
 function RequireRole({ allowed, children }: { allowed: string[]; children: React.ReactNode }) {
   const user = useAuthStore(s => s.user);
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/pin-login" replace />;
   const role = user.role?.toLowerCase() ?? '';
   const ok = allowed.some(r => r.toLowerCase() === role);
   if (!ok) return <Navigate to="/unauthorized" replace />;
@@ -117,26 +113,19 @@ function RequireRole({ allowed, children }: { allowed: string[]; children: React
 }
 
 // ── "/" route — RootRoute ────────────────────────────────────────────────────
-// Reads auth state synchronously from localStorage.
-// Logged-in user → redirect to their dashboard immediately, zero flash.
-// Guest → render the public landing page.
 function RootRoute() {
   const stored = getStoredAuth();
 
   if (stored?.token && stored?.role) {
     const role = stored.role.toLowerCase();
-    if (role === 'superadmin' || role === 'admin') return <Navigate to="/admin/dashboard"     replace />;
-    if (role === 'salesman')                        return <Navigate to="/salesman/routes"     replace />;
-    if (role === 'accounts')                        return <Navigate to="/accounts/settlement" replace />;
-    if (role === 'warehouse')                       return <Navigate to="/warehouse/loading"   replace />;
+    if (role === 'superadmin' || role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+    if (role === 'salesman') return <Navigate to="/salesman/routes" replace />;
+    if (role === 'accounts') return <Navigate to="/accounts/settlement" replace />;
+    if (role === 'warehouse') return <Navigate to="/warehouse/loading" replace />;
   }
 
-  // Not logged in — show the public marketing page
-  return (
-    <Suspense fallback={<PageLoader />}>
-      <LandingPage />
-    </Suspense>
-  );
+  // Not logged in — go straight to PIN login (salesman-first design)
+  return <Navigate to="/pin-login" replace />;
 }
 
 // ── Shell ───────────────────────────────────────────────────────────────────
@@ -153,7 +142,6 @@ function AppShell() {
             </MobileLayout>
           </Suspense>
         </main>
-        {/* PWA install prompt — shows above mobile nav bar */}
         <PWAInstallPrompt variant="default" autoShowDelay={5000} />
       </div>
     );
@@ -167,7 +155,6 @@ function AppShell() {
           <Outlet />
         </Suspense>
       </main>
-      {/* PWA install prompt for desktop */}
       <PWAInstallPrompt variant="default" autoShowDelay={5000} />
     </div>
   );
@@ -183,7 +170,7 @@ function Unauthorized() {
         <p className="text-[var(--muted)] text-sm mb-6">
           Your role ({user?.role ?? 'unknown'}) does not have permission to view this page.
         </p>
-        <a href="/" className="btn btn-primary">Go to Dashboard</a>
+        <a href="/pin-login" className="btn btn-primary">Go to Login</a>  {/* ← Changed to pin-login */}
       </div>
     </div>
   );
@@ -191,6 +178,13 @@ function Unauthorized() {
 
 // ── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
+  useEffect(() => {
+    // Checks token expiry whenever the tab/app becomes visible again, and
+    // refreshes ahead of time — this is what avoids the "first tap after
+    // reopening the app shows a brief error" flicker for field salesmen.
+    setupProactiveTokenRefresh();
+  }, []);
+
   return (
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
@@ -201,7 +195,7 @@ export default function App() {
           <Route path="/register"     element={<RegisterPage />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Root: shows landing page for guests, redirects logged-in users */}
+          {/* Root: redirects to PIN login for guests, redirects logged-in users to their dashboard */}
           <Route path="/" element={<RootRoute />} />
 
           {/* Protected shell */}
@@ -228,8 +222,8 @@ export default function App() {
               <Route path="reports"    element={<AdminReports />} />
               <Route path="analytics"  element={<AdminAnalytics />} />
               <Route path="incentives" element={<AdminIncentives />} />
-              <Route path="settings"   element={<AdminSettings />} />
-              <Route path="users"      element={<AdminUsers />} />
+              <Route path="users"        element={<AdminUsers />} />
+              <Route path="session-log"  element={<AdminSessionLog />} />
             </Route>
 
             {/* ── Salesman ── */}
@@ -237,15 +231,20 @@ export default function App() {
               path="/salesman"
               element={<RequireRole allowed={['Salesman', 'Admin', 'SuperAdmin']}><Outlet /></RequireRole>}
             >
-              <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard"                                 element={<MainHub />} />
-              <Route path="routes"                                    element={<SalesmanRoutes />} />
-              <Route path="routes/:routeId/execute"                   element={<RouteExecution />} />
-              <Route path="routes/:routeId/orders"                    element={<SalesmanOrders />} />
-              <Route path="routes/:routeId/order/:customerId"         element={<OrderEntry />} />
-              <Route path="routes/:routeId/review-orders"             element={<ReviewOrdersPage />} />
-              <Route path="routes/:routeId/customers"                 element={<SalesmanCustomers />} />
-              <Route path="incentives"                                element={<SalesmanIncentives />} />
+              <Route index element={<Navigate to="routes" replace />} />
+              {/* "dashboard" kept as an alias for old links/bookmarks — the */}
+              {/* SalesmanDashboard.tsx page was merged into SalesmanRoutes  */}
+              {/* (it used a legacy /start endpoint that caused mismatched   */}
+              {/* execution modes — see SalesmanRoutes.tsx for the single   */}
+              {/* canonical "My Routes" flow). */}
+              <Route path="dashboard" element={<Navigate to="/salesman/routes" replace />} />
+              <Route path="routes" element={<SalesmanRoutes />} />
+              <Route path="routes/:routeId/execute" element={<RouteExecution />} />
+              <Route path="routes/:routeId/orders" element={<SalesmanOrders />} />
+              <Route path="routes/:routeId/order/:customerId" element={<OrderEntry />} />
+              {/* review-orders route removed — submit happens on execute page */}
+              <Route path="routes/:routeId/customers" element={<SalesmanCustomers />} />
+              <Route path="incentives" element={<SalesmanIncentives />} />
             </Route>
 
             {/* ── Accounts ── */}

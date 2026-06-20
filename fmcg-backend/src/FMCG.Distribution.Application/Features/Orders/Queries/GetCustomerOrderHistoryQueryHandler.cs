@@ -27,15 +27,17 @@ public class GetCustomerOrderHistoryQueryHandler : IRequestHandler<GetCustomerOr
             return Result<List<CustomerOrderHistoryDto>>.Failure("Customer not found.");
         }
 
-        // Authorization: Salesman can only view customers on their assigned route
+        // Authorization: routes are open to any salesman by default (see
+        // GetActiveRoutesQueryHandler) — only block if the customer's route is
+        // permanently dedicated to a DIFFERENT specific salesman.
         if (!request.IsAdmin && request.SalesmanId.HasValue)
         {
             var route = await _context.Routes
-                .FirstOrDefaultAsync(r => r.Id == customer.RouteId && r.AssignedSalesmanId == request.SalesmanId.Value && !r.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(r => r.Id == customer.RouteId && !r.IsDeleted, cancellationToken);
 
-            if (route == null)
+            if (route != null && route.AssignedSalesmanId.HasValue && route.AssignedSalesmanId != request.SalesmanId.Value)
             {
-                return Result<List<CustomerOrderHistoryDto>>.Failure("You are not authorized to view orders for this customer.");
+                return Result<List<CustomerOrderHistoryDto>>.Failure("This route is permanently assigned to another salesman.");
             }
         }
 

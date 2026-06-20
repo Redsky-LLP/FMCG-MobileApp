@@ -22,4 +22,13 @@ public class ProductDetailDto
     public decimal BasePrice { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    // ── Client-requested fields ──
+    public string? ItemCode { get; set; }
+    public string? Sku { get; set; }
+    public string? HSNCode { get; set; }
+    public string? Supplier { get; set; }
+    public decimal ClosingStock { get; set; }
+    public decimal? MinOrderQty { get; set; }
+    public decimal? MaxOrderQty { get; set; }
 }

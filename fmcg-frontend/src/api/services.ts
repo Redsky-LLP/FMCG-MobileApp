@@ -9,7 +9,7 @@ import apiClient from './client';
 import type {
   ApiResult,
   LoginResponse,
-  RouteDto, RouteDetailDto, CreateRouteCommand, UpdateRouteCommand,
+  RouteDto, RouteDetailDto, CreateRouteCommand, UpdateRouteCommand, ActiveRouteDto,
   CustomerDto, CustomerDetailDto, CreateCustomerCommand, UpdateCustomerCommand,
   ProductGroupDto,
   ProductDto, ProductDetailDto, ProductSearchDto, PriceHistoryDto,
@@ -69,18 +69,47 @@ async function del<T>(url: string): Promise<T> {
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export const authApi = {
+  // ── Admin/Accounts Login (Email + Password) ──
   login: (email: string, password: string) =>
     post<LoginResponse>('/api/v1/auth/login', { email, password }),
+
+  // ── Register (Admin creates users) ──
   register: (email: string, password: string, fullName: string, role: string) =>
     post('/api/v1/auth/register', { email, password, fullName, role }),
-  pinLogin: (email: string, pin: string) =>
-    post<LoginResponse>('/api/v1/auth/pin-login', { email, pin }),
+
+  // ── PIN Login (Salesman - PIN ONLY) ──
+  pinLogin: (pin: string) =>
+    post<LoginResponse>('/api/v1/auth/pin-login', { pin }),
+
+  // ── Set/Change PIN ──
   setPin: (pin: string, userId?: string) =>
     post<boolean>('/api/v1/auth/set-pin', { pin, ...(userId ? { userId } : {}) }),
+  // Instagram-style "already taken" check — admin-only, see AuthController.
+  checkPinAvailability: (pin: string, excludeUserId?: string) =>
+    post<{ isAvailable: boolean; conflictingUserName?: string }>(
+      '/api/v1/auth/check-pin-availability',
+      { pin, ...(excludeUserId ? { excludeUserId } : {}) }
+    ),
+  // Records the logout time for this session on the backend.
+  // Fire-and-forget — if it fails, we still clear the client state.
+  logout: (sessionId?: string) =>
+    post<boolean>('/api/v1/auth/logout', { sessionId: sessionId ?? '00000000-0000-0000-0000-000000000000' })
+      .catch((err) => { console.error('Logout API call failed (local logout still proceeds):', err); }),
+  // Admin only — session history for one user or all users
+  getSessions: (userId?: string, limit = 100) =>
+    get<any[]>(`/api/v1/auth/sessions?${userId ? `userId=${userId}&` : ''}limit=${limit}`),
 };
 
-// ── Users (Admin) ─────────────────────────────────────────────────────────────
+// ── NEW: Admin creates salesman ──
 export const usersApi = {
+  // ── NEW: Create Salesman (Admin only) ──
+  createSalesman: (data: {
+    userName: string;
+    fullName: string;
+    pin: string;
+    email?: string;
+  }) => post('/api/v1/users/salesman', data),
+
   getAll: (role?: string) =>
     get<UserDto[]>('/api/v1/users', role ? { role } : undefined),
   getAllWithInactive: (role?: string) =>
@@ -97,6 +126,9 @@ export const routesApi = {
   create: (cmd: CreateRouteCommand) => post<{ id: string }>('/api/v1/routes', cmd),
   update: (id: number | string, cmd: UpdateRouteCommand) => put<{ id: string }>(`/api/v1/routes/${id}`, cmd),
   delete: (id: number | string) => del<boolean>(`/api/v1/routes/${id}`),
+  // ── All active routes, visible to every salesman (no admin assignment step needed) ──
+  getActiveRoutes: () => get<ActiveRouteDto[]>('/api/v1/routes/active'),
+  // ── Start a route execution (order-taking or delivery) ──
   startExecution: (routeId: string, executionDate?: string) =>
     post<StartRouteExecutionResponse>(
       `/api/v1/routes/${routeId}/start-execution${executionDate ? `?executionDate=${executionDate}` : ''}`
@@ -116,6 +148,14 @@ export const routesApi = {
   },
   completeExecution: (executionId: string) =>
     post<CompleteRouteExecutionResponse>(`/api/v1/routes/${executionId}/complete-execution`),
+  // Resets a visit back to Pending and unlinks its order — lets a salesman
+  // redo a stop they already completed (e.g. wrong items, wrong customer).
+  resetVisit: (visitId: string) =>
+    post<boolean>('/api/v1/routes/reset-visit', { visitId }),
+  // Admin-only: closes every open route execution at once, making all
+  // routes fresh and available again for the next day.
+  closeDay: () =>
+    post<{ closedRouteCount: number; closedRouteNames: string[] }>('/api/v1/routes/close-day'),
 };
 
 // ── Customers ─────────────────────────────────────────────────────────────────
@@ -152,9 +192,15 @@ export const productsApi = {
       nameEnglish: cmd.nameEnglish,
       nameMalayalam: cmd.nameMalayalam || '',
       sku: cmd.sku || '',
+      itemCode: cmd.itemCode || '',
+      hsnCode: cmd.hsnCode || '',
+      supplier: cmd.supplier || '',
       productGroupId: cmd.productGroupId,
       productUnitId: cmd.productUnitId,
       basePrice: cmd.basePrice,
+      closingStock: cmd.closingStock,
+      minOrderQty: cmd.minOrderQty,
+      maxOrderQty: cmd.maxOrderQty,
     };
     return post<{ id: string }>('/api/v1/products', payload);
   },
@@ -164,10 +210,16 @@ export const productsApi = {
       nameEnglish: cmd.nameEnglish,
       nameMalayalam: cmd.nameMalayalam || '',
       sku: cmd.sku || '',
+      itemCode: cmd.itemCode || '',
+      hsnCode: cmd.hsnCode || '',
+      supplier: cmd.supplier || '',
       productGroupId: cmd.productGroupId,
       productUnitId: cmd.productUnitId,
       basePrice: cmd.basePrice,
       isActive: cmd.isActive,
+      closingStock: cmd.closingStock,
+      minOrderQty: cmd.minOrderQty,
+      maxOrderQty: cmd.maxOrderQty,
     };
     return put<{ id: string }>(`/api/v1/products/${id}`, payload);
   },

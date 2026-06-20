@@ -49,5 +49,8 @@ public class DailyClosureResultDto
     // Null if report generation was skipped or failed (non-blocking).
     public string? LoadingSheetUrl { get; set; }
     public string? BillingSheetUrl { get; set; }
+    // How many route executions were force-closed as part of this — these
+    // routes become fresh/startable again immediately after this completes.
+    public int ClosedRouteCount { get; set; }
     // ─────────────────────────────────────────────────────────────────────
 }
