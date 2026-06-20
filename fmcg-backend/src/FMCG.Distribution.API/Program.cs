@@ -99,8 +99,22 @@ builder.Services.AddAuthorization();
 // ============================================================
 // 6. CORS Configuration
 // ============================================================
+// ============================================================
+// 6. CORS Configuration
+// ============================================================
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
-    ?? ["http://localhost:5173", "https://localhost:5173", "http://localhost:3000"];
+    ?? new[] {
+        "http://localhost:5173",
+        "https://localhost:5173",
+        "http://localhost:3000",
+        "http://localhost:4200",
+        "https://willowy-sawine-450377.netlify.app",  // ← ADD THIS
+        "capacitor://localhost",
+        "http://localhost",
+        "https://localhost"
+    };
+
+Console.WriteLine($"[STARTUP] AllowedOrigins: {string.Join(", ", allowedOrigins)}");
 
 builder.Services.AddCors(options =>
 {
