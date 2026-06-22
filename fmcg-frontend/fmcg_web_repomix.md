@@ -76,6 +76,7 @@ src/main.tsx
 src/pages/Accounts/AccountsReports.tsx
 src/pages/Accounts/AccountsSettlement.tsx
 src/pages/Admin/AdminAnalytics.tsx
+src/pages/Admin/AdminCatalogConfig.tsx
 src/pages/Admin/AdminCustomers.tsx
 src/pages/Admin/AdminDailyAssignment.tsx
 src/pages/Admin/AdminDashboard.tsx
@@ -225,7 +226,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.s716kp51hi8"
+    "revision": "0.4klb761tcms"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -5338,6 +5339,8 @@ generateIcons().catch(err => {
 
     <!-- ── Viewport ───────────────────────────────────────────────────────── -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Add to index.html head -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
 
     <!-- ── PWA manifest ──────────────────────────────────────────────────── -->
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -5686,11 +5689,7 @@ export default apiClient;
 ## File: src/api/services.ts
 ````typescript
 // PATH: src/api/services.ts
-// UPDATED: imports from '../types/index' (matches actual file path src/types/index.ts),
-//          RoutePackingStatusDto now imported from types (added there),
-//          ordersApi.approve / getPendingApproval / getPendingApprovalCount added,
-//          warehouseApi.getPackingStatus added.
-//          ADDED: productsApi.getUnitPrices, addUnitPrice, updateUnitPrice, deleteUnitPrice
+// UPDATED: Added sizeGroupsApi, uqc update in unitsApi, and related types
 
 import apiClient from './client';
 import type {
@@ -5717,6 +5716,10 @@ import type {
   UserDto,
   RoutePackingStatusDto,
   ProductUnitPriceDto, CreateProductUnitPriceDto, UpdateProductUnitPriceDto,
+  // ── NEW: Size Group ──
+  SizeGroupDto,
+  // ── NEW: Enhanced Unit ──
+  EnhancedProductUnitDto,
 } from '../types/index';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -5865,6 +5868,27 @@ export const productGroupsApi = {
   delete: (id: string) => del<boolean>(`/api/v1/productgroups/${id}`),
 };
 
+// ── ────────────────────────────────────────────────────────────────────────────
+// ── NEW: Size Groups API ──────────────────────────────────────────────────────
+// ── ────────────────────────────────────────────────────────────────────────────
+
+export const sizeGroupsApi = {
+  getAll: (isActive?: boolean) =>
+    get<SizeGroupDto[]>('/api/v1/sizegroups', isActive !== undefined ? { isActive } : undefined),
+
+  getById: (id: string) =>
+    get<SizeGroupDto>(`/api/v1/sizegroups/${id}`),
+
+  create: (data: { name: string; nameMl?: string; description?: string }) =>
+    post<SizeGroupDto>('/api/v1/sizegroups', data),
+
+  update: (id: string, data: { name?: string; nameMl?: string; description?: string; isActive?: boolean }) =>
+    put<SizeGroupDto>(`/api/v1/sizegroups/${id}`, { ...data, id }),
+
+  delete: (id: string) =>
+    del<boolean>(`/api/v1/sizegroups/${id}`),
+};
+
 // ── Products ──────────────────────────────────────────────────────────────────
 export const productsApi = {
   list: (params?: { productGroupId?: string; isActive?: boolean }) =>
@@ -5888,6 +5912,8 @@ export const productsApi = {
       closingStock: cmd.closingStock,
       minOrderQty: cmd.minOrderQty,
       maxOrderQty: cmd.maxOrderQty,
+      // ── NEW: Size Group ──
+      sizeGroupId: cmd.sizeGroupId,
     };
     return post<{ id: string }>('/api/v1/products', payload);
   },
@@ -5907,6 +5933,8 @@ export const productsApi = {
       closingStock: cmd.closingStock,
       minOrderQty: cmd.minOrderQty,
       maxOrderQty: cmd.maxOrderQty,
+      // ── NEW: Size Group ──
+      sizeGroupId: cmd.sizeGroupId,
     };
     return put<{ id: string }>(`/api/v1/products/${id}`, payload);
   },
@@ -5916,7 +5944,7 @@ export const productsApi = {
   getPriceHistory: (id: string, limit?: number) =>
     get<PriceHistoryDto[]>(`/api/v1/products/${id}/price-history`, limit ? { limit } : undefined),
 
-  // ── NEW: Per-Unit Pricing endpoints ──────────────────────────────────────
+  // ── Per-Unit Pricing endpoints ──────────────────────────────────────────
   getUnitPrices: (productId: string) =>
     get<ProductUnitPriceDto[]>(`/api/v1/products/${productId}/unit-prices`),
 
@@ -5933,11 +5961,28 @@ export const productsApi = {
 // ── Units ─────────────────────────────────────────────────────────────────────
 export const unitsApi = {
   getAll: () => get<UnitDto[]>('/api/v1/productunits'),
-  create: (name: string, abbreviation?: string) => post<{ id: string }>('/api/v1/productunits', { name, abbreviation }),
-  update: (id: string, name: string, abbreviation?: string) => put<{ id: string }>(`/api/v1/productunits/${id}`, { id, name, abbreviation }),
+
+  create: (name: string, abbreviation?: string) =>
+    post<{ id: string }>('/api/v1/productunits', { name, abbreviation }),
+
+  update: (id: string, name: string, abbreviation?: string) =>
+    put<{ id: string }>(`/api/v1/productunits/${id}`, { id, name, abbreviation }),
+
   delete: (id: string) => del<boolean>(`/api/v1/productunits/${id}`),
-  getPriorities: () => get<UnitPriorityDto[]>('/api/v1/productunits/priorities'),
-  updatePriority: (id: string, priority: number) => put<boolean>(`/api/v1/productunits/${id}/priority`, { priority }),
+
+  getPriorities: () =>
+    get<UnitPriorityDto[]>('/api/v1/productunits/priorities'),
+
+  updatePriority: (id: string, priority: number) =>
+    put<boolean>(`/api/v1/productunits/${id}/priority`, { priority }),
+
+  // ── NEW: Update UQC (Unit Quantity Code) ──
+  updateUQC: (id: string, uqc: string) =>
+    put<boolean>(`/api/v1/productunits/${id}/uqc`, { uqc }),
+
+  // ── NEW: Get enhanced units with measurement type ──
+  getEnhanced: () =>
+    get<EnhancedProductUnitDto[]>('/api/v1/productunits/enhanced'),
 };
 
 // ── Orders ────────────────────────────────────────────────────────────────────
@@ -6386,6 +6431,10 @@ const AdminSessionLog = lazy(() => import('./pages/Admin/AdminSessionLog'));
 const AdminDailyAssignment = lazy(() =>
   import('./pages/Admin/AdminDailyAssignment').then(m => ({ default: m.AdminDailyAssignment }))
 );
+// ── NEW: Catalog Config Page ─────────────────────────────────────────────────
+const AdminCatalogConfig = lazy(() => 
+  import('./pages/Admin/AdminCatalogConfig').then(m => ({ default: m.AdminCatalogConfig }))
+);
 const WarehouseDashboard = lazy(() =>
   import('./pages/Warehouse/WarehouseDashboard')
 );
@@ -6545,6 +6594,8 @@ export default function App() {
               <Route path="incentives" element={<AdminIncentives />} />
               <Route path="users"        element={<AdminUsers />} />
               <Route path="session-log"  element={<AdminSessionLog />} />
+              {/* ── NEW: Catalog Config Route ── */}
+              <Route path="catalog"     element={<AdminCatalogConfig />} />
             </Route>
 
             {/* ── Salesman ── */}
@@ -9629,12 +9680,16 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* Improved tap highlight for mobile elements */
-button,
-a,
-[role="button"] {
-  -webkit-tap-highlight-color: rgba(37, 99, 235, 0.15);
+/* Mobile touch feedback */
+button, a, .clickable {
+  -webkit-tap-highlight-color: rgba(234, 88, 12, 0.15);
   touch-action: manipulation;
+}
+
+/* Active state for all buttons (no JS needed) */
+button:active, .btn:active {
+  transform: scale(0.96);
+  transition: transform 0.05s ease;
 }
 
 /* Prevent pull-to-refresh interference on main content (optional) */
@@ -9655,13 +9710,20 @@ a,
 /* Ensure bottom navigation stays above content */
 .mobile-bottom-nav {
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); /* iOS Safari */
   background: rgba(255, 255, 255, 0.98);
 }
-
 /* ── PASTE THESE ADDITIONS AT THE BOTTOM OF src/index.css ─────────────────── */
 
 :root {
   --mobile-nav-h: 70px;
+}
+
+/* All pages should respect mobile nav height */
+@media (max-width: 768px) {
+  .page-content, .page-wrapper, main > * {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* Generic utility — apply className "above-nav" to any fixed bottom bar */
@@ -9778,6 +9840,18 @@ a,
   --e-list:    #f1f5f9;   /* off-white — list/content backgrounds */
 }
 
+/* Add to the Eastern theme section */
+.eastern-page {
+  background: var(--e-bg) !important;
+  color: var(--e-text) !important;
+}
+
+/* Or just add a class for dark pages */
+.dark-page {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+}
+
 /* ── Eastern key-button active flash ────────────────────────── */
 .e-key-btn:active {
   background: var(--e-accent) !important;
@@ -9789,6 +9863,18 @@ a,
 @keyframes slide-in-right-dark {
   from { transform: translateX(100%); }
   to   { transform: translateX(0); }
+}
+
+/* ── Skeleton Loader Animation ──────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 
 /* ── Orange sticky footer safe area ─────────────────────────── */
@@ -10685,6 +10771,1533 @@ export function AdminAnalytics() {
           )}
         </>
       )}
+    </div>
+  );
+}
+````
+
+## File: src/pages/Admin/AdminCatalogConfig.tsx
+````typescript
+// PATH: src/pages/Admin/AdminCatalogConfig.tsx
+// UPDATED: Added Size Groups tab with full CRUD, added UQC field to Units
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import {
+  Settings, Plus, Edit2, Trash2, X, Save,
+  Boxes, Ruler, ArrowLeft, RefreshCw, ArrowUp, ArrowDown,
+  TrendingUp, Layers,
+} from 'lucide-react';
+import { productGroupsApi, unitsApi, sizeGroupsApi } from '../../api/services';
+import type { ProductGroupDto, UnitDto, UnitPriorityDto, SizeGroupDto } from '../../types';
+import { Spinner, Alert, ConfirmModal } from '../../components/ui';
+import { useAuthStore } from '../../store/authStore';
+
+// ── Dark theme tokens ─────────────────────────────────────────────────────────
+const D = {
+  bg:       '#0f172a',
+  surface:  '#1e293b',
+  surface2: '#243447',
+  border:   '#334155',
+  accent:   '#ea580c',
+  accentH:  '#c2410c',
+  accentGlow: 'rgba(234,88,12,0.25)',
+  text:     '#f1f5f9',
+  muted:    '#94a3b8',
+  sub:      '#64748b',
+  green:    '#22c55e',
+  red:      '#ef4444',
+  amber:    '#f59e0b',
+  card:     '#1e293b',
+};
+
+// ── ────────────────────────────────────────────────────────────────────────────
+// ── Size Group Modal ──────────────────────────────────────────────────────────
+// ── ────────────────────────────────────────────────────────────────────────────
+
+function SizeGroupModal({
+  isOpen,
+  onClose,
+  onSave,
+  editing,
+  initialData,
+  saving,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: { name: string; nameMl: string; description: string }) => void;
+  editing: boolean;
+  initialData: { name: string; nameMl: string; description: string };
+  saving: boolean;
+}) {
+  const [name, setName] = useState(initialData.name);
+  const [nameMl, setNameMl] = useState(initialData.nameMl);
+  const [description, setDescription] = useState(initialData.description);
+
+  useEffect(() => {
+    setName(initialData.name);
+    setNameMl(initialData.nameMl);
+    setDescription(initialData.description);
+  }, [initialData, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = () => {
+    if (!name.trim()) return;
+    onSave({ name: name.trim(), nameMl: nameMl.trim(), description: description.trim() });
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: D.surface,
+          borderRadius: 16,
+          maxWidth: 480,
+          width: '100%',
+          border: `1px solid ${D.border}`,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: `1px solid ${D.border}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: 0 }}>
+            {editing ? 'Edit Size Group' : 'Add Size Group'}
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '4px',
+              borderRadius: 6,
+              border: 'none',
+              background: 'transparent',
+              color: D.sub,
+              cursor: 'pointer',
+            }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div style={{ padding: '20px' }}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Size Group Name *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g., Small, Medium, Large, Bulk"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+              autoFocus
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Malayalam Name <span style={{ fontSize: 11, color: D.sub }}>(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={nameMl}
+              onChange={e => setNameMl(e.target.value)}
+              placeholder="വലുപ്പ ഗ്രൂപ്പ്"
+              lang="ml"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Description <span style={{ fontSize: 11, color: D.sub }}>(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="e.g., Products weighing up to 1kg"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '9px 20px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: 'transparent',
+                color: D.muted,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={saving || !name.trim()}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '9px 20px',
+                borderRadius: 8,
+                border: 'none',
+                background: '#A78BFA',
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: (saving || !name.trim()) ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+                opacity: (saving || !name.trim()) ? 0.5 : 1,
+              }}
+            >
+              {saving ? <Spinner size={14} /> : <Save size={14} />}
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ────────────────────────────────────────────────────────────────────────────
+// ── Group Modal ────────────────────────────────────────────────────────────────
+// ── ────────────────────────────────────────────────────────────────────────────
+
+function GroupModal({
+  isOpen,
+  onClose,
+  onSave,
+  editing,
+  initialData,
+  saving,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: { name: string; nameMl: string }) => void;
+  editing: boolean;
+  initialData: { name: string; nameMl: string };
+  saving: boolean;
+}) {
+  const [name, setName] = useState(initialData.name);
+  const [nameMl, setNameMl] = useState(initialData.nameMl);
+
+  useEffect(() => {
+    setName(initialData.name);
+    setNameMl(initialData.nameMl);
+  }, [initialData, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = () => {
+    if (!name.trim()) return;
+    onSave({ name: name.trim(), nameMl: nameMl.trim() });
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: D.surface,
+          borderRadius: 16,
+          maxWidth: 480,
+          width: '100%',
+          border: `1px solid ${D.border}`,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: `1px solid ${D.border}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: 0 }}>
+            {editing ? 'Edit Group' : 'Add Group'}
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '4px',
+              borderRadius: 6,
+              border: 'none',
+              background: 'transparent',
+              color: D.sub,
+              cursor: 'pointer',
+            }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div style={{ padding: '20px' }}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Group Name *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g., Beverages, Snacks, Dairy"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+              autoFocus
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Malayalam Name <span style={{ fontSize: 11, color: D.sub }}>(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={nameMl}
+              onChange={e => setNameMl(e.target.value)}
+              placeholder="ഗ്രൂപ്പ് പേര്"
+              lang="ml"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '9px 20px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: 'transparent',
+                color: D.muted,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={saving || !name.trim()}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '9px 20px',
+                borderRadius: 8,
+                border: 'none',
+                background: D.accent,
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: (saving || !name.trim()) ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+                opacity: (saving || !name.trim()) ? 0.5 : 1,
+              }}
+            >
+              {saving ? <Spinner size={14} /> : <Save size={14} />}
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ────────────────────────────────────────────────────────────────────────────
+// ── Unit Modal (with UQC) ─────────────────────────────────────────────────────
+// ── ────────────────────────────────────────────────────────────────────────────
+
+function UnitModal({
+  isOpen,
+  onClose,
+  onSave,
+  editing,
+  initialData,
+  saving,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: { name: string; abbreviation: string; uqc: string }) => void;
+  editing: boolean;
+  initialData: { name: string; abbreviation: string; uqc: string };
+  saving: boolean;
+}) {
+  const [name, setName] = useState(initialData.name);
+  const [abbreviation, setAbbreviation] = useState(initialData.abbreviation);
+  const [uqc, setUqc] = useState(initialData.uqc);
+
+  useEffect(() => {
+    setName(initialData.name);
+    setAbbreviation(initialData.abbreviation);
+    setUqc(initialData.uqc);
+  }, [initialData, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = () => {
+    if (!name.trim()) return;
+    onSave({
+      name: name.trim(),
+      abbreviation: abbreviation.trim(),
+      uqc: uqc.trim().toUpperCase(),
+    });
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: D.surface,
+          borderRadius: 16,
+          maxWidth: 480,
+          width: '100%',
+          border: `1px solid ${D.border}`,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: `1px solid ${D.border}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: 0 }}>
+            {editing ? 'Edit Unit' : 'Add Unit'}
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '4px',
+              borderRadius: 6,
+              border: 'none',
+              background: 'transparent',
+              color: D.sub,
+              cursor: 'pointer',
+            }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div style={{ padding: '20px' }}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Unit Name *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g., Kilogram, Box, Carton"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+              autoFocus
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Abbreviation
+            </label>
+            <input
+              type="text"
+              value={abbreviation}
+              onChange={e => setAbbreviation(e.target.value)}
+              placeholder="e.g., kg, bx, ctn"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              UQC (Unit Quantity Code) <span style={{ fontSize: 11, color: D.sub }}>(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={uqc}
+              onChange={e => setUqc(e.target.value.toUpperCase())}
+              placeholder="e.g., BAG, BOX, CTN, PCS, KGS, LTR"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+            />
+            <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
+              Standard GST codes: BAG, BOX, CTN, PCS, KGS, LTR, MTR, SQF, etc.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '9px 20px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: 'transparent',
+                color: D.muted,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={saving || !name.trim()}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '9px 20px',
+                borderRadius: 8,
+                border: 'none',
+                background: D.green,
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: (saving || !name.trim()) ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+                opacity: (saving || !name.trim()) ? 0.5 : 1,
+              }}
+            >
+              {saving ? <Spinner size={14} /> : <Save size={14} />}
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ────────────────────────────────────────────────────────────────────────────
+// ── Main Page ──────────────────────────────────────────────────────────────────
+// ── ────────────────────────────────────────────────────────────────────────────
+
+export function AdminCatalogConfig() {
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
+
+  // State for Groups
+  const [groups, setGroups] = useState<ProductGroupDto[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(true);
+
+  // State for Units
+  const [units, setUnits] = useState<UnitDto[]>([]);
+  const [unitsLoading, setUnitsLoading] = useState(true);
+
+  // ── NEW: State for Size Groups ──
+  const [sizeGroups, setSizeGroups] = useState<SizeGroupDto[]>([]);
+  const [sizeGroupsLoading, setSizeGroupsLoading] = useState(true);
+
+  // State for Priorities
+  const [priorities, setPriorities] = useState<UnitPriorityDto[]>([]);
+
+  // Modal states
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [showUnitModal, setShowUnitModal] = useState(false);
+  const [showSizeGroupModal, setShowSizeGroupModal] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<ProductGroupDto | null>(null);
+  const [editingUnit, setEditingUnit] = useState<UnitDto | null>(null);
+  const [editingSizeGroup, setEditingSizeGroup] = useState<SizeGroupDto | null>(null);
+
+  // Form states
+  const [groupForm, setGroupForm] = useState({ name: '', nameMl: '' });
+  const [unitForm, setUnitForm] = useState({ name: '', abbreviation: '', uqc: '' });
+  const [sizeGroupForm, setSizeGroupForm] = useState({ name: '', nameMl: '', description: '' });
+
+  // UI states
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'group' | 'unit' | 'sizeGroup'; id: string; name: string } | null>(null);
+  const [updatingPriority, setUpdatingPriority] = useState<string | null>(null);
+
+  // ── Load Data ──
+  async function loadGroups() {
+    setGroupsLoading(true);
+    try {
+      const data = await productGroupsApi.getAll();
+      setGroups(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load groups');
+    } finally {
+      setGroupsLoading(false);
+    }
+  }
+
+  async function loadUnits() {
+    setUnitsLoading(true);
+    try {
+      const data = await unitsApi.getAll();
+      setUnits(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load units');
+    } finally {
+      setUnitsLoading(false);
+    }
+  }
+
+  // ── NEW: Load Size Groups ──
+  async function loadSizeGroups() {
+    setSizeGroupsLoading(true);
+    try {
+      const data = await sizeGroupsApi.getAll();
+      setSizeGroups(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load size groups');
+    } finally {
+      setSizeGroupsLoading(false);
+    }
+  }
+
+  async function loadPriorities() {
+    try {
+      const data = await unitsApi.getPriorities();
+      setPriorities(data);
+    } catch {
+      setPriorities([]);
+    }
+  }
+
+  async function loadAll() {
+    await Promise.all([loadGroups(), loadUnits(), loadSizeGroups(), loadPriorities()]);
+  }
+
+  useEffect(() => {
+    loadAll();
+  }, []);
+
+  // ── Group Handlers ──
+  function openAddGroup() {
+    setEditingGroup(null);
+    setGroupForm({ name: '', nameMl: '' });
+    setShowGroupModal(true);
+  }
+
+  function openEditGroup(group: ProductGroupDto) {
+    setEditingGroup(group);
+    setGroupForm({ name: group.name, nameMl: group.nameMl || '' });
+    setShowGroupModal(true);
+  }
+
+  async function handleSaveGroup(data: { name: string; nameMl: string }) {
+    if (!data.name.trim()) {
+      setError('Group name is required');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      if (editingGroup) {
+        await productGroupsApi.update(editingGroup.id, data.name, data.nameMl || undefined);
+        setSuccess('Group updated successfully!');
+      } else {
+        await productGroupsApi.create(data.name, data.nameMl || undefined);
+        setSuccess('Group created successfully!');
+      }
+      setShowGroupModal(false);
+      await loadGroups();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save group');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteGroup(id: string) {
+    try {
+      await productGroupsApi.delete(id);
+      setSuccess('Group deleted successfully!');
+      await loadGroups();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete group');
+    } finally {
+      setDeleteConfirm(null);
+    }
+  }
+
+  // ── Unit Handlers ──
+  function openAddUnit() {
+    setEditingUnit(null);
+    setUnitForm({ name: '', abbreviation: '', uqc: '' });
+    setShowUnitModal(true);
+  }
+
+  function openEditUnit(unit: UnitDto) {
+    setEditingUnit(unit);
+    setUnitForm({
+      name: unit.name,
+      abbreviation: unit.abbreviation || '',
+      uqc: unit.uqc || '',
+    });
+    setShowUnitModal(true);
+  }
+
+  async function handleSaveUnit(data: { name: string; abbreviation: string; uqc: string }) {
+    if (!data.name.trim()) {
+      setError('Unit name is required');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      if (editingUnit) {
+        await unitsApi.update(editingUnit.id, data.name, data.abbreviation || undefined);
+        if (data.uqc) {
+          await unitsApi.updateUQC(editingUnit.id, data.uqc);
+        }
+        setSuccess('Unit updated successfully!');
+      } else {
+        const result = await unitsApi.create(data.name, data.abbreviation || undefined);
+        if (data.uqc && result?.id) {
+          await unitsApi.updateUQC(result.id, data.uqc);
+        }
+        setSuccess('Unit created successfully!');
+      }
+      setShowUnitModal(false);
+      await loadUnits();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save unit');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteUnit(id: string) {
+    try {
+      await unitsApi.delete(id);
+      setSuccess('Unit deleted successfully!');
+      await loadUnits();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete unit');
+    } finally {
+      setDeleteConfirm(null);
+    }
+  }
+
+  // ── Size Group Handlers ──
+  function openAddSizeGroup() {
+    setEditingSizeGroup(null);
+    setSizeGroupForm({ name: '', nameMl: '', description: '' });
+    setShowSizeGroupModal(true);
+  }
+
+  function openEditSizeGroup(group: SizeGroupDto) {
+    setEditingSizeGroup(group);
+    setSizeGroupForm({
+      name: group.name,
+      nameMl: group.nameMl || '',
+      description: group.description || '',
+    });
+    setShowSizeGroupModal(true);
+  }
+
+  async function handleSaveSizeGroup(data: { name: string; nameMl: string; description: string }) {
+    if (!data.name.trim()) {
+      setError('Size group name is required');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      if (editingSizeGroup) {
+        await sizeGroupsApi.update(editingSizeGroup.id, {
+          name: data.name,
+          nameMl: data.nameMl || undefined,
+          description: data.description || undefined,
+          isActive: true,
+        });
+        setSuccess('Size group updated successfully!');
+      } else {
+        await sizeGroupsApi.create({
+          name: data.name,
+          nameMl: data.nameMl || undefined,
+          description: data.description || undefined,
+        });
+        setSuccess('Size group created successfully!');
+      }
+      setShowSizeGroupModal(false);
+      await loadSizeGroups();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save size group');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteSizeGroup(id: string) {
+    try {
+      await sizeGroupsApi.delete(id);
+      setSuccess('Size group deleted successfully!');
+      await loadSizeGroups();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete size group');
+    } finally {
+      setDeleteConfirm(null);
+    }
+  }
+
+  // ── Priority Handlers ──
+  async function handleUpdatePriority(unitId: string, newPriority: number) {
+    setUpdatingPriority(unitId);
+    try {
+      await unitsApi.updatePriority(unitId, newPriority);
+      await loadPriorities();
+    } catch (err: unknown) {
+      setError('Failed to update priority');
+    } finally {
+      setUpdatingPriority(null);
+    }
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: D.bg, padding: '20px 16px 100px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+
+        {/* ── Back Button ────────────────────────────────────────────────────── */}
+        <div style={{ marginBottom: 20 }}>
+          <Link
+            to={user?.role === 'Admin' || user?.role === 'SuperAdmin' ? '/admin/dashboard' : '/'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 16px',
+              borderRadius: 10,
+              background: D.surface,
+              border: `1px solid ${D.border}`,
+              color: D.muted,
+              fontSize: 13,
+              fontWeight: 600,
+              textDecoration: 'none',
+              transition: 'all 0.2s',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.color = D.text;
+              e.currentTarget.style.borderColor = D.accent;
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.color = D.muted;
+              e.currentTarget.style.borderColor = D.border;
+            }}
+          >
+            <ArrowLeft size={16} />
+            Back to Dashboard
+          </Link>
+        </div>
+
+        {/* ── Header ─────────────────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <div>
+            <h1 style={{ fontSize: 24, fontWeight: 900, color: D.text, margin: 0, letterSpacing: '-0.02em' }}>
+              <Settings size={22} style={{ display: 'inline', marginRight: 8, color: D.accent }} />
+              Catalog Config
+            </h1>
+            <p style={{ color: D.muted, fontSize: 14, marginTop: 4, fontWeight: 500 }}>
+              Product Groups, Units &amp; Size Groups Management
+            </p>
+          </div>
+          <button
+            onClick={loadAll}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '9px 16px',
+              borderRadius: 10,
+              border: `1px solid ${D.border}`,
+              background: D.surface,
+              color: D.muted,
+              fontSize: 13, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.text; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
+          >
+            <RefreshCw size={15} /> Refresh
+          </button>
+        </div>
+
+        {error && <Alert variant="error">{error}</Alert>}
+        {success && <Alert variant="success">{success}</Alert>}
+
+        {/* ── Four Column Layout ───────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16 }}>
+
+          {/* ── Groups Card ── */}
+          <div style={{
+            background: D.surface,
+            borderRadius: 16,
+            border: `1px solid ${D.border}`,
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '14px 16px',
+              borderBottom: `1px solid ${D.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Boxes size={16} style={{ color: D.accent }} />
+                <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
+                  Groups
+                </h2>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: D.muted,
+                  background: D.bg,
+                  padding: '1px 8px',
+                  borderRadius: 12,
+                }}>
+                  {groups.length}
+                </span>
+              </div>
+              <button
+                onClick={openAddGroup}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: D.accent,
+                  color: '#fff',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <Plus size={12} /> Add
+              </button>
+            </div>
+
+            <div style={{ padding: '10px 12px', maxHeight: 300, overflowY: 'auto' }}>
+              {groupsLoading ? (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <Spinner size={20} />
+                </div>
+              ) : groups.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px 0', color: D.muted, fontSize: 12 }}>
+                  No groups yet
+                </div>
+              ) : (
+                groups.map(group => (
+                  <div
+                    key={group.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '6px 8px',
+                      marginBottom: 4,
+                      borderRadius: 8,
+                      background: D.bg,
+                      border: `1px solid ${D.border}`,
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, color: D.text, fontSize: 13 }}>
+                        {group.name}
+                      </div>
+                      {group.productCount !== undefined && (
+                        <div style={{ fontSize: 10, color: D.accent }}>
+                          {group.productCount} products
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 2 }}>
+                      <button
+                        onClick={() => openEditGroup(group)}
+                        style={{
+                          padding: '3px 6px',
+                          borderRadius: 4,
+                          border: 'none',
+                          background: 'transparent',
+                          color: D.sub,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Edit2 size={12} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm({ type: 'group', id: group.id, name: group.name })}
+                        style={{
+                          padding: '3px 6px',
+                          borderRadius: 4,
+                          border: 'none',
+                          background: 'transparent',
+                          color: D.sub,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* ── Units Card ── */}
+          <div style={{
+            background: D.surface,
+            borderRadius: 16,
+            border: `1px solid ${D.border}`,
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '14px 16px',
+              borderBottom: `1px solid ${D.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Ruler size={16} style={{ color: D.green }} />
+                <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
+                  Units
+                </h2>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: D.muted,
+                  background: D.bg,
+                  padding: '1px 8px',
+                  borderRadius: 12,
+                }}>
+                  {units.length}
+                </span>
+              </div>
+              <button
+                onClick={openAddUnit}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: D.green,
+                  color: '#fff',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <Plus size={12} /> Add
+              </button>
+            </div>
+
+            <div style={{ padding: '10px 12px', maxHeight: 300, overflowY: 'auto' }}>
+              {unitsLoading ? (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <Spinner size={20} />
+                </div>
+              ) : units.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px 0', color: D.muted, fontSize: 12 }}>
+                  No units yet
+                </div>
+              ) : (
+                units.map(unit => (
+                  <div
+                    key={unit.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '6px 8px',
+                      marginBottom: 4,
+                      borderRadius: 8,
+                      background: D.bg,
+                      border: `1px solid ${D.border}`,
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, color: D.text, fontSize: 13 }}>
+                        {unit.name}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, fontSize: 10, flexWrap: 'wrap' }}>
+                        {unit.abbreviation && (
+                          <span style={{ color: D.sub }}>[{unit.abbreviation}]</span>
+                        )}
+                        {unit.uqc && (
+                          <span style={{ color: D.accent, fontWeight: 700, background: `${D.accent}15`, padding: '1px 6px', borderRadius: 4 }}>
+                            UQC: {unit.uqc}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 2 }}>
+                      <button
+                        onClick={() => openEditUnit(unit)}
+                        style={{
+                          padding: '3px 6px',
+                          borderRadius: 4,
+                          border: 'none',
+                          background: 'transparent',
+                          color: D.sub,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Edit2 size={12} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm({ type: 'unit', id: unit.id, name: unit.name })}
+                        style={{
+                          padding: '3px 6px',
+                          borderRadius: 4,
+                          border: 'none',
+                          background: 'transparent',
+                          color: D.sub,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* ── Size Groups Card ── */}
+          <div style={{
+            background: D.surface,
+            borderRadius: 16,
+            border: `1px solid ${D.border}`,
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '14px 16px',
+              borderBottom: `1px solid ${D.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Layers size={16} style={{ color: '#A78BFA' }} />
+                <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
+                  Size Groups
+                </h2>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: D.muted,
+                  background: D.bg,
+                  padding: '1px 8px',
+                  borderRadius: 12,
+                }}>
+                  {sizeGroups.length}
+                </span>
+              </div>
+              <button
+                onClick={openAddSizeGroup}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: '#A78BFA',
+                  color: '#fff',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <Plus size={12} /> Add
+              </button>
+            </div>
+
+            <div style={{ padding: '10px 12px', maxHeight: 300, overflowY: 'auto' }}>
+              {sizeGroupsLoading ? (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <Spinner size={20} />
+                </div>
+              ) : sizeGroups.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px 0', color: D.muted, fontSize: 12 }}>
+                  No size groups yet
+                </div>
+              ) : (
+                sizeGroups.map(group => (
+                  <div
+                    key={group.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '6px 8px',
+                      marginBottom: 4,
+                      borderRadius: 8,
+                      background: D.bg,
+                      border: `1px solid ${D.border}`,
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, color: D.text, fontSize: 13 }}>
+                        {group.name}
+                      </div>
+                      {group.productCount !== undefined && (
+                        <div style={{ fontSize: 10, color: '#A78BFA' }}>
+                          {group.productCount} products
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 2 }}>
+                      <button
+                        onClick={() => openEditSizeGroup(group)}
+                        style={{
+                          padding: '3px 6px',
+                          borderRadius: 4,
+                          border: 'none',
+                          background: 'transparent',
+                          color: D.sub,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Edit2 size={12} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm({ type: 'sizeGroup', id: group.id, name: group.name })}
+                        style={{
+                          padding: '3px 6px',
+                          borderRadius: 4,
+                          border: 'none',
+                          background: 'transparent',
+                          color: D.sub,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* ── Loading Priorities Card ── */}
+          <div style={{
+            background: D.surface,
+            borderRadius: 16,
+            border: `1px solid ${D.border}`,
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '14px 16px',
+              borderBottom: `1px solid ${D.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}>
+              <TrendingUp size={16} style={{ color: D.accent }} />
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
+                Priorities
+              </h2>
+              <span style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: D.muted,
+                background: D.bg,
+                padding: '1px 8px',
+                borderRadius: 12,
+              }}>
+                {priorities.length}
+              </span>
+            </div>
+
+            <div style={{ padding: '10px 12px', maxHeight: 300, overflowY: 'auto' }}>
+              <div style={{ fontSize: 10, color: D.muted, marginBottom: 8, padding: '6px 8px', background: D.bg, borderRadius: 6 }}>
+                <strong style={{ color: D.accent }}>1</strong> = Load FIRST ·
+                <strong style={{ color: D.accent }}> 99</strong> = Load LAST
+              </div>
+              {priorities.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '16px 0', color: D.muted, fontSize: 12 }}>
+                  No units with priorities
+                </div>
+              ) : (
+                priorities.map((unit) => (
+                  <div
+                    key={unit.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '6px 8px',
+                      marginBottom: 4,
+                      borderRadius: 8,
+                      background: D.bg,
+                      border: `1px solid ${D.border}`,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 6,
+                        flexShrink: 0,
+                        background: `${D.accent}15`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 800,
+                        fontSize: 12,
+                        color: D.accent,
+                      }}>
+                        {unit.loadingPriority}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: D.text }}>
+                          {unit.name}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 2 }}>
+                      <button
+                        onClick={() => handleUpdatePriority(unit.id, Math.max(1, unit.loadingPriority - 1))}
+                        disabled={updatingPriority === unit.id || unit.loadingPriority <= 1}
+                        style={{
+                          padding: '3px 6px',
+                          borderRadius: 4,
+                          border: 'none',
+                          background: 'transparent',
+                          color: D.sub,
+                          cursor: (updatingPriority === unit.id || unit.loadingPriority <= 1) ? 'not-allowed' : 'pointer',
+                          opacity: (updatingPriority === unit.id || unit.loadingPriority <= 1) ? 0.3 : 1,
+                        }}
+                      >
+                        <ArrowUp size={12} />
+                      </button>
+                      <button
+                        onClick={() => handleUpdatePriority(unit.id, unit.loadingPriority + 1)}
+                        disabled={updatingPriority === unit.id}
+                        style={{
+                          padding: '3px 6px',
+                          borderRadius: 4,
+                          border: 'none',
+                          background: 'transparent',
+                          color: D.sub,
+                          cursor: updatingPriority === unit.id ? 'not-allowed' : 'pointer',
+                          opacity: updatingPriority === unit.id ? 0.3 : 1,
+                        }}
+                      >
+                        <ArrowDown size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Group Modal ── */}
+      <GroupModal
+        isOpen={showGroupModal}
+        onClose={() => setShowGroupModal(false)}
+        onSave={handleSaveGroup}
+        editing={!!editingGroup}
+        initialData={groupForm}
+        saving={loading}
+      />
+
+      {/* ── Unit Modal ── */}
+      <UnitModal
+        isOpen={showUnitModal}
+        onClose={() => setShowUnitModal(false)}
+        onSave={handleSaveUnit}
+        editing={!!editingUnit}
+        initialData={unitForm}
+        saving={loading}
+      />
+
+      {/* ── Size Group Modal ── */}
+      <SizeGroupModal
+        isOpen={showSizeGroupModal}
+        onClose={() => setShowSizeGroupModal(false)}
+        onSave={handleSaveSizeGroup}
+        editing={!!editingSizeGroup}
+        initialData={sizeGroupForm}
+        saving={loading}
+      />
+
+      {/* ── Delete Confirmation ── */}
+      <ConfirmModal
+        open={!!deleteConfirm}
+        title={`Delete ${deleteConfirm?.type === 'group' ? 'Group' : deleteConfirm?.type === 'unit' ? 'Unit' : 'Size Group'}`}
+        message={`Are you sure you want to delete "${deleteConfirm?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        danger
+        onConfirm={() => {
+          if (deleteConfirm) {
+            if (deleteConfirm.type === 'group') {
+              handleDeleteGroup(deleteConfirm.id);
+            } else if (deleteConfirm.type === 'unit') {
+              handleDeleteUnit(deleteConfirm.id);
+            } else if (deleteConfirm.type === 'sizeGroup') {
+              handleDeleteSizeGroup(deleteConfirm.id);
+            }
+          }
+        }}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </div>
   );
 }
@@ -14545,21 +16158,22 @@ function actionBtn(bg: string, color: string, strong = false): React.CSSProperti
 ## File: src/pages/Admin/AdminProducts.tsx
 ````typescript
 // PATH: src/pages/Admin/AdminProducts.tsx
-// UPDATED: Added Back to Dashboard button
+// UPDATED: Added Size Group support to product form
 
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Plus, Edit2, Trash2, Package, Search, RefreshCw,
   IndianRupee, History, X, Save, TrendingUp, TrendingDown, DollarSign,
   Settings, Ruler, Boxes, ChevronRight, ArrowUp, ArrowDown, ArrowLeft,
 } from 'lucide-react';
-import { productsApi, productGroupsApi, unitsApi } from '../../api/services';
-import type { ProductDto, ProductGroupDto, UnitDto, UnitPriorityDto, PriceHistoryDto } from '../../types';
+import { productsApi, productGroupsApi, unitsApi, sizeGroupsApi } from '../../api/services';
+import type { ProductDto, ProductGroupDto, UnitDto, UnitPriorityDto, PriceHistoryDto, SizeGroupDto } from '../../types';
 import { fmt, fmtDate } from '../../types';
 import { PageLoader, Spinner, Alert, ConfirmModal, Field } from '../../components/ui';
 import { ProductUnitPriceManager } from '../../components/admin/ProductUnitPriceManager';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useAuthStore } from '../../store/authStore';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -14624,6 +16238,23 @@ function parsePriceFromItemCode(code: string): number | null {
   return !isNaN(n) && n >= 0 ? n : null;
 }
 
+// ── Helper: Generate item code from prefix and price ────────
+function generateItemCode(prefix: string, price: number): string {
+  const cleanPrefix = prefix.trim();
+  // If prefix already has a dash, remove the price part
+  const basePrefix = cleanPrefix.includes('-') 
+    ? cleanPrefix.substring(0, cleanPrefix.lastIndexOf('-') + 1)
+    : cleanPrefix + '-';
+  return `${basePrefix}${Math.round(price)}`;
+}
+
+// ── Helper: Extract prefix from item code ─────────────────────
+function extractItemCodePrefix(code: string): string {
+  if (!code || !code.includes('-')) return '1000-';
+  const lastDashIndex = code.lastIndexOf('-');
+  return code.substring(0, lastDashIndex + 1);
+}
+
 // ── Product Card ─────────────────────────────────────────────
 function ProductCard({
   product, onEdit, onPrice, onHistory, onDelete, onUnitPrices,
@@ -14676,6 +16307,11 @@ function ProductCard({
             {product.productUnitName && (
               <span style={{ fontSize: 11, fontWeight: 600, color: D.sub, background: D.bg, border: `1px solid ${D.border}`, padding: '2px 8px', borderRadius: 6 }}>
                 {product.productUnitName}
+              </span>
+            )}
+            {product.sizeGroupName && (
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#A78BFA', background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.33)', padding: '2px 8px', borderRadius: 6 }}>
+                {product.sizeGroupName}
               </span>
             )}
           </div>
@@ -14732,18 +16368,62 @@ function ProductCard({
 
 // ── Product Form Fields ────────────────────────────────────
 function ProductFormFields({
-  form, setForm, groups, units, autoFocus,
+  form, setForm, groups, units, sizeGroups, autoFocus, isEdit = false,
 }: {
-  form: { name: string; nameMl: string; productGroupId: string; unitId: string; basePrice: string; itemCode: string };
+  form: { name: string; nameMl: string; productGroupId: string; unitId: string; basePrice: string; itemCode: string; sizeGroupId: string };
   setForm: React.Dispatch<React.SetStateAction<any>>;
   groups: ProductGroupDto[];
   units: UnitDto[];
+  sizeGroups: SizeGroupDto[];
   autoFocus?: boolean;
+  isEdit?: boolean;
 }) {
   const lbl: React.CSSProperties = {
     display: 'block', fontSize: 12, fontWeight: 700, color: D.muted,
     marginBottom: 6, letterSpacing: '0.02em', textTransform: 'uppercase' as const,
   };
+
+  // ── When base price changes, auto-update item code ──
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPrice = e.target.value;
+    setForm((p: any) => {
+      const updated = { ...p, basePrice: newPrice };
+      
+      // Auto-generate item code from price
+      const priceNum = parseFloat(newPrice);
+      if (!isNaN(priceNum) && priceNum >= 0) {
+        // Use existing prefix or default
+        const prefix = p.itemCode && p.itemCode.includes('-') 
+          ? extractItemCodePrefix(p.itemCode) 
+          : '1000-';
+        updated.itemCode = generateItemCode(prefix, priceNum);
+      }
+      return updated;
+    });
+  };
+
+  // ── When item code changes, update base price ──
+  const handleItemCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newCode = e.target.value;
+    setForm((p: any) => {
+      const updated = { ...p, itemCode: newCode };
+      // Try to parse price from the new item code
+      const parsedPrice = parsePriceFromItemCode(newCode);
+      if (parsedPrice !== null) {
+        updated.basePrice = String(parsedPrice);
+      }
+      return updated;
+    });
+  };
+
+  // Get the current price from the form
+  const currentPrice = parseFloat(form.basePrice);
+  const isValidPrice = !isNaN(currentPrice) && currentPrice >= 0;
+  const currentPrefix = form.itemCode && form.itemCode.includes('-') 
+    ? extractItemCodePrefix(form.itemCode) 
+    : '1000-';
+  const autoGeneratedCode = isValidPrice ? generateItemCode(currentPrefix, currentPrice) : '';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
@@ -14755,28 +16435,6 @@ function ProductFormFields({
         <label style={lbl}>Malayalam Name <span style={{ fontSize: 10, color: D.sub }}>(optional)</span></label>
         <input value={form.nameMl} onChange={e => setForm((p: any) => ({ ...p, nameMl: e.target.value }))}
           placeholder="മലയാളം" lang="ml" style={inp} onFocus={onFoc} onBlur={onBlr} />
-      </div>
-      <div style={{ padding: '16px', borderRadius: 12, background: `${D.accent}10`, border: `1px solid ${D.accent}33` }}>
-        <label style={{ ...lbl, color: D.accent }}>Item Code <span style={{ color: D.red }}>*</span></label>
-        <input value={form.itemCode} onChange={e => setForm((p: any) => ({ ...p, itemCode: e.target.value }))}
-          placeholder="e.g. 1000-90" style={{ ...inp, fontSize: 18, fontWeight: 800, color: D.accent, background: D.surface2, border: `1px solid ${D.accent}33` }}
-          onFocus={onFoc} onBlur={onBlr} />
-        <p style={{ margin: '8px 0 0', fontSize: 11, color: D.sub }}>
-          Format: <strong>code-price</strong> — the number after the last dash is the price. "1000-90" → price ₹90.
-        </p>
-        {(() => {
-          const parsed = parsePriceFromItemCode(form.itemCode);
-          if (!form.itemCode) return null;
-          return parsed !== null ? (
-            <p style={{ margin: '8px 0 0', fontSize: 12, color: D.accent, fontWeight: 600 }}>
-              Salesman will see: <strong>{form.itemCode}</strong> · price ₹{parsed}
-            </p>
-          ) : (
-            <p style={{ margin: '8px 0 0', fontSize: 12, color: D.red, fontWeight: 600 }}>
-              ⚠ No price found — add a dash and the price at the end, e.g. "{form.itemCode}-90".
-            </p>
-          );
-        })()}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -14797,365 +16455,69 @@ function ProductFormFields({
           </select>
         </div>
       </div>
-    </div>
-  );
-}
 
-// ── Settings Modal ─────────────────────────────────────────
-function SettingsModal({ isOpen, onClose, groups, units, priorities, onGroupUpdate, onUnitUpdate, onPriorityUpdate }: {
-  isOpen: boolean;
-  onClose: () => void;
-  groups: ProductGroupDto[];
-  units: UnitDto[];
-  priorities: UnitPriorityDto[];
-  onGroupUpdate: () => void;
-  onUnitUpdate: () => void;
-  onPriorityUpdate: () => void;
-}) {
-  const [activeTab, setActiveTab] = useState<'groups' | 'units' | 'priorities'>('groups');
-  
-  // Group state
-  const [gModal, setGModal] = useState<'add' | 'edit' | null>(null);
-  const [gSelected, setGSelected] = useState<ProductGroupDto | null>(null);
-  const [gForm, setGForm] = useState({ name: '', nameMl: '' });
-  const [gSaving, setGSaving] = useState(false);
-  const [gConfirm, setGConfirm] = useState<string | null>(null);
-  const [gDeleting, setGDeleting] = useState(false);
-
-  // Unit state
-  const [uModal, setUModal] = useState<'add' | 'edit' | null>(null);
-  const [uSelected, setUSelected] = useState<UnitDto | null>(null);
-  const [uForm, setUForm] = useState({ name: '', abbreviation: '' });
-  const [uSaving, setUSaving] = useState(false);
-  const [uConfirm, setUConfirm] = useState<string | null>(null);
-  const [uDeleting, setUDeleting] = useState(false);
-  const [updatingPriority, setUpdatingPriority] = useState<string | null>(null);
-
-  async function saveGroup() {
-    if (!gForm.name.trim()) return;
-    setGSaving(true);
-    try {
-      if (gModal === 'add') await productGroupsApi.create(gForm.name, gForm.nameMl || undefined);
-      else if (gSelected) await productGroupsApi.update(gSelected.id, gForm.name, gForm.nameMl || undefined);
-      setGModal(null);
-      onGroupUpdate();
-    } catch (err: unknown) { console.error(err); }
-    finally { setGSaving(false); }
-  }
-
-  async function deleteGroup() {
-    if (!gConfirm) return;
-    setGDeleting(true);
-    try { await productGroupsApi.delete(gConfirm); setGConfirm(null); onGroupUpdate(); }
-    catch (err: unknown) { console.error(err); }
-    finally { setGDeleting(false); }
-  }
-
-  async function saveUnit() {
-    if (!uForm.name.trim()) return;
-    setUSaving(true);
-    try {
-      if (uModal === 'add') await unitsApi.create(uForm.name, uForm.abbreviation || undefined);
-      else if (uSelected) await unitsApi.update(uSelected.id, uForm.name, uForm.abbreviation || undefined);
-      setUModal(null);
-      onUnitUpdate();
-    } catch (err: unknown) { console.error(err); }
-    finally { setUSaving(false); }
-  }
-
-  async function deleteUnit() {
-    if (!uConfirm) return;
-    setUDeleting(true);
-    try { await unitsApi.delete(uConfirm); setUConfirm(null); onUnitUpdate(); }
-    catch (err: unknown) { console.error(err); }
-    finally { setUDeleting(false); }
-  }
-
-  async function handleUpdatePriority(unitId: string, newPriority: number) {
-    setUpdatingPriority(unitId);
-    try {
-      await unitsApi.updatePriority(unitId, newPriority);
-      onPriorityUpdate();
-    } catch (err: unknown) { console.error(err); }
-    finally { setUpdatingPriority(null); }
-  }
-
-  if (!isOpen) return null;
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/70 z-40" onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#1e293b] rounded-2xl p-6 w-full max-w-2xl max-h-[85vh] z-50 shadow-xl border border-[#334155] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Settings size={20} className="text-[#ea580c]" />
-            <h2 className="text-xl font-bold text-[#f1f5f9]">Catalog Config</h2>
-            <span className="text-xs text-[#64748b] bg-[#0f172a] px-2 py-1 rounded-full">Product Groups & Units</span>
-          </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-[#334155] text-[#94a3b8]">
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, borderBottom: `1px solid ${D.border}`, marginBottom: 16, overflowX: 'auto', flexShrink: 0 }}>
-          {[
-            ['groups', `Groups (${groups.length})`],
-            ['units', `Units (${units.length})`],
-            ['priorities', 'Loading Priorities']
-          ].map(([k, l]) => (
-            <button key={k} onClick={() => setActiveTab(k as 'groups' | 'units' | 'priorities')} style={{
-              padding: '8px 16px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer',
-              background: 'transparent', fontFamily: 'inherit', whiteSpace: 'nowrap',
-              color: activeTab === k ? D.accent : D.muted,
-              borderBottom: `2px solid ${activeTab === k ? D.accent : 'transparent'}`,
-              marginBottom: -1, transition: 'all 0.12s',
-            }}>{l}</button>
-          ))}
-        </div>
-
-        {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto">
-          {/* ── Product Groups Tab ── */}
-          {activeTab === 'groups' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <button
-                onClick={() => { setGSelected(null); setGForm({ name: '', nameMl: '' }); setGModal('add'); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '10px 18px', borderRadius: 10,
-                  background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-                  border: 'none', color: '#fff', fontSize: 13, fontWeight: 700,
-                  cursor: 'pointer', fontFamily: 'inherit',
-                  boxShadow: `0 4px 14px ${D.accentGlow}`,
-                  width: 'fit-content',
-                }}
-              >
-                <Plus size={16} /> Add Product Group
-              </button>
-
-              {groups.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '32px 20px', color: D.sub, background: D.surface, borderRadius: 12, border: `1px solid ${D.border}` }}>
-                  <Boxes size={32} color={D.border} style={{ marginBottom: 8 }} />
-                  <p>No product groups yet</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {groups.map((g) => (
-                    <div key={g.id} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '12px 16px', border: `1px solid ${D.border}`,
-                      borderRadius: 10, gap: 8, background: D.bg,
-                      transition: 'all 0.12s',
-                    }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = D.surface2}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = D.bg}
-                    >
-                      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: D.accent, flexShrink: 0 }} />
-                        <span style={{ fontWeight: 600, fontSize: 14, color: D.text }}>{g.name}</span>
-                        {g.nameMl && <span style={{ color: D.sub, fontSize: 13 }}>{g.nameMl}</span>}
-                        {g.productCount !== undefined && (
-                          <span style={{ color: D.accent, fontSize: 11, fontWeight: 700, background: `${D.accent}15`, padding: '2px 7px', borderRadius: 6 }}>
-                            {g.productCount} products
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                        <button className="btn btn-ghost btn-icon btn-sm"
-                          onClick={() => { setGSelected(g); setGForm({ name: g.name, nameMl: g.nameMl ?? '' }); setGModal('edit'); }}>
-                          <Edit2 size={13} color={D.muted} />
-                        </button>
-                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setGConfirm(g.id)}>
-                          <Trash2 size={13} color={D.red} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Units Tab ── */}
-          {activeTab === 'units' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <button
-                onClick={() => { setUSelected(null); setUForm({ name: '', abbreviation: '' }); setUModal('add'); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '10px 18px', borderRadius: 10,
-                  background: `linear-gradient(135deg, ${D.green}, ${D.green}dd)`,
-                  border: 'none', color: '#fff', fontSize: 13, fontWeight: 700,
-                  cursor: 'pointer', fontFamily: 'inherit',
-                  boxShadow: `0 4px 14px rgba(34,197,94,0.25)`,
-                  width: 'fit-content',
-                }}
-              >
-                <Plus size={16} /> Add Unit
-              </button>
-
-              {units.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '32px 20px', color: D.sub, background: D.surface, borderRadius: 12, border: `1px solid ${D.border}` }}>
-                  <Ruler size={32} color={D.border} style={{ marginBottom: 8 }} />
-                  <p>No units yet</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {units.map((u) => (
-                    <div key={u.id} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '12px 16px', border: `1px solid ${D.border}`,
-                      borderRadius: 10, gap: 8, background: D.bg,
-                      transition: 'all 0.12s',
-                    }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = D.surface2}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = D.bg}
-                    >
-                      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: D.green, flexShrink: 0 }} />
-                        <span style={{ fontWeight: 600, fontSize: 14, color: D.text }}>{u.name}</span>
-                        {u.abbreviation && (
-                          <span style={{ color: D.green, fontSize: 11, fontWeight: 700, fontFamily: 'monospace', background: `${D.green}15`, padding: '2px 7px', borderRadius: 6, border: `1px solid ${D.green}33` }}>
-                            [{u.abbreviation}]
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                        <button className="btn btn-ghost btn-icon btn-sm"
-                          onClick={() => { setUSelected(u); setUForm({ name: u.name, abbreviation: u.abbreviation ?? '' }); setUModal('edit'); }}>
-                          <Edit2 size={13} color={D.muted} />
-                        </button>
-                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setUConfirm(u.id)}>
-                          <Trash2 size={13} color={D.red} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Loading Priorities Tab ── */}
-          {activeTab === 'priorities' && (
-            <div style={{ background: D.surface, borderRadius: 12, border: `1px solid ${D.border}`, padding: '16px' }}>
-              <div style={{ fontSize: 12, color: D.muted, marginBottom: 12 }}>
-                <strong style={{ color: D.accent }}>Priority 1</strong> = Load FIRST (heavy bags, bottom of van) ·
-                <strong style={{ color: D.accent }}> Priority 99</strong> = Load LAST (small items, top of van)
-              </div>
-              {priorities.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '24px', color: D.sub }}>No units with priorities</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {priorities.map((unit) => (
-                    <div key={unit.id} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '10px 14px', border: `1px solid ${D.border}`,
-                      borderRadius: 8, background: D.bg,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: `${D.accent}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: D.accent }}>
-                          {unit.loadingPriority}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: 14, color: D.text }}>{unit.name}</div>
-                          {unit.symbol && <div style={{ color: D.sub, fontSize: 12 }}>{unit.symbol}</div>}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleUpdatePriority(unit.id, Math.max(1, unit.loadingPriority - 1))} disabled={updatingPriority === unit.id || unit.loadingPriority <= 1}>
-                          <ArrowUp size={14} color={D.muted} />
-                        </button>
-                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleUpdatePriority(unit.id, unit.loadingPriority + 1)} disabled={updatingPriority === unit.id}>
-                          <ArrowDown size={14} color={D.muted} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex-shrink-0 mt-4 pt-4 border-t border-[#334155] flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-[#334155] text-[#94a3b8] hover:bg-[#334155] transition-colors text-sm font-medium"
-          >
-            Close
-          </button>
-        </div>
+      {/* ── NEW: Size Group field ── */}
+      <div>
+        <label style={lbl}>Size Group</label>
+        <select 
+          value={form.sizeGroupId} 
+          onChange={e => setForm((p: any) => ({ ...p, sizeGroupId: e.target.value }))}
+          style={{ ...inp, cursor: 'pointer' }} 
+          onFocus={onFoc} onBlur={onBlr}
+        >
+          <option value="">Select size group</option>
+          {sizeGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+        </select>
       </div>
 
-      {/* Group Modal */}
-      {gModal && (
-        <div className="fixed inset-0 bg-black/70 z-60 flex items-center justify-center p-4" onClick={() => setGModal(null)}>
-          <div style={{ background: D.surface, borderRadius: 20, padding: 32, width: 'min(calc(100vw - 32px), 440px)', border: `1px solid ${D.border}`, boxShadow: `0 24px 64px rgba(0,0,0,0.5)` }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: `${D.accent}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Boxes size={18} color={D.accent} />
-                </div>
-                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: D.text }}>{gModal === 'add' ? 'Add' : 'Edit'} Product Group</h3>
-              </div>
-              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setGModal(null)}><X size={16} color={D.muted} /></button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Field label="Group Name" required>
-                <input className="input" value={gForm.name} onChange={(e) => setGForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Beverages" style={{ background: D.bg, border: `1px solid ${D.border}`, color: D.text }} autoFocus />
-              </Field>
-              <Field label="Malayalam Name">
-                <input className="input" value={gForm.nameMl} onChange={(e) => setGForm(p => ({ ...p, nameMl: e.target.value }))} placeholder="ഗ്രൂപ്പ് (optional)" lang="ml" style={{ background: D.bg, border: `1px solid ${D.border}`, color: D.text }} />
-              </Field>
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 24 }}>
-              <button className="btn btn-outline" onClick={() => setGModal(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={saveGroup} disabled={gSaving || !gForm.name.trim()} style={{ background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, border: 'none', color: '#fff', boxShadow: `0 4px 14px ${D.accentGlow}` }}>
-                {gSaving ? <Spinner size={16} /> : (gModal === 'add' ? 'Add Group' : 'Save Changes')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── Base Price field (FIRST) ── */}
+      <div>
+        <label style={lbl}>Base Price (₹) <span style={{ color: D.red }}>*</span></label>
+        <input 
+          type="number" 
+          step="0.01" 
+          min="0"
+          value={form.basePrice} 
+          onChange={handlePriceChange}
+          placeholder="Enter base price" 
+          style={{ ...inp, fontSize: 18, fontWeight: 700, color: D.accent }}
+          onFocus={onFoc} onBlur={onBlr} 
+        />
+        {autoGeneratedCode && (
+          <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
+            Item code will be: <strong style={{ color: D.accent }}>{autoGeneratedCode}</strong>
+          </p>
+        )}
+      </div>
 
-      {/* Unit Modal */}
-      {uModal && (
-        <div className="fixed inset-0 bg-black/70 z-60 flex items-center justify-center p-4" onClick={() => setUModal(null)}>
-          <div style={{ background: D.surface, borderRadius: 20, padding: 32, width: 'min(calc(100vw - 32px), 440px)', border: `1px solid ${D.border}`, boxShadow: `0 24px 64px rgba(0,0,0,0.5)` }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(34,197,94,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Ruler size={18} color={D.green} />
-                </div>
-                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: D.text }}>{uModal === 'add' ? 'Add' : 'Edit'} Unit</h3>
-              </div>
-              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setUModal(null)}><X size={16} color={D.muted} /></button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Field label="Unit Name" required>
-                <input className="input" value={uForm.name} onChange={(e) => setUForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Kilogram" style={{ background: D.bg, border: `1px solid ${D.border}`, color: D.text }} autoFocus />
-              </Field>
-              <Field label="Abbreviation">
-                <input className="input" value={uForm.abbreviation} onChange={(e) => setUForm(p => ({ ...p, abbreviation: e.target.value }))} placeholder="e.g. kg" style={{ background: D.bg, border: `1px solid ${D.border}`, color: D.text }} />
-              </Field>
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 24 }}>
-              <button className="btn btn-outline" onClick={() => setUModal(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={saveUnit} disabled={uSaving || !uForm.name.trim()} style={{ background: `linear-gradient(135deg, ${D.green}, ${D.green}dd)`, border: 'none', color: '#fff', boxShadow: `0 4px 14px rgba(34,197,94,0.25)` }}>
-                {uSaving ? <Spinner size={16} /> : (uModal === 'add' ? 'Add Unit' : 'Save Changes')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {gConfirm && <ConfirmModal title="Delete Group" message="This will delete the product group." danger loading={gDeleting} onConfirm={deleteGroup} onCancel={() => setGConfirm(null)} />}
-      {uConfirm && <ConfirmModal title="Delete Unit" message="This will delete the measurement unit." danger loading={uDeleting} onConfirm={deleteUnit} onCancel={() => setUConfirm(null)} />}
-    </>
+      {/* ── Item Code field (SECOND - auto-generated) ── */}
+      <div style={{ padding: '16px', borderRadius: 12, background: `${D.accent}10`, border: `1px solid ${D.accent}33` }}>
+        <label style={{ ...lbl, color: D.accent }}>Item Code <span style={{ color: D.red }}>*</span></label>
+        <input 
+          value={form.itemCode} 
+          onChange={handleItemCodeChange}
+          placeholder="Auto-generated from price" 
+          style={{ ...inp, fontSize: 18, fontWeight: 800, color: D.accent, background: D.surface2, border: `1px solid ${D.accent}33` }}
+          onFocus={onFoc} onBlur={onBlr} 
+        />
+        <p style={{ margin: '8px 0 0', fontSize: 11, color: D.sub }}>
+          Format: <strong>code-price</strong> — the number after the last dash is the price. "1000-90" → price ₹90.
+        </p>
+        {(() => {
+          const parsed = parsePriceFromItemCode(form.itemCode);
+          if (!form.itemCode) return null;
+          return parsed !== null ? (
+            <p style={{ margin: '8px 0 0', fontSize: 12, color: D.accent, fontWeight: 600 }}>
+              Salesman will see: <strong>{form.itemCode}</strong> · price ₹{parsed}
+            </p>
+          ) : (
+            <p style={{ margin: '8px 0 0', fontSize: 12, color: D.red, fontWeight: 600 }}>
+              ⚠ No price found — add a dash and the price at the end, e.g. "{form.itemCode}-90".
+            </p>
+          );
+        })()}
+      </div>
+    </div>
   );
 }
 
@@ -15163,18 +16525,20 @@ function SettingsModal({ isOpen, onClose, groups, units, priorities, onGroupUpda
 // AdminProducts page
 // ═══════════════════════════════════════════════════════════
 export function AdminProducts() {
+  const { user } = useAuthStore();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [groups, setGroups] = useState<ProductGroupDto[]>([]);
   const [units, setUnits] = useState<UnitDto[]>([]);
   const [priorities, setPriorities] = useState<UnitPriorityDto[]>([]);
+  // ── NEW: Size Groups state ──
+  const [sizeGroups, setSizeGroups] = useState<SizeGroupDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
   const [showAdd, setShowAdd] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [editModal, setEditModal] = useState<ProductDto | null>(null);
   const [priceModal, setPriceModal] = useState<ProductDto | null>(null);
   const [historyModal, setHistoryModal] = useState<ProductDto | null>(null);
@@ -15187,22 +16551,35 @@ export function AdminProducts() {
   const [priceReason, setPriceReason] = useState('');
   const addCardRef = useRef<HTMLDivElement>(null);
 
-  const emptyForm = { name: '', nameMl: '', productGroupId: '', unitId: '', basePrice: '', itemCode: '' };
+  // ── Default item code prefix ──
+  const DEFAULT_ITEM_CODE_PREFIX = '1000-';
+
+  const emptyForm = { 
+    name: '', 
+    nameMl: '', 
+    productGroupId: '', 
+    unitId: '', 
+    basePrice: '', 
+    itemCode: DEFAULT_ITEM_CODE_PREFIX,
+    sizeGroupId: '',  // ── NEW ──
+  };
   const [addForm, setAddForm] = useState(emptyForm);
   const [editForm, setEditForm] = useState(emptyForm);
 
   async function loadAll() {
     setLoading(true);
     try {
-      const [p, g, u, pri] = await Promise.all([
+      const [p, g, u, sg, pri] = await Promise.all([
         productsApi.getAll(groupFilter ? { productGroupId: groupFilter } : undefined),
         productGroupsApi.getAll(),
         unitsApi.getAll(),
+        sizeGroupsApi.getAll().catch(() => [] as SizeGroupDto[]),  // ── NEW ──
         unitsApi.getPriorities().catch(() => [] as UnitPriorityDto[]),
       ]);
       setProducts(p);
       setGroups(g);
       setUnits(u);
+      setSizeGroups(sg);  // ── NEW ──
       setPriorities(pri);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Load failed');
@@ -15219,10 +16596,15 @@ export function AdminProducts() {
   }, [showAdd]);
 
   function openEdit(p: ProductDto) {
+    const prefix = p.itemCode ? extractItemCodePrefix(p.itemCode) : DEFAULT_ITEM_CODE_PREFIX;
     setEditForm({
-      name: p.nameEnglish, nameMl: p.nameMalayalam ?? '',
-      productGroupId: p.productGroupId, unitId: p.productUnitId ?? '',
-      basePrice: p.basePrice.toString(), itemCode: p.itemCode ?? '',
+      name: p.nameEnglish,
+      nameMl: p.nameMalayalam ?? '',
+      productGroupId: p.productGroupId,
+      unitId: p.productUnitId ?? '',
+      basePrice: p.basePrice.toString(),
+      itemCode: p.itemCode ?? generateItemCode(prefix, p.basePrice),
+      sizeGroupId: p.sizeGroupId ?? '',  // ── NEW ──
     });
     setEditModal(p);
   }
@@ -15240,15 +16622,25 @@ export function AdminProducts() {
   }
 
   async function handleAdd() {
-    if (!addForm.name.trim() || !addForm.productGroupId || !addForm.itemCode.trim()) {
-      setError('Fill all required fields (Item Code is mandatory).');
+    if (!addForm.name.trim() || !addForm.productGroupId) {
+      setError('Fill all required fields.');
       return;
     }
-    const parsedPrice = parsePriceFromItemCode(addForm.itemCode);
+    // Parse price from either the item code or the base price field
+    let parsedPrice = parsePriceFromItemCode(addForm.itemCode);
     if (parsedPrice === null) {
-      setError('Item Code must include a price after a dash, e.g. "1000-90".');
+      parsedPrice = parseFloat(addForm.basePrice);
+    }
+    if (parsedPrice === null || parsedPrice <= 0) {
+      setError('Please enter a valid price (either in Base Price or Item Code).');
       return;
     }
+    // Ensure item code has the correct price
+    const prefix = addForm.itemCode && addForm.itemCode.includes('-') 
+      ? extractItemCodePrefix(addForm.itemCode) 
+      : DEFAULT_ITEM_CODE_PREFIX;
+    const finalItemCode = generateItemCode(prefix, parsedPrice);
+    
     setSaving(true);
     setError('');
     try {
@@ -15258,7 +16650,8 @@ export function AdminProducts() {
         productGroupId: addForm.productGroupId,
         productUnitId: addForm.unitId || undefined,
         basePrice: parsedPrice,
-        itemCode: addForm.itemCode,
+        itemCode: finalItemCode,
+        sizeGroupId: addForm.sizeGroupId || undefined,  // ── NEW ──
       });
       setShowAdd(false);
       setAddForm(emptyForm);
@@ -15268,11 +16661,25 @@ export function AdminProducts() {
   }
 
   async function handleEdit() {
-    if (!editForm.name.trim() || !editForm.productGroupId || !editForm.itemCode.trim() || !editModal) {
-      setError('Fill all required fields (Item Code is mandatory).');
+    if (!editForm.name.trim() || !editForm.productGroupId || !editModal) {
+      setError('Fill all required fields.');
       return;
     }
-    const parsedPrice = parsePriceFromItemCode(editForm.itemCode) ?? parseFloat(editForm.basePrice);
+    // Parse price from either the item code or the base price field
+    let parsedPrice = parsePriceFromItemCode(editForm.itemCode);
+    if (parsedPrice === null) {
+      parsedPrice = parseFloat(editForm.basePrice);
+    }
+    if (parsedPrice === null || parsedPrice <= 0) {
+      setError('Please enter a valid price.');
+      return;
+    }
+    // Ensure item code has the correct price
+    const prefix = editForm.itemCode && editForm.itemCode.includes('-') 
+      ? extractItemCodePrefix(editForm.itemCode) 
+      : DEFAULT_ITEM_CODE_PREFIX;
+    const finalItemCode = generateItemCode(prefix, parsedPrice);
+    
     setSaving(true);
     setError('');
     try {
@@ -15284,7 +16691,8 @@ export function AdminProducts() {
         productGroupId: editForm.productGroupId,
         productUnitId: editForm.unitId || undefined,
         basePrice: parsedPrice,
-        itemCode: editForm.itemCode,
+        itemCode: finalItemCode,
+        sizeGroupId: editForm.sizeGroupId || undefined,  // ── NEW ──
       });
       setEditModal(null);
       loadAll();
@@ -15317,7 +16725,8 @@ export function AdminProducts() {
     return (p.nameEnglish || '').toLowerCase().includes(q)
       || (p.nameMalayalam || '').toLowerCase().includes(q)
       || (p.productGroupName || '').toLowerCase().includes(q)
-      || (p.itemCode || '').toLowerCase().includes(q);
+      || (p.itemCode || '').toLowerCase().includes(q)
+      || (p.sizeGroupName || '').toLowerCase().includes(q);
   });
 
   if (loading) return <PageLoader />;
@@ -15356,9 +16765,9 @@ export function AdminProducts() {
             </p>
           </div>
           
-          {/* Settings Button */}
-          <button
-            onClick={() => setShowSettings(true)}
+          {/* ── Catalog Config Link ── */}
+          <Link
+            to={user?.role === 'Admin' || user?.role === 'SuperAdmin' ? '/admin/catalog' : '#'}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '9px 14px', borderRadius: 9,
@@ -15366,14 +16775,16 @@ export function AdminProducts() {
               border: `1px solid ${D.border}`,
               color: D.muted,
               fontSize: 13, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              textDecoration: 'none',
               transition: 'all 0.15s',
             }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.accent; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
           >
             <Settings size={16} /> Catalog Config
-          </button>
+          </Link>
           
           <button 
             onClick={loadAll} 
@@ -15472,16 +16883,23 @@ export function AdminProducts() {
                 <div style={{ fontSize: 12, color: D.sub }}>Fill in the details to register a product</div>
               </div>
             </div>
-            <ProductFormFields form={addForm} setForm={setAddForm} groups={groups} units={units} autoFocus />
+            <ProductFormFields 
+              form={addForm} 
+              setForm={setAddForm} 
+              groups={groups} 
+              units={units} 
+              sizeGroups={sizeGroups}
+              autoFocus 
+            />
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20, borderTop: `1px solid ${D.border}`, paddingTop: 18 }}>
               <button onClick={() => { setShowAdd(false); setError(''); }} style={{ padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700, color: D.sub, border: `1px solid ${D.border}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-              <button onClick={handleAdd} disabled={saving || !addForm.name.trim() || !addForm.productGroupId || !addForm.itemCode.trim()}
+              <button onClick={handleAdd} disabled={saving || !addForm.name.trim() || !addForm.productGroupId}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 7,
                   padding: '10px 24px', borderRadius: 10, fontSize: 14, fontWeight: 800,
                   color: '#fff', border: 'none',
                   background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-                  cursor: saving || !addForm.name.trim() || !addForm.productGroupId || !addForm.itemCode.trim() ? 'not-allowed' : 'pointer',
+                  cursor: saving || !addForm.name.trim() || !addForm.productGroupId ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit', boxShadow: `0 4px 14px ${D.accentGlow}`,
                 }}
               >
@@ -15522,18 +16940,6 @@ export function AdminProducts() {
           </div>
         )}
 
-        {/* ── Settings Modal ──────────────────────────────────────── */}
-        <SettingsModal
-          isOpen={showSettings}
-          onClose={() => setShowSettings(false)}
-          groups={groups}
-          units={units}
-          priorities={priorities}
-          onGroupUpdate={loadAll}
-          onUnitUpdate={loadAll}
-          onPriorityUpdate={loadAll}
-        />
-
         {/* ── Unit Price Manager Modal ──────────────────────────────────────── */}
         {unitPriceModal && (
           <ProductUnitPriceManager
@@ -15567,7 +16973,14 @@ export function AdminProducts() {
               </div>
               <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
                 {error && <Alert variant="error">{error}</Alert>}
-                <ProductFormFields form={editForm} setForm={setEditForm} groups={groups} units={units} />
+                <ProductFormFields 
+                  form={editForm} 
+                  setForm={setEditForm} 
+                  groups={groups} 
+                  units={units} 
+                  sizeGroups={sizeGroups}
+                  isEdit={true} 
+                />
               </div>
               <div style={{ padding: '16px 24px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, justifyContent: 'flex-end', flexShrink: 0 }}>
                 <button onClick={() => setEditModal(null)} style={{ padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 700, color: D.sub, border: `1px solid ${D.border}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
@@ -21070,7 +22483,7 @@ export function RegisterPage() {
 ## File: src/pages/Dashboard/HomeHub.tsx
 ````typescript
 // PATH: src/pages/Dashboard/HomeHub.tsx
-// UPDATED: Dark theme with orange accent - Settings removed, Users & Reports enlarged
+// UPDATED: Added Catalog Config card
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -21139,8 +22552,6 @@ interface QuickAction {
 }
 
 // ── Large Nav Blocks (priority order for admin) ────────────────
-// REMOVED: 'settings' - Settings card removed
-// ADDED: 'users' and 'reports' as large cards
 const NAV_BLOCKS: NavBlock[] = [
   // ── Salesman ──
   {
@@ -21159,7 +22570,7 @@ const NAV_BLOCKS: NavBlock[] = [
   },
   // ── Admin priority order ──
   {
-    id: 'admin-routes', label: 'Route Hub',
+    id: 'admin-routes', label: 'Route Masters',
     description: 'Assign routes and track live deliveries',
     icon: Route, to: '/admin/routes',
     badge: 'Live', badgeColor: 'green',
@@ -21173,21 +22584,28 @@ const NAV_BLOCKS: NavBlock[] = [
     accent: '#3B82F6', accentText: '#3B82F6', roles: ['Admin', 'SuperAdmin'],
   },
   {
-    id: 'customers', label: 'Customers',
+    id: 'customers', label: 'Customers Masters',
     description: 'Browse and manage customer catalog',
     icon: Users, to: '/admin/customers',
     badge: '248 Active', badgeColor: 'blue',
     accent: '#8B5CF6', accentText: '#8B5CF6', roles: ['Admin', 'SuperAdmin'],
   },
-  // Products card (kept as normal card)
+  // Products card
   {
-    id: 'products', label: 'Products',
+    id: 'products', label: 'Products Masters',
     description: 'Manage product catalog and pricing',
     icon: Package, to: '/admin/products',
     accent: '#22C55E', accentText: '#22C55E', roles: ['Admin', 'SuperAdmin'],
   },
-  // ❌ Settings card REMOVED - no longer here
-  // ✅ Users card - ENLARGED (moved from More Tools)
+  // ── NEW: Catalog Config Card ──
+  {
+    id: 'catalog', label: 'Catalog Config',
+    description: 'Manage product groups and measurement units',
+    icon: Settings, to: '/admin/catalog',
+    accent: '#A78BFA', accentText: '#A78BFA', roles: ['Admin', 'SuperAdmin'],
+    size: 'small',
+  },
+  // Users card - ENLARGED
   {
     id: 'users', label: 'User Management',
     description: 'Manage users, roles, and permissions across the platform',
@@ -21195,9 +22613,9 @@ const NAV_BLOCKS: NavBlock[] = [
     accent: '#60A5FA', accentText: '#60A5FA', roles: ['Admin', 'SuperAdmin'],
     size: 'large',
   },
-  // ✅ Reports card - ENLARGED (moved from More Tools)
+  // Reports card - ENLARGED
   {
-    id: 'reports', label: 'Reports',
+    id: 'reports', label: 'Report Masters',
     description: 'Generate and view detailed business reports and analytics',
     icon: FileText, to: '/admin/reports',
     accent: '#14B8A6', accentText: '#14B8A6', roles: ['Admin', 'SuperAdmin'],
@@ -21354,10 +22772,10 @@ export function HomeHub() {
 
   // Filter blocks: main blocks (Route Hub, Orders, Customers)
   const mainBlocks   = isAdmin ? blocks.filter(b => ['admin-routes','orders','customers'].includes(b.id)) : blocks;
-  // Filter large blocks: Products, Users, Reports (Settings removed)
-  const largeBlocks  = isAdmin ? blocks.filter(b => ['products','users','reports'].includes(b.id)) : [];
+  // Filter large blocks: Products, Users, Reports, Catalog
+  const largeBlocks  = isAdmin ? blocks.filter(b => ['products','users','reports','catalog'].includes(b.id)) : [];
   // Everything else goes to more tools
-  const moreTools    = isAdmin ? blocks.filter(b => !['admin-routes','orders','customers','products','users','reports'].includes(b.id)) : [];
+  const moreTools    = isAdmin ? blocks.filter(b => !['admin-routes','orders','customers','products','users','reports','catalog'].includes(b.id)) : [];
 
   function liveBadge(blockId: string): string | undefined {
     if (blockId === 'admin-routes') return liveStats.routesCount !== undefined ? `${liveStats.routesCount} Routes` : undefined;
@@ -21463,11 +22881,11 @@ export function HomeHub() {
           ))}
         </div>
 
-        {/* ── Admin Large Cards: Products, Users, Reports ── */}
+        {/* ── Admin Large Cards: Products, Users, Reports, Catalog ── */}
         {isAdmin && largeBlocks.length > 0 && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: largeBlocks.length === 3 ? 'repeat(3,1fr)' : largeBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
+            gridTemplateColumns: largeBlocks.length === 4 ? 'repeat(4,1fr)' : largeBlocks.length === 3 ? 'repeat(3,1fr)' : largeBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
             gap: 16, marginBottom: 16,
             opacity: mounted ? 1 : 0,
             transition: 'all 0.42s 0.18s cubic-bezier(0.34,1.2,0.64,1)',
@@ -21812,6 +23230,16 @@ function NavBlockCard({ block, delay, fullWidth, badgeOverride, isLarge }: {
             </span>
             <span style={{ fontSize: 12, color: D.green, display: 'flex', alignItems: 'center', gap: 4 }}>
               <ArrowUpRight size={12} /> +12% This Week
+            </span>
+          </div>
+        )}
+        {large && block.id === 'catalog' && (
+          <div style={{ marginTop: 12, display: 'flex', gap: 16 }}>
+            <span style={{ fontSize: 12, color: '#A78BFA', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Settings size={12} /> {block.id === 'catalog' ? 'Groups & Units' : ''}
+            </span>
+            <span style={{ fontSize: 12, color: D.green, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Boxes size={12} /> Manage Catalog
             </span>
           </div>
         )}
@@ -22957,6 +24385,9 @@ export { default } from './OrderEntry';
 // 5. FIX: Salesman cannot edit base price — price field is read-only for salesman
 // 6. FIX: Cancel Order button appears when order has no items (Draft only)
 // 7. FIX: Delete order API call when cancelling
+// 8. FIX: Cancel Order redirects to Route Execution page (not My Routes)
+// 9. FIX: Save Draft button centered in bottom bar
+// 10. FIX: hasExistingOrder declared before use
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -23019,10 +24450,14 @@ export default function OrderEntry() {
   const [showCancelConfirm,  setShowCancelConfirm]  = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // ── FIX: Declare hasExistingOrder BEFORE using it in canCancel ──
+  const hasExistingOrder = !!existingOrder;
+  const isDraft = existingOrder?.status === OrderStatus.Draft;
   const canEdit = !existingOrder || existingOrder.status === OrderStatus.Draft;
   const totalItems  = lines.reduce((s, l) => s + l.qty, 0);
   const hasNoItems = lines.length === 0 && !remarks.trim();
-  const isDraft = existingOrder?.status === OrderStatus.Draft;
+  // ── NEW: Show cancel button for ANY existing draft order (even with items) ──
+  const canCancel = isDraft && hasExistingOrder;
 
   const loadUnitPrices = useCallback(async (products: any[]) => {
     const priceMap: Record<string, ProductUnitPriceDto> = {};
@@ -23206,8 +24641,7 @@ export default function OrderEntry() {
     } finally { setSaving(false); }
   };
 
-  // ── NEW: Cancel/Delete Order ──
-// ── FIX: After cancelling, go back to Route Execution ──
+  // ── FIX: Cancel/Delete Order — redirect back to Route Execution ──
   const handleCancelOrder = async () => {
     if (!existingOrder) return;
     setDeleting(true);
@@ -23216,10 +24650,17 @@ export default function OrderEntry() {
       await ordersApi.delete(String(existingOrder.id));
       setSuccessMsg('Order cancelled successfully! You can now take a new order.');
       
-      // ── FIX: Navigate back to Route Execution instead of My Routes ──
-      // This allows the salesman to continue with the next customer
+      // ── FIX: Navigate back to Route Execution page ──
+      // If we have execution context, go back to the execute page
+      // Otherwise go back one step (which should be the route execution page)
       setTimeout(() => {
-        navigate(-1); // Go back to Route Execution
+        if (executionContext?.executionId) {
+          navigate(`/salesman/routes/${routeId}/execute`, { 
+            state: { mode: 'order-taking' } 
+          });
+        } else {
+          navigate(-1); // Fallback to previous page
+        }
       }, 1500);
       
     } catch (e: unknown) {
@@ -23238,6 +24679,12 @@ export default function OrderEntry() {
       const up = unitPrices[prod.id];
       return { product: prod, productId: String(prod.id), qty: item.quantity, sellingPrice: item.sellingPrice || (up?.salePrice ?? prod.basePrice), unit: prod.productUnitName ?? 'Unit' };
     }).filter(Boolean) as LineItem[];
+
+    // Also copy remarks if present
+    if (order.remarks) {
+      setRemarks(order.remarks);
+    }
+
     setLines(mapped);
     setShowPreviousModal(false);
     setSuccessMsg('Previous order loaded. Tap Save Draft to keep it.');
@@ -23250,9 +24697,7 @@ export default function OrderEntry() {
     </div>
   );
 
-  const orderStatus      = existingOrder?.status;
-  const hasExistingOrder = !!existingOrder;
-  const canCancel = isDraft && hasNoItems && hasExistingOrder;
+  const orderStatus = existingOrder?.status;
 
   return (
     <div style={{ minHeight: '100vh', background: D.bg, color: D.text }}>
@@ -23278,7 +24723,7 @@ export default function OrderEntry() {
               </button>
             )}
 
-            {/* ── Cancel Order button (only when no items) ── */}
+            {/* ── Cancel Order button (always visible for Draft orders) ── */}
             {canCancel && (
               <button
                 onClick={() => setShowCancelConfirm(true)}
@@ -23510,20 +24955,27 @@ export default function OrderEntry() {
           background: D.bg, borderTop: `1px solid ${D.border}`,
           padding: '10px 14px',
           paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px) + 70px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',  // ← CENTERED
+          gap: 10,
         }}>
-          <div style={{ fontSize: 12, color: D.muted }}>
-            {lines.length} item{lines.length !== 1 ? 's' : ''} · {totalItems} units
-          </div>
           <button
             onClick={handleSave}
             disabled={saving}
             style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              padding: '11px 20px', background: saving ? D.card : 'linear-gradient(135deg,#1e3a8a,#2563eb)',
-              border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800,
-              color: '#fff', cursor: saving ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit', flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+              padding: '11px 32px',  // ← wider padding for center alignment
+              background: saving ? D.card : 'linear-gradient(135deg,#1e3a8a,#2563eb)',
+              border: 'none',
+              borderRadius: 10,
+              fontSize: 14,
+              fontWeight: 800,
+              color: '#fff',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
               boxShadow: saving ? 'none' : '0 4px 14px rgba(37,99,235,0.35)',
               touchAction: 'manipulation',
             }}
@@ -23639,11 +25091,13 @@ export default function OrderEntry() {
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: D.text }}>Cancel Order?</h3>
-                <p style={{ margin: '2px 0 0', fontSize: 13, color: D.muted }}>This order has no items.</p>
+                <p style={{ margin: '2px 0 0', fontSize: 13, color: D.muted }}>
+                  This will permanently delete this draft order.
+                </p>
               </div>
             </div>
             <p style={{ fontSize: 14, color: D.muted, lineHeight: 1.6, marginBottom: 20 }}>
-              This will permanently delete this draft order. This action cannot be undone.
+              This action cannot be undone. The order will be permanently deleted.
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button
@@ -27757,9 +29211,7 @@ export function getRoleHome(role: UserRole): string {
 ## File: src/types/index.ts
 ````typescript
 // PATH: src/types/index.ts
-// UPDATED: OrderStatus enum expanded to 5 values, ORDER_STATUS_LABELS/BADGE updated,
-//          RoutePackingStatusDto added, OrderDetailDto gets approvedAt,
-//          OrderDto gets approvedAt field
+// UPDATED: Added SizeGroupDto, UQC fields, and related product/unit types
 
 // ── Route Execution (Salesman daily flow) ─────────────────────────────────────
 export type VisitStatus = 'Pending' | 'OrderPlaced' | 'Skipped' | 'NoOrder';
@@ -27840,8 +29292,8 @@ export interface AuthUser {
   name:         string;
   role:         UserRole;
   token:        string;
-  refreshToken?: string;  // needed for silent session refresh — was missing before
-  sessionId?:   string;   // UserSession.Id — passed to logout endpoint
+  refreshToken?: string;
+  sessionId?:   string;
 }
 
 export interface UserDto {
@@ -27962,6 +29414,20 @@ export interface ProductGroupDto {
   createdDate:  string;
 }
 
+// ── ────────────────────────────────────────────────────────────────────────────
+// ── NEW: Size Group ───────────────────────────────────────────────────────────
+// ── ────────────────────────────────────────────────────────────────────────────
+
+export interface SizeGroupDto {
+  id: string;
+  name: string;
+  nameMl?: string;
+  description?: string;
+  isActive: boolean;
+  productCount?: number;
+  createdDate?: string;
+}
+
 // ── Product ───────────────────────────────────────────────────────────────────
 export interface ProductDto {
     id: string;
@@ -27976,7 +29442,7 @@ export interface ProductDto {
     isActive: boolean;
     createdAt: string;
     
-    // ── NEW fields ──────────────────────────────────────────────────────────
+    // ── Product fields ──────────────────────────────────────────────────────
     itemCode?: string;
     hsnCode?: string;
     supplier?: string;
@@ -27984,10 +29450,19 @@ export interface ProductDto {
     minOrderQty?: number;
     maxOrderQty?: number;
     defaultUnitId?: string;
+
+    // ── NEW: Size Group ──
+    sizeGroupId?: string;
+    sizeGroupName?: string;
+
+    // ── NEW: UQC (Unit Quantity Code) ──
+    uqc?: string;
 }
 
 export interface ProductDetailDto extends ProductDto {
   productGroupDescription?: string;
+  // ── NEW ──
+  sizeGroupName?: string;
 }
 
 export interface ProductSearchDto {
@@ -28001,9 +29476,11 @@ export interface ProductSearchDto {
   unitSymbol:       string;
   basePrice:        number;
   isActive:         boolean;
+  // ── NEW ──
+  sizeGroupId?:     string;
+  sizeGroupName?:   string;
+  uqc?:             string;
 }
-
-// Add to existing types in src/types/index.ts
 
 // ── Product Unit Price Types ────────────────────────────────────────────────
 export interface ProductUnitPriceDto {
@@ -28073,6 +29550,8 @@ export interface CreateProductCommand {
   closingStock?:  number;
   minOrderQty?:   number;
   maxOrderQty?:   number;
+  // ── NEW: Size Group ──
+  sizeGroupId?:   string;
 }
 
 export interface UpdateProductCommand extends CreateProductCommand {
@@ -28085,6 +29564,8 @@ export interface UnitDto {
   id:             string;
   name:           string;
   abbreviation?:  string;
+  // ── NEW: UQC (Unit Quantity Code) ──
+  uqc?:           string;
   createdDate:    string;
   loadingPriority?: number;
   measurementType?: 'weight' | 'volume' | 'count';
@@ -28125,11 +29606,6 @@ export interface LoadingSheetStopDto {
 }
 
 // ── Order ─────────────────────────────────────────────────────────────────────
-// IMPORTANT: string values, not numbers. The backend now serializes every enum
-// as its name (see Program.cs JsonStringEnumConverter) — these values must match
-// the backend's OrderStatus names exactly ("Draft", "PendingApproval", etc.), or
-// every status comparison in the app (isDraft checks, badge colors, filtering)
-// silently breaks because a string from the API never equals a TS number.
 export enum OrderStatus {
   Draft           = 'Draft',
   PendingApproval = 'PendingApproval',
@@ -28193,7 +29669,7 @@ export interface OrderDto {
   items?:         OrderItemDto[];
   createdDate?:   string;
   remarks?:       string;
-  approvedAt?:    string;   // ← NEW
+  approvedAt?:    string;
 }
 
 export interface OrderDetailDto extends OrderDto {
@@ -28202,7 +29678,7 @@ export interface OrderDetailDto extends OrderDto {
   totalSelling:    number;
   totalVariance:   number;
   variancePct:     number;
-  approvedAt?:     string;  // ← NEW
+  approvedAt?:     string;
 }
 
 export interface CreateOrderItemDto {
@@ -28389,13 +29865,12 @@ export interface WarehouseSummaryDto {
   pendingPack?:  number;
   packed?:       number;
   partialPacked?: number;
-  // New fields from updated WarehouseController
   packedCount?:   number;
   pendingCount?:  number;
   partialCount?:  number;
 }
 
-// ── NEW: Packing status for delivery button gate ──────────────────────────────
+// ── Packing status for delivery button gate ────────────────────────────────
 export interface RoutePackingStatusDto {
   totalOrders:  number;
   packedCount:  number;
@@ -28427,8 +29902,6 @@ export interface TodayRouteDto {
     permanentSalesmanName?: string;
 }
 
-// All active routes, visible to every salesman — the "no admin assignment
-// step required" view. A route shows as taken once any salesman starts it.
 export interface ActiveRouteDto {
     id:                   string;
     name:                 string;
@@ -28535,7 +30008,7 @@ export interface SalesmanIncentiveSummaryDto {
   totalIncentive?:       number;
   totalIncentiveEarned?: number;
   pendingPayout?:        number;
-  qualifiedOrders?:      number;          // ← ADD THIS
+  qualifiedOrders?:      number;
   breakdown?:            IncentiveBreakdownDto[];
   productBreakdown?:     ProductIncentiveBreakdownDto[];
 }
@@ -28556,10 +30029,25 @@ export interface IncentiveBreakdownDto {
   incentive:   number;
 }
 
+// ── ────────────────────────────────────────────────────────────────────────────
+// ── Enhanced Product Unit (for advanced unit management) ─────────────────────
+// ── ────────────────────────────────────────────────────────────────────────────
+
+export interface EnhancedProductUnitDto {
+  id: string;
+  name: string;
+  abbreviation?: string;
+  measurementType?: 'weight' | 'volume' | 'count';
+  baseUnitValue?: number;
+  baseUnitName?: string;
+  loadingPriority: number;
+  // ── NEW: UQC ──
+  uqc?: string;
+}
+
 // ── Currency Formatter ────────────────────────────────────────────────────────
 export function fmt(n: number): string {
   if (isNaN(n)) return '0.00';
-  // Returns formatted number WITHOUT ₹ symbol — call sites write ₹{fmt(x)} themselves
   return new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 

@@ -1,5 +1,5 @@
 ﻿// PATH: src/FMCG.Distribution.Infrastructure/Persistence/ApplicationDbContext.cs
-// CHANGE: Added NextOrderSequenceAsync() method for atomic PostgreSQL sequence-based order numbering
+// UPDATED: Added SizeGroup DbSet and configuration
 
 using System.Data;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +31,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<CustomerVisit> CustomerVisits { get; set; }
     public DbSet<UserSession> UserSessions { get; set; }
     public DbSet<RouteAssignment> RouteAssignments => Set<RouteAssignment>();
+    // ── NEW: SizeGroup ──
+    public DbSet<SizeGroup> SizeGroups { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -152,7 +154,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasIndex(e => e.IsDefault);
         });
 
-        // Product configuration
+        // ── Product configuration ──
         modelBuilder.Entity<Product>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -172,6 +174,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasOne(e => e.DefaultUnit)
                   .WithMany(u => u.Products)
                   .HasForeignKey(e => e.DefaultUnitId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // ── NEW: SizeGroup relationship ──
+            entity.HasOne(e => e.SizeGroup)
+                  .WithMany(g => g.Products)
+                  .HasForeignKey(e => e.SizeGroupId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -465,6 +473,19 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   .WithMany()
                   .HasForeignKey(e => e.OrderId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ── NEW: SizeGroup configuration ──
+        modelBuilder.Entity<SizeGroup>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.NameMl).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.IsActive).IsRequired();
+            entity.HasQueryFilter(e => !e.IsDeleted);
+
+            // Navigation to Products is configured in Product entity
         });
     }
 

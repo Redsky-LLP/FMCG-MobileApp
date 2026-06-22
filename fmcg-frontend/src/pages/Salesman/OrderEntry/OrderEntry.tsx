@@ -7,6 +7,9 @@
 // 5. FIX: Salesman cannot edit base price — price field is read-only for salesman
 // 6. FIX: Cancel Order button appears when order has no items (Draft only)
 // 7. FIX: Delete order API call when cancelling
+// 8. FIX: Cancel Order redirects to Route Execution page (not My Routes)
+// 9. FIX: Save Draft button centered in bottom bar
+// 10. FIX: hasExistingOrder declared before use
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -69,10 +72,14 @@ export default function OrderEntry() {
   const [showCancelConfirm,  setShowCancelConfirm]  = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // ── FIX: Declare hasExistingOrder BEFORE using it in canCancel ──
+  const hasExistingOrder = !!existingOrder;
+  const isDraft = existingOrder?.status === OrderStatus.Draft;
   const canEdit = !existingOrder || existingOrder.status === OrderStatus.Draft;
   const totalItems  = lines.reduce((s, l) => s + l.qty, 0);
   const hasNoItems = lines.length === 0 && !remarks.trim();
-  const isDraft = existingOrder?.status === OrderStatus.Draft;
+  // ── NEW: Show cancel button for ANY existing draft order (even with items) ──
+  const canCancel = isDraft && hasExistingOrder;
 
   const loadUnitPrices = useCallback(async (products: any[]) => {
     const priceMap: Record<string, ProductUnitPriceDto> = {};
@@ -256,8 +263,7 @@ export default function OrderEntry() {
     } finally { setSaving(false); }
   };
 
-  // ── NEW: Cancel/Delete Order ──
-// ── FIX: After cancelling, go back to Route Execution ──
+  // ── FIX: Cancel/Delete Order — redirect back to Route Execution ──
   const handleCancelOrder = async () => {
     if (!existingOrder) return;
     setDeleting(true);
@@ -266,10 +272,17 @@ export default function OrderEntry() {
       await ordersApi.delete(String(existingOrder.id));
       setSuccessMsg('Order cancelled successfully! You can now take a new order.');
       
-      // ── FIX: Navigate back to Route Execution instead of My Routes ──
-      // This allows the salesman to continue with the next customer
+      // ── FIX: Navigate back to Route Execution page ──
+      // If we have execution context, go back to the execute page
+      // Otherwise go back one step (which should be the route execution page)
       setTimeout(() => {
-        navigate(-1); // Go back to Route Execution
+        if (executionContext?.executionId) {
+          navigate(`/salesman/routes/${routeId}/execute`, { 
+            state: { mode: 'order-taking' } 
+          });
+        } else {
+          navigate(-1); // Fallback to previous page
+        }
       }, 1500);
       
     } catch (e: unknown) {
@@ -288,6 +301,12 @@ export default function OrderEntry() {
       const up = unitPrices[prod.id];
       return { product: prod, productId: String(prod.id), qty: item.quantity, sellingPrice: item.sellingPrice || (up?.salePrice ?? prod.basePrice), unit: prod.productUnitName ?? 'Unit' };
     }).filter(Boolean) as LineItem[];
+
+    // Also copy remarks if present
+    if (order.remarks) {
+      setRemarks(order.remarks);
+    }
+
     setLines(mapped);
     setShowPreviousModal(false);
     setSuccessMsg('Previous order loaded. Tap Save Draft to keep it.');
@@ -300,9 +319,7 @@ export default function OrderEntry() {
     </div>
   );
 
-  const orderStatus      = existingOrder?.status;
-  const hasExistingOrder = !!existingOrder;
-  const canCancel = isDraft && hasNoItems && hasExistingOrder;
+  const orderStatus = existingOrder?.status;
 
   return (
     <div style={{ minHeight: '100vh', background: D.bg, color: D.text }}>
@@ -328,7 +345,7 @@ export default function OrderEntry() {
               </button>
             )}
 
-            {/* ── Cancel Order button (only when no items) ── */}
+            {/* ── Cancel Order button (always visible for Draft orders) ── */}
             {canCancel && (
               <button
                 onClick={() => setShowCancelConfirm(true)}
@@ -560,20 +577,27 @@ export default function OrderEntry() {
           background: D.bg, borderTop: `1px solid ${D.border}`,
           padding: '10px 14px',
           paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px) + 70px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',  // ← CENTERED
+          gap: 10,
         }}>
-          <div style={{ fontSize: 12, color: D.muted }}>
-            {lines.length} item{lines.length !== 1 ? 's' : ''} · {totalItems} units
-          </div>
           <button
             onClick={handleSave}
             disabled={saving}
             style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              padding: '11px 20px', background: saving ? D.card : 'linear-gradient(135deg,#1e3a8a,#2563eb)',
-              border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800,
-              color: '#fff', cursor: saving ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit', flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+              padding: '11px 32px',  // ← wider padding for center alignment
+              background: saving ? D.card : 'linear-gradient(135deg,#1e3a8a,#2563eb)',
+              border: 'none',
+              borderRadius: 10,
+              fontSize: 14,
+              fontWeight: 800,
+              color: '#fff',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
               boxShadow: saving ? 'none' : '0 4px 14px rgba(37,99,235,0.35)',
               touchAction: 'manipulation',
             }}
@@ -689,11 +713,13 @@ export default function OrderEntry() {
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: D.text }}>Cancel Order?</h3>
-                <p style={{ margin: '2px 0 0', fontSize: 13, color: D.muted }}>This order has no items.</p>
+                <p style={{ margin: '2px 0 0', fontSize: 13, color: D.muted }}>
+                  This will permanently delete this draft order.
+                </p>
               </div>
             </div>
             <p style={{ fontSize: 14, color: D.muted, lineHeight: 1.6, marginBottom: 20 }}>
-              This will permanently delete this draft order. This action cannot be undone.
+              This action cannot be undone. The order will be permanently deleted.
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button

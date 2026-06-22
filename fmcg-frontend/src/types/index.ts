@@ -1,7 +1,5 @@
 // PATH: src/types/index.ts
-// UPDATED: OrderStatus enum expanded to 5 values, ORDER_STATUS_LABELS/BADGE updated,
-//          RoutePackingStatusDto added, OrderDetailDto gets approvedAt,
-//          OrderDto gets approvedAt field
+// UPDATED: Added SizeGroupDto, UQC fields, and related product/unit types
 
 // ── Route Execution (Salesman daily flow) ─────────────────────────────────────
 export type VisitStatus = 'Pending' | 'OrderPlaced' | 'Skipped' | 'NoOrder';
@@ -82,8 +80,8 @@ export interface AuthUser {
   name:         string;
   role:         UserRole;
   token:        string;
-  refreshToken?: string;  // needed for silent session refresh — was missing before
-  sessionId?:   string;   // UserSession.Id — passed to logout endpoint
+  refreshToken?: string;
+  sessionId?:   string;
 }
 
 export interface UserDto {
@@ -204,6 +202,20 @@ export interface ProductGroupDto {
   createdDate:  string;
 }
 
+// ── ────────────────────────────────────────────────────────────────────────────
+// ── NEW: Size Group ───────────────────────────────────────────────────────────
+// ── ────────────────────────────────────────────────────────────────────────────
+
+export interface SizeGroupDto {
+  id: string;
+  name: string;
+  nameMl?: string;
+  description?: string;
+  isActive: boolean;
+  productCount?: number;
+  createdDate?: string;
+}
+
 // ── Product ───────────────────────────────────────────────────────────────────
 export interface ProductDto {
     id: string;
@@ -218,7 +230,7 @@ export interface ProductDto {
     isActive: boolean;
     createdAt: string;
     
-    // ── NEW fields ──────────────────────────────────────────────────────────
+    // ── Product fields ──────────────────────────────────────────────────────
     itemCode?: string;
     hsnCode?: string;
     supplier?: string;
@@ -226,10 +238,19 @@ export interface ProductDto {
     minOrderQty?: number;
     maxOrderQty?: number;
     defaultUnitId?: string;
+
+    // ── NEW: Size Group ──
+    sizeGroupId?: string;
+    sizeGroupName?: string;
+
+    // ── NEW: UQC (Unit Quantity Code) ──
+    uqc?: string;
 }
 
 export interface ProductDetailDto extends ProductDto {
   productGroupDescription?: string;
+  // ── NEW ──
+  sizeGroupName?: string;
 }
 
 export interface ProductSearchDto {
@@ -243,9 +264,11 @@ export interface ProductSearchDto {
   unitSymbol:       string;
   basePrice:        number;
   isActive:         boolean;
+  // ── NEW ──
+  sizeGroupId?:     string;
+  sizeGroupName?:   string;
+  uqc?:             string;
 }
-
-// Add to existing types in src/types/index.ts
 
 // ── Product Unit Price Types ────────────────────────────────────────────────
 export interface ProductUnitPriceDto {
@@ -315,6 +338,8 @@ export interface CreateProductCommand {
   closingStock?:  number;
   minOrderQty?:   number;
   maxOrderQty?:   number;
+  // ── NEW: Size Group ──
+  sizeGroupId?:   string;
 }
 
 export interface UpdateProductCommand extends CreateProductCommand {
@@ -327,6 +352,8 @@ export interface UnitDto {
   id:             string;
   name:           string;
   abbreviation?:  string;
+  // ── NEW: UQC (Unit Quantity Code) ──
+  uqc?:           string;
   createdDate:    string;
   loadingPriority?: number;
   measurementType?: 'weight' | 'volume' | 'count';
@@ -367,11 +394,6 @@ export interface LoadingSheetStopDto {
 }
 
 // ── Order ─────────────────────────────────────────────────────────────────────
-// IMPORTANT: string values, not numbers. The backend now serializes every enum
-// as its name (see Program.cs JsonStringEnumConverter) — these values must match
-// the backend's OrderStatus names exactly ("Draft", "PendingApproval", etc.), or
-// every status comparison in the app (isDraft checks, badge colors, filtering)
-// silently breaks because a string from the API never equals a TS number.
 export enum OrderStatus {
   Draft           = 'Draft',
   PendingApproval = 'PendingApproval',
@@ -435,7 +457,7 @@ export interface OrderDto {
   items?:         OrderItemDto[];
   createdDate?:   string;
   remarks?:       string;
-  approvedAt?:    string;   // ← NEW
+  approvedAt?:    string;
 }
 
 export interface OrderDetailDto extends OrderDto {
@@ -444,7 +466,7 @@ export interface OrderDetailDto extends OrderDto {
   totalSelling:    number;
   totalVariance:   number;
   variancePct:     number;
-  approvedAt?:     string;  // ← NEW
+  approvedAt?:     string;
 }
 
 export interface CreateOrderItemDto {
@@ -631,13 +653,12 @@ export interface WarehouseSummaryDto {
   pendingPack?:  number;
   packed?:       number;
   partialPacked?: number;
-  // New fields from updated WarehouseController
   packedCount?:   number;
   pendingCount?:  number;
   partialCount?:  number;
 }
 
-// ── NEW: Packing status for delivery button gate ──────────────────────────────
+// ── Packing status for delivery button gate ────────────────────────────────
 export interface RoutePackingStatusDto {
   totalOrders:  number;
   packedCount:  number;
@@ -669,8 +690,6 @@ export interface TodayRouteDto {
     permanentSalesmanName?: string;
 }
 
-// All active routes, visible to every salesman — the "no admin assignment
-// step required" view. A route shows as taken once any salesman starts it.
 export interface ActiveRouteDto {
     id:                   string;
     name:                 string;
@@ -777,7 +796,7 @@ export interface SalesmanIncentiveSummaryDto {
   totalIncentive?:       number;
   totalIncentiveEarned?: number;
   pendingPayout?:        number;
-  qualifiedOrders?:      number;          // ← ADD THIS
+  qualifiedOrders?:      number;
   breakdown?:            IncentiveBreakdownDto[];
   productBreakdown?:     ProductIncentiveBreakdownDto[];
 }
@@ -798,10 +817,25 @@ export interface IncentiveBreakdownDto {
   incentive:   number;
 }
 
+// ── ────────────────────────────────────────────────────────────────────────────
+// ── Enhanced Product Unit (for advanced unit management) ─────────────────────
+// ── ────────────────────────────────────────────────────────────────────────────
+
+export interface EnhancedProductUnitDto {
+  id: string;
+  name: string;
+  abbreviation?: string;
+  measurementType?: 'weight' | 'volume' | 'count';
+  baseUnitValue?: number;
+  baseUnitName?: string;
+  loadingPriority: number;
+  // ── NEW: UQC ──
+  uqc?: string;
+}
+
 // ── Currency Formatter ────────────────────────────────────────────────────────
 export function fmt(n: number): string {
   if (isNaN(n)) return '0.00';
-  // Returns formatted number WITHOUT ₹ symbol — call sites write ₹{fmt(x)} themselves
   return new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 

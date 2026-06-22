@@ -23,7 +23,7 @@ public class ProductDto
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
 
-    // ── Client-requested fields (now wired end-to-end) ──
+    // ── Client-requested fields ──
     public string? ItemCode { get; set; }
     public string? Sku { get; set; }
     public string? HSNCode { get; set; }
@@ -31,4 +31,11 @@ public class ProductDto
     public decimal ClosingStock { get; set; }
     public decimal? MinOrderQty { get; set; }
     public decimal? MaxOrderQty { get; set; }
+
+    // ── NEW: Size Group ──
+    public Guid? SizeGroupId { get; set; }
+    public string? SizeGroupName { get; set; }
+
+    // ── NEW: UQC (Unit Quantity Code) ──
+    public string? UQC { get; set; }
 }

@@ -1,19 +1,20 @@
 // PATH: src/pages/Admin/AdminProducts.tsx
-// UPDATED: Added Back to Dashboard button
+// UPDATED: Added Size Group support to product form
 
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Plus, Edit2, Trash2, Package, Search, RefreshCw,
   IndianRupee, History, X, Save, TrendingUp, TrendingDown, DollarSign,
   Settings, Ruler, Boxes, ChevronRight, ArrowUp, ArrowDown, ArrowLeft,
 } from 'lucide-react';
-import { productsApi, productGroupsApi, unitsApi } from '../../api/services';
-import type { ProductDto, ProductGroupDto, UnitDto, UnitPriorityDto, PriceHistoryDto } from '../../types';
+import { productsApi, productGroupsApi, unitsApi, sizeGroupsApi } from '../../api/services';
+import type { ProductDto, ProductGroupDto, UnitDto, UnitPriorityDto, PriceHistoryDto, SizeGroupDto } from '../../types';
 import { fmt, fmtDate } from '../../types';
 import { PageLoader, Spinner, Alert, ConfirmModal, Field } from '../../components/ui';
 import { ProductUnitPriceManager } from '../../components/admin/ProductUnitPriceManager';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useAuthStore } from '../../store/authStore';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -78,6 +79,23 @@ function parsePriceFromItemCode(code: string): number | null {
   return !isNaN(n) && n >= 0 ? n : null;
 }
 
+// ── Helper: Generate item code from prefix and price ────────
+function generateItemCode(prefix: string, price: number): string {
+  const cleanPrefix = prefix.trim();
+  // If prefix already has a dash, remove the price part
+  const basePrefix = cleanPrefix.includes('-') 
+    ? cleanPrefix.substring(0, cleanPrefix.lastIndexOf('-') + 1)
+    : cleanPrefix + '-';
+  return `${basePrefix}${Math.round(price)}`;
+}
+
+// ── Helper: Extract prefix from item code ─────────────────────
+function extractItemCodePrefix(code: string): string {
+  if (!code || !code.includes('-')) return '1000-';
+  const lastDashIndex = code.lastIndexOf('-');
+  return code.substring(0, lastDashIndex + 1);
+}
+
 // ── Product Card ─────────────────────────────────────────────
 function ProductCard({
   product, onEdit, onPrice, onHistory, onDelete, onUnitPrices,
@@ -130,6 +148,11 @@ function ProductCard({
             {product.productUnitName && (
               <span style={{ fontSize: 11, fontWeight: 600, color: D.sub, background: D.bg, border: `1px solid ${D.border}`, padding: '2px 8px', borderRadius: 6 }}>
                 {product.productUnitName}
+              </span>
+            )}
+            {product.sizeGroupName && (
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#A78BFA', background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.33)', padding: '2px 8px', borderRadius: 6 }}>
+                {product.sizeGroupName}
               </span>
             )}
           </div>
@@ -186,18 +209,62 @@ function ProductCard({
 
 // ── Product Form Fields ────────────────────────────────────
 function ProductFormFields({
-  form, setForm, groups, units, autoFocus,
+  form, setForm, groups, units, sizeGroups, autoFocus, isEdit = false,
 }: {
-  form: { name: string; nameMl: string; productGroupId: string; unitId: string; basePrice: string; itemCode: string };
+  form: { name: string; nameMl: string; productGroupId: string; unitId: string; basePrice: string; itemCode: string; sizeGroupId: string };
   setForm: React.Dispatch<React.SetStateAction<any>>;
   groups: ProductGroupDto[];
   units: UnitDto[];
+  sizeGroups: SizeGroupDto[];
   autoFocus?: boolean;
+  isEdit?: boolean;
 }) {
   const lbl: React.CSSProperties = {
     display: 'block', fontSize: 12, fontWeight: 700, color: D.muted,
     marginBottom: 6, letterSpacing: '0.02em', textTransform: 'uppercase' as const,
   };
+
+  // ── When base price changes, auto-update item code ──
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPrice = e.target.value;
+    setForm((p: any) => {
+      const updated = { ...p, basePrice: newPrice };
+      
+      // Auto-generate item code from price
+      const priceNum = parseFloat(newPrice);
+      if (!isNaN(priceNum) && priceNum >= 0) {
+        // Use existing prefix or default
+        const prefix = p.itemCode && p.itemCode.includes('-') 
+          ? extractItemCodePrefix(p.itemCode) 
+          : '1000-';
+        updated.itemCode = generateItemCode(prefix, priceNum);
+      }
+      return updated;
+    });
+  };
+
+  // ── When item code changes, update base price ──
+  const handleItemCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newCode = e.target.value;
+    setForm((p: any) => {
+      const updated = { ...p, itemCode: newCode };
+      // Try to parse price from the new item code
+      const parsedPrice = parsePriceFromItemCode(newCode);
+      if (parsedPrice !== null) {
+        updated.basePrice = String(parsedPrice);
+      }
+      return updated;
+    });
+  };
+
+  // Get the current price from the form
+  const currentPrice = parseFloat(form.basePrice);
+  const isValidPrice = !isNaN(currentPrice) && currentPrice >= 0;
+  const currentPrefix = form.itemCode && form.itemCode.includes('-') 
+    ? extractItemCodePrefix(form.itemCode) 
+    : '1000-';
+  const autoGeneratedCode = isValidPrice ? generateItemCode(currentPrefix, currentPrice) : '';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
@@ -209,28 +276,6 @@ function ProductFormFields({
         <label style={lbl}>Malayalam Name <span style={{ fontSize: 10, color: D.sub }}>(optional)</span></label>
         <input value={form.nameMl} onChange={e => setForm((p: any) => ({ ...p, nameMl: e.target.value }))}
           placeholder="മലയാളം" lang="ml" style={inp} onFocus={onFoc} onBlur={onBlr} />
-      </div>
-      <div style={{ padding: '16px', borderRadius: 12, background: `${D.accent}10`, border: `1px solid ${D.accent}33` }}>
-        <label style={{ ...lbl, color: D.accent }}>Item Code <span style={{ color: D.red }}>*</span></label>
-        <input value={form.itemCode} onChange={e => setForm((p: any) => ({ ...p, itemCode: e.target.value }))}
-          placeholder="e.g. 1000-90" style={{ ...inp, fontSize: 18, fontWeight: 800, color: D.accent, background: D.surface2, border: `1px solid ${D.accent}33` }}
-          onFocus={onFoc} onBlur={onBlr} />
-        <p style={{ margin: '8px 0 0', fontSize: 11, color: D.sub }}>
-          Format: <strong>code-price</strong> — the number after the last dash is the price. "1000-90" → price ₹90.
-        </p>
-        {(() => {
-          const parsed = parsePriceFromItemCode(form.itemCode);
-          if (!form.itemCode) return null;
-          return parsed !== null ? (
-            <p style={{ margin: '8px 0 0', fontSize: 12, color: D.accent, fontWeight: 600 }}>
-              Salesman will see: <strong>{form.itemCode}</strong> · price ₹{parsed}
-            </p>
-          ) : (
-            <p style={{ margin: '8px 0 0', fontSize: 12, color: D.red, fontWeight: 600 }}>
-              ⚠ No price found — add a dash and the price at the end, e.g. "{form.itemCode}-90".
-            </p>
-          );
-        })()}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -251,365 +296,69 @@ function ProductFormFields({
           </select>
         </div>
       </div>
-    </div>
-  );
-}
 
-// ── Settings Modal ─────────────────────────────────────────
-function SettingsModal({ isOpen, onClose, groups, units, priorities, onGroupUpdate, onUnitUpdate, onPriorityUpdate }: {
-  isOpen: boolean;
-  onClose: () => void;
-  groups: ProductGroupDto[];
-  units: UnitDto[];
-  priorities: UnitPriorityDto[];
-  onGroupUpdate: () => void;
-  onUnitUpdate: () => void;
-  onPriorityUpdate: () => void;
-}) {
-  const [activeTab, setActiveTab] = useState<'groups' | 'units' | 'priorities'>('groups');
-  
-  // Group state
-  const [gModal, setGModal] = useState<'add' | 'edit' | null>(null);
-  const [gSelected, setGSelected] = useState<ProductGroupDto | null>(null);
-  const [gForm, setGForm] = useState({ name: '', nameMl: '' });
-  const [gSaving, setGSaving] = useState(false);
-  const [gConfirm, setGConfirm] = useState<string | null>(null);
-  const [gDeleting, setGDeleting] = useState(false);
-
-  // Unit state
-  const [uModal, setUModal] = useState<'add' | 'edit' | null>(null);
-  const [uSelected, setUSelected] = useState<UnitDto | null>(null);
-  const [uForm, setUForm] = useState({ name: '', abbreviation: '' });
-  const [uSaving, setUSaving] = useState(false);
-  const [uConfirm, setUConfirm] = useState<string | null>(null);
-  const [uDeleting, setUDeleting] = useState(false);
-  const [updatingPriority, setUpdatingPriority] = useState<string | null>(null);
-
-  async function saveGroup() {
-    if (!gForm.name.trim()) return;
-    setGSaving(true);
-    try {
-      if (gModal === 'add') await productGroupsApi.create(gForm.name, gForm.nameMl || undefined);
-      else if (gSelected) await productGroupsApi.update(gSelected.id, gForm.name, gForm.nameMl || undefined);
-      setGModal(null);
-      onGroupUpdate();
-    } catch (err: unknown) { console.error(err); }
-    finally { setGSaving(false); }
-  }
-
-  async function deleteGroup() {
-    if (!gConfirm) return;
-    setGDeleting(true);
-    try { await productGroupsApi.delete(gConfirm); setGConfirm(null); onGroupUpdate(); }
-    catch (err: unknown) { console.error(err); }
-    finally { setGDeleting(false); }
-  }
-
-  async function saveUnit() {
-    if (!uForm.name.trim()) return;
-    setUSaving(true);
-    try {
-      if (uModal === 'add') await unitsApi.create(uForm.name, uForm.abbreviation || undefined);
-      else if (uSelected) await unitsApi.update(uSelected.id, uForm.name, uForm.abbreviation || undefined);
-      setUModal(null);
-      onUnitUpdate();
-    } catch (err: unknown) { console.error(err); }
-    finally { setUSaving(false); }
-  }
-
-  async function deleteUnit() {
-    if (!uConfirm) return;
-    setUDeleting(true);
-    try { await unitsApi.delete(uConfirm); setUConfirm(null); onUnitUpdate(); }
-    catch (err: unknown) { console.error(err); }
-    finally { setUDeleting(false); }
-  }
-
-  async function handleUpdatePriority(unitId: string, newPriority: number) {
-    setUpdatingPriority(unitId);
-    try {
-      await unitsApi.updatePriority(unitId, newPriority);
-      onPriorityUpdate();
-    } catch (err: unknown) { console.error(err); }
-    finally { setUpdatingPriority(null); }
-  }
-
-  if (!isOpen) return null;
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/70 z-40" onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#1e293b] rounded-2xl p-6 w-full max-w-2xl max-h-[85vh] z-50 shadow-xl border border-[#334155] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Settings size={20} className="text-[#ea580c]" />
-            <h2 className="text-xl font-bold text-[#f1f5f9]">Catalog Config</h2>
-            <span className="text-xs text-[#64748b] bg-[#0f172a] px-2 py-1 rounded-full">Product Groups & Units</span>
-          </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-[#334155] text-[#94a3b8]">
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, borderBottom: `1px solid ${D.border}`, marginBottom: 16, overflowX: 'auto', flexShrink: 0 }}>
-          {[
-            ['groups', `Groups (${groups.length})`],
-            ['units', `Units (${units.length})`],
-            ['priorities', 'Loading Priorities']
-          ].map(([k, l]) => (
-            <button key={k} onClick={() => setActiveTab(k as 'groups' | 'units' | 'priorities')} style={{
-              padding: '8px 16px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer',
-              background: 'transparent', fontFamily: 'inherit', whiteSpace: 'nowrap',
-              color: activeTab === k ? D.accent : D.muted,
-              borderBottom: `2px solid ${activeTab === k ? D.accent : 'transparent'}`,
-              marginBottom: -1, transition: 'all 0.12s',
-            }}>{l}</button>
-          ))}
-        </div>
-
-        {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto">
-          {/* ── Product Groups Tab ── */}
-          {activeTab === 'groups' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <button
-                onClick={() => { setGSelected(null); setGForm({ name: '', nameMl: '' }); setGModal('add'); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '10px 18px', borderRadius: 10,
-                  background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-                  border: 'none', color: '#fff', fontSize: 13, fontWeight: 700,
-                  cursor: 'pointer', fontFamily: 'inherit',
-                  boxShadow: `0 4px 14px ${D.accentGlow}`,
-                  width: 'fit-content',
-                }}
-              >
-                <Plus size={16} /> Add Product Group
-              </button>
-
-              {groups.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '32px 20px', color: D.sub, background: D.surface, borderRadius: 12, border: `1px solid ${D.border}` }}>
-                  <Boxes size={32} color={D.border} style={{ marginBottom: 8 }} />
-                  <p>No product groups yet</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {groups.map((g) => (
-                    <div key={g.id} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '12px 16px', border: `1px solid ${D.border}`,
-                      borderRadius: 10, gap: 8, background: D.bg,
-                      transition: 'all 0.12s',
-                    }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = D.surface2}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = D.bg}
-                    >
-                      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: D.accent, flexShrink: 0 }} />
-                        <span style={{ fontWeight: 600, fontSize: 14, color: D.text }}>{g.name}</span>
-                        {g.nameMl && <span style={{ color: D.sub, fontSize: 13 }}>{g.nameMl}</span>}
-                        {g.productCount !== undefined && (
-                          <span style={{ color: D.accent, fontSize: 11, fontWeight: 700, background: `${D.accent}15`, padding: '2px 7px', borderRadius: 6 }}>
-                            {g.productCount} products
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                        <button className="btn btn-ghost btn-icon btn-sm"
-                          onClick={() => { setGSelected(g); setGForm({ name: g.name, nameMl: g.nameMl ?? '' }); setGModal('edit'); }}>
-                          <Edit2 size={13} color={D.muted} />
-                        </button>
-                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setGConfirm(g.id)}>
-                          <Trash2 size={13} color={D.red} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Units Tab ── */}
-          {activeTab === 'units' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <button
-                onClick={() => { setUSelected(null); setUForm({ name: '', abbreviation: '' }); setUModal('add'); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '10px 18px', borderRadius: 10,
-                  background: `linear-gradient(135deg, ${D.green}, ${D.green}dd)`,
-                  border: 'none', color: '#fff', fontSize: 13, fontWeight: 700,
-                  cursor: 'pointer', fontFamily: 'inherit',
-                  boxShadow: `0 4px 14px rgba(34,197,94,0.25)`,
-                  width: 'fit-content',
-                }}
-              >
-                <Plus size={16} /> Add Unit
-              </button>
-
-              {units.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '32px 20px', color: D.sub, background: D.surface, borderRadius: 12, border: `1px solid ${D.border}` }}>
-                  <Ruler size={32} color={D.border} style={{ marginBottom: 8 }} />
-                  <p>No units yet</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {units.map((u) => (
-                    <div key={u.id} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '12px 16px', border: `1px solid ${D.border}`,
-                      borderRadius: 10, gap: 8, background: D.bg,
-                      transition: 'all 0.12s',
-                    }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = D.surface2}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = D.bg}
-                    >
-                      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: D.green, flexShrink: 0 }} />
-                        <span style={{ fontWeight: 600, fontSize: 14, color: D.text }}>{u.name}</span>
-                        {u.abbreviation && (
-                          <span style={{ color: D.green, fontSize: 11, fontWeight: 700, fontFamily: 'monospace', background: `${D.green}15`, padding: '2px 7px', borderRadius: 6, border: `1px solid ${D.green}33` }}>
-                            [{u.abbreviation}]
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                        <button className="btn btn-ghost btn-icon btn-sm"
-                          onClick={() => { setUSelected(u); setUForm({ name: u.name, abbreviation: u.abbreviation ?? '' }); setUModal('edit'); }}>
-                          <Edit2 size={13} color={D.muted} />
-                        </button>
-                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setUConfirm(u.id)}>
-                          <Trash2 size={13} color={D.red} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Loading Priorities Tab ── */}
-          {activeTab === 'priorities' && (
-            <div style={{ background: D.surface, borderRadius: 12, border: `1px solid ${D.border}`, padding: '16px' }}>
-              <div style={{ fontSize: 12, color: D.muted, marginBottom: 12 }}>
-                <strong style={{ color: D.accent }}>Priority 1</strong> = Load FIRST (heavy bags, bottom of van) ·
-                <strong style={{ color: D.accent }}> Priority 99</strong> = Load LAST (small items, top of van)
-              </div>
-              {priorities.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '24px', color: D.sub }}>No units with priorities</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {priorities.map((unit) => (
-                    <div key={unit.id} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '10px 14px', border: `1px solid ${D.border}`,
-                      borderRadius: 8, background: D.bg,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: `${D.accent}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: D.accent }}>
-                          {unit.loadingPriority}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: 14, color: D.text }}>{unit.name}</div>
-                          {unit.symbol && <div style={{ color: D.sub, fontSize: 12 }}>{unit.symbol}</div>}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleUpdatePriority(unit.id, Math.max(1, unit.loadingPriority - 1))} disabled={updatingPriority === unit.id || unit.loadingPriority <= 1}>
-                          <ArrowUp size={14} color={D.muted} />
-                        </button>
-                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleUpdatePriority(unit.id, unit.loadingPriority + 1)} disabled={updatingPriority === unit.id}>
-                          <ArrowDown size={14} color={D.muted} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex-shrink-0 mt-4 pt-4 border-t border-[#334155] flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-[#334155] text-[#94a3b8] hover:bg-[#334155] transition-colors text-sm font-medium"
-          >
-            Close
-          </button>
-        </div>
+      {/* ── NEW: Size Group field ── */}
+      <div>
+        <label style={lbl}>Size Group</label>
+        <select 
+          value={form.sizeGroupId} 
+          onChange={e => setForm((p: any) => ({ ...p, sizeGroupId: e.target.value }))}
+          style={{ ...inp, cursor: 'pointer' }} 
+          onFocus={onFoc} onBlur={onBlr}
+        >
+          <option value="">Select size group</option>
+          {sizeGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+        </select>
       </div>
 
-      {/* Group Modal */}
-      {gModal && (
-        <div className="fixed inset-0 bg-black/70 z-60 flex items-center justify-center p-4" onClick={() => setGModal(null)}>
-          <div style={{ background: D.surface, borderRadius: 20, padding: 32, width: 'min(calc(100vw - 32px), 440px)', border: `1px solid ${D.border}`, boxShadow: `0 24px 64px rgba(0,0,0,0.5)` }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: `${D.accent}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Boxes size={18} color={D.accent} />
-                </div>
-                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: D.text }}>{gModal === 'add' ? 'Add' : 'Edit'} Product Group</h3>
-              </div>
-              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setGModal(null)}><X size={16} color={D.muted} /></button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Field label="Group Name" required>
-                <input className="input" value={gForm.name} onChange={(e) => setGForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Beverages" style={{ background: D.bg, border: `1px solid ${D.border}`, color: D.text }} autoFocus />
-              </Field>
-              <Field label="Malayalam Name">
-                <input className="input" value={gForm.nameMl} onChange={(e) => setGForm(p => ({ ...p, nameMl: e.target.value }))} placeholder="ഗ്രൂപ്പ് (optional)" lang="ml" style={{ background: D.bg, border: `1px solid ${D.border}`, color: D.text }} />
-              </Field>
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 24 }}>
-              <button className="btn btn-outline" onClick={() => setGModal(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={saveGroup} disabled={gSaving || !gForm.name.trim()} style={{ background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, border: 'none', color: '#fff', boxShadow: `0 4px 14px ${D.accentGlow}` }}>
-                {gSaving ? <Spinner size={16} /> : (gModal === 'add' ? 'Add Group' : 'Save Changes')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── Base Price field (FIRST) ── */}
+      <div>
+        <label style={lbl}>Base Price (₹) <span style={{ color: D.red }}>*</span></label>
+        <input 
+          type="number" 
+          step="0.01" 
+          min="0"
+          value={form.basePrice} 
+          onChange={handlePriceChange}
+          placeholder="Enter base price" 
+          style={{ ...inp, fontSize: 18, fontWeight: 700, color: D.accent }}
+          onFocus={onFoc} onBlur={onBlr} 
+        />
+        {autoGeneratedCode && (
+          <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
+            Item code will be: <strong style={{ color: D.accent }}>{autoGeneratedCode}</strong>
+          </p>
+        )}
+      </div>
 
-      {/* Unit Modal */}
-      {uModal && (
-        <div className="fixed inset-0 bg-black/70 z-60 flex items-center justify-center p-4" onClick={() => setUModal(null)}>
-          <div style={{ background: D.surface, borderRadius: 20, padding: 32, width: 'min(calc(100vw - 32px), 440px)', border: `1px solid ${D.border}`, boxShadow: `0 24px 64px rgba(0,0,0,0.5)` }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(34,197,94,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Ruler size={18} color={D.green} />
-                </div>
-                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: D.text }}>{uModal === 'add' ? 'Add' : 'Edit'} Unit</h3>
-              </div>
-              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setUModal(null)}><X size={16} color={D.muted} /></button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Field label="Unit Name" required>
-                <input className="input" value={uForm.name} onChange={(e) => setUForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Kilogram" style={{ background: D.bg, border: `1px solid ${D.border}`, color: D.text }} autoFocus />
-              </Field>
-              <Field label="Abbreviation">
-                <input className="input" value={uForm.abbreviation} onChange={(e) => setUForm(p => ({ ...p, abbreviation: e.target.value }))} placeholder="e.g. kg" style={{ background: D.bg, border: `1px solid ${D.border}`, color: D.text }} />
-              </Field>
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 24 }}>
-              <button className="btn btn-outline" onClick={() => setUModal(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={saveUnit} disabled={uSaving || !uForm.name.trim()} style={{ background: `linear-gradient(135deg, ${D.green}, ${D.green}dd)`, border: 'none', color: '#fff', boxShadow: `0 4px 14px rgba(34,197,94,0.25)` }}>
-                {uSaving ? <Spinner size={16} /> : (uModal === 'add' ? 'Add Unit' : 'Save Changes')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {gConfirm && <ConfirmModal title="Delete Group" message="This will delete the product group." danger loading={gDeleting} onConfirm={deleteGroup} onCancel={() => setGConfirm(null)} />}
-      {uConfirm && <ConfirmModal title="Delete Unit" message="This will delete the measurement unit." danger loading={uDeleting} onConfirm={deleteUnit} onCancel={() => setUConfirm(null)} />}
-    </>
+      {/* ── Item Code field (SECOND - auto-generated) ── */}
+      <div style={{ padding: '16px', borderRadius: 12, background: `${D.accent}10`, border: `1px solid ${D.accent}33` }}>
+        <label style={{ ...lbl, color: D.accent }}>Item Code <span style={{ color: D.red }}>*</span></label>
+        <input 
+          value={form.itemCode} 
+          onChange={handleItemCodeChange}
+          placeholder="Auto-generated from price" 
+          style={{ ...inp, fontSize: 18, fontWeight: 800, color: D.accent, background: D.surface2, border: `1px solid ${D.accent}33` }}
+          onFocus={onFoc} onBlur={onBlr} 
+        />
+        <p style={{ margin: '8px 0 0', fontSize: 11, color: D.sub }}>
+          Format: <strong>code-price</strong> — the number after the last dash is the price. "1000-90" → price ₹90.
+        </p>
+        {(() => {
+          const parsed = parsePriceFromItemCode(form.itemCode);
+          if (!form.itemCode) return null;
+          return parsed !== null ? (
+            <p style={{ margin: '8px 0 0', fontSize: 12, color: D.accent, fontWeight: 600 }}>
+              Salesman will see: <strong>{form.itemCode}</strong> · price ₹{parsed}
+            </p>
+          ) : (
+            <p style={{ margin: '8px 0 0', fontSize: 12, color: D.red, fontWeight: 600 }}>
+              ⚠ No price found — add a dash and the price at the end, e.g. "{form.itemCode}-90".
+            </p>
+          );
+        })()}
+      </div>
+    </div>
   );
 }
 
@@ -617,18 +366,20 @@ function SettingsModal({ isOpen, onClose, groups, units, priorities, onGroupUpda
 // AdminProducts page
 // ═══════════════════════════════════════════════════════════
 export function AdminProducts() {
+  const { user } = useAuthStore();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [groups, setGroups] = useState<ProductGroupDto[]>([]);
   const [units, setUnits] = useState<UnitDto[]>([]);
   const [priorities, setPriorities] = useState<UnitPriorityDto[]>([]);
+  // ── NEW: Size Groups state ──
+  const [sizeGroups, setSizeGroups] = useState<SizeGroupDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
   const [showAdd, setShowAdd] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [editModal, setEditModal] = useState<ProductDto | null>(null);
   const [priceModal, setPriceModal] = useState<ProductDto | null>(null);
   const [historyModal, setHistoryModal] = useState<ProductDto | null>(null);
@@ -641,22 +392,35 @@ export function AdminProducts() {
   const [priceReason, setPriceReason] = useState('');
   const addCardRef = useRef<HTMLDivElement>(null);
 
-  const emptyForm = { name: '', nameMl: '', productGroupId: '', unitId: '', basePrice: '', itemCode: '' };
+  // ── Default item code prefix ──
+  const DEFAULT_ITEM_CODE_PREFIX = '1000-';
+
+  const emptyForm = { 
+    name: '', 
+    nameMl: '', 
+    productGroupId: '', 
+    unitId: '', 
+    basePrice: '', 
+    itemCode: DEFAULT_ITEM_CODE_PREFIX,
+    sizeGroupId: '',  // ── NEW ──
+  };
   const [addForm, setAddForm] = useState(emptyForm);
   const [editForm, setEditForm] = useState(emptyForm);
 
   async function loadAll() {
     setLoading(true);
     try {
-      const [p, g, u, pri] = await Promise.all([
+      const [p, g, u, sg, pri] = await Promise.all([
         productsApi.getAll(groupFilter ? { productGroupId: groupFilter } : undefined),
         productGroupsApi.getAll(),
         unitsApi.getAll(),
+        sizeGroupsApi.getAll().catch(() => [] as SizeGroupDto[]),  // ── NEW ──
         unitsApi.getPriorities().catch(() => [] as UnitPriorityDto[]),
       ]);
       setProducts(p);
       setGroups(g);
       setUnits(u);
+      setSizeGroups(sg);  // ── NEW ──
       setPriorities(pri);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Load failed');
@@ -673,10 +437,15 @@ export function AdminProducts() {
   }, [showAdd]);
 
   function openEdit(p: ProductDto) {
+    const prefix = p.itemCode ? extractItemCodePrefix(p.itemCode) : DEFAULT_ITEM_CODE_PREFIX;
     setEditForm({
-      name: p.nameEnglish, nameMl: p.nameMalayalam ?? '',
-      productGroupId: p.productGroupId, unitId: p.productUnitId ?? '',
-      basePrice: p.basePrice.toString(), itemCode: p.itemCode ?? '',
+      name: p.nameEnglish,
+      nameMl: p.nameMalayalam ?? '',
+      productGroupId: p.productGroupId,
+      unitId: p.productUnitId ?? '',
+      basePrice: p.basePrice.toString(),
+      itemCode: p.itemCode ?? generateItemCode(prefix, p.basePrice),
+      sizeGroupId: p.sizeGroupId ?? '',  // ── NEW ──
     });
     setEditModal(p);
   }
@@ -694,15 +463,25 @@ export function AdminProducts() {
   }
 
   async function handleAdd() {
-    if (!addForm.name.trim() || !addForm.productGroupId || !addForm.itemCode.trim()) {
-      setError('Fill all required fields (Item Code is mandatory).');
+    if (!addForm.name.trim() || !addForm.productGroupId) {
+      setError('Fill all required fields.');
       return;
     }
-    const parsedPrice = parsePriceFromItemCode(addForm.itemCode);
+    // Parse price from either the item code or the base price field
+    let parsedPrice = parsePriceFromItemCode(addForm.itemCode);
     if (parsedPrice === null) {
-      setError('Item Code must include a price after a dash, e.g. "1000-90".');
+      parsedPrice = parseFloat(addForm.basePrice);
+    }
+    if (parsedPrice === null || parsedPrice <= 0) {
+      setError('Please enter a valid price (either in Base Price or Item Code).');
       return;
     }
+    // Ensure item code has the correct price
+    const prefix = addForm.itemCode && addForm.itemCode.includes('-') 
+      ? extractItemCodePrefix(addForm.itemCode) 
+      : DEFAULT_ITEM_CODE_PREFIX;
+    const finalItemCode = generateItemCode(prefix, parsedPrice);
+    
     setSaving(true);
     setError('');
     try {
@@ -712,7 +491,8 @@ export function AdminProducts() {
         productGroupId: addForm.productGroupId,
         productUnitId: addForm.unitId || undefined,
         basePrice: parsedPrice,
-        itemCode: addForm.itemCode,
+        itemCode: finalItemCode,
+        sizeGroupId: addForm.sizeGroupId || undefined,  // ── NEW ──
       });
       setShowAdd(false);
       setAddForm(emptyForm);
@@ -722,11 +502,25 @@ export function AdminProducts() {
   }
 
   async function handleEdit() {
-    if (!editForm.name.trim() || !editForm.productGroupId || !editForm.itemCode.trim() || !editModal) {
-      setError('Fill all required fields (Item Code is mandatory).');
+    if (!editForm.name.trim() || !editForm.productGroupId || !editModal) {
+      setError('Fill all required fields.');
       return;
     }
-    const parsedPrice = parsePriceFromItemCode(editForm.itemCode) ?? parseFloat(editForm.basePrice);
+    // Parse price from either the item code or the base price field
+    let parsedPrice = parsePriceFromItemCode(editForm.itemCode);
+    if (parsedPrice === null) {
+      parsedPrice = parseFloat(editForm.basePrice);
+    }
+    if (parsedPrice === null || parsedPrice <= 0) {
+      setError('Please enter a valid price.');
+      return;
+    }
+    // Ensure item code has the correct price
+    const prefix = editForm.itemCode && editForm.itemCode.includes('-') 
+      ? extractItemCodePrefix(editForm.itemCode) 
+      : DEFAULT_ITEM_CODE_PREFIX;
+    const finalItemCode = generateItemCode(prefix, parsedPrice);
+    
     setSaving(true);
     setError('');
     try {
@@ -738,7 +532,8 @@ export function AdminProducts() {
         productGroupId: editForm.productGroupId,
         productUnitId: editForm.unitId || undefined,
         basePrice: parsedPrice,
-        itemCode: editForm.itemCode,
+        itemCode: finalItemCode,
+        sizeGroupId: editForm.sizeGroupId || undefined,  // ── NEW ──
       });
       setEditModal(null);
       loadAll();
@@ -771,7 +566,8 @@ export function AdminProducts() {
     return (p.nameEnglish || '').toLowerCase().includes(q)
       || (p.nameMalayalam || '').toLowerCase().includes(q)
       || (p.productGroupName || '').toLowerCase().includes(q)
-      || (p.itemCode || '').toLowerCase().includes(q);
+      || (p.itemCode || '').toLowerCase().includes(q)
+      || (p.sizeGroupName || '').toLowerCase().includes(q);
   });
 
   if (loading) return <PageLoader />;
@@ -810,9 +606,9 @@ export function AdminProducts() {
             </p>
           </div>
           
-          {/* Settings Button */}
-          <button
-            onClick={() => setShowSettings(true)}
+          {/* ── Catalog Config Link ── */}
+          <Link
+            to={user?.role === 'Admin' || user?.role === 'SuperAdmin' ? '/admin/catalog' : '#'}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '9px 14px', borderRadius: 9,
@@ -820,14 +616,16 @@ export function AdminProducts() {
               border: `1px solid ${D.border}`,
               color: D.muted,
               fontSize: 13, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              textDecoration: 'none',
               transition: 'all 0.15s',
             }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.accent; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
           >
             <Settings size={16} /> Catalog Config
-          </button>
+          </Link>
           
           <button 
             onClick={loadAll} 
@@ -926,16 +724,23 @@ export function AdminProducts() {
                 <div style={{ fontSize: 12, color: D.sub }}>Fill in the details to register a product</div>
               </div>
             </div>
-            <ProductFormFields form={addForm} setForm={setAddForm} groups={groups} units={units} autoFocus />
+            <ProductFormFields 
+              form={addForm} 
+              setForm={setAddForm} 
+              groups={groups} 
+              units={units} 
+              sizeGroups={sizeGroups}
+              autoFocus 
+            />
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20, borderTop: `1px solid ${D.border}`, paddingTop: 18 }}>
               <button onClick={() => { setShowAdd(false); setError(''); }} style={{ padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700, color: D.sub, border: `1px solid ${D.border}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-              <button onClick={handleAdd} disabled={saving || !addForm.name.trim() || !addForm.productGroupId || !addForm.itemCode.trim()}
+              <button onClick={handleAdd} disabled={saving || !addForm.name.trim() || !addForm.productGroupId}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 7,
                   padding: '10px 24px', borderRadius: 10, fontSize: 14, fontWeight: 800,
                   color: '#fff', border: 'none',
                   background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-                  cursor: saving || !addForm.name.trim() || !addForm.productGroupId || !addForm.itemCode.trim() ? 'not-allowed' : 'pointer',
+                  cursor: saving || !addForm.name.trim() || !addForm.productGroupId ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit', boxShadow: `0 4px 14px ${D.accentGlow}`,
                 }}
               >
@@ -976,18 +781,6 @@ export function AdminProducts() {
           </div>
         )}
 
-        {/* ── Settings Modal ──────────────────────────────────────── */}
-        <SettingsModal
-          isOpen={showSettings}
-          onClose={() => setShowSettings(false)}
-          groups={groups}
-          units={units}
-          priorities={priorities}
-          onGroupUpdate={loadAll}
-          onUnitUpdate={loadAll}
-          onPriorityUpdate={loadAll}
-        />
-
         {/* ── Unit Price Manager Modal ──────────────────────────────────────── */}
         {unitPriceModal && (
           <ProductUnitPriceManager
@@ -1021,7 +814,14 @@ export function AdminProducts() {
               </div>
               <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
                 {error && <Alert variant="error">{error}</Alert>}
-                <ProductFormFields form={editForm} setForm={setEditForm} groups={groups} units={units} />
+                <ProductFormFields 
+                  form={editForm} 
+                  setForm={setEditForm} 
+                  groups={groups} 
+                  units={units} 
+                  sizeGroups={sizeGroups}
+                  isEdit={true} 
+                />
               </div>
               <div style={{ padding: '16px 24px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, justifyContent: 'flex-end', flexShrink: 0 }}>
                 <button onClick={() => setEditModal(null)} style={{ padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 700, color: D.sub, border: `1px solid ${D.border}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>

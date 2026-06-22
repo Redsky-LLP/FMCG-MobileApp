@@ -23,7 +23,6 @@ public class UpdateProductCommandHandler(IApplicationDbContext context)
             return Result<UpdateProductResponse>.Failure("Item Code is required.");
         }
 
-        // Verify ProductGroup exists if changed
         if (product.ProductGroupId != request.ProductGroupId)
         {
             var productGroup = await context.ProductGroups
@@ -34,7 +33,6 @@ public class UpdateProductCommandHandler(IApplicationDbContext context)
             }
         }
 
-        // Verify ProductUnit exists if changed - CHANGE ProductUnitId to DefaultUnitId
         if (product.DefaultUnitId != request.ProductUnitId)
         {
             var unit = await context.ProductUnits
@@ -45,10 +43,21 @@ public class UpdateProductCommandHandler(IApplicationDbContext context)
             }
         }
 
+        // ── NEW: Validate SizeGroup if changed ──
+        if (product.SizeGroupId != request.SizeGroupId && request.SizeGroupId.HasValue)
+        {
+            var sizeGroup = await context.SizeGroups
+                .FirstOrDefaultAsync(sg => sg.Id == request.SizeGroupId.Value && !sg.IsDeleted, cancellationToken);
+            if (sizeGroup == null)
+            {
+                return Result<UpdateProductResponse>.Failure("Size group not found.");
+            }
+        }
+
         product.NameEnglish = request.NameEnglish;
         product.NameMalayalam = request.NameMalayalam;
         product.ProductGroupId = request.ProductGroupId;
-        product.DefaultUnitId = request.ProductUnitId;  // ← CHANGE THIS
+        product.DefaultUnitId = request.ProductUnitId;
         product.BasePrice = request.BasePrice;
         product.IsActive = request.IsActive;
         product.ItemCode = request.ItemCode;
@@ -58,6 +67,8 @@ public class UpdateProductCommandHandler(IApplicationDbContext context)
         if (request.ClosingStock.HasValue) product.ClosingStock = request.ClosingStock.Value;
         product.MinOrderQty = request.MinOrderQty;
         product.MaxOrderQty = request.MaxOrderQty;
+        // ── NEW: Size Group ──
+        product.SizeGroupId = request.SizeGroupId;
         product.UpdateTimestamp("system");
 
         await context.SaveChangesAsync(cancellationToken);
@@ -68,10 +79,11 @@ public class UpdateProductCommandHandler(IApplicationDbContext context)
             NameEnglish = product.NameEnglish,
             NameMalayalam = product.NameMalayalam,
             ProductGroupId = product.ProductGroupId,
-            ProductUnitId = product.DefaultUnitId,  // ← CHANGE THIS
+            ProductUnitId = product.DefaultUnitId,
             BasePrice = product.BasePrice,
             IsActive = product.IsActive,
-            ItemCode = product.ItemCode
+            ItemCode = product.ItemCode,
+            SizeGroupId = product.SizeGroupId
         }, "Product updated successfully.");
     }
 }

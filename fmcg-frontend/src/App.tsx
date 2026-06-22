@@ -65,6 +65,10 @@ const AdminSessionLog = lazy(() => import('./pages/Admin/AdminSessionLog'));
 const AdminDailyAssignment = lazy(() =>
   import('./pages/Admin/AdminDailyAssignment').then(m => ({ default: m.AdminDailyAssignment }))
 );
+// ── NEW: Catalog Config Page ─────────────────────────────────────────────────
+const AdminCatalogConfig = lazy(() => 
+  import('./pages/Admin/AdminCatalogConfig').then(m => ({ default: m.AdminCatalogConfig }))
+);
 const WarehouseDashboard = lazy(() =>
   import('./pages/Warehouse/WarehouseDashboard')
 );
@@ -224,6 +228,8 @@ export default function App() {
               <Route path="incentives" element={<AdminIncentives />} />
               <Route path="users"        element={<AdminUsers />} />
               <Route path="session-log"  element={<AdminSessionLog />} />
+              {/* ── NEW: Catalog Config Route ── */}
+              <Route path="catalog"     element={<AdminCatalogConfig />} />
             </Route>
 
             {/* ── Salesman ── */}

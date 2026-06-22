@@ -144,6 +144,27 @@ public class ProductUnitsController(IMediator mediator, IApplicationDbContext co
 
         return Ok(Result<bool>.Success(true, "Unit updated successfully."));
     }
+
+    // ── Update UQC for a unit ──
+    [HttpPut("{id}/uqc")]
+    public async Task<ActionResult<Result<bool>>> UpdateUQC(
+        Guid id,
+        [FromBody] UpdateUQCRequest request)
+    {
+        var unit = await context.ProductUnits
+            .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+
+        if (unit == null)
+            return NotFound(Result<bool>.Failure("Unit not found."));
+
+        unit.UQC = request.UQC?.ToUpperInvariant();
+        unit.UpdateTimestamp(GetCurrentUserId().ToString());
+
+        await context.SaveChangesAsync();
+
+        return Ok(Result<bool>.Success(true, $"UQC updated to {unit.UQC}."));
+    }
+
 }
 
 // DTOs
@@ -177,4 +198,9 @@ public class UpdateEnhancedUnitRequest
     public string? MeasurementType { get; set; }
     public decimal? BaseUnitValue { get; set; }
     public string? BaseUnitName { get; set; }
+}
+
+public class UpdateUQCRequest
+{
+    public string? UQC { get; set; }
 }

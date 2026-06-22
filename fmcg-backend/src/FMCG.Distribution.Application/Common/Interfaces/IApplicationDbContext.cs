@@ -1,5 +1,4 @@
 ﻿// PATH: src/FMCG.Distribution.Application/Common/Interfaces/IApplicationDbContext.cs
-// CHANGE: Added Task<long> NextOrderSequenceAsync() for atomic order number generation
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -28,6 +27,8 @@ public interface IApplicationDbContext
     DbSet<RouteAssignment> RouteAssignments { get; }
     DbSet<CustomerVisit> CustomerVisits { get; }
     DbSet<UserSession> UserSessions { get; }
+    // ── NEW: SizeGroup ──
+    DbSet<SizeGroup> SizeGroups { get; }
 
     ChangeTracker ChangeTracker { get; }
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;

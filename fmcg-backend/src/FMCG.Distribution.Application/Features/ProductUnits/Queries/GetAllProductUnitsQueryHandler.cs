@@ -12,6 +12,8 @@ public class ProductUnitDto
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Abbreviation { get; set; }
+    // ── NEW: UQC ──
+    public string? UQC { get; set; }
     public DateTime CreatedDate { get; set; }
 }
 
@@ -29,6 +31,8 @@ public class GetAllProductUnitsQueryHandler(IApplicationDbContext context)
                 Id = u.Id,
                 Name = u.Name,
                 Abbreviation = u.Abbreviation ?? u.Symbol,
+                // ── NEW: UQC ──
+                UQC = u.UQC,
                 CreatedDate = u.CreatedAt
             })
             .ToListAsync(cancellationToken);

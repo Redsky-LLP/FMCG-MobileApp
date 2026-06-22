@@ -1,5 +1,5 @@
 // PATH: src/pages/Dashboard/HomeHub.tsx
-// UPDATED: Dark theme with orange accent - Settings removed, Users & Reports enlarged
+// UPDATED: Added Catalog Config card
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -68,8 +68,6 @@ interface QuickAction {
 }
 
 // ── Large Nav Blocks (priority order for admin) ────────────────
-// REMOVED: 'settings' - Settings card removed
-// ADDED: 'users' and 'reports' as large cards
 const NAV_BLOCKS: NavBlock[] = [
   // ── Salesman ──
   {
@@ -88,7 +86,7 @@ const NAV_BLOCKS: NavBlock[] = [
   },
   // ── Admin priority order ──
   {
-    id: 'admin-routes', label: 'Route Hub',
+    id: 'admin-routes', label: 'Route Masters',
     description: 'Assign routes and track live deliveries',
     icon: Route, to: '/admin/routes',
     badge: 'Live', badgeColor: 'green',
@@ -102,21 +100,28 @@ const NAV_BLOCKS: NavBlock[] = [
     accent: '#3B82F6', accentText: '#3B82F6', roles: ['Admin', 'SuperAdmin'],
   },
   {
-    id: 'customers', label: 'Customers',
+    id: 'customers', label: 'Customers Masters',
     description: 'Browse and manage customer catalog',
     icon: Users, to: '/admin/customers',
     badge: '248 Active', badgeColor: 'blue',
     accent: '#8B5CF6', accentText: '#8B5CF6', roles: ['Admin', 'SuperAdmin'],
   },
-  // Products card (kept as normal card)
+  // Products card
   {
-    id: 'products', label: 'Products',
+    id: 'products', label: 'Products Masters',
     description: 'Manage product catalog and pricing',
     icon: Package, to: '/admin/products',
     accent: '#22C55E', accentText: '#22C55E', roles: ['Admin', 'SuperAdmin'],
   },
-  // ❌ Settings card REMOVED - no longer here
-  // ✅ Users card - ENLARGED (moved from More Tools)
+  // ── NEW: Catalog Config Card ──
+  {
+    id: 'catalog', label: 'Catalog Config',
+    description: 'Manage product groups and measurement units',
+    icon: Settings, to: '/admin/catalog',
+    accent: '#A78BFA', accentText: '#A78BFA', roles: ['Admin', 'SuperAdmin'],
+    size: 'small',
+  },
+  // Users card - ENLARGED
   {
     id: 'users', label: 'User Management',
     description: 'Manage users, roles, and permissions across the platform',
@@ -124,9 +129,9 @@ const NAV_BLOCKS: NavBlock[] = [
     accent: '#60A5FA', accentText: '#60A5FA', roles: ['Admin', 'SuperAdmin'],
     size: 'large',
   },
-  // ✅ Reports card - ENLARGED (moved from More Tools)
+  // Reports card - ENLARGED
   {
-    id: 'reports', label: 'Reports',
+    id: 'reports', label: 'Report Masters',
     description: 'Generate and view detailed business reports and analytics',
     icon: FileText, to: '/admin/reports',
     accent: '#14B8A6', accentText: '#14B8A6', roles: ['Admin', 'SuperAdmin'],
@@ -283,10 +288,10 @@ export function HomeHub() {
 
   // Filter blocks: main blocks (Route Hub, Orders, Customers)
   const mainBlocks   = isAdmin ? blocks.filter(b => ['admin-routes','orders','customers'].includes(b.id)) : blocks;
-  // Filter large blocks: Products, Users, Reports (Settings removed)
-  const largeBlocks  = isAdmin ? blocks.filter(b => ['products','users','reports'].includes(b.id)) : [];
+  // Filter large blocks: Products, Users, Reports, Catalog
+  const largeBlocks  = isAdmin ? blocks.filter(b => ['products','users','reports','catalog'].includes(b.id)) : [];
   // Everything else goes to more tools
-  const moreTools    = isAdmin ? blocks.filter(b => !['admin-routes','orders','customers','products','users','reports'].includes(b.id)) : [];
+  const moreTools    = isAdmin ? blocks.filter(b => !['admin-routes','orders','customers','products','users','reports','catalog'].includes(b.id)) : [];
 
   function liveBadge(blockId: string): string | undefined {
     if (blockId === 'admin-routes') return liveStats.routesCount !== undefined ? `${liveStats.routesCount} Routes` : undefined;
@@ -392,11 +397,11 @@ export function HomeHub() {
           ))}
         </div>
 
-        {/* ── Admin Large Cards: Products, Users, Reports ── */}
+        {/* ── Admin Large Cards: Products, Users, Reports, Catalog ── */}
         {isAdmin && largeBlocks.length > 0 && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: largeBlocks.length === 3 ? 'repeat(3,1fr)' : largeBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
+            gridTemplateColumns: largeBlocks.length === 4 ? 'repeat(4,1fr)' : largeBlocks.length === 3 ? 'repeat(3,1fr)' : largeBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
             gap: 16, marginBottom: 16,
             opacity: mounted ? 1 : 0,
             transition: 'all 0.42s 0.18s cubic-bezier(0.34,1.2,0.64,1)',
@@ -741,6 +746,16 @@ function NavBlockCard({ block, delay, fullWidth, badgeOverride, isLarge }: {
             </span>
             <span style={{ fontSize: 12, color: D.green, display: 'flex', alignItems: 'center', gap: 4 }}>
               <ArrowUpRight size={12} /> +12% This Week
+            </span>
+          </div>
+        )}
+        {large && block.id === 'catalog' && (
+          <div style={{ marginTop: 12, display: 'flex', gap: 16 }}>
+            <span style={{ fontSize: 12, color: '#A78BFA', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Settings size={12} /> {block.id === 'catalog' ? 'Groups & Units' : ''}
+            </span>
+            <span style={{ fontSize: 12, color: D.green, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Boxes size={12} /> Manage Catalog
             </span>
           </div>
         )}

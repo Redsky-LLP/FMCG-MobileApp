@@ -11,16 +11,11 @@ public class CreateProductCommandHandler(IApplicationDbContext context)
 {
     public async Task<Result<CreateProductResponse>> Handle(CreateProductCommand request, CancellationToken cancellationToken)
     {
-        // ItemCode is mandatory for every product — enforced here too, not just
-        // in the admin UI, since it's also where the price comes from (the
-        // "1000-90" convention: the admin form parses the price out of it
-        // client-side, but the server shouldn't trust that alone).
         if (string.IsNullOrWhiteSpace(request.ItemCode))
         {
             return Result<CreateProductResponse>.Failure("Item Code is required.");
         }
 
-        // Verify ProductGroup exists
         var productGroup = await context.ProductGroups
             .FirstOrDefaultAsync(g => g.Id == request.ProductGroupId && !g.IsDeleted, cancellationToken);
         if (productGroup == null)
@@ -28,12 +23,22 @@ public class CreateProductCommandHandler(IApplicationDbContext context)
             return Result<CreateProductResponse>.Failure("Product group not found.");
         }
 
-        // Verify ProductUnit exists - CHANGE ProductUnitId to DefaultUnitId
         var unit = await context.ProductUnits
             .FirstOrDefaultAsync(u => u.Id == request.ProductUnitId && !u.IsDeleted, cancellationToken);
         if (unit == null)
         {
             return Result<CreateProductResponse>.Failure("Unit not found.");
+        }
+
+        // ── NEW: Validate SizeGroup if provided ──
+        if (request.SizeGroupId.HasValue)
+        {
+            var sizeGroup = await context.SizeGroups
+                .FirstOrDefaultAsync(sg => sg.Id == request.SizeGroupId.Value && !sg.IsDeleted, cancellationToken);
+            if (sizeGroup == null)
+            {
+                return Result<CreateProductResponse>.Failure("Size group not found.");
+            }
         }
 
         var product = new Product
@@ -42,7 +47,7 @@ public class CreateProductCommandHandler(IApplicationDbContext context)
             NameEnglish = request.NameEnglish,
             NameMalayalam = request.NameMalayalam,
             ProductGroupId = request.ProductGroupId,
-            DefaultUnitId = request.ProductUnitId,  // ← CHANGE THIS
+            DefaultUnitId = request.ProductUnitId,
             BasePrice = request.BasePrice,
             ItemCode = request.ItemCode,
             Sku = request.Sku,
@@ -51,6 +56,8 @@ public class CreateProductCommandHandler(IApplicationDbContext context)
             ClosingStock = request.ClosingStock ?? 0,
             MinOrderQty = request.MinOrderQty,
             MaxOrderQty = request.MaxOrderQty,
+            // ── NEW: Size Group ──
+            SizeGroupId = request.SizeGroupId,
             IsActive = true
         };
 
@@ -63,10 +70,11 @@ public class CreateProductCommandHandler(IApplicationDbContext context)
             NameEnglish = product.NameEnglish,
             NameMalayalam = product.NameMalayalam,
             ProductGroupId = product.ProductGroupId,
-            ProductUnitId = product.DefaultUnitId,  // ← CHANGE THIS (mapping to response)
+            ProductUnitId = product.DefaultUnitId,
             BasePrice = product.BasePrice,
             IsActive = product.IsActive,
-            ItemCode = product.ItemCode
+            ItemCode = product.ItemCode,
+            SizeGroupId = product.SizeGroupId
         }, "Product created successfully.");
     }
 }

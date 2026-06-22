@@ -12,7 +12,8 @@ public class GetAllProductsQueryHandler(IApplicationDbContext context)
     {
         var query = context.Products
             .Include(p => p.ProductGroup)
-            .Include(p => p.DefaultUnit)  // ← CHANGE ProductUnit to DefaultUnit
+            .Include(p => p.DefaultUnit)
+            .Include(p => p.SizeGroup)  // ← NEW: Include SizeGroup
             .Where(p => !p.IsDeleted);
 
         if (request.ProductGroupId.HasValue)
@@ -35,9 +36,9 @@ public class GetAllProductsQueryHandler(IApplicationDbContext context)
                 NameMalayalam = p.NameMalayalam,
                 ProductGroupId = p.ProductGroupId,
                 ProductGroupName = p.ProductGroup != null ? p.ProductGroup.Name : null,
-                ProductUnitId = p.DefaultUnitId,  // ← CHANGE THIS
-                ProductUnitName = p.DefaultUnit != null ? p.DefaultUnit.Name : null,  // ← CHANGE THIS
-                ProductUnitSymbol = p.DefaultUnit != null ? p.DefaultUnit.Symbol : null,  // ← CHANGE THIS
+                ProductUnitId = p.DefaultUnitId,
+                ProductUnitName = p.DefaultUnit != null ? p.DefaultUnit.Name : null,
+                ProductUnitSymbol = p.DefaultUnit != null ? p.DefaultUnit.Symbol : null,
                 BasePrice = p.BasePrice,
                 IsActive = p.IsActive,
                 CreatedAt = p.CreatedAt,
@@ -47,7 +48,12 @@ public class GetAllProductsQueryHandler(IApplicationDbContext context)
                 Supplier = p.Supplier,
                 ClosingStock = p.ClosingStock,
                 MinOrderQty = p.MinOrderQty,
-                MaxOrderQty = p.MaxOrderQty
+                MaxOrderQty = p.MaxOrderQty,
+                // ── NEW: Size Group ──
+                SizeGroupId = p.SizeGroupId,
+                SizeGroupName = p.SizeGroup != null ? p.SizeGroup.Name : null,
+                // ── NEW: UQC ──
+                UQC = p.DefaultUnit != null ? p.DefaultUnit.UQC : null
             })
             .ToListAsync(cancellationToken);
 

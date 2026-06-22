@@ -1,9 +1,5 @@
 // PATH: src/api/services.ts
-// UPDATED: imports from '../types/index' (matches actual file path src/types/index.ts),
-//          RoutePackingStatusDto now imported from types (added there),
-//          ordersApi.approve / getPendingApproval / getPendingApprovalCount added,
-//          warehouseApi.getPackingStatus added.
-//          ADDED: productsApi.getUnitPrices, addUnitPrice, updateUnitPrice, deleteUnitPrice
+// UPDATED: Added sizeGroupsApi, uqc update in unitsApi, and related types
 
 import apiClient from './client';
 import type {
@@ -30,6 +26,10 @@ import type {
   UserDto,
   RoutePackingStatusDto,
   ProductUnitPriceDto, CreateProductUnitPriceDto, UpdateProductUnitPriceDto,
+  // ── NEW: Size Group ──
+  SizeGroupDto,
+  // ── NEW: Enhanced Unit ──
+  EnhancedProductUnitDto,
 } from '../types/index';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -178,6 +178,27 @@ export const productGroupsApi = {
   delete: (id: string) => del<boolean>(`/api/v1/productgroups/${id}`),
 };
 
+// ── ────────────────────────────────────────────────────────────────────────────
+// ── NEW: Size Groups API ──────────────────────────────────────────────────────
+// ── ────────────────────────────────────────────────────────────────────────────
+
+export const sizeGroupsApi = {
+  getAll: (isActive?: boolean) =>
+    get<SizeGroupDto[]>('/api/v1/sizegroups', isActive !== undefined ? { isActive } : undefined),
+
+  getById: (id: string) =>
+    get<SizeGroupDto>(`/api/v1/sizegroups/${id}`),
+
+  create: (data: { name: string; nameMl?: string; description?: string }) =>
+    post<SizeGroupDto>('/api/v1/sizegroups', data),
+
+  update: (id: string, data: { name?: string; nameMl?: string; description?: string; isActive?: boolean }) =>
+    put<SizeGroupDto>(`/api/v1/sizegroups/${id}`, { ...data, id }),
+
+  delete: (id: string) =>
+    del<boolean>(`/api/v1/sizegroups/${id}`),
+};
+
 // ── Products ──────────────────────────────────────────────────────────────────
 export const productsApi = {
   list: (params?: { productGroupId?: string; isActive?: boolean }) =>
@@ -201,6 +222,8 @@ export const productsApi = {
       closingStock: cmd.closingStock,
       minOrderQty: cmd.minOrderQty,
       maxOrderQty: cmd.maxOrderQty,
+      // ── NEW: Size Group ──
+      sizeGroupId: cmd.sizeGroupId,
     };
     return post<{ id: string }>('/api/v1/products', payload);
   },
@@ -220,6 +243,8 @@ export const productsApi = {
       closingStock: cmd.closingStock,
       minOrderQty: cmd.minOrderQty,
       maxOrderQty: cmd.maxOrderQty,
+      // ── NEW: Size Group ──
+      sizeGroupId: cmd.sizeGroupId,
     };
     return put<{ id: string }>(`/api/v1/products/${id}`, payload);
   },
@@ -229,7 +254,7 @@ export const productsApi = {
   getPriceHistory: (id: string, limit?: number) =>
     get<PriceHistoryDto[]>(`/api/v1/products/${id}/price-history`, limit ? { limit } : undefined),
 
-  // ── NEW: Per-Unit Pricing endpoints ──────────────────────────────────────
+  // ── Per-Unit Pricing endpoints ──────────────────────────────────────────
   getUnitPrices: (productId: string) =>
     get<ProductUnitPriceDto[]>(`/api/v1/products/${productId}/unit-prices`),
 
@@ -246,11 +271,28 @@ export const productsApi = {
 // ── Units ─────────────────────────────────────────────────────────────────────
 export const unitsApi = {
   getAll: () => get<UnitDto[]>('/api/v1/productunits'),
-  create: (name: string, abbreviation?: string) => post<{ id: string }>('/api/v1/productunits', { name, abbreviation }),
-  update: (id: string, name: string, abbreviation?: string) => put<{ id: string }>(`/api/v1/productunits/${id}`, { id, name, abbreviation }),
+
+  create: (name: string, abbreviation?: string) =>
+    post<{ id: string }>('/api/v1/productunits', { name, abbreviation }),
+
+  update: (id: string, name: string, abbreviation?: string) =>
+    put<{ id: string }>(`/api/v1/productunits/${id}`, { id, name, abbreviation }),
+
   delete: (id: string) => del<boolean>(`/api/v1/productunits/${id}`),
-  getPriorities: () => get<UnitPriorityDto[]>('/api/v1/productunits/priorities'),
-  updatePriority: (id: string, priority: number) => put<boolean>(`/api/v1/productunits/${id}/priority`, { priority }),
+
+  getPriorities: () =>
+    get<UnitPriorityDto[]>('/api/v1/productunits/priorities'),
+
+  updatePriority: (id: string, priority: number) =>
+    put<boolean>(`/api/v1/productunits/${id}/priority`, { priority }),
+
+  // ── NEW: Update UQC (Unit Quantity Code) ──
+  updateUQC: (id: string, uqc: string) =>
+    put<boolean>(`/api/v1/productunits/${id}/uqc`, { uqc }),
+
+  // ── NEW: Get enhanced units with measurement type ──
+  getEnhanced: () =>
+    get<EnhancedProductUnitDto[]>('/api/v1/productunits/enhanced'),
 };
 
 // ── Orders ────────────────────────────────────────────────────────────────────
