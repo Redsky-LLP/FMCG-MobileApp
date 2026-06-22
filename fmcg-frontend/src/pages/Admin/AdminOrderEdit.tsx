@@ -1,11 +1,13 @@
 // PATH: src/pages/Admin/AdminOrderEdit.tsx
-// UPDATED: Fixed TypeScript errors - OrderStatus is string enum
+// FIXED: Show Save button even when order has no items
+// Added Cancel Order option for admin when order is empty
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Search, Minus, Plus, Trash2, ShoppingCart, Save,
-  ChevronDown, ChevronUp, AlertTriangle, ArrowLeft, Package, X, Edit2
+  Search, Trash2, ShoppingCart, Save,
+  ChevronDown, ChevronUp, AlertTriangle, ArrowLeft, Package, X, Edit2,
+  Trash
 } from 'lucide-react';
 import { ordersApi, productsApi, customersApi } from '../../api/services';
 import {
@@ -17,20 +19,20 @@ import { useAuthStore } from '../../store/authStore';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
-  bg:       '#0f172a',     // slate-950
-  surface:  '#1e293b',     // slate-800
-  surface2: '#243447',     // slate-800 variant
-  border:   '#334155',     // slate-700
-  accent:   '#ea580c',     // orange-600
-  accentH:  '#c2410c',     // orange-700
+  bg:       '#0f172a',
+  surface:  '#1e293b',
+  surface2: '#243447',
+  border:   '#334155',
+  accent:   '#ea580c',
+  accentH:  '#c2410c',
   accentGlow: 'rgba(234,88,12,0.25)',
-  text:     '#f1f5f9',     // slate-100
-  muted:    '#94a3b8',     // slate-400
-  sub:      '#64748b',     // slate-500
-  green:    '#22c55e',     // green-500
-  red:      '#ef4444',     // red-500
-  amber:    '#f59e0b',     // amber-500
-  card:     '#1e293b',     // slate-800
+  text:     '#f1f5f9',
+  muted:    '#94a3b8',
+  sub:      '#64748b',
+  green:    '#22c55e',
+  red:      '#ef4444',
+  amber:    '#f59e0b',
+  card:     '#1e293b',
 };
 
 interface LineItem {
@@ -58,7 +60,6 @@ function PriceVarianceBadge({ base, selling }: { base: number; selling: number }
   return <span className="text-xs text-emerald-400">▲ +{abs}% above base</span>;
 }
 
-// ── Status label helper (OrderStatus is a string enum) ──────────────────────
 const STATUS_LABELS: Record<string, string> = {
   'Draft': 'Draft',
   'PendingApproval': 'Pending Approval',
@@ -70,6 +71,182 @@ const STATUS_LABELS: Record<string, string> = {
 const getStatusLabel = (status: OrderStatus | string): string => {
   return STATUS_LABELS[String(status)] ?? String(status);
 };
+
+function ItemCard({
+  line,
+  isExpanded,
+  onToggleExpand,
+  onQtyChange,
+  onPriceChange,
+  onRemove,
+  canEdit,
+}: {
+  line: LineItem;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onQtyChange: (value: string) => void;
+  onPriceChange: (value: string) => void;
+  onRemove: () => void;
+  canEdit: boolean;
+}) {
+  const variance = line.product.basePrice
+    ? ((line.sellingPrice - line.product.basePrice) / line.product.basePrice) * 100
+    : 0;
+  const hasNegativeVariance = variance < -0.1;
+
+  return (
+    <div
+      style={{
+        background: D.surface,
+        borderRadius: 14,
+        border: `1px solid ${hasNegativeVariance ? 'rgba(239,68,68,0.30)' : D.border}`,
+        padding: '14px 16px',
+        transition: 'border-color 0.15s',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: D.text }}>
+              {line.product.nameEnglish}
+            </h3>
+            <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} />
+          </div>
+          {line.product.nameMalayalam && (
+            <p style={{ margin: '2px 0 0', fontSize: 12, color: D.sub }} lang="ml">{line.product.nameMalayalam}</p>
+          )}
+          <p style={{ margin: '2px 0 0', fontSize: 11, color: D.sub }}>
+            {line.product.productGroupName || 'General'} · {line.unit}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+          <button
+            onClick={onToggleExpand}
+            style={{
+              padding: '6px 8px',
+              borderRadius: 8,
+              background: 'transparent',
+              border: 'none',
+              color: D.sub,
+              cursor: 'pointer',
+            }}
+          >
+            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+          {canEdit && (
+            <button
+              onClick={onRemove}
+              style={{
+                padding: '6px 8px',
+                borderRadius: 8,
+                background: 'transparent',
+                border: 'none',
+                color: D.sub,
+                cursor: 'pointer',
+              }}
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+        <div style={{ width: 110, flexShrink: 0, minWidth: 0 }}>
+          <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Item Code</p>
+          <div style={{
+            padding: '8px 8px', borderRadius: 8, border: `1px solid ${D.border}`,
+            background: D.bg, fontSize: 13, fontWeight: 800, color: D.text,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {line.product.itemCode || '—'}
+          </div>
+        </div>
+
+        <div style={{ width: 64, flexShrink: 0 }}>
+          <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Qty</p>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={line.qty === 0 ? '' : String(line.qty)}
+            onChange={e => onQtyChange(e.target.value)}
+            disabled={!canEdit}
+            style={{
+              width: '100%',
+              textAlign: 'center',
+              padding: '8px 4px',
+              border: `1px solid ${D.border}`,
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 800,
+              background: canEdit ? D.surface2 : D.bg,
+              color: D.text,
+              fontFamily: 'inherit',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
+
+        <div style={{ width: 84, flexShrink: 0 }}>
+          <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Price ₹</p>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={line.sellingPrice > 0 ? String(line.sellingPrice) : ''}
+            onChange={e => onPriceChange(e.target.value)}
+            disabled={!canEdit}
+            placeholder={String(line.product.basePrice ?? 0)}
+            style={{
+              width: '100%',
+              textAlign: 'center',
+              padding: '8px 4px',
+              border: `1px solid ${D.border}`,
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 800,
+              background: canEdit ? D.surface2 : D.bg,
+              color: D.text,
+              fontFamily: 'inherit',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
+      </div>
+
+      {isExpanded && (
+        <div style={{
+          marginTop: 12,
+          paddingTop: 12,
+          borderTop: `1px solid ${D.border}`,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+          gap: 8,
+        }}>
+          <div style={{ background: D.bg, borderRadius: 8, padding: '8px 12px' }}>
+            <span style={{ fontSize: 10, color: D.sub, display: 'block' }}>Base Price</span>
+            <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 700, color: D.text }}>₹{fmtNum(line.product.basePrice)}</p>
+          </div>
+          <div style={{ background: D.bg, borderRadius: 8, padding: '8px 12px' }}>
+            <span style={{ fontSize: 10, color: D.sub, display: 'block' }}>Variance</span>
+            <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 700, color: variance < 0 ? D.red : D.green }}>
+              {variance >= 0 ? '+' : ''}{variance.toFixed(1)}%
+            </p>
+          </div>
+          <div style={{ background: D.bg, borderRadius: 8, padding: '8px 12px' }}>
+            <span style={{ fontSize: 10, color: D.sub, display: 'block' }}>Unit</span>
+            <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 700, color: D.text }}>{line.unit}</p>
+          </div>
+          <div style={{ background: D.bg, borderRadius: 8, padding: '8px 12px' }}>
+            <span style={{ fontSize: 10, color: D.sub, display: 'block' }}>Qty × Price</span>
+            <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 700, color: D.accent }}>{line.qty} × ₹{fmtNum(line.sellingPrice)}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function AdminOrderEdit() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -89,6 +266,10 @@ export function AdminOrderEdit() {
   const [successMsg, setSuccessMsg] = useState('');
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [tempQuantities, setTempQuantities] = useState<Record<string, string>>({});
+  const [tempPrices, setTempPrices] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!orderId) {
@@ -109,9 +290,7 @@ export function AdminOrderEdit() {
         try {
           const c = await customersApi.getById(String(o.customerId));
           setCustomer(c);
-        } catch {
-          // Customer not found
-        }
+        } catch {}
       }
 
       const reconstructed: LineItem[] = (o.items ?? []).map(item => {
@@ -145,55 +324,62 @@ export function AdminOrderEdit() {
   const addProduct = useCallback((product: ProductDto) => {
     setLines(prev => {
       if (prev.find(l => l.product.id === product.id)) return prev;
-      return [...prev, {
+      return [{
         product,
         productId: String(product.id),
         qty: 1,
         sellingPrice: product.basePrice,
         unit: product.productUnitName ?? 'Unit',
         isNew: true,
-      }];
+      }, ...prev];
     });
     setSearch('');
     setShowSearch(false);
   }, []);
 
-  const updateQty = (productId: string, delta: number) => {
-    setLines(prev =>
-      prev.map(l => {
-        if (l.product.id !== productId) return l;
-        const newQty = l.qty + delta;
-        if (newQty < 0) return l;
-        if (newQty === 0) return null;
-        return { ...l, qty: newQty };
-      }).filter(Boolean) as LineItem[]
-    );
+  const handleQtyInput = (productId: string, value: string) => {
+    setTempQuantities(prev => ({ ...prev, [productId]: value }));
   };
 
-  const setQtyDirect = (productId: string, val: string) => {
-    let n = parseInt(val, 10);
-    if (isNaN(n) || n < 0) return;
-    if (n === 0) {
+  const handleQtyBlur = (productId: string) => {
+    const tmp = tempQuantities[productId];
+    if (tmp === undefined) return;
+    setTempQuantities(prev => { const n = { ...prev }; delete n[productId]; return n; });
+    const n = parseInt(tmp, 10);
+    if (!tmp || isNaN(n) || n <= 0) {
       setLines(prev => prev.filter(l => l.product.id !== productId));
-      return;
+    } else {
+      setLines(prev => prev.map(l => l.product.id === productId ? { ...l, qty: n } : l));
     }
-    setLines(prev =>
-      prev.map(l =>
-        l.product.id === productId ? { ...l, qty: n } : l
-      )
-    );
   };
 
-  const setPrice = (productId: string, val: string) => {
-    let n = parseFloat(val);
-    if (isNaN(n)) return;
-    setLines(prev => prev.map(l =>
-      l.product.id === productId ? { ...l, sellingPrice: n } : l
-    ));
+  const handlePriceInput = (productId: string, value: string) => {
+    setTempPrices(prev => ({ ...prev, [productId]: value }));
+  };
+
+  const handlePriceBlur = (productId: string) => {
+    const tmp = tempPrices[productId];
+    if (tmp === undefined) return;
+    setTempPrices(prev => { const n = { ...prev }; delete n[productId]; return n; });
+    const n = parseFloat(tmp);
+    if (tmp === '' || isNaN(n) || n < 0) return;
+    setLines(prev => prev.map(l => l.product.id === productId ? { ...l, sellingPrice: n } : l));
+  };
+
+  const getDisplayQty = (productId: string, qty: number) => {
+    const tmp = tempQuantities[productId];
+    return tmp !== undefined ? tmp : qty === 0 ? '' : String(qty);
+  };
+
+  const getDisplayPrice = (productId: string, price: number) => {
+    const tmp = tempPrices[productId];
+    return tmp !== undefined ? tmp : price === 0 ? '' : String(price);
   };
 
   const removeItem = (productId: string) => {
     setLines(prev => prev.filter(l => l.product.id !== productId));
+    setTempQuantities(prev => { const n = { ...prev }; delete n[productId]; return n; });
+    setTempPrices(prev => { const n = { ...prev }; delete n[productId]; return n; });
   };
 
   const totalItems = lines.reduce((s, l) => s + l.qty, 0);
@@ -216,17 +402,17 @@ export function AdminOrderEdit() {
   };
 
   const handleSave = async () => {
-    if (lines.length === 0) {
-      setError('Add at least one item to the order.');
-      return;
-    }
+    // ── FIX: Allow saving even with no items (clears the order) ──
     setSaving(true);
     setError('');
     setSuccessMsg('');
 
     try {
       await ordersApi.update(orderId!, buildPayload());
-      setSuccessMsg('Order updated successfully!');
+      setSuccessMsg(lines.length === 0 ? 'Order cleared successfully!' : 'Order updated successfully!');
+      // Reload to reflect changes
+      const updated = await ordersApi.getById(orderId!);
+      setOrder(updated);
       setTimeout(() => {
         navigate('/admin/orders');
       }, 1500);
@@ -237,18 +423,21 @@ export function AdminOrderEdit() {
     }
   };
 
-  const formatRemarksWithNumbers = (text: string): string => {
-    if (!text) return '';
-    const lines = text.split(/\r?\n/);
-    return lines.map((line, index) => {
-      const trimmedLine = line.trim();
-      if (trimmedLine === '') return '';
-      return `${index + 1}. ${trimmedLine}`;
-    }).filter(line => line !== '').join('\n');
-  };
-
-  const handleRemarksChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setRemarks(e.target.value);
+  // ── Cancel Order (Admin) ──
+  const handleCancelOrder = async () => {
+    if (!orderId) return;
+    setCancelling(true);
+    setError('');
+    try {
+      await ordersApi.delete(orderId);
+      setSuccessMsg('Order cancelled successfully!');
+      setTimeout(() => navigate('/admin/orders'), 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to cancel order');
+    } finally {
+      setCancelling(false);
+      setShowCancelConfirm(false);
+    }
   };
 
   if (loading) return (
@@ -263,20 +452,7 @@ export function AdminOrderEdit() {
         <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.30)', borderRadius: 12, padding: '16px', color: '#fca5a5', marginBottom: 16 }}>
           Order not found.
         </div>
-        <button 
-          onClick={() => navigate('/admin/orders')}
-          style={{
-            padding: '10px 20px',
-            borderRadius: 10,
-            background: D.surface,
-            border: `1px solid ${D.border}`,
-            color: D.muted,
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
+        <button onClick={() => navigate('/admin/orders')} style={{ padding: '10px 20px', borderRadius: 10, background: D.surface, border: `1px solid ${D.border}`, color: D.muted, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
           ← Back to Orders
         </button>
       </div>
@@ -285,40 +461,25 @@ export function AdminOrderEdit() {
 
   const orderStatus = order.status;
   const canEdit = orderStatus !== OrderStatus.Closed;
+  const isDraft = orderStatus === OrderStatus.Draft;
 
   if (!canEdit) {
     return (
       <div style={{ minHeight: '100vh', background: D.bg, padding: '24px' }}>
         <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.30)', borderRadius: 12, padding: '16px', color: '#fca5a5', marginBottom: 16 }}>
-          Cannot edit order in '{getStatusLabel(orderStatus)}' status. 
-          Only Draft, Pending Approval, or Approved orders can be edited. Closed orders are locked.
+          Cannot edit order in '{getStatusLabel(orderStatus)}' status.
         </div>
-        <button 
-          onClick={() => navigate('/admin/orders')}
-          style={{
-            padding: '10px 20px',
-            borderRadius: 10,
-            background: D.surface,
-            border: `1px solid ${D.border}`,
-            color: D.muted,
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
+        <button onClick={() => navigate('/admin/orders')} style={{ padding: '10px 20px', borderRadius: 10, background: D.surface, border: `1px solid ${D.border}`, color: D.muted, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
           ← Back to Orders
         </button>
       </div>
     );
   }
 
-  const formattedRemarksPreview = formatRemarksWithNumbers(remarks);
-
   return (
     <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 100 }}>
 
-      {/* ── Sticky Dark Header ──────────────────────────────────────────────── */}
+      {/* ── Header ────────────────────────────────────────────────────────────── */}
       <div style={{
         position: 'sticky',
         top: 0,
@@ -328,8 +489,7 @@ export function AdminOrderEdit() {
         padding: '14px 16px',
       }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          {/* Top row: Back + Title + Status */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
               onClick={() => navigate('/admin/orders')}
               style={{
@@ -351,7 +511,7 @@ export function AdminOrderEdit() {
               <ArrowLeft size={15} /> Back
             </button>
 
-            <div style={{ textAlign: 'center' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <h1 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: D.text, letterSpacing: '-0.02em' }}>
                 <Edit2 size={14} style={{ display: 'inline', marginRight: 6, color: D.accent }} />
                 Edit Order
@@ -361,36 +521,32 @@ export function AdminOrderEdit() {
               </p>
             </div>
 
-            {(orderStatus === OrderStatus.PendingApproval || orderStatus === OrderStatus.Approved) && (
-              <span style={{
-                padding: '4px 12px',
-                borderRadius: 20,
-                fontSize: 11,
-                fontWeight: 700,
-                background: 'rgba(234,88,12,0.15)',
-                color: D.accent,
-                border: `1px solid ${D.accentGlow}`,
-              }}>
-                {getStatusLabel(orderStatus)}
-              </span>
-            )}
-            {orderStatus === OrderStatus.Draft && <div style={{ width: 80 }} />}
+            <span style={{
+              padding: '4px 12px',
+              borderRadius: 20,
+              fontSize: 11,
+              fontWeight: 700,
+              background: 'rgba(234,88,12,0.15)',
+              color: D.accent,
+              border: `1px solid ${D.accentGlow}`,
+            }}>
+              {getStatusLabel(orderStatus)}
+            </span>
           </div>
 
-          {/* Warning banner for non-draft orders */}
           {orderStatus !== OrderStatus.Draft && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              marginTop: 12,
-              padding: '8px 14px',
-              borderRadius: 9,
+              marginTop: 10,
+              padding: '6px 12px',
+              borderRadius: 8,
               background: 'rgba(245,158,11,0.10)',
               border: '1px solid rgba(245,158,11,0.25)',
               color: D.amber,
               fontSize: 12,
               fontWeight: 600,
             }}>
-              <AlertTriangle size={14} />
+              <AlertTriangle size={13} />
               Order is in {getStatusLabel(orderStatus)} status. Editing will update it.
             </div>
           )}
@@ -401,7 +557,7 @@ export function AdminOrderEdit() {
             style={{
               width: '100%',
               display: 'flex', alignItems: 'center', gap: 10,
-              marginTop: 12,
+              marginTop: 10,
               padding: '10px 14px',
               borderRadius: 10,
               background: D.surface,
@@ -425,7 +581,6 @@ export function AdminOrderEdit() {
       {/* ── Main Content ─────────────────────────────────────────────────────── */}
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px' }}>
 
-        {/* Error/Success messages */}
         {error && (
           <div style={{
             marginBottom: 12,
@@ -516,9 +671,7 @@ export function AdminOrderEdit() {
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: D.text }}>{p.nameEnglish}</p>
-                      {p.nameMalayalam && (
-                        <p style={{ margin: '2px 0 0', fontSize: 11, color: D.sub }} lang="ml">{p.nameMalayalam}</p>
-                      )}
+                      {p.nameMalayalam && <p style={{ margin: '2px 0 0', fontSize: 11, color: D.sub }} lang="ml">{p.nameMalayalam}</p>}
                       <p style={{ margin: '2px 0 0', fontSize: 11, color: D.sub }}>
                         {p.productGroupName || 'General'} · {p.productUnitName || 'Unit'}
                       </p>
@@ -552,6 +705,33 @@ export function AdminOrderEdit() {
             <ShoppingCart size={40} color={D.border} style={{ marginBottom: 12 }} />
             <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>No items in this order</p>
             <p style={{ fontSize: 12, color: D.sub, marginTop: 4 }}>Click the search bar above to add products</p>
+            
+            {/* ── Cancel Order button when empty ── */}
+            {isDraft && (
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                style={{
+                  marginTop: 16,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '10px 20px',
+                  borderRadius: 10,
+                  border: `1px solid ${D.red}44`,
+                  background: 'rgba(239,68,68,0.10)',
+                  color: D.red,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.20)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.10)'; }}
+              >
+                <Trash size={14} /> Cancel Order
+              </button>
+            )}
           </div>
         )}
 
@@ -559,335 +739,158 @@ export function AdminOrderEdit() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {lines.map(line => {
             const isExpanded = expandedProduct === line.product.id;
-            const variance = line.product.basePrice
-              ? ((line.sellingPrice - line.product.basePrice) / line.product.basePrice) * 100
-              : 0;
-            const hasNegativeVariance = variance < -0.1;
-
             return (
-              <div
+              <ItemCard
                 key={line.product.id}
-                style={{
-                  background: D.surface,
-                  borderRadius: 14,
-                  border: `1px solid ${hasNegativeVariance ? 'rgba(239,68,68,0.30)' : D.border}`,
-                  padding: '14px 16px',
-                  transition: 'border-color 0.15s',
-                }}
-              >
-                {/* Product Header */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: D.text }}>
-                        {line.product.nameEnglish}
-                      </h3>
-                      <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} />
-                    </div>
-                    {line.product.nameMalayalam && (
-                      <p style={{ margin: '2px 0 0', fontSize: 12, color: D.sub }} lang="ml">{line.product.nameMalayalam}</p>
-                    )}
-                    <p style={{ margin: '2px 0 0', fontSize: 11, color: D.sub }}>
-                      {line.product.productGroupName || 'General'} · {line.unit}
-                    </p>
-                  </div>
-                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                    <button
-                      onClick={() => setExpandedProduct(isExpanded ? null : line.product.id)}
-                      style={{
-                        padding: '6px 8px',
-                        borderRadius: 8,
-                        background: 'transparent',
-                        border: 'none',
-                        color: D.sub,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </button>
-                    <button
-                      onClick={() => setShowDeleteConfirm(line.product.id)}
-                      style={{
-                        padding: '6px 8px',
-                        borderRadius: 8,
-                        background: 'transparent',
-                        border: 'none',
-                        color: D.sub,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Quantity and Price Controls - Item total removed */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    background: D.bg,
-                    borderRadius: 10,
-                    padding: '2px',
-                  }}>
-                    <button
-                      onClick={() => updateQty(line.product.id, -1)}
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 8,
-                        border: 'none',
-                        background: 'transparent',
-                        color: D.muted,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Minus size={14} />
-                    </button>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      value={line.qty}
-                      onChange={e => setQtyDirect(line.product.id, e.target.value)}
-                      style={{
-                        width: 48,
-                        textAlign: 'center',
-                        fontSize: 15,
-                        fontWeight: 700,
-                        background: 'transparent',
-                        border: 'none',
-                        color: D.text,
-                        outline: 'none',
-                        fontFamily: 'inherit',
-                      }}
-                    />
-                    <button
-                      onClick={() => updateQty(line.product.id, 1)}
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 8,
-                        border: 'none',
-                        background: 'transparent',
-                        color: D.muted,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Plus size={14} />
-                    </button>
-                  </div>
-
-                  <span style={{ fontSize: 12, color: D.sub, background: D.bg, padding: '4px 10px', borderRadius: 6 }}>
-                    {line.unit}
-                  </span>
-
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    background: D.bg,
-                    borderRadius: 10,
-                    padding: '4px 10px',
-                    border: `1px solid ${D.border}`,
-                  }}>
-                    <span style={{ fontSize: 13, color: D.sub, fontWeight: 600 }}>₹</span>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      value={line.sellingPrice > 0 ? line.sellingPrice : ''}
-                      onChange={e => setPrice(line.product.id, e.target.value)}
-                      placeholder={String(line.product.basePrice ?? 0)}
-                      style={{
-                        width: 80,
-                        background: 'transparent',
-                        border: 'none',
-                        color: D.text,
-                        fontSize: 14,
-                        fontWeight: 600,
-                        outline: 'none',
-                        fontFamily: 'inherit',
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Expanded details - Item total removed, shows Qty × Price only */}
-                {isExpanded && (
-                  <div style={{
-                    marginTop: 12,
-                    paddingTop: 12,
-                    borderTop: `1px solid ${D.border}`,
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-                    gap: 8,
-                  }}>
-                    <div style={{ background: D.bg, borderRadius: 8, padding: '8px 12px' }}>
-                      <span style={{ fontSize: 10, color: D.sub, display: 'block' }}>Base Price</span>
-                      <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 700, color: D.text }}>₹{fmtNum(line.product.basePrice)}</p>
-                    </div>
-                    <div style={{ background: D.bg, borderRadius: 8, padding: '8px 12px' }}>
-                      <span style={{ fontSize: 10, color: D.sub, display: 'block' }}>Variance</span>
-                      <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 700, color: variance < 0 ? D.red : D.green }}>
-                        {variance >= 0 ? '+' : ''}{variance.toFixed(1)}%
-                      </p>
-                    </div>
-                    <div style={{ background: D.bg, borderRadius: 8, padding: '8px 12px' }}>
-                      <span style={{ fontSize: 10, color: D.sub, display: 'block' }}>Unit</span>
-                      <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 700, color: D.text }}>{line.unit}</p>
-                    </div>
-                    <div style={{ background: D.bg, borderRadius: 8, padding: '8px 12px' }}>
-                      <span style={{ fontSize: 10, color: D.sub, display: 'block' }}>Qty × Price</span>
-                      <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 700, color: D.accent }}>{line.qty} × ₹{fmtNum(line.sellingPrice)}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+                line={line}
+                isExpanded={isExpanded}
+                onToggleExpand={() => setExpandedProduct(isExpanded ? null : line.product.id)}
+                onQtyChange={(value) => handleQtyInput(line.product.id, value)}
+                onPriceChange={(value) => handlePriceInput(line.product.id, value)}
+                onRemove={() => setShowDeleteConfirm(line.product.id)}
+                canEdit={canEdit}
+              />
             );
           })}
         </div>
 
-        {/* ── Retail Remarks ── */}
-        {lines.length > 0 && (
+        {/* ── Retail Remarks ── FULL WIDTH, NO PREVIEW BOX ──────────────────── */}
+        <div style={{
+          marginTop: 16,
+          background: D.surface,
+          borderRadius: 14,
+          border: `1px solid ${D.border}`,
+          padding: '16px',
+        }}>
           <div style={{
-            marginTop: 16,
-            background: D.surface,
-            borderRadius: 14,
-            border: `1px solid ${D.border}`,
-            padding: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 10,
+            paddingBottom: 8,
+            borderBottom: `2px solid ${D.accent}44`,
           }}>
-            <label style={{
-              display: 'block',
-              fontSize: 12,
-              fontWeight: 700,
-              color: D.muted,
+            <span style={{ fontSize: 16 }}>🛍</span>
+            <span style={{
+              fontSize: 13,
+              fontWeight: 800,
+              color: D.accent,
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
-              marginBottom: 8,
             }}>
-              🛍 Retail Items <span style={{ fontSize: 10, fontWeight: 400, color: D.sub }}>(Enter one item per line)</span>
-            </label>
+              Retail Items &amp; Remarks
+            </span>
+            <span style={{
+              fontSize: 10,
+              fontWeight: 400,
+              color: D.sub,
+              marginLeft: 4,
+            }}>
+              (Enter one item per line)
+            </span>
+          </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              {/* Input area */}
-              <div>
-                <p style={{ fontSize: 11, color: D.sub, marginBottom: 4 }}>Enter items:</p>
-                <textarea
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    background: D.bg,
-                    border: `1px solid ${D.border}`,
-                    borderRadius: 10,
-                    fontSize: 13,
-                    color: D.text,
-                    fontFamily: 'monospace',
-                    resize: 'vertical',
-                    outline: 'none',
-                    minHeight: 180,
-                  }}
-                  rows={8}
-                  placeholder={`Savala - 10 kg
+          <textarea
+            style={{
+              width: '100%',
+              padding: '12px 14px',
+              background: D.bg,
+              border: `1px solid ${D.border}`,
+              borderRadius: 10,
+              fontSize: 14,
+              color: D.text,
+              fontFamily: 'monospace',
+              resize: 'vertical',
+              outline: 'none',
+              minHeight: 120,
+              boxSizing: 'border-box',
+            }}
+            rows={6}
+            placeholder={`Savala - 10 kg
 Colli - 10 kg
 Waz - 24 pieces
 Duocsu - 24 units
 Salt - 25 kg
 Sugar - 50 kg`}
-                  value={remarks}
-                  onChange={handleRemarksChange}
-                />
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                  <span style={{ fontSize: 11, color: D.sub }}>Press Enter for new line</span>
-                  <span style={{ fontSize: 11, color: remarks.length > 1000 ? D.amber : D.sub }}>
-                    {remarks.length}/1000
-                  </span>
-                </div>
-              </div>
+            value={remarks}
+            onChange={e => setRemarks(e.target.value)}
+          />
 
-              {/* Preview */}
-              <div>
-                <p style={{ fontSize: 11, color: D.sub, marginBottom: 4 }}>Preview (with line numbers):</p>
-                <div style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  background: D.bg,
-                  border: `1px solid ${D.border}`,
-                  borderRadius: 10,
-                  fontSize: 13,
-                  fontFamily: 'monospace',
-                  whiteSpace: 'pre-wrap',
-                  minHeight: 180,
-                  maxHeight: 250,
-                  overflowY: 'auto',
-                  color: D.muted,
-                }}>
-                  {formattedRemarksPreview || <span style={{ color: D.sub, fontStyle: 'italic' }}>No items entered yet</span>}
-                </div>
-                <p style={{ fontSize: 11, color: D.sub, marginTop: 6 }}>
-                  These items will appear in the order's remarks section
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── Fixed bottom footer ── */}
-      {lines.length > 0 && (
-        <div style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 55,
-          background: D.bg,
-          borderTop: `1px solid ${D.border}`,
-          padding: '10px 16px',
-          paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px) + 70px)',
-        }}>
-          <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-            <div>
-              <p style={{ margin: 0, fontSize: 12, color: D.sub }}>
-                {lines.length} products · {totalItems} units
-              </p>
-            </div>
-            <button
-              onClick={handleSave}
-              disabled={saving || lines.length === 0}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '10px 24px',
-                borderRadius: 10,
-                border: 'none',
-                background: saving || lines.length === 0
-                  ? D.border
-                  : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-                color: '#fff',
-                fontSize: 13,
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+            <span style={{ fontSize: 11, color: D.sub }}>
+              💡 Press <kbd style={{
+                padding: '1px 6px',
+                borderRadius: 4,
+                background: D.border,
+                color: D.muted,
+                fontSize: 10,
                 fontWeight: 700,
-                cursor: saving || lines.length === 0 ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit',
-                boxShadow: saving || lines.length === 0
-                  ? 'none'
-                  : `0 4px 14px ${D.accentGlow}`,
-                transition: 'all 0.18s',
-                touchAction: 'manipulation',
-              }}
-            >
-              <Save size={16} />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
+              }}>Enter</kbd> for new line
+            </span>
+            <span style={{ fontSize: 11, color: remarks.length > 1000 ? D.amber : D.sub }}>
+              {remarks.length}/1000
+            </span>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* ── Fixed bottom footer ── SHOWN EVEN WHEN EMPTY ────────────────────── */}
+      <div style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 55,
+        background: D.bg,
+        borderTop: `1px solid ${D.border}`,
+        padding: '10px 16px',
+        paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px) + 70px)',
+      }}>
+        <div style={{ 
+          maxWidth: 900, 
+          margin: '0 auto', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          gap: 12, 
+          flexWrap: 'wrap' 
+        }}>
+          {lines.length > 0 && (
+            <span style={{ fontSize: 12, color: D.sub }}>
+              {lines.length} product{lines.length > 1 ? 's' : ''} · {totalItems} unit{totalItems > 1 ? 's' : ''}
+            </span>
+          )}
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 24px',
+              borderRadius: 10,
+              border: 'none',
+              background: saving
+                ? D.border
+                : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: saving ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+              boxShadow: saving
+                ? 'none'
+                : `0 4px 14px ${D.accentGlow}`,
+              transition: 'all 0.18s',
+              touchAction: 'manipulation',
+            }}
+          >
+            <Save size={16} />
+            {saving ? 'Saving...' : lines.length === 0 ? 'Clear & Save' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
 
       {/* ── Delete confirmation ── */}
       <ConfirmModal
@@ -903,6 +906,18 @@ Sugar - 50 kg`}
           }
         }}
         onCancel={() => setShowDeleteConfirm(null)}
+      />
+
+      {/* ── Cancel Order confirmation ── */}
+      <ConfirmModal
+        open={showCancelConfirm}
+        title="Cancel Order"
+        message="Are you sure you want to permanently cancel this order? This action cannot be undone."
+        confirmLabel="Cancel Order"
+        danger={true}
+        loading={cancelling}
+        onConfirm={handleCancelOrder}
+        onCancel={() => setShowCancelConfirm(false)}
       />
     </div>
   );
