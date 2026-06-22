@@ -15,6 +15,9 @@ import { PageLoader } from './components/ui';
 import { useIsMobile } from './hooks/useIsMobile';
 import { MobileLayout } from './components/layout/MobileLayout';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+// ── NEW: Session timeout hook and warning toast ────────────────────────────
+import { useSessionTimeout } from './hooks/useSessionTimeout';
+import { SessionWarningToast } from './components/SessionWarningToast';
 
 // ── Synchronous auth check ───────────────────────────────────────────────────
 // Reads localStorage directly — same data Zustand persist uses, but synchronously.
@@ -135,6 +138,9 @@ function RootRoute() {
 // ── Shell ───────────────────────────────────────────────────────────────────
 function AppShell() {
   const isMobile = useIsMobile();
+  
+  // ── NEW: Use session timeout hook ──
+  useSessionTimeout();
 
   if (isMobile) {
     return (
@@ -147,6 +153,7 @@ function AppShell() {
           </Suspense>
         </main>
         <PWAInstallPrompt variant="default" autoShowDelay={5000} />
+        <SessionWarningToast /> {/* ── NEW: Session warning toast ── */}
       </div>
     );
   }
@@ -160,6 +167,7 @@ function AppShell() {
         </Suspense>
       </main>
       <PWAInstallPrompt variant="default" autoShowDelay={5000} />
+      <SessionWarningToast /> {/* ── NEW: Session warning toast ── */}
     </div>
   );
 }

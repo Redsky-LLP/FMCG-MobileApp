@@ -1,8 +1,8 @@
 // PATH: src/pages/Auth/PinLoginPage.tsx
 // PIN-only login - Eastern-style dark theme
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';  // ← Removed Link
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';  // ← Added useLocation
 import { Package, Delete, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '../../api/services';
 import { useAuthStore, getRoleHome } from '../../store/authStore';
@@ -73,12 +73,23 @@ const PIN_LENGTH = 4;
 
 export default function PinLoginPage() {
   const navigate  = useNavigate();
+  const location  = useLocation();  // ← ADDED
   const { setUser } = useAuthStore();
 
   const [pin,     setPin]     = useState('');
   const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
+
+  // ── NEW: Check for session expired state ──
+  useEffect(() => {
+    const sessionExpired = location.state?.sessionExpired;
+    const sessionMessage = location.state?.message;
+    
+    if (sessionExpired && sessionMessage) {
+      setError(sessionMessage);
+    }
+  }, [location.state]);
 
   function backspace() { setPin(p => p.slice(0, -1)); }
 
