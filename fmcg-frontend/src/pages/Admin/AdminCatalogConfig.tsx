@@ -1,5 +1,5 @@
 // PATH: src/pages/Admin/AdminCatalogConfig.tsx
-// UPDATED: Added Size Groups tab with full CRUD, added UQC field to Units
+// UPDATED: Added isMobile for responsive grid
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -12,6 +12,7 @@ import { productGroupsApi, unitsApi, sizeGroupsApi } from '../../api/services';
 import type { ProductGroupDto, UnitDto, UnitPriorityDto, SizeGroupDto } from '../../types';
 import { Spinner, Alert, ConfirmModal } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -638,6 +639,7 @@ function UnitModal({
 export function AdminCatalogConfig() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const isMobile = useIsMobile(); // ── ADDED ──
 
   // State for Groups
   const [groups, setGroups] = useState<ProductGroupDto[]>([]);
@@ -993,8 +995,12 @@ export function AdminCatalogConfig() {
         {error && <Alert variant="error">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
 
-        {/* ── Four Column Layout ───────────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16 }}>
+        {/* ── Responsive Grid ── FIXED ── */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr 1fr', 
+          gap: 16 
+        }}>
 
           {/* ── Groups Card ── */}
           <div style={{

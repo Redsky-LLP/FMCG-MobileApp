@@ -1,11 +1,5 @@
 // PATH: src/pages/Salesman/RouteExecution.tsx
-// FIXES:
-// 1. "No Order" button - stays on page, moves to next customer
-// 2. "Skip" button - stays on page, moves to next customer
-// 3. Auto-advance to next pending customer after marking
-// 4. Better error handling - doesn't redirect on 400
-// 5. Shows visual feedback when moving to next customer
-// UPDATED: Dark theme with orange accent
+// UPDATED: Red borders for pending, orange Take Order button
 
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -25,20 +19,22 @@ const D = {
   surface:  '#1e293b',
   surface2: '#243447',
   border:   '#334155',
-  accent:   '#ea580c',
-  accentH:  '#c2410c',
+  accent:   '#ea580c',        // Orange for Take Order button
+  accentH:  '#c2410c',        // Darker orange on hover
   accentGlow: 'rgba(234,88,12,0.25)',
   text:     '#f1f5f9',
   muted:    '#94a3b8',
   sub:      '#64748b',
   green:    '#22c55e',
-  red:      '#ef4444',
+  red:      '#ef4444',        // Red for pending cards
+  redGlow:  'rgba(239,68,68,0.20)',
+  blue:     '#2563eb',
   amber:    '#f59e0b',
   card:     '#1e293b',
 };
 
 const STATUS_META: Record<VisitStatus, { label: string; bg: string; color: string; border: string; icon: React.ReactNode }> = {
-  Pending:     { label: 'Pending',    bg: 'rgba(234,88,12,0.12)', color: D.accent, border: 'rgba(234,88,12,0.25)', icon: <Clock size={14} /> },
+  Pending:     { label: 'Pending',    bg: 'rgba(239,68,68,0.10)', color: D.red, border: 'rgba(239,68,68,0.30)', icon: <Clock size={14} /> },
   OrderPlaced: { label: 'Order Done', bg: 'rgba(34,197,94,0.12)', color: D.green, border: 'rgba(34,197,94,0.25)', icon: <CheckCircle2 size={14} /> },
   Skipped:     { label: 'Skipped',    bg: 'rgba(239,68,68,0.12)', color: D.red, border: 'rgba(239,68,68,0.25)', icon: <XCircle size={14} /> },
   NoOrder:     { label: 'No Order',   bg: 'rgba(239,68,68,0.12)', color: D.red, border: 'rgba(239,68,68,0.25)', icon: <AlertCircle size={14} /> },
@@ -131,8 +127,8 @@ export default function RouteExecution() {
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         element.style.transition = 'border-color 0.3s, box-shadow 0.3s';
-        element.style.borderColor = '#22C55E';
-        element.style.boxShadow = '0 0 0 3px rgba(34,197,94,0.3)';
+        element.style.borderColor = '#ef4444';
+        element.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.25)';
         setTimeout(() => {
           element.style.borderColor = '';
           element.style.boxShadow = '';
@@ -525,7 +521,7 @@ export default function RouteExecution() {
             <div style={{ fontSize: 16, fontWeight: 800, color: D.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{execution.routeName}</div>
             <div style={{ fontSize: 13, color: D.muted, fontWeight: 500, marginTop: 1 }}>{doneCount} of {total} done · {pendingCount} pending</div>
             {nextCustomer && pendingCount > 0 && (
-              <div style={{ fontSize: 11, color: D.green, fontWeight: 600, marginTop: 2 }}>
+              <div style={{ fontSize: 11, color: D.red, fontWeight: 600, marginTop: 2 }}>
                 → Next: <span style={{ fontWeight: 700 }}>{nextCustomer}</span>
               </div>
             )}
@@ -635,14 +631,16 @@ export default function RouteExecution() {
               key={visit.customerId}
               id={`customer-${visit.customerId}`}
               style={{
-                background: D.surface, borderRadius: 16, overflow: 'hidden',
+                background: D.surface, 
+                borderRadius: 16, 
+                overflow: 'hidden',
                 border: isPending
-                  ? (isNext ? `3px solid ${D.green}` : `3px solid ${D.red}`)
+                  ? `2px solid ${D.red}`      // Red border for pending
                   : visit.visitStatus === 'OrderPlaced'
-                    ? `2px solid ${D.green}`
-                    : `2px solid ${D.red}`,
+                    ? `2px solid ${D.green}`   // Green border for done
+                    : `2px solid ${D.red}`,    // Red border for skipped/no order
                 boxShadow: isPending
-                  ? (isNext ? `0 4px 20px rgba(34,197,94,0.22)` : `0 4px 18px rgba(239,68,68,0.18)`)
+                  ? `0 2px 12px ${D.redGlow}`
                   : visit.visitStatus === 'OrderPlaced'
                     ? `0 2px 8px rgba(34,197,94,0.12)`
                     : `0 2px 8px rgba(239,68,68,0.10)`,
@@ -650,31 +648,13 @@ export default function RouteExecution() {
                 transition: 'all 0.3s ease',
               }}
             >
-              {/* "Next" badge for the next pending customer */}
-              {isPending && isNext && (
-                <div style={{
-                  background: D.green,
-                  color: '#fff',
-                  padding: '4px 12px',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}>
-                  <ChevronRight size={12} /> NEXT
-                </div>
-              )}
-
               <div style={{ padding: '16px 18px 14px', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                 <div style={{
                   width: 50, height: 50, borderRadius: 12, flexShrink: 0,
-                  background: isPending ? `linear-gradient(135deg, ${D.accent}, ${D.accentH})` : meta.bg,
+                  background: isPending ? D.red : meta.bg,
                   border: isPending ? 'none' : `1px solid ${meta.border}`,
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: isPending ? `0 3px 10px ${D.accentGlow}` : 'none',
+                  boxShadow: isPending ? `0 3px 10px ${D.redGlow}` : 'none',
                 }}>
                   <span style={{ fontSize: 11, fontWeight: 600, color: isPending ? 'rgba(255,255,255,0.7)' : D.muted }}>STOP</span>
                   <span style={{ fontSize: 22, fontWeight: 900, color: isPending ? '#fff' : meta.color, lineHeight: 1 }}>{visit.sequenceOrder}</span>
@@ -701,7 +681,7 @@ export default function RouteExecution() {
                   </div>
                   {isPending && nextStop && (
                     <div style={{ marginTop: 5, fontSize: 11, color: D.sub }}>
-                      → Next: <span style={{ fontWeight: 600, color: D.accent }}>{nextStop}</span>
+                      → Next: <span style={{ fontWeight: 600, color: D.red }}>{nextStop}</span>
                     </div>
                   )}
                 </div>
@@ -744,7 +724,7 @@ export default function RouteExecution() {
                       }, 80);
                     }}
                     disabled={isBusy}
-                    style={{ width: '100%', padding: '13px 18px', background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: isBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'inherit' }}
+                    style={{ width: '100%', padding: '13px 18px', background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: isBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'inherit', boxShadow: `0 4px 14px ${D.accentGlow}` }}
                   >
                     {isBusy ? <Spinner size={15} /> : <ShoppingCart size={17} />}
                     Take Order

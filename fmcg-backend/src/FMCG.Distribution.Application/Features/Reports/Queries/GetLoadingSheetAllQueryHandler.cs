@@ -1,4 +1,4 @@
-﻿// PATH: src/FMCG.Distribution.Application/Features/Reports/Queries/GetLoadingSheetQueryHandler.cs
+﻿// PATH: src/FMCG.Distribution.Application/Features/Reports/Queries/GetLoadingSheetAllQueryHandler.cs
 
 using System;
 using System.Collections.Generic;
@@ -18,17 +18,17 @@ using PdfUnit = QuestPDF.Infrastructure.Unit;
 
 namespace FMCG.Distribution.Application.Features.Reports.Queries;
 
-public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
-    : IRequestHandler<GetLoadingSheetQuery, Result<byte[]>>
+public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
+    : IRequestHandler<GetLoadingSheetAllQuery, Result<byte[]>>
 {
-    public async Task<Result<byte[]>> Handle(GetLoadingSheetQuery request, CancellationToken cancellationToken)
+    public async Task<Result<byte[]>> Handle(GetLoadingSheetAllQuery request, CancellationToken cancellationToken)
     {
         try
         {
             var targetDate = request.Date?.Date ?? DateTime.UtcNow.Date;
 
             // ── Get all orders with Closed status for the target date ──
-            var closedOrdersQuery = context.Orders
+            var closedOrders = await context.Orders
                 .Include(o => o.Customer)
                 .Include(o => o.Route)
                 .Include(o => o.Items!)
@@ -37,20 +37,14 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                     .ThenInclude(i => i.Unit)
                 .Where(o => !o.IsDeleted
                     && o.Status == OrderStatus.Closed
-                    && o.OrderDate.Date == targetDate.Date);
-
-            if (request.RouteId.HasValue)
-            {
-                closedOrdersQuery = closedOrdersQuery.Where(o => o.RouteId == request.RouteId.Value);
-            }
-
-            var closedOrders = await closedOrdersQuery.ToListAsync(cancellationToken);
+                    && o.OrderDate.Date == targetDate.Date)
+                .ToListAsync(cancellationToken);
 
             if (closedOrders.Count == 0)
             {
                 var emptyPdf = GenerateEmptyLoadingSheet(
                     targetDate,
-                    "No closed orders found for the selected route/date."
+                    "No closed orders found for any route."
                 );
                 return Result<byte[]>.Success(emptyPdf);
             }
@@ -208,16 +202,16 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 GrandTotalBags = routeSummaries.Sum(r => r.TotalBags),
                 GrandTotalBoxes = routeSummaries.Sum(r => r.TotalBoxes),
                 GrandTotalTins = routeSummaries.Sum(r => r.TotalTins),
-                LoadingNote = "🔴 IMPORTANT: Follow the order shown below. Items are grouped by unit type."
+                LoadingNote = "🔴 IMPORTANT: Each route has its own section."
             };
 
-            var pdfBytes = GenerateEnhancedLoadingSheetPdf(data, request.RouteId.HasValue);
+            var pdfBytes = GenerateConsolidatedLoadingSheetPdf(data);
             return Result<byte[]>.Success(pdfBytes);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[LoadingSheet] Error: {ex.Message}");
-            Console.WriteLine($"[LoadingSheet] StackTrace: {ex.StackTrace}");
+            Console.WriteLine($"[LoadingSheetAll] Error: {ex.Message}");
+            Console.WriteLine($"[LoadingSheetAll] StackTrace: {ex.StackTrace}");
 
             var errorPdf = GenerateEmptyLoadingSheet(
                 request.Date?.Date ?? DateTime.UtcNow.Date,
@@ -242,7 +236,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
         return "OTHER";
     }
 
-    private static byte[] GenerateEnhancedLoadingSheetPdf(LoadingSheetEnhancedDataDto data, bool isSingleRoute)
+    private static byte[] GenerateConsolidatedLoadingSheetPdf(LoadingSheetEnhancedDataDto data)
     {
         try
         {
@@ -262,24 +256,13 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                         {
                             row.RelativeItem().Column(col =>
                             {
-                                col.Item().Text("LOADING SHEET").FontSize(14).Bold();
+                                col.Item().Text("LOADING SHEET - ALL ROUTES").FontSize(14).Bold();
                                 col.Item().Text($"Date: {data.ReportDate:dd-MM-yyyy}");
-                                if (isSingleRoute && data.Routes.Count == 1)
-                                {
-                                    col.Item().Text($"Route: {data.Routes[0].RouteName}").FontSize(10);
-                                }
                             });
                             row.RelativeItem().AlignRight().Column(col =>
                             {
                                 col.Item().Text($"Generated: {data.GeneratedAt:dd-MM-yyyy HH:mm}");
-                                if (isSingleRoute && data.Routes.Count == 1)
-                                {
-                                    col.Item().Text($"Orders: {data.Routes[0].TotalOrders} | Customers: {data.Routes[0].TotalCustomers}");
-                                }
-                                else
-                                {
-                                    col.Item().Text($"Routes: {data.TotalRoutes} | Orders: {data.TotalOrders} | Stops: {data.TotalStops}");
-                                }
+                                col.Item().Text($"Routes: {data.TotalRoutes} | Orders: {data.TotalOrders} | Stops: {data.TotalStops}");
                             });
                         });
 
@@ -291,32 +274,64 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                         .Row(row =>
                         {
                             row.ConstantItem(24).Text("📦").FontSize(12);
-                            if (isSingleRoute && data.Routes.Count == 1)
-                            {
-                                row.RelativeItem().Text(
-                                    $"Total Qty: {data.GrandTotalQuantity:N0} | " +
-                                    $"BAGS: {data.Routes[0].TotalBags} | " +
-                                    $"BOXES: {data.Routes[0].TotalBoxes} | " +
-                                    $"TINS: {data.Routes[0].TotalTins}"
-                                ).FontSize(9).Bold();
-                            }
-                            else
-                            {
-                                row.RelativeItem().Text(
-                                    $"Total Qty: {data.GrandTotalQuantity:N0} | " +
-                                    $"BAGS: {data.GrandTotalBags} | " +
-                                    $"BOXES: {data.GrandTotalBoxes} | " +
-                                    $"TINS: {data.GrandTotalTins}"
-                                ).FontSize(9).Bold();
-                            }
+                            row.RelativeItem().Text(
+                                $"Total Qty: {data.GrandTotalQuantity:N0} | " +
+                                $"BAGS: {data.GrandTotalBags} | " +
+                                $"BOXES: {data.GrandTotalBoxes} | " +
+                                $"TINS: {data.GrandTotalTins}"
+                            ).FontSize(9).Bold();
                         });
 
-                    // ── Content ──
+                    // ── Table of Contents ──
                     page.Content().Column(col =>
                     {
+                        col.Item().PaddingTop(8).PaddingBottom(8).Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.RelativeColumn(2);
+                                columns.RelativeColumn(1);
+                                columns.RelativeColumn(1);
+                                columns.RelativeColumn(1);
+                                columns.RelativeColumn(1);
+                                columns.RelativeColumn(1);
+                            });
+
+                            table.Header(header =>
+                            {
+                                header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(4).Text("ROUTE").Bold();
+                                header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(4).AlignRight().Text("ORDERS").Bold();
+                                header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(4).AlignRight().Text("STOPS").Bold();
+                                header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(4).AlignRight().Text("BAGS").Bold();
+                                header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(4).AlignRight().Text("BOXES").Bold();
+                                header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(4).AlignRight().Text("TINS").Bold();
+                            });
+
+                            foreach (var route in data.Routes)
+                            {
+                                table.Cell().BorderBottom(0.5f).Padding(4).Text(route.RouteName);
+                                table.Cell().BorderBottom(0.5f).Padding(4).AlignRight().Text($"{route.TotalOrders}");
+                                table.Cell().BorderBottom(0.5f).Padding(4).AlignRight().Text($"{route.TotalCustomers}");
+                                table.Cell().BorderBottom(0.5f).Padding(4).AlignRight().Text($"{route.TotalBags}");
+                                table.Cell().BorderBottom(0.5f).Padding(4).AlignRight().Text($"{route.TotalBoxes}");
+                                table.Cell().BorderBottom(0.5f).Padding(4).AlignRight().Text($"{route.TotalTins}");
+                            }
+
+                            table.Cell().BorderTop(0.5f).Padding(4).Text("GRAND TOTAL").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(4).AlignRight().Text($"{data.TotalOrders}").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(4).AlignRight().Text($"{data.TotalStops}").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(4).AlignRight().Text($"{data.GrandTotalBags}").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(4).AlignRight().Text($"{data.GrandTotalBoxes}").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(4).AlignRight().Text($"{data.GrandTotalTins}").Bold();
+                        });
+
+                        // ── Each route ──
                         foreach (var route in data.Routes)
                         {
-                            col.Item().PaddingTop(8).Column(routeCol =>
+                            // FIX: PageBreak() returns void, so we call it separately
+                            col.Item().PageBreak();
+
+                            col.Item().Column(routeCol =>
                             {
                                 // Route Header
                                 routeCol.Item().Background(Colors.Grey.Lighten2)
@@ -428,11 +443,6 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                             }
                                         });
                                     });
-
-                                if (route != data.Routes.Last())
-                                {
-                                    routeCol.Item().PageBreak();
-                                }
                             });
                         }
                     });
@@ -455,8 +465,8 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[LoadingSheet-PDF] Error: {ex.Message}");
-            return GenerateEmptyLoadingSheet(data.ReportDate, $"PDF generation error: {ex.Message}");
+            Console.WriteLine($"[LoadingSheetAll-PDF] Error: {ex.Message}");
+            return GenerateEmptyLoadingSheet(data.ReportDate, $"PDF error: {ex.Message}");
         }
     }
 
@@ -479,7 +489,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                         {
                             row.RelativeItem().Column(col =>
                             {
-                                col.Item().Text("LOADING SHEET").FontSize(14).Bold();
+                                col.Item().Text("LOADING SHEET - ALL ROUTES").FontSize(14).Bold();
                                 col.Item().Text($"Date: {targetDate:dd-MM-yyyy}");
                             });
                             row.RelativeItem().AlignRight().Column(col =>
@@ -496,7 +506,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                             col.Item().Text("⚠️ No Data Available").FontSize(14).Bold().FontColor(Colors.Orange.Medium);
                             col.Item().Text(message).FontSize(10).FontColor(Colors.Grey.Medium);
                             col.Item().PaddingTop(20).Text("Possible reasons:").FontSize(9).FontColor(Colors.Grey.Medium);
-                            col.Item().Text("• No closed orders found for this route/date").FontSize(9).FontColor(Colors.Grey.Medium);
+                            col.Item().Text("• No closed orders found for any route").FontSize(9).FontColor(Colors.Grey.Medium);
                             col.Item().Text("• Orders are still in Draft or Approved status").FontSize(9).FontColor(Colors.Grey.Medium);
                             col.Item().Text("• Admin must close orders before loading sheet generation").FontSize(9).FontColor(Colors.Grey.Medium);
                         });

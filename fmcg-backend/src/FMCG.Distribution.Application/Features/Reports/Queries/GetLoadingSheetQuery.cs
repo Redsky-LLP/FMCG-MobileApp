@@ -1,4 +1,6 @@
-﻿using MediatR;
+﻿// PATH: src/FMCG.Distribution.Application/Features/Reports/Queries/GetLoadingSheetQuery.cs
+
+using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Features.Reports.DTOs;
 

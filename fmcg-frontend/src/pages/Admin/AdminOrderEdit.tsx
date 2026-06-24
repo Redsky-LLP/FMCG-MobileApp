@@ -1,6 +1,5 @@
 // PATH: src/pages/Admin/AdminOrderEdit.tsx
-// FIXED: Show Save button even when order has no items
-// Added Cancel Order option for admin when order is empty
+// UPDATED: Mobile-responsive item fields
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -16,6 +15,7 @@ import {
 } from '../../types';
 import { Spinner, ConfirmModal, Alert } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -80,6 +80,7 @@ function ItemCard({
   onPriceChange,
   onRemove,
   canEdit,
+  isMobile,
 }: {
   line: LineItem;
   isExpanded: boolean;
@@ -88,6 +89,7 @@ function ItemCard({
   onPriceChange: (value: string) => void;
   onRemove: () => void;
   canEdit: boolean;
+  isMobile: boolean;
 }) {
   const variance = line.product.basePrice
     ? ((line.sellingPrice - line.product.basePrice) / line.product.basePrice) * 100
@@ -151,19 +153,34 @@ function ItemCard({
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-        <div style={{ width: 110, flexShrink: 0, minWidth: 0 }}>
+      {/* ── FIX: Responsive fields ── */}
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? 8 : 10, 
+        alignItems: isMobile ? 'stretch' : 'flex-end'
+      }}>
+        {/* Item Code - full width on mobile */}
+        <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Item Code</p>
           <div style={{
-            padding: '8px 8px', borderRadius: 8, border: `1px solid ${D.border}`,
-            background: D.bg, fontSize: 13, fontWeight: 800, color: D.text,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            padding: '8px 8px',
+            borderRadius: 8,
+            border: `1px solid ${D.border}`,
+            background: D.bg,
+            fontSize: 13,
+            fontWeight: 800,
+            color: D.text,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}>
             {line.product.itemCode || '—'}
           </div>
         </div>
 
-        <div style={{ width: 64, flexShrink: 0 }}>
+        {/* Qty - responsive width */}
+        <div style={{ width: isMobile ? '100%' : 64, flexShrink: 0 }}>
           <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Qty</p>
           <input
             type="text"
@@ -188,7 +205,8 @@ function ItemCard({
           />
         </div>
 
-        <div style={{ width: 84, flexShrink: 0 }}>
+        {/* Price - responsive width */}
+        <div style={{ width: isMobile ? '100%' : 84, flexShrink: 0 }}>
           <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Price ₹</p>
           <input
             type="text"
@@ -213,6 +231,32 @@ function ItemCard({
             }}
           />
         </div>
+
+        {/* Delete button - full width on mobile, inline on desktop */}
+        {canEdit && (
+          <button
+            onClick={onRemove}
+            style={{
+              width: isMobile ? '100%' : 'auto',
+              padding: isMobile ? '10px' : '8px 9px',
+              borderRadius: 8,
+              border: '1px solid rgba(239,68,68,0.22)',
+              background: 'rgba(239,68,68,0.10)',
+              color: '#f87171',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              fontFamily: 'inherit',
+              flexShrink: 0,
+              marginTop: isMobile ? 0 : 'auto',
+            }}
+          >
+            <Trash2 size={15} />
+            {isMobile && <span style={{ fontSize: 12, fontWeight: 600 }}>Remove</span>}
+          </button>
+        )}
       </div>
 
       {isExpanded && (
@@ -221,7 +265,7 @@ function ItemCard({
           paddingTop: 12,
           borderTop: `1px solid ${D.border}`,
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fill, minmax(120px, 1fr))',
           gap: 8,
         }}>
           <div style={{ background: D.bg, borderRadius: 8, padding: '8px 12px' }}>
@@ -252,6 +296,7 @@ export function AdminOrderEdit() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const isMobile = useIsMobile(); // ── ADDED ──
 
   const [order, setOrder] = useState<OrderDetailDto | null>(null);
   const [customer, setCustomer] = useState<CustomerDto | null>(null);
@@ -402,7 +447,6 @@ export function AdminOrderEdit() {
   };
 
   const handleSave = async () => {
-    // ── FIX: Allow saving even with no items (clears the order) ──
     setSaving(true);
     setError('');
     setSuccessMsg('');
@@ -410,7 +454,6 @@ export function AdminOrderEdit() {
     try {
       await ordersApi.update(orderId!, buildPayload());
       setSuccessMsg(lines.length === 0 ? 'Order cleared successfully!' : 'Order updated successfully!');
-      // Reload to reflect changes
       const updated = await ordersApi.getById(orderId!);
       setOrder(updated);
       setTimeout(() => {
@@ -423,7 +466,6 @@ export function AdminOrderEdit() {
     }
   };
 
-  // ── Cancel Order (Admin) ──
   const handleCancelOrder = async () => {
     if (!orderId) return;
     setCancelling(true);
@@ -706,7 +748,6 @@ export function AdminOrderEdit() {
             <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>No items in this order</p>
             <p style={{ fontSize: 12, color: D.sub, marginTop: 4 }}>Click the search bar above to add products</p>
             
-            {/* ── Cancel Order button when empty ── */}
             {isDraft && (
               <button
                 onClick={() => setShowCancelConfirm(true)}
@@ -749,6 +790,7 @@ export function AdminOrderEdit() {
                 onPriceChange={(value) => handlePriceInput(line.product.id, value)}
                 onRemove={() => setShowDeleteConfirm(line.product.id)}
                 canEdit={canEdit}
+                isMobile={isMobile}
               />
             );
           })}

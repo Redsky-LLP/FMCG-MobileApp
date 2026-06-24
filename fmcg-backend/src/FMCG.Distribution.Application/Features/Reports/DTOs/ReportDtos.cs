@@ -55,6 +55,57 @@ public class LoadingSheetDataDto
     public string LoadingNote { get; set; } = string.Empty;  // Instructions for loader
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// NEW: Enhanced Loading Sheet DTOs with Route Summary
+// ─────────────────────────────────────────────────────────────────────────────
+
+public class LoadingSheetItemSummaryDto
+{
+    public string ProductName { get; set; } = string.Empty;
+    public string? ProductNameMalayalam { get; set; }
+    public string UnitSymbol { get; set; } = string.Empty;
+    public string UnitTypeLabel { get; set; } = string.Empty;  // "BAGS", "BOXES", "TINS", "OTHER"
+    public decimal TotalQuantity { get; set; }
+    public int TotalBags { get; set; }
+    public int TotalBoxes { get; set; }
+    public int TotalTins { get; set; }
+    public int LoadingPriority { get; set; } = 99;
+}
+
+public class LoadingSheetRouteSummaryDto
+{
+    public Guid RouteId { get; set; }
+    public string RouteName { get; set; } = string.Empty;
+    public int TotalOrders { get; set; }
+    public int TotalCustomers { get; set; }
+    public decimal GrandTotalQuantity { get; set; }
+
+    // ── Summary by Unit Type (BAGS, BOXES, TINS) ──
+    public int TotalBags { get; set; }
+    public int TotalBoxes { get; set; }
+    public int TotalTins { get; set; }
+
+    // ── Item-wise summary for this route ──
+    public List<LoadingSheetItemSummaryDto> ItemSummary { get; set; } = new();
+
+    // ── Customer-wise detailed breakdown ──
+    public List<LoadingSheetStopDto> Stops { get; set; } = new();
+}
+
+public class LoadingSheetEnhancedDataDto
+{
+    public DateTime ReportDate { get; set; }
+    public DateTime GeneratedAt { get; set; }
+    public List<LoadingSheetRouteSummaryDto> Routes { get; set; } = new();
+    public decimal GrandTotalQuantity { get; set; }
+    public int TotalRoutes { get; set; }
+    public int TotalOrders { get; set; }
+    public int TotalStops { get; set; }
+    public int GrandTotalBags { get; set; }
+    public int GrandTotalBoxes { get; set; }
+    public int GrandTotalTins { get; set; }
+    public string LoadingNote { get; set; } = string.Empty;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Billing Sheet DTOs

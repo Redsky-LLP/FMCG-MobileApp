@@ -1,5 +1,5 @@
 // PATH: src/pages/Dashboard/HomeHub.tsx
-// UPDATED: Added Catalog Config card
+// UPDATED: Added isMobile for responsive grid
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -14,22 +14,34 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { routesApi, customersApi, ordersApi, settlementApi } from '../../api/services';
 import { fmt } from '../../types';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
-// ── Dark theme tokens ─────────────────────────────────────────────────────────
+// ── Premium Dark Theme tokens ─────────────────────────────────────────────────
 const D = {
-  bg:       '#0f172a',
-  surface:  '#1e293b',
-  border:   '#334155',
-  accent:   '#ea580c',
-  accentH:  '#c2410c',
+  bg:       '#0a0e1a',      // Deeper navy-black
+  bgGrad:   'linear-gradient(180deg, #0a0e1a 0%, #0f172a 40%, #1a1a2e 100%)',
+  surface:  '#141b2d',      // Darker card background
+  surface2: '#1a2236',      // Slightly lighter for hover
+  border:   '#2a3450',      // Softer border with blue tint
+  borderGlow: 'rgba(234,88,12,0.15)',
+  accent:   '#ea580c',      // Orange accent
+  accentH:  '#f97316',
   accentGlow: 'rgba(234,88,12,0.25)',
-  text:     '#f1f5f9',
-  muted:    '#94a3b8',
-  sub:      '#64748b',
-  green:    '#22c55e',
-  red:      '#ef4444',
-  amber:    '#f59e0b',
-  card:     '#1e293b',
+  accentGrad: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
+  text:     '#f0f4ff',      // Slightly blue-tinted white
+  muted:    '#8892b0',      // Muted blue-grey
+  sub:      '#5a6a8a',      // Darker muted
+  green:    '#34d399',      // Softer green
+  greenBg:  'rgba(52,211,153,0.12)',
+  red:      '#f87171',
+  redBg:    'rgba(248,113,113,0.12)',
+  amber:    '#fbbf24',
+  amberBg:  'rgba(251,191,36,0.12)',
+  blue:     '#60a5fa',
+  blueBg:   'rgba(96,165,250,0.12)',
+  purple:   '#a78bfa',
+  purpleBg: 'rgba(167,139,250,0.12)',
+  card:     '#141b2d',
 };
 
 interface NavBlock {
@@ -75,14 +87,14 @@ const NAV_BLOCKS: NavBlock[] = [
     description: 'View and manage today\'s delivery routes',
     icon: Route, to: '/salesman/routes',
     badge: '3 Active', badgeColor: 'blue',
-    accent: '#EFF6FF', accentText: '#2563EB', roles: ['Salesman'],
+    accent: D.blueBg, accentText: D.blue, roles: ['Salesman'],
   },
   {
     id: 'salesman-orders', label: 'My Orders',
     description: 'View and submit field orders',
     icon: ShoppingCart, to: '/salesman/routes',
     badge: '5 Open', badgeColor: 'blue',
-    accent: '#EFF6FF', accentText: '#2563EB', roles: ['Salesman'],
+    accent: D.blueBg, accentText: D.blue, roles: ['Salesman'],
   },
   // ── Admin priority order ──
   {
@@ -97,28 +109,28 @@ const NAV_BLOCKS: NavBlock[] = [
     description: 'Create, track, and manage customer orders',
     icon: ShoppingCart, to: '/admin/orders',
     badge: '12 Pending', badgeColor: 'blue',
-    accent: '#3B82F6', accentText: '#3B82F6', roles: ['Admin', 'SuperAdmin'],
+    accent: D.blueBg, accentText: D.blue, roles: ['Admin', 'SuperAdmin'],
   },
   {
     id: 'customers', label: 'Customers Masters',
     description: 'Browse and manage customer catalog',
     icon: Users, to: '/admin/customers',
     badge: '248 Active', badgeColor: 'blue',
-    accent: '#8B5CF6', accentText: '#8B5CF6', roles: ['Admin', 'SuperAdmin'],
+    accent: D.purpleBg, accentText: D.purple, roles: ['Admin', 'SuperAdmin'],
   },
   // Products card
   {
     id: 'products', label: 'Products Masters',
     description: 'Manage product catalog and pricing',
     icon: Package, to: '/admin/products',
-    accent: '#22C55E', accentText: '#22C55E', roles: ['Admin', 'SuperAdmin'],
+    accent: D.greenBg, accentText: D.green, roles: ['Admin', 'SuperAdmin'],
   },
   // ── NEW: Catalog Config Card ──
   {
     id: 'catalog', label: 'Catalog Config',
     description: 'Manage product groups and measurement units',
     icon: Settings, to: '/admin/catalog',
-    accent: '#A78BFA', accentText: '#A78BFA', roles: ['Admin', 'SuperAdmin'],
+    accent: D.purpleBg, accentText: D.purple, roles: ['Admin', 'SuperAdmin'],
     size: 'small',
   },
   // Users card - ENLARGED
@@ -126,7 +138,7 @@ const NAV_BLOCKS: NavBlock[] = [
     id: 'users', label: 'User Management',
     description: 'Manage users, roles, and permissions across the platform',
     icon: UserCog, to: '/admin/users',
-    accent: '#60A5FA', accentText: '#60A5FA', roles: ['Admin', 'SuperAdmin'],
+    accent: D.blueBg, accentText: D.blue, roles: ['Admin', 'SuperAdmin'],
     size: 'large',
   },
   // Reports card - ENLARGED
@@ -134,7 +146,7 @@ const NAV_BLOCKS: NavBlock[] = [
     id: 'reports', label: 'Report Masters',
     description: 'Generate and view detailed business reports and analytics',
     icon: FileText, to: '/admin/reports',
-    accent: '#14B8A6', accentText: '#14B8A6', roles: ['Admin', 'SuperAdmin'],
+    accent: D.greenBg, accentText: D.green, roles: ['Admin', 'SuperAdmin'],
     size: 'large',
   },
   // ── Accounts ──
@@ -143,13 +155,13 @@ const NAV_BLOCKS: NavBlock[] = [
     description: 'Process daily collections and closures',
     icon: IndianRupee, to: '/accounts/settlement',
     badge: 'Today', badgeColor: 'blue',
-    accent: '#F59E0B', accentText: '#F59E0B', roles: ['Accounts'],
+    accent: D.amberBg, accentText: D.amber, roles: ['Accounts'],
   },
   {
     id: 'accounts-reports', label: 'Reports',
     description: 'Daily and monthly financial reports',
     icon: FileText, to: '/accounts/reports',
-    accent: '#14B8A6', accentText: '#14B8A6', roles: ['Accounts'],
+    accent: D.greenBg, accentText: D.green, roles: ['Accounts'],
   },
   // ── Warehouse ──
   {
@@ -173,29 +185,29 @@ const STAT_CARDS: StatCard[] = [
     id: 'analytics', label: 'Analytics',
     value: 'View Insights', icon: BarChart3,
     to: '/admin/analytics',
-    color: D.accent, bg: `${D.accent}22`, roles: ['Admin', 'SuperAdmin'],
+    color: D.accent, bg: D.accentGlow, roles: ['Admin', 'SuperAdmin'],
   },
 ];
 
 // ── Quick Actions ──────────────────────────────────────────────
 const QUICK_ACTIONS: QuickAction[] = [
   { id: 'new-order', label: 'New Order', description: 'Create a fresh customer order', icon: ClipboardList, to: '/admin/orders', color: D.accent, roles: ['Admin', 'SuperAdmin', 'Salesman'] },
-  { id: 'record-payment', label: 'Record Payment', description: 'Log a collection or payment', icon: Banknote, to: '/admin/settlement', color: '#22C55E', roles: ['Admin', 'SuperAdmin', 'Accounts'] },
-  { id: 'scan-sku', label: 'Scan Product', description: 'Scan barcode or search SKU', icon: ScanBarcode, to: '/admin/products', color: '#8B5CF6', roles: ['Admin', 'SuperAdmin', 'Warehouse'] },
-  { id: 'add-customer', label: 'Add Customer', description: 'Register a new customer', icon: Users, to: '/admin/customers', color: '#F59E0B', roles: ['Admin', 'SuperAdmin', 'Salesman'] },
+  { id: 'record-payment', label: 'Record Payment', description: 'Log a collection or payment', icon: Banknote, to: '/admin/settlement', color: D.green, roles: ['Admin', 'SuperAdmin', 'Accounts'] },
+  { id: 'scan-sku', label: 'Scan Product', description: 'Scan barcode or search SKU', icon: ScanBarcode, to: '/admin/products', color: D.purple, roles: ['Admin', 'SuperAdmin', 'Warehouse'] },
+  { id: 'add-customer', label: 'Add Customer', description: 'Register a new customer', icon: Users, to: '/admin/customers', color: D.amber, roles: ['Admin', 'SuperAdmin', 'Salesman'] },
   { id: 'view-routes', label: 'View Routes', description: 'Check today\'s route map', icon: Route, to: '/salesman/routes', color: D.accent, roles: ['Salesman'] },
   { id: 'start-route', label: 'Start Route', description: 'Begin executing a delivery route', icon: Zap, to: '/salesman/routes', color: '#06B6D4', roles: ['Salesman'] },
-  { id: 'reports', label: 'View Reports', description: 'Open financial and sales reports', icon: FileText, to: '/admin/reports', color: '#14B8A6', roles: ['Admin', 'SuperAdmin', 'Accounts'] },
-  { id: 'settlement', label: 'Daily Settlement', description: 'Close and settle today\'s accounts', icon: Calculator, to: '/accounts/settlement', color: '#22C55E', roles: ['Admin', 'SuperAdmin', 'Accounts'] },
-  { id: 'users', label: 'Manage Users', description: 'Add or edit system users', icon: UserCog, to: '/admin/users', color: '#60A5FA', roles: ['Admin', 'SuperAdmin'] },
+  { id: 'reports', label: 'View Reports', description: 'Open financial and sales reports', icon: FileText, to: '/admin/reports', color: D.green, roles: ['Admin', 'SuperAdmin', 'Accounts'] },
+  { id: 'settlement', label: 'Daily Settlement', description: 'Close and settle today\'s accounts', icon: Calculator, to: '/accounts/settlement', color: D.green, roles: ['Admin', 'SuperAdmin', 'Accounts'] },
+  { id: 'users', label: 'Manage Users', description: 'Add or edit system users', icon: UserCog, to: '/admin/users', color: D.blue, roles: ['Admin', 'SuperAdmin'] },
 ];
 
 const BADGE_STYLES: Record<string, { bg: string; color: string }> = {
-  blue:   { bg: 'rgba(59,130,246,0.15)',  color: '#3B82F6' },
-  green:  { bg: 'rgba(34,197,94,0.15)',  color: '#22C55E' },
-  amber:  { bg: 'rgba(245,158,11,0.15)',  color: '#F59E0B' },
-  red:    { bg: 'rgba(239,68,68,0.15)',  color: '#EF4444' },
-  violet: { bg: 'rgba(139,92,246,0.15)', color: '#8B5CF6' },
+  blue:   { bg: 'rgba(96,165,250,0.15)',  color: '#60a5fa' },
+  green:  { bg: 'rgba(52,211,153,0.15)',  color: '#34d399' },
+  amber:  { bg: 'rgba(251,191,36,0.15)',  color: '#fbbf24' },
+  red:    { bg: 'rgba(248,113,113,0.15)', color: '#f87171' },
+  violet: { bg: 'rgba(167,139,250,0.15)', color: '#a78bfa' },
 };
 
 function getGreeting(): string {
@@ -215,6 +227,7 @@ function getDateString(): string {
 export function HomeHub() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const isMobile = useIsMobile(); // ── ADDED ──
   const [fabOpen, setFabOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [liveStats, setLiveStats] = useState<{
@@ -251,28 +264,13 @@ export function HomeHub() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // ── Inject dark theme styles ──────────────────────────────────────────────
+  // ── Force dark theme on body ──────────────────────────────────────────────
   useEffect(() => {
-    const style = document.createElement('style');
-    style.id = 'homehub-dark-theme';
-    style.innerHTML = `
-      .homehub-dark {
-        background: #0f172a !important;
-        color: #f1f5f9 !important;
-        min-height: 100vh !important;
-      }
-      .homehub-dark .page-wrapper {
-        background: #0f172a !important;
-        padding-top: 0 !important;
-      }
-      .homehub-dark .mobile-content {
-        background: #0f172a !important;
-      }
-    `;
-    document.head.appendChild(style);
+    document.body.style.background = D.bg;
+    document.body.style.color = D.text;
     return () => {
-      const el = document.getElementById('homehub-dark-theme');
-      if (el) el.remove();
+      document.body.style.background = '';
+      document.body.style.color = '';
     };
   }, []);
 
@@ -301,42 +299,51 @@ export function HomeHub() {
   }
 
   return (
-    <div className="homehub-dark" style={{
+    <div style={{
       background: D.bg,
+      backgroundImage: D.bgGrad,
       color: D.text,
       minHeight: '100vh',
-      padding: '20px 16px 120px',
+      padding: '20px 20px 120px',
       fontFamily: "'Plus Jakarta Sans', sans-serif",
     }}>
-      <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
         {/* ── Welcome Header ──────────────────────────────────── */}
         <div style={{
           opacity: mounted ? 1 : 0,
           transform: mounted ? 'translateY(0)' : 'translateY(12px)',
           transition: 'all 0.4s cubic-bezier(0.34,1.2,0.64,1)',
-          marginBottom: 32,
+          marginBottom: 28,
         }}>
+          {/* Date chip */}
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '5px 12px', borderRadius: 20,
-            background: D.surface,
-            border: `1px solid ${D.border}`,
-            marginBottom: 14,
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '6px 14px',
+            borderRadius: 20,
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            marginBottom: 16,
           }}>
-            <Clock size={12} style={{ color: D.accent }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: D.muted, letterSpacing: '0.01em' }}>
+            <Clock size={13} style={{ color: D.accent }} />
+            <span style={{ fontSize: 12, fontWeight: 500, color: D.muted, letterSpacing: '0.02em' }}>
               {getDateString()}
             </span>
+            <span style={{
+              width: 4, height: 4, borderRadius: '50%',
+              background: D.green, margin: '0 4px',
+              boxShadow: `0 0 8px ${D.green}44`,
+            }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: D.green }}>Live</span>
           </div>
 
           <h1 style={{
-            fontSize: 28, fontWeight: 900, color: D.text,
+            fontSize: 30, fontWeight: 900, color: D.text,
             letterSpacing: '-0.04em', margin: 0, lineHeight: 1.1,
           }}>
-            {getGreeting()}, {firstName} 🎉
+            {getGreeting()}, {firstName} <span style={{ color: D.accent }}>✦</span>
           </h1>
-          <p style={{ color: D.muted, fontSize: 14, marginTop: 8, marginBottom: 0, fontWeight: 500 }}>
+          <p style={{ color: D.muted, fontSize: 14, marginTop: 6, marginBottom: 0, fontWeight: 400 }}>
             Here's your operations overview for today.
           </p>
         </div>
@@ -349,46 +356,53 @@ export function HomeHub() {
         }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            padding: '8px 14px', borderRadius: 10,
-            background: D.surface, border: `1px solid ${D.border}`,
+            padding: '8px 14px',
+            borderRadius: 10,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
           }}>
             <div style={{
               width: 7, height: 7, borderRadius: '50%',
               background: D.green,
-              boxShadow: `0 0 0 3px rgba(34,197,94,0.25)`,
+              boxShadow: `0 0 0 3px rgba(52,211,153,0.25)`,
               animation: 'pulse-ring 2s ease infinite',
             }} />
-            <span style={{ fontSize: 12, color: D.muted, fontWeight: 700 }}>System Status:</span>
+            <span style={{ fontSize: 12, color: D.muted, fontWeight: 600 }}>System:</span>
             <span style={{ fontSize: 12, fontWeight: 600, color: D.green }}>Operational</span>
           </div>
 
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            padding: '8px 14px', borderRadius: 10,
-            background: D.surface, border: `1px solid ${D.border}`,
+            padding: '8px 14px',
+            borderRadius: 10,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
           }}>
             <ArrowUpRight size={13} style={{ color: D.accent }} />
-            <span style={{ fontSize: 12, color: D.muted, fontWeight: 700 }}>Active Role:</span>
+            <span style={{ fontSize: 12, color: D.muted, fontWeight: 600 }}>Role:</span>
             <span style={{ fontSize: 12, fontWeight: 600, color: D.accent }}>{role}</span>
           </div>
 
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            padding: '8px 14px', borderRadius: 10,
-            background: D.surface, border: `1px solid ${D.border}`,
+            padding: '8px 14px',
+            borderRadius: 10,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
           }}>
             <Sparkles size={13} style={{ color: D.amber }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: D.muted }}>
+            <span style={{ fontSize: 12, fontWeight: 500, color: D.muted }}>
               {new Date().toLocaleDateString('en-IN', { weekday: 'short' })} — Let's get it done!
             </span>
           </div>
         </div>
 
-        {/* ── Main Nav Grid (Route Hub, Orders, Customers) ── */}
+        {/* ── Main Nav Grid (Route Hub, Orders, Customers) ── FIXED ── */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: mainBlocks.length >= 3 ? 'repeat(3,1fr)' : mainBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
-          gap: 16, marginBottom: 16,
+          gridTemplateColumns: isMobile ? '1fr' : mainBlocks.length >= 3 ? 'repeat(3,1fr)' : mainBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
+          gap: 14,
+          marginBottom: 14,
           opacity: mounted ? 1 : 0,
           transition: 'all 0.42s 0.12s cubic-bezier(0.34,1.2,0.64,1)',
         }}>
@@ -397,12 +411,13 @@ export function HomeHub() {
           ))}
         </div>
 
-        {/* ── Admin Large Cards: Products, Users, Reports, Catalog ── */}
+        {/* ── Admin Large Cards: Products, Users, Reports, Catalog ── FIXED ── */}
         {isAdmin && largeBlocks.length > 0 && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: largeBlocks.length === 4 ? 'repeat(4,1fr)' : largeBlocks.length === 3 ? 'repeat(3,1fr)' : largeBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
-            gap: 16, marginBottom: 16,
+            gridTemplateColumns: isMobile ? '1fr' : largeBlocks.length === 4 ? 'repeat(4,1fr)' : largeBlocks.length === 3 ? 'repeat(3,1fr)' : largeBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
+            gap: 14,
+            marginBottom: 14,
             opacity: mounted ? 1 : 0,
             transition: 'all 0.42s 0.18s cubic-bezier(0.34,1.2,0.64,1)',
           }}>
@@ -416,8 +431,9 @@ export function HomeHub() {
         {isAdmin && statCards.length > 0 && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${statCards.length}, 1fr)`,
-            gap: 16, marginBottom: 16,
+            gridTemplateColumns: isMobile ? '1fr' : `repeat(${statCards.length}, 1fr)`,
+            gap: 14,
+            marginBottom: 14,
             opacity: mounted ? 1 : 0,
             transition: 'all 0.42s 0.22s cubic-bezier(0.34,1.2,0.64,1)',
           }}>
@@ -429,36 +445,40 @@ export function HomeHub() {
               <Link key={card.id} to={card.to} style={{ textDecoration: 'none' }}>
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '18px 20px', borderRadius: 16,
+                  padding: '16px 20px',
+                  borderRadius: 14,
                   background: D.surface,
-                  border: `1px solid ${D.border}`,
-                  cursor: 'pointer', transition: 'all 0.18s',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
                 }}
                   onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = `${card.color}44`;
                     (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-                    (e.currentTarget as HTMLElement).style.borderColor = `${D.accent}55`;
+                    (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 24px rgba(0,0,0,0.3)`;
                   }}
                   onMouseLeave={e => {
                     (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                    (e.currentTarget as HTMLElement).style.borderColor = D.border;
+                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = 'none';
                   }}
                 >
                   <div style={{
-                    width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                    background: `${card.color}22`,
+                    width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                    background: `${card.color}18`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <card.icon size={20} style={{ color: card.color }} strokeWidth={1.8} />
+                    <card.icon size={18} style={{ color: card.color }} strokeWidth={1.8} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: `${card.color}99`, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                       {card.label}
                     </div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: card.color, marginTop: 2 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: card.color, marginTop: 2 }}>
                       {displayValue}
                     </div>
                   </div>
-                  <ChevronRight size={16} style={{ color: `${card.color}60`, flexShrink: 0 }} />
+                  <ChevronRight size={15} style={{ color: `${card.color}50`, flexShrink: 0 }} />
                 </div>
               </Link>
               );
@@ -469,55 +489,60 @@ export function HomeHub() {
         {/* ── More Tools (everything else) ────── */}
         {isAdmin && moreTools.length > 0 && (
           <div style={{
-            marginTop: 8, padding: '18px 22px',
-            background: D.surface, border: `1px solid ${D.border}`,
-            borderRadius: 16,
+            marginTop: 6,
+            padding: '16px 20px',
+            background: D.surface,
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 14,
             opacity: mounted ? 1 : 0,
             transition: 'opacity 0.4s 0.3s ease',
           }}>
             <h3 style={{
               fontSize: 11, fontWeight: 700, color: D.muted,
-              margin: '0 0 14px', letterSpacing: '0.06em', textTransform: 'uppercase',
+              margin: '0 0 12px', letterSpacing: '0.06em', textTransform: 'uppercase',
             }}>
               More Tools
             </h3>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+              gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fill, minmax(140px, 1fr))',
               gap: 8,
             }}>
               {moreTools.map(tool => {
-                // Define color mapping for remaining tools
                 const colorMap: Record<string, string> = {
-                  'incentives': '#F472B6',
-                  'assignments': '#34D399',
-                  'session-log': '#A78BFA',
-                  'settlement': '#F59E0B',
-                  'accounts-settlement': '#F59E0B',
-                  'accounts-reports': '#14B8A6',
+                  'incentives': D.purple,
+                  'assignments': D.green,
+                  'session-log': D.purple,
+                  'settlement': D.amber,
+                  'accounts-settlement': D.amber,
+                  'accounts-reports': D.green,
                   'loading': D.accent,
                   'pack-orders': D.accent,
                 };
-                const color = colorMap[tool.id] || '#94A3B8';
+                const color = colorMap[tool.id] || D.muted;
                 return (
                   <Link key={tool.to} to={tool.to} style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '9px 12px', borderRadius: 10, textDecoration: 'none',
-                    fontSize: 13, fontWeight: 600, color: D.muted,
-                    background: D.bg, border: `1px solid ${D.border}`,
-                    transition: 'all 0.14s',
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 14px',
+                    borderRadius: 10,
+                    textDecoration: 'none',
+                    fontSize: 13, fontWeight: 500,
+                    color: D.muted,
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.04)',
+                    transition: 'all 0.15s',
                   }}
                     onMouseEnter={e => {
                       const el = e.currentTarget as HTMLElement;
-                      el.style.borderColor = `${color}55`;
-                      el.style.background  = `${color}15`;
+                      el.style.borderColor = `${color}44`;
+                      el.style.background  = `${color}12`;
                       el.style.color       = color;
                       el.style.transform   = 'translateY(-1px)';
                     }}
                     onMouseLeave={e => {
                       const el = e.currentTarget as HTMLElement;
-                      el.style.borderColor = D.border;
-                      el.style.background  = D.bg;
+                      el.style.borderColor = 'rgba(255,255,255,0.04)';
+                      el.style.background  = 'rgba(255,255,255,0.02)';
                       el.style.color       = D.muted;
                       el.style.transform   = 'translateY(0)';
                     }}
@@ -537,22 +562,22 @@ export function HomeHub() {
         onClick={() => setFabOpen(true)}
         style={{
           position: 'fixed', bottom: 'calc(28px + 70px)', right: 24,
-          width: 58, height: 58, borderRadius: '50%',
-          background: `linear-gradient(135deg, ${D.accent} 0%, ${D.accentH} 100%)`,
+          width: 56, height: 56, borderRadius: '50%',
+          background: D.accentGrad,
           border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: `0 8px 32px ${D.accentGlow}`,
+          boxShadow: `0 8px 32px rgba(234,88,12,0.35)`,
           zIndex: 150, transition: 'all 0.22s cubic-bezier(0.34,1.56,0.64,1)',
         }}
         onMouseEnter={e => {
           const el = e.currentTarget as HTMLElement;
           el.style.transform = 'scale(1.10)';
-          el.style.boxShadow = `0 12px 40px ${D.accentGlow}`;
+          el.style.boxShadow = `0 12px 40px rgba(234,88,12,0.45)`;
         }}
         onMouseLeave={e => {
           const el = e.currentTarget as HTMLElement;
           el.style.transform = 'scale(1)';
-          el.style.boxShadow = `0 8px 32px ${D.accentGlow}`;
+          el.style.boxShadow = `0 8px 32px rgba(234,88,12,0.35)`;
         }}
         title="Quick Actions"
       >
@@ -563,23 +588,25 @@ export function HomeHub() {
       {fabOpen && (
         <>
           <div onClick={() => setFabOpen(false)} style={{
-            position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.70)',
-            backdropFilter: 'blur(4px)', zIndex: 160,
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.70)',
+            backdropFilter: 'blur(6px)', zIndex: 160,
           }} />
           <div style={{
             position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 170,
-            background: D.surface, borderRadius: '20px 20px 0 0',
-            padding: '0 0 32px',
-            boxShadow: `0 -8px 40px rgba(0,0,0,0.4)`,
+            background: D.surface,
+            borderRadius: '20px 20px 0 0',
+            padding: '0 0 28px',
+            boxShadow: '0 -8px 40px rgba(0,0,0,0.5)',
             maxHeight: '80vh', overflowY: 'auto',
-            borderTop: `1px solid ${D.border}`,
+            borderTop: '1px solid rgba(255,255,255,0.06)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: D.border }} />
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)' }} />
             </div>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '16px 24px 20px', borderBottom: `1px solid ${D.border}`,
+              padding: '16px 24px 18px',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
             }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: D.text, letterSpacing: '-0.03em' }}>
@@ -591,7 +618,8 @@ export function HomeHub() {
               </div>
               <button onClick={() => setFabOpen(false)} style={{
                 width: 36, height: 36, borderRadius: '50%',
-                border: `1px solid ${D.border}`, background: D.bg,
+                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'rgba(255,255,255,0.04)',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: D.muted,
               }}>
@@ -600,42 +628,44 @@ export function HomeHub() {
             </div>
 
             <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))',
-              gap: 12, padding: '20px 24px',
+              display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fill,minmax(155px,1fr))',
+              gap: 10, padding: '18px 20px',
             }}>
               {quickActions.map(action => (
                 <Link key={action.id} to={action.to} onClick={() => setFabOpen(false)} style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                  gap: 12, padding: '16px 14px', borderRadius: 14,
-                  border: `1px solid ${D.border}`, background: D.bg,
+                  gap: 10, padding: '14px 16px',
+                  borderRadius: 12,
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  background: 'rgba(255,255,255,0.02)',
                   textDecoration: 'none', cursor: 'pointer',
                   transition: 'all 0.18s cubic-bezier(0.34,1.3,0.64,1)',
                 }}
                   onMouseEnter={e => {
                     const el = e.currentTarget as HTMLElement;
-                    el.style.borderColor = `${action.color}55`;
-                    el.style.background  = `${action.color}15`;
+                    el.style.borderColor = `${action.color}44`;
+                    el.style.background  = `${action.color}12`;
                     el.style.transform   = 'translateY(-2px)';
                   }}
                   onMouseLeave={e => {
                     const el = e.currentTarget as HTMLElement;
-                    el.style.borderColor = D.border;
-                    el.style.background  = D.bg;
+                    el.style.borderColor = 'rgba(255,255,255,0.06)';
+                    el.style.background  = 'rgba(255,255,255,0.02)';
                     el.style.transform   = 'translateY(0)';
                   }}
                 >
                   <div style={{
-                    width: 40, height: 40, borderRadius: 10,
-                    background: `${action.color}22`,
+                    width: 36, height: 36, borderRadius: 8,
+                    background: `${action.color}18`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <action.icon size={20} style={{ color: action.color }} strokeWidth={1.8} />
+                    <action.icon size={17} style={{ color: action.color }} strokeWidth={1.8} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: D.text, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: D.text, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                       {action.label}
                     </div>
-                    <div style={{ fontSize: 11, color: D.muted, marginTop: 3, lineHeight: 1.3 }}>
+                    <div style={{ fontSize: 11, color: D.muted, marginTop: 2, lineHeight: 1.3 }}>
                       {action.description}
                     </div>
                   </div>
@@ -666,96 +696,117 @@ function NavBlockCard({ block, delay, fullWidth, badgeOverride, isLarge }: {
     <Link to={block.to} style={{
       gridColumn: fullWidth ? '1 / -1' : undefined,
       display: 'flex', flexDirection: 'column',
-      padding: large ? '28px 24px' : '24px',
-      borderRadius: 18,
-      border: `1px solid ${hovered ? `${D.accent}55` : D.border}`,
-      background: hovered ? `${D.accent}10` : D.surface,
+      padding: large ? '24px 22px' : '20px 18px',
+      borderRadius: 16,
+      border: `1px solid ${hovered ? `${block.accentText}44` : 'rgba(255,255,255,0.06)'}`,
+      background: hovered ? `${block.accentText}10` : D.surface,
       textDecoration: 'none', cursor: 'pointer',
-      transition: 'all 0.22s cubic-bezier(0.34,1.2,0.64,1)',
+      transition: 'all 0.25s cubic-bezier(0.34,1.2,0.64,1)',
       transform: hovered ? 'translateY(-3px)' : 'translateY(0)',
-      minHeight: large ? 180 : 150,
+      minHeight: large ? 170 : 140,
       position: 'relative', overflow: 'hidden',
+      boxShadow: hovered ? `0 8px 32px rgba(0,0,0,0.4)` : 'none',
     }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div style={{ position: 'absolute', top: 0, right: 0, width: 140, height: 140, borderRadius: '50%', background: `radial-gradient(circle,${block.accentText}15 0%,transparent 70%)`, transform: 'translate(30%,-30%)', pointerEvents: 'none', opacity: hovered ? 1 : 0, transition: 'opacity 0.22s' }} />
+      {/* Glow effect */}
+      <div style={{
+        position: 'absolute',
+        top: 0, right: 0,
+        width: 120, height: 120,
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${block.accentText}15 0%, transparent 70%)`,
+        transform: 'translate(30%, -30%)',
+        pointerEvents: 'none',
+        opacity: hovered ? 1 : 0,
+        transition: 'opacity 0.3s',
+      }} />
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 'auto' }}>
         <div style={{
-          width: large ? 60 : 52,
-          height: large ? 60 : 52,
-          borderRadius: 16,
-          background: hovered ? `${block.accentText}22` : `${block.accentText}15`,
+          width: large ? 52 : 44,
+          height: large ? 52 : 44,
+          borderRadius: 14,
+          background: hovered ? `${block.accentText}18` : 'rgba(255,255,255,0.04)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 0.22s',
+          transition: 'all 0.25s',
+          border: hovered ? `1px solid ${block.accentText}22` : '1px solid rgba(255,255,255,0.04)',
         }}>
-          <block.icon size={large ? 28 : 24} style={{ color: block.accentText }} strokeWidth={hovered ? 2.2 : 1.8} />
+          <block.icon size={large ? 24 : 20} style={{ color: block.accentText }} strokeWidth={hovered ? 2.2 : 1.8} />
         </div>
 
         {badgeText && (
           <span style={{
             display: 'inline-flex', alignItems: 'center',
-            padding: '4px 10px', borderRadius: 20,
-            fontSize: 11, fontWeight: 700, letterSpacing: '0.02em',
-            background: badgeStyle.bg, color: badgeStyle.color,
+            padding: '3px 10px',
+            borderRadius: 20,
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.02em',
+            background: badgeStyle.bg,
+            color: badgeStyle.color,
+            border: `1px solid ${badgeStyle.color}22`,
           }}>
             {badgeText}
           </span>
         )}
       </div>
 
-      <div style={{ marginTop: large ? 24 : 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+      <div style={{ marginTop: large ? 20 : 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
           <h3 style={{
-            fontSize: large ? 18 : 15,
-            fontWeight: 800, color: D.text,
-            margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2,
+            fontSize: large ? 17 : 14,
+            fontWeight: 800,
+            color: D.text,
+            margin: 0,
+            letterSpacing: '-0.02em',
+            lineHeight: 1.2,
           }}>
             {block.label}
           </h3>
-          <ChevronRight size={large ? 16 : 14} style={{
-            transition: 'transform 0.18s,color 0.15s',
-            transform: hovered ? 'translateX(3px)' : 'translateX(0)',
+          <ChevronRight size={large ? 15 : 13} style={{
+            transition: 'transform 0.2s,color 0.15s',
+            transform: hovered ? 'translateX(4px)' : 'translateX(0)',
             color: hovered ? block.accentText : D.muted,
           }} />
         </div>
-        <p style={{ 
-          fontSize: large ? 14 : 13, 
-          color: D.muted, 
-          margin: 0, 
-          lineHeight: 1.5, 
-          fontWeight: 500 
+        <p style={{
+          fontSize: large ? 13 : 12,
+          color: D.muted,
+          margin: 0,
+          lineHeight: 1.5,
+          fontWeight: 400,
         }}>
           {block.description}
         </p>
+
+        {/* Large card extra info */}
         {large && block.id === 'users' && (
-          <div style={{ marginTop: 12, display: 'flex', gap: 16 }}>
-            <span style={{ fontSize: 12, color: D.green, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.green }} /> 12 Active
+          <div style={{ marginTop: 12, display: 'flex', gap: 14 }}>
+            <span style={{ fontSize: 11, color: D.green, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: D.green }} /> 12 Active
             </span>
-            <span style={{ fontSize: 12, color: D.amber, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.amber }} /> 6 Pending
+            <span style={{ fontSize: 11, color: D.amber, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: D.amber }} /> 6 Pending
             </span>
           </div>
         )}
         {large && block.id === 'reports' && (
-          <div style={{ marginTop: 12, display: 'flex', gap: 16 }}>
-            <span style={{ fontSize: 12, color: D.accent, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <FileText size={12} /> 5 New Reports
+          <div style={{ marginTop: 12, display: 'flex', gap: 14 }}>
+            <span style={{ fontSize: 11, color: D.accent, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <FileText size={11} /> 5 New Reports
             </span>
-            <span style={{ fontSize: 12, color: D.green, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <ArrowUpRight size={12} /> +12% This Week
+            <span style={{ fontSize: 11, color: D.green, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <ArrowUpRight size={11} /> +12% This Week
             </span>
           </div>
         )}
         {large && block.id === 'catalog' && (
-          <div style={{ marginTop: 12, display: 'flex', gap: 16 }}>
-            <span style={{ fontSize: 12, color: '#A78BFA', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Settings size={12} /> {block.id === 'catalog' ? 'Groups & Units' : ''}
+          <div style={{ marginTop: 12, display: 'flex', gap: 14 }}>
+            <span style={{ fontSize: 11, color: D.purple, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Settings size={11} /> Groups & Units
             </span>
-            <span style={{ fontSize: 12, color: D.green, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Boxes size={12} /> Manage Catalog
+            <span style={{ fontSize: 11, color: D.green, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Boxes size={11} /> Manage Catalog
             </span>
           </div>
         )}

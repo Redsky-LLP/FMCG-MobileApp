@@ -69,8 +69,10 @@ src/components/layout/MobileLayout.tsx
 src/components/layout/Navbar.tsx
 src/components/PWAInstallPrompt.tsx
 src/components/salesman/SubmitAllOrdersModal.tsx
+src/components/SessionWarningToast.tsx
 src/components/ui/index.tsx
 src/hooks/useIsMobile.ts
+src/hooks/useSessionTimeout.ts
 src/index.css
 src/main.tsx
 src/pages/Accounts/AccountsReports.tsx
@@ -226,7 +228,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.to73476nk4g"
+    "revision": "0.bqeepfga3dc"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -6381,6 +6383,9 @@ import { PageLoader } from './components/ui';
 import { useIsMobile } from './hooks/useIsMobile';
 import { MobileLayout } from './components/layout/MobileLayout';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+// ── NEW: Session timeout hook and warning toast ────────────────────────────
+import { useSessionTimeout } from './hooks/useSessionTimeout';
+import { SessionWarningToast } from './components/SessionWarningToast';
 
 // ── Synchronous auth check ───────────────────────────────────────────────────
 // Reads localStorage directly — same data Zustand persist uses, but synchronously.
@@ -6501,6 +6506,9 @@ function RootRoute() {
 // ── Shell ───────────────────────────────────────────────────────────────────
 function AppShell() {
   const isMobile = useIsMobile();
+  
+  // ── NEW: Use session timeout hook ──
+  useSessionTimeout();
 
   if (isMobile) {
     return (
@@ -6513,6 +6521,7 @@ function AppShell() {
           </Suspense>
         </main>
         <PWAInstallPrompt variant="default" autoShowDelay={5000} />
+        <SessionWarningToast /> {/* ── NEW: Session warning toast ── */}
       </div>
     );
   }
@@ -6526,6 +6535,7 @@ function AppShell() {
         </Suspense>
       </main>
       <PWAInstallPrompt variant="default" autoShowDelay={5000} />
+      <SessionWarningToast /> {/* ── NEW: Session warning toast ── */}
     </div>
   );
 }
@@ -8016,8 +8026,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
 ## File: src/components/layout/Navbar.tsx
 ````typescript
 // PATH: src/components/layout/Navbar.tsx
-// Redesigned — White & Blue corporate design system
-// Drawer-first navigation, minimal top bar
+// UPDATED: Premium dark theme navbar with glass-morphism effect
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -8075,13 +8084,26 @@ const PRIMARY_SHORTCUTS: Record<string, string[]> = {
   Warehouse:  ['/warehouse/loading', '/warehouse/dashboard'],
 };
 
-// Role pill color
-const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
-  SuperAdmin: { bg: '#FEF3C7', text: '#92400E' },
-  Admin:      { bg: '#EFF6FF', text: '#1D4ED8' },
-  Salesman:   { bg: '#F0FDF4', text: '#15803D' },
-  Accounts:   { bg: '#FDF4FF', text: '#7E22CE' },
-  Warehouse:  { bg: '#FFF7ED', text: '#C2410C' },
+// Role pill color - dark theme variants
+const ROLE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  SuperAdmin: { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24', border: 'rgba(251,191,36,0.20)' },
+  Admin:      { bg: 'rgba(96,165,250,0.15)', text: '#60a5fa', border: 'rgba(96,165,250,0.20)' },
+  Salesman:   { bg: 'rgba(52,211,153,0.15)', text: '#34d399', border: 'rgba(52,211,153,0.20)' },
+  Accounts:   { bg: 'rgba(167,139,250,0.15)', text: '#a78bfa', border: 'rgba(167,139,250,0.20)' },
+  Warehouse:  { bg: 'rgba(251,146,60,0.15)',  text: '#fb923c', border: 'rgba(251,146,60,0.20)' },
+};
+
+// ── Dark theme tokens ─────────────────────────────────────────────────────────
+const D = {
+  bg:       '#0a0e1a',
+  surface:  '#141b2d',
+  border:   'rgba(255,255,255,0.06)',
+  text:     '#f0f4ff',
+  muted:    '#8892b0',
+  sub:      '#5a6a8a',
+  accent:   '#ea580c',
+  accentGlow: 'rgba(234,88,12,0.25)',
+  navBg:    'rgba(10,14,26,0.92)',
 };
 
 export function Navbar() {
@@ -8096,7 +8118,7 @@ export function Navbar() {
   const allItems     = NAV_ITEMS.filter(n => n.roles.includes(user.role));
   const shortcutKeys = PRIMARY_SHORTCUTS[user.role] ?? [];
   const shortcuts    = allItems.filter(n => shortcutKeys.includes(n.to));
-  const roleColor    = ROLE_COLORS[user.role] ?? { bg: '#EFF6FF', text: '#1D4ED8' };
+  const roleColor    = ROLE_COLORS[user.role] ?? ROLE_COLORS.Admin;
 
   async function handleLogout() {
     await logout();
@@ -8131,14 +8153,16 @@ export function Navbar() {
 
   return (
     <>
-      {/* ── Top Navbar ──────────────────────────────────────── */}
+      {/* ── Top Navbar ── Premium Dark Theme ───────────────────── */}
       <nav style={{
         position:      'fixed',
         top:           0, left: 0, right: 0,
         height:        'var(--nav-h)',
-        background:    '#FFFFFF',
-        borderBottom:  '1px solid var(--border)',
-        boxShadow:     '0 1px 0 rgba(15,23,42,0.06), 0 2px 8px rgba(15,23,42,0.04)',
+        background:    D.navBg,
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderBottom:  `1px solid ${D.border}`,
+        boxShadow:     '0 2px 20px rgba(0,0,0,0.4)',
         zIndex:        100,
         display:       'flex',
         alignItems:    'center',
@@ -8157,22 +8181,22 @@ export function Navbar() {
               width:           38,
               height:          38,
               borderRadius:    10,
-              border:          '1px solid var(--border)',
-              background:      'transparent',
+              border:          `1px solid ${D.border}`,
+              background:      'rgba(255,255,255,0.03)',
               cursor:          'pointer',
-              color:           'var(--text-sub)',
+              color:           D.muted,
               transition:      'all 0.15s',
               flexShrink:      0,
             }}
             onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.background = 'var(--ice)';
-              (e.currentTarget as HTMLElement).style.color = 'var(--primary)';
-              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.25)';
+              (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)';
+              (e.currentTarget as HTMLElement).style.color = D.text;
+              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(234,88,12,0.3)';
             }}
             onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.background = 'transparent';
-              (e.currentTarget as HTMLElement).style.color = 'var(--text-sub)';
-              (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
+              (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)';
+              (e.currentTarget as HTMLElement).style.color = D.muted;
+              (e.currentTarget as HTMLElement).style.borderColor = D.border;
             }}
             title="Open menu"
           >
@@ -8185,28 +8209,28 @@ export function Navbar() {
           >
             <div style={{
               width:          34, height: 34,
-              background:     'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+              background:     'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
               borderRadius:   9,
               display:        'flex',
               alignItems:     'center',
               justifyContent: 'center',
-              boxShadow:      '0 2px 8px rgba(37,99,235,0.25)',
+              boxShadow:      '0 2px 12px rgba(234,88,12,0.30)',
             }}>
               <Package size={17} color="#fff" strokeWidth={2.2} />
             </div>
             <span style={{
               fontWeight:    800,
               fontSize:      15,
-              color:         'var(--navy)',
+              color:         D.text,
               letterSpacing: '-0.03em',
             }}>
-              FMCG<span style={{ color: 'var(--primary)', fontWeight: 700 }}>Dist</span>
+              FMCG<span style={{ color: D.accent, fontWeight: 700 }}>Dist</span>
             </span>
           </Link>
         </div>
 
         {/* Divider */}
-        <div style={{ width: 1, height: 24, background: 'var(--border)', flexShrink: 0 }} className="hide-mobile" />
+        <div style={{ width: 1, height: 24, background: D.border, flexShrink: 0 }} className="hide-mobile" />
 
         {/* Desktop shortcut nav */}
         <div
@@ -8223,28 +8247,30 @@ export function Navbar() {
                   display:        'flex',
                   alignItems:     'center',
                   gap:            6,
-                  padding:        '6px 12px',
+                  padding:        '6px 14px',
                   borderRadius:   8,
                   textDecoration: 'none',
                   fontSize:       13,
                   fontWeight:     600,
                   whiteSpace:     'nowrap',
-                  color:          active ? 'var(--primary)' : 'var(--text-sub)',
-                  background:     active ? 'var(--ice)' : 'transparent',
-                  border:         `1px solid ${active ? 'rgba(37,99,235,0.20)' : 'transparent'}`,
+                  color:          active ? D.text : D.muted,
+                  background:     active ? 'rgba(255,255,255,0.08)' : 'transparent',
+                  border:         `1px solid ${active ? 'rgba(234,88,12,0.20)' : 'transparent'}`,
                   transition:     'all 0.14s',
                   letterSpacing:  '-0.01em',
                 }}
                 onMouseEnter={e => {
                   if (!active) {
-                    (e.currentTarget as HTMLElement).style.background = 'var(--card-sub)';
-                    (e.currentTarget as HTMLElement).style.color = 'var(--text-body)';
+                    (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)';
+                    (e.currentTarget as HTMLElement).style.color = D.text;
+                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)';
                   }
                 }}
                 onMouseLeave={e => {
                   if (!active) {
                     (e.currentTarget as HTMLElement).style.background = 'transparent';
-                    (e.currentTarget as HTMLElement).style.color = 'var(--text-sub)';
+                    (e.currentTarget as HTMLElement).style.color = D.muted;
+                    (e.currentTarget as HTMLElement).style.borderColor = 'transparent';
                   }
                 }}
               >
@@ -8261,10 +8287,36 @@ export function Navbar() {
           {/* Notification bell */}
           <button
             className="btn btn-ghost btn-icon hide-mobile"
-            style={{ position: 'relative' }}
+            style={{
+              position: 'relative',
+              width: 36, height: 36,
+              borderRadius: 8,
+              border: `1px solid ${D.border}`,
+              background: 'rgba(255,255,255,0.03)',
+              cursor: 'pointer',
+              color: D.muted,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)';
+              (e.currentTarget as HTMLElement).style.color = D.text;
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)';
+              (e.currentTarget as HTMLElement).style.color = D.muted;
+            }}
             title="Notifications"
           >
             <Bell size={16} />
+            <span style={{
+              position: 'absolute', top: 6, right: 6,
+              width: 6, height: 6, borderRadius: '50%',
+              background: D.accent,
+              boxShadow: `0 0 8px ${D.accentGlow}`,
+            }} />
           </button>
 
           {/* User chip */}
@@ -8276,41 +8328,49 @@ export function Navbar() {
               gap:            8,
               padding:        '5px 12px 5px 6px',
               borderRadius:   24,
-              border:         '1px solid var(--border)',
-              background:     'var(--card-sub)',
+              border:         `1px solid ${D.border}`,
+              background:     'rgba(255,255,255,0.03)',
               cursor:         'pointer',
               transition:     'all 0.15s',
             }}
             onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.25)';
-              (e.currentTarget as HTMLElement).style.background = 'var(--ice)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(234,88,12,0.30)';
+              (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)';
             }}
             onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
-              (e.currentTarget as HTMLElement).style.background = 'var(--card-sub)';
+              (e.currentTarget as HTMLElement).style.borderColor = D.border;
+              (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)';
             }}
           >
             {/* Avatar */}
             <div style={{
               width:          30, height: 30,
               borderRadius:   '50%',
-              background:     'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)',
+              background:     'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
               display:        'flex',
               alignItems:     'center',
               justifyContent: 'center',
               flexShrink:     0,
+              boxShadow:      '0 2px 8px rgba(234,88,12,0.25)',
             }}>
               <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>
                 {initials}
               </span>
             </div>
             <div className="hide-mobile" style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2, letterSpacing: '-0.01em' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: D.text, lineHeight: 1.2, letterSpacing: '-0.01em' }}>
                 {user.name?.split(' ')[0] ?? 'User'}
               </div>
-              <div style={{ fontSize: 10, color: 'var(--text-sub)', lineHeight: 1.2 }}>{user.role}</div>
+              <div style={{ 
+                fontSize: 10, 
+                color: D.accent, 
+                lineHeight: 1.2,
+                fontWeight: 600,
+              }}>
+                {user.role}
+              </div>
             </div>
-            <ChevronRight size={12} style={{ color: 'var(--text-muted)', marginLeft: 2 }} className="hide-mobile" />
+            <ChevronRight size={12} style={{ color: D.muted, marginLeft: 2 }} className="hide-mobile" />
           </button>
         </div>
       </nav>
@@ -8322,14 +8382,14 @@ export function Navbar() {
             position:   'fixed',
             inset:      0,
             zIndex:     200,
-            background: 'rgba(15,23,42,0.40)',
-            backdropFilter: 'blur(2px)',
+            background: 'rgba(0,0,0,0.60)',
+            backdropFilter: 'blur(4px)',
             animation:  'fade-in 0.18s ease',
           }}
         />
       )}
 
-      {/* ── Slide-out Drawer ─────────────────────────────────── */}
+      {/* ── Slide-out Drawer ── Premium Dark ─────────────────── */}
       <div
         ref={drawerRef}
         style={{
@@ -8338,9 +8398,9 @@ export function Navbar() {
           left:          0,
           bottom:        0,
           width:         292,
-          background:    '#FFFFFF',
-          borderRight:   '1px solid var(--border)',
-          boxShadow:     '4px 0 32px rgba(15,23,42,0.12)',
+          background:    D.surface,
+          borderRight:   `1px solid ${D.border}`,
+          boxShadow:     '4px 0 40px rgba(0,0,0,0.5)',
           zIndex:        300,
           display:       'flex',
           flexDirection: 'column',
@@ -8352,7 +8412,7 @@ export function Navbar() {
         {/* Drawer header */}
         <div style={{
           padding:      '20px 20px 16px',
-          borderBottom: '1px solid var(--border)',
+          borderBottom: `1px solid ${D.border}`,
           flexShrink:   0,
         }}>
           {/* Logo row */}
@@ -8360,22 +8420,22 @@ export function Navbar() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{
                 width:          34, height: 34,
-                background:     'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+                background:     'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
                 borderRadius:   9,
                 display:        'flex',
                 alignItems:     'center',
                 justifyContent: 'center',
-                boxShadow:      '0 2px 8px rgba(37,99,235,0.25)',
+                boxShadow:      '0 2px 12px rgba(234,88,12,0.30)',
               }}>
                 <Package size={17} color="#fff" strokeWidth={2.2} />
               </div>
               <span style={{
                 fontWeight:    800,
                 fontSize:      15,
-                color:         'var(--navy)',
+                color:         D.text,
                 letterSpacing: '-0.03em',
               }}>
-                FMCG<span style={{ color: 'var(--primary)' }}>Dist</span>
+                FMCG<span style={{ color: D.accent }}>Dist</span>
               </span>
             </div>
             <button
@@ -8387,10 +8447,19 @@ export function Navbar() {
                 width:           32,
                 height:          32,
                 borderRadius:    8,
-                border:          '1px solid var(--border)',
-                background:      'transparent',
+                border:          `1px solid ${D.border}`,
+                background:      'rgba(255,255,255,0.03)',
                 cursor:          'pointer',
-                color:           'var(--text-sub)',
+                color:           D.muted,
+                transition:      'all 0.15s',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)';
+                (e.currentTarget as HTMLElement).style.color = D.text;
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)';
+                (e.currentTarget as HTMLElement).style.color = D.muted;
               }}
             >
               <X size={16} />
@@ -8403,19 +8472,19 @@ export function Navbar() {
             alignItems:   'center',
             gap:          12,
             padding:      '12px 14px',
-            background:   'var(--ice)',
-            border:       '1px solid rgba(37,99,235,0.12)',
+            background:   'rgba(255,255,255,0.04)',
+            border:       `1px solid ${D.border}`,
             borderRadius: 12,
           }}>
             <div style={{
               width:          42, height: 42,
               borderRadius:   '50%',
-              background:     'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)',
+              background:     'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
               display:        'flex',
               alignItems:     'center',
               justifyContent: 'center',
               flexShrink:     0,
-              boxShadow:      '0 2px 8px rgba(37,99,235,0.25)',
+              boxShadow:      '0 2px 10px rgba(234,88,12,0.25)',
             }}>
               <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{initials}</span>
             </div>
@@ -8423,7 +8492,7 @@ export function Navbar() {
               <div style={{
                 fontSize:     14,
                 fontWeight:   700,
-                color:        'var(--navy)',
+                color:        D.text,
                 letterSpacing: '-0.02em',
                 whiteSpace:   'nowrap',
                 overflow:     'hidden',
@@ -8436,11 +8505,12 @@ export function Navbar() {
                   display:      'inline-flex',
                   alignItems:   'center',
                   padding:      '2px 8px',
-                  borderRadius:  20,
-                  fontSize:      11,
-                  fontWeight:    700,
+                  borderRadius: 20,
+                  fontSize:     10,
+                  fontWeight:   700,
                   background:    roleColor.bg,
                   color:         roleColor.text,
+                  border:        `1px solid ${roleColor.border}`,
                   letterSpacing: '0.02em',
                 }}>
                   {user.role}
@@ -8459,7 +8529,7 @@ export function Navbar() {
           <div style={{
             fontSize:      10,
             fontWeight:    700,
-            color:         'var(--text-muted)',
+            color:         D.sub,
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
             padding:       '4px 8px 8px',
@@ -8484,21 +8554,23 @@ export function Navbar() {
                   fontSize:       14,
                   fontWeight:     active ? 700 : 500,
                   marginBottom:   2,
-                  color:          active ? 'var(--primary)' : 'var(--text-body)',
-                  background:     active ? 'var(--ice)' : 'transparent',
-                  border:         `1px solid ${active ? 'rgba(37,99,235,0.15)' : 'transparent'}`,
+                  color:          active ? D.text : D.muted,
+                  background:     active ? 'rgba(255,255,255,0.08)' : 'transparent',
+                  border:         `1px solid ${active ? 'rgba(234,88,12,0.20)' : 'transparent'}`,
                   letterSpacing:  '-0.01em',
                   transition:     'all 0.12s',
                 }}
                 onMouseEnter={e => {
                   if (!active) {
-                    (e.currentTarget as HTMLElement).style.background = 'var(--card-sub)';
-                    (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
+                    (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)';
+                    (e.currentTarget as HTMLElement).style.color = D.text;
+                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)';
                   }
                 }}
                 onMouseLeave={e => {
                   if (!active) {
                     (e.currentTarget as HTMLElement).style.background = 'transparent';
+                    (e.currentTarget as HTMLElement).style.color = D.muted;
                     (e.currentTarget as HTMLElement).style.borderColor = 'transparent';
                   }
                 }}
@@ -8510,8 +8582,8 @@ export function Navbar() {
                   alignItems:     'center',
                   justifyContent: 'center',
                   flexShrink:     0,
-                  background:     active ? 'rgba(37,99,235,0.12)' : 'var(--card-sub)',
-                  color:          active ? 'var(--primary)' : 'var(--text-sub)',
+                  background:     active ? 'rgba(234,88,12,0.15)' : 'rgba(255,255,255,0.04)',
+                  color:          active ? D.accent : D.muted,
                   transition:     'all 0.12s',
                 }}>
                   <item.icon size={16} strokeWidth={active ? 2.2 : 1.8} />
@@ -8521,8 +8593,9 @@ export function Navbar() {
                   <div style={{
                     width:        6, height: 6,
                     borderRadius: '50%',
-                    background:   'var(--primary)',
+                    background:   D.accent,
                     flexShrink:   0,
+                    boxShadow:    `0 0 8px ${D.accentGlow}`,
                   }} />
                 )}
               </Link>
@@ -8533,7 +8606,7 @@ export function Navbar() {
         {/* Drawer footer */}
         <div style={{
           padding:    '16px 12px',
-          borderTop:  '1px solid var(--border)',
+          borderTop:  `1px solid ${D.border}`,
           flexShrink: 0,
         }}>
           <button
@@ -8544,25 +8617,25 @@ export function Navbar() {
               gap:            10,
               padding:        '10px 14px',
               borderRadius:   10,
-              border:         '1px solid var(--border)',
-              background:     'transparent',
+              border:         `1px solid ${D.border}`,
+              background:     'rgba(255,255,255,0.02)',
               cursor:         'pointer',
               width:          '100%',
               fontSize:       14,
               fontWeight:     600,
-              color:          'var(--text-sub)',
+              color:          D.muted,
               letterSpacing:  '-0.01em',
               transition:     'all 0.15s',
             }}
             onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.background = 'var(--red-bg)';
-              (e.currentTarget as HTMLElement).style.color = 'var(--red)';
-              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(220,38,38,0.20)';
+              (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.10)';
+              (e.currentTarget as HTMLElement).style.color = '#f87171';
+              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(239,68,68,0.20)';
             }}
             onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.background = 'transparent';
-              (e.currentTarget as HTMLElement).style.color = 'var(--text-sub)';
-              (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
+              (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)';
+              (e.currentTarget as HTMLElement).style.color = D.muted;
+              (e.currentTarget as HTMLElement).style.borderColor = D.border;
             }}
           >
             <div style={{
@@ -8571,7 +8644,7 @@ export function Navbar() {
               display:        'flex',
               alignItems:     'center',
               justifyContent: 'center',
-              background:     'var(--card-sub)',
+              background:     'rgba(255,255,255,0.04)',
             }}>
               <LogOut size={15} />
             </div>
@@ -9080,6 +9153,98 @@ export function SubmitAllOrdersModal({
 }
 ````
 
+## File: src/components/SessionWarningToast.tsx
+````typescript
+// PATH: src/components/SessionWarningToast.tsx
+// Optional - Shows a warning 1 minute before session expires
+
+import { useState, useEffect } from 'react';
+import { AlertTriangle, Clock } from 'lucide-react';
+
+export function SessionWarningToast() {
+  const [show, setShow] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(60);
+
+  useEffect(() => {
+    const handleWarning = () => {
+      setShow(true);
+      setSecondsLeft(60);
+      
+      // Countdown
+      const interval = setInterval(() => {
+        setSecondsLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setShow(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      return () => clearInterval(interval);
+    };
+
+    // Listen for session warning event
+    window.addEventListener('session-warning', handleWarning);
+    
+    return () => {
+      window.removeEventListener('session-warning', handleWarning);
+    };
+  }, []);
+
+  if (!show) return null;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+        right: 16,
+        zIndex: 9999,
+        background: '#1e293b',
+        border: '1px solid #ea580c',
+        borderRadius: 12,
+        padding: '14px 18px',
+        maxWidth: 340,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        animation: 'slide-up 0.3s ease',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: '50%',
+          background: 'rgba(234,88,12,0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <AlertTriangle size={16} color="#ea580c" />
+      </div>
+      <div>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>
+          Session expiring soon
+        </p>
+        <p style={{ margin: '2px 0 0', fontSize: 12, color: '#94a3b8' }}>
+          <Clock size={12} style={{ display: 'inline', marginRight: 4 }} />
+          {secondsLeft} second{secondsLeft > 1 ? 's' : ''} left
+        </p>
+        <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748b' }}>
+          Move mouse or tap screen to stay logged in
+        </p>
+      </div>
+    </div>
+  );
+}
+````
+
 ## File: src/components/ui/index.tsx
 ````typescript
 import React from 'react';
@@ -9234,6 +9399,144 @@ export function useIsMobile(breakpoint: number = 768): boolean {
   }, [breakpoint]);
 
   return isMobile;
+}
+````
+
+## File: src/hooks/useSessionTimeout.ts
+````typescript
+// PATH: src/hooks/useSessionTimeout.ts
+// FIXED: Use browser-compatible types instead of NodeJS.Timeout
+
+import { useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+
+// ── Configuration ─────────────────────────────────────────────────────────────
+const SESSION_TIMEOUT_MINUTES = 10;
+const SESSION_TIMEOUT_MS = SESSION_TIMEOUT_MINUTES * 60 * 1000;
+
+// ── Events that reset the inactivity timer ──────────────────────────────────
+const RESET_EVENTS = [
+  'mousedown',
+  'mousemove',
+  'keydown',
+  'scroll',
+  'touchstart',
+  'touchmove',
+  'click',
+  'focus',
+  'wheel',
+  'pointerdown',
+  'pointermove',
+];
+
+// ── Hook ──────────────────────────────────────────────────────────────────────
+export function useSessionTimeout() {
+  const navigate = useNavigate();
+  const { user, logout, isAuthenticated } = useAuthStore();
+  
+  // FIXED: Use ReturnType<typeof setTimeout> instead of NodeJS.Timeout
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warningShownRef = useRef(false);
+
+  // ── Logout function ──
+  const handleLogout = useCallback(async () => {
+    // Clear timers
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
+    warningShownRef.current = false;
+
+    // Only proceed if user is authenticated
+    if (isAuthenticated && user) {
+      console.log('[Session] Auto-logout due to inactivity');
+      
+      // Perform logout
+      await logout();
+      
+      // Navigate to login page with session expired message
+      navigate('/pin-login', { 
+        state: { 
+          sessionExpired: true,
+          message: `Session expired due to ${SESSION_TIMEOUT_MINUTES} minutes of inactivity. Please log in again.`
+        }
+      });
+    }
+  }, [isAuthenticated, user, logout, navigate]);
+
+  // ── Reset the timer ──
+  const resetTimer = useCallback(() => {
+    // Clear existing timers
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
+    warningShownRef.current = false;
+
+    // Don't start timer if user is not logged in
+    if (!isAuthenticated || !user) return;
+
+    // ── Set timer for logout ──
+    timerRef.current = setTimeout(() => {
+      console.log('[Session] Inactivity timeout reached - logging out');
+      handleLogout();
+    }, SESSION_TIMEOUT_MS);
+
+    // ── Optional: Show warning 1 minute before logout ──
+    timeoutIdRef.current = setTimeout(() => {
+      if (!warningShownRef.current && isAuthenticated) {
+        warningShownRef.current = true;
+        console.log('[Session] Warning: Session will expire in 1 minute');
+        // Dispatch custom event for warning toast
+        window.dispatchEvent(new CustomEvent('session-warning'));
+      }
+    }, SESSION_TIMEOUT_MS - 60000);
+  }, [isAuthenticated, user, handleLogout]);
+
+  // ── Setup event listeners ──
+  useEffect(() => {
+    // Don't setup if user is not logged in
+    if (!isAuthenticated || !user) {
+      // Clear timers when user logs out
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
+      warningShownRef.current = false;
+      return;
+    }
+
+    // ── Debounced reset function ──
+    let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
+    
+    const handleActivity = () => {
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
+      }
+      debounceTimeout = setTimeout(() => {
+        resetTimer();
+        debounceTimeout = null;
+      }, 500);
+    };
+
+    // ── Add event listeners ──
+    RESET_EVENTS.forEach(event => {
+      window.addEventListener(event, handleActivity, { passive: true });
+    });
+
+    // ── Initial timer start ──
+    resetTimer();
+
+    // ── Cleanup ──
+    return () => {
+      RESET_EVENTS.forEach(event => {
+        window.removeEventListener(event, handleActivity);
+      });
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
+      if (debounceTimeout) clearTimeout(debounceTimeout);
+      warningShownRef.current = false;
+    };
+  }, [isAuthenticated, user, resetTimer]);
+
+  // ── Expose manual reset function ──
+  return { resetTimer };
 }
 ````
 
@@ -21885,8 +22188,8 @@ export function LoginPage() {
 // PATH: src/pages/Auth/PinLoginPage.tsx
 // PIN-only login - Eastern-style dark theme
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';  // ← Removed Link
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';  // ← Added useLocation
 import { Package, Delete, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '../../api/services';
 import { useAuthStore, getRoleHome } from '../../store/authStore';
@@ -21957,12 +22260,23 @@ const PIN_LENGTH = 4;
 
 export default function PinLoginPage() {
   const navigate  = useNavigate();
+  const location  = useLocation();  // ← ADDED
   const { setUser } = useAuthStore();
 
   const [pin,     setPin]     = useState('');
   const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
+
+  // ── NEW: Check for session expired state ──
+  useEffect(() => {
+    const sessionExpired = location.state?.sessionExpired;
+    const sessionMessage = location.state?.message;
+    
+    if (sessionExpired && sessionMessage) {
+      setError(sessionMessage);
+    }
+  }, [location.state]);
 
   function backspace() { setPin(p => p.slice(0, -1)); }
 
@@ -22498,7 +22812,7 @@ export function RegisterPage() {
 ## File: src/pages/Dashboard/HomeHub.tsx
 ````typescript
 // PATH: src/pages/Dashboard/HomeHub.tsx
-// UPDATED: Added Catalog Config card
+// UPDATED: Premium dark theme with gradients and depth
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -22514,21 +22828,32 @@ import { useAuthStore } from '../../store/authStore';
 import { routesApi, customersApi, ordersApi, settlementApi } from '../../api/services';
 import { fmt } from '../../types';
 
-// ── Dark theme tokens ─────────────────────────────────────────────────────────
+// ── Premium Dark Theme tokens ─────────────────────────────────────────────────
 const D = {
-  bg:       '#0f172a',
-  surface:  '#1e293b',
-  border:   '#334155',
-  accent:   '#ea580c',
-  accentH:  '#c2410c',
+  bg:       '#0a0e1a',      // Deeper navy-black
+  bgGrad:   'linear-gradient(180deg, #0a0e1a 0%, #0f172a 40%, #1a1a2e 100%)',
+  surface:  '#141b2d',      // Darker card background
+  surface2: '#1a2236',      // Slightly lighter for hover
+  border:   '#2a3450',      // Softer border with blue tint
+  borderGlow: 'rgba(234,88,12,0.15)',
+  accent:   '#ea580c',      // Orange accent
+  accentH:  '#f97316',
   accentGlow: 'rgba(234,88,12,0.25)',
-  text:     '#f1f5f9',
-  muted:    '#94a3b8',
-  sub:      '#64748b',
-  green:    '#22c55e',
-  red:      '#ef4444',
-  amber:    '#f59e0b',
-  card:     '#1e293b',
+  accentGrad: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
+  text:     '#f0f4ff',      // Slightly blue-tinted white
+  muted:    '#8892b0',      // Muted blue-grey
+  sub:      '#5a6a8a',      // Darker muted
+  green:    '#34d399',      // Softer green
+  greenBg:  'rgba(52,211,153,0.12)',
+  red:      '#f87171',
+  redBg:    'rgba(248,113,113,0.12)',
+  amber:    '#fbbf24',
+  amberBg:  'rgba(251,191,36,0.12)',
+  blue:     '#60a5fa',
+  blueBg:   'rgba(96,165,250,0.12)',
+  purple:   '#a78bfa',
+  purpleBg: 'rgba(167,139,250,0.12)',
+  card:     '#141b2d',
 };
 
 interface NavBlock {
@@ -22574,14 +22899,14 @@ const NAV_BLOCKS: NavBlock[] = [
     description: 'View and manage today\'s delivery routes',
     icon: Route, to: '/salesman/routes',
     badge: '3 Active', badgeColor: 'blue',
-    accent: '#EFF6FF', accentText: '#2563EB', roles: ['Salesman'],
+    accent: D.blueBg, accentText: D.blue, roles: ['Salesman'],
   },
   {
     id: 'salesman-orders', label: 'My Orders',
     description: 'View and submit field orders',
     icon: ShoppingCart, to: '/salesman/routes',
     badge: '5 Open', badgeColor: 'blue',
-    accent: '#EFF6FF', accentText: '#2563EB', roles: ['Salesman'],
+    accent: D.blueBg, accentText: D.blue, roles: ['Salesman'],
   },
   // ── Admin priority order ──
   {
@@ -22596,28 +22921,28 @@ const NAV_BLOCKS: NavBlock[] = [
     description: 'Create, track, and manage customer orders',
     icon: ShoppingCart, to: '/admin/orders',
     badge: '12 Pending', badgeColor: 'blue',
-    accent: '#3B82F6', accentText: '#3B82F6', roles: ['Admin', 'SuperAdmin'],
+    accent: D.blueBg, accentText: D.blue, roles: ['Admin', 'SuperAdmin'],
   },
   {
     id: 'customers', label: 'Customers Masters',
     description: 'Browse and manage customer catalog',
     icon: Users, to: '/admin/customers',
     badge: '248 Active', badgeColor: 'blue',
-    accent: '#8B5CF6', accentText: '#8B5CF6', roles: ['Admin', 'SuperAdmin'],
+    accent: D.purpleBg, accentText: D.purple, roles: ['Admin', 'SuperAdmin'],
   },
   // Products card
   {
     id: 'products', label: 'Products Masters',
     description: 'Manage product catalog and pricing',
     icon: Package, to: '/admin/products',
-    accent: '#22C55E', accentText: '#22C55E', roles: ['Admin', 'SuperAdmin'],
+    accent: D.greenBg, accentText: D.green, roles: ['Admin', 'SuperAdmin'],
   },
   // ── NEW: Catalog Config Card ──
   {
     id: 'catalog', label: 'Catalog Config',
     description: 'Manage product groups and measurement units',
     icon: Settings, to: '/admin/catalog',
-    accent: '#A78BFA', accentText: '#A78BFA', roles: ['Admin', 'SuperAdmin'],
+    accent: D.purpleBg, accentText: D.purple, roles: ['Admin', 'SuperAdmin'],
     size: 'small',
   },
   // Users card - ENLARGED
@@ -22625,7 +22950,7 @@ const NAV_BLOCKS: NavBlock[] = [
     id: 'users', label: 'User Management',
     description: 'Manage users, roles, and permissions across the platform',
     icon: UserCog, to: '/admin/users',
-    accent: '#60A5FA', accentText: '#60A5FA', roles: ['Admin', 'SuperAdmin'],
+    accent: D.blueBg, accentText: D.blue, roles: ['Admin', 'SuperAdmin'],
     size: 'large',
   },
   // Reports card - ENLARGED
@@ -22633,7 +22958,7 @@ const NAV_BLOCKS: NavBlock[] = [
     id: 'reports', label: 'Report Masters',
     description: 'Generate and view detailed business reports and analytics',
     icon: FileText, to: '/admin/reports',
-    accent: '#14B8A6', accentText: '#14B8A6', roles: ['Admin', 'SuperAdmin'],
+    accent: D.greenBg, accentText: D.green, roles: ['Admin', 'SuperAdmin'],
     size: 'large',
   },
   // ── Accounts ──
@@ -22642,13 +22967,13 @@ const NAV_BLOCKS: NavBlock[] = [
     description: 'Process daily collections and closures',
     icon: IndianRupee, to: '/accounts/settlement',
     badge: 'Today', badgeColor: 'blue',
-    accent: '#F59E0B', accentText: '#F59E0B', roles: ['Accounts'],
+    accent: D.amberBg, accentText: D.amber, roles: ['Accounts'],
   },
   {
     id: 'accounts-reports', label: 'Reports',
     description: 'Daily and monthly financial reports',
     icon: FileText, to: '/accounts/reports',
-    accent: '#14B8A6', accentText: '#14B8A6', roles: ['Accounts'],
+    accent: D.greenBg, accentText: D.green, roles: ['Accounts'],
   },
   // ── Warehouse ──
   {
@@ -22672,29 +22997,29 @@ const STAT_CARDS: StatCard[] = [
     id: 'analytics', label: 'Analytics',
     value: 'View Insights', icon: BarChart3,
     to: '/admin/analytics',
-    color: D.accent, bg: `${D.accent}22`, roles: ['Admin', 'SuperAdmin'],
+    color: D.accent, bg: D.accentGlow, roles: ['Admin', 'SuperAdmin'],
   },
 ];
 
 // ── Quick Actions ──────────────────────────────────────────────
 const QUICK_ACTIONS: QuickAction[] = [
   { id: 'new-order', label: 'New Order', description: 'Create a fresh customer order', icon: ClipboardList, to: '/admin/orders', color: D.accent, roles: ['Admin', 'SuperAdmin', 'Salesman'] },
-  { id: 'record-payment', label: 'Record Payment', description: 'Log a collection or payment', icon: Banknote, to: '/admin/settlement', color: '#22C55E', roles: ['Admin', 'SuperAdmin', 'Accounts'] },
-  { id: 'scan-sku', label: 'Scan Product', description: 'Scan barcode or search SKU', icon: ScanBarcode, to: '/admin/products', color: '#8B5CF6', roles: ['Admin', 'SuperAdmin', 'Warehouse'] },
-  { id: 'add-customer', label: 'Add Customer', description: 'Register a new customer', icon: Users, to: '/admin/customers', color: '#F59E0B', roles: ['Admin', 'SuperAdmin', 'Salesman'] },
+  { id: 'record-payment', label: 'Record Payment', description: 'Log a collection or payment', icon: Banknote, to: '/admin/settlement', color: D.green, roles: ['Admin', 'SuperAdmin', 'Accounts'] },
+  { id: 'scan-sku', label: 'Scan Product', description: 'Scan barcode or search SKU', icon: ScanBarcode, to: '/admin/products', color: D.purple, roles: ['Admin', 'SuperAdmin', 'Warehouse'] },
+  { id: 'add-customer', label: 'Add Customer', description: 'Register a new customer', icon: Users, to: '/admin/customers', color: D.amber, roles: ['Admin', 'SuperAdmin', 'Salesman'] },
   { id: 'view-routes', label: 'View Routes', description: 'Check today\'s route map', icon: Route, to: '/salesman/routes', color: D.accent, roles: ['Salesman'] },
   { id: 'start-route', label: 'Start Route', description: 'Begin executing a delivery route', icon: Zap, to: '/salesman/routes', color: '#06B6D4', roles: ['Salesman'] },
-  { id: 'reports', label: 'View Reports', description: 'Open financial and sales reports', icon: FileText, to: '/admin/reports', color: '#14B8A6', roles: ['Admin', 'SuperAdmin', 'Accounts'] },
-  { id: 'settlement', label: 'Daily Settlement', description: 'Close and settle today\'s accounts', icon: Calculator, to: '/accounts/settlement', color: '#22C55E', roles: ['Admin', 'SuperAdmin', 'Accounts'] },
-  { id: 'users', label: 'Manage Users', description: 'Add or edit system users', icon: UserCog, to: '/admin/users', color: '#60A5FA', roles: ['Admin', 'SuperAdmin'] },
+  { id: 'reports', label: 'View Reports', description: 'Open financial and sales reports', icon: FileText, to: '/admin/reports', color: D.green, roles: ['Admin', 'SuperAdmin', 'Accounts'] },
+  { id: 'settlement', label: 'Daily Settlement', description: 'Close and settle today\'s accounts', icon: Calculator, to: '/accounts/settlement', color: D.green, roles: ['Admin', 'SuperAdmin', 'Accounts'] },
+  { id: 'users', label: 'Manage Users', description: 'Add or edit system users', icon: UserCog, to: '/admin/users', color: D.blue, roles: ['Admin', 'SuperAdmin'] },
 ];
 
 const BADGE_STYLES: Record<string, { bg: string; color: string }> = {
-  blue:   { bg: 'rgba(59,130,246,0.15)',  color: '#3B82F6' },
-  green:  { bg: 'rgba(34,197,94,0.15)',  color: '#22C55E' },
-  amber:  { bg: 'rgba(245,158,11,0.15)',  color: '#F59E0B' },
-  red:    { bg: 'rgba(239,68,68,0.15)',  color: '#EF4444' },
-  violet: { bg: 'rgba(139,92,246,0.15)', color: '#8B5CF6' },
+  blue:   { bg: 'rgba(96,165,250,0.15)',  color: '#60a5fa' },
+  green:  { bg: 'rgba(52,211,153,0.15)',  color: '#34d399' },
+  amber:  { bg: 'rgba(251,191,36,0.15)',  color: '#fbbf24' },
+  red:    { bg: 'rgba(248,113,113,0.15)', color: '#f87171' },
+  violet: { bg: 'rgba(167,139,250,0.15)', color: '#a78bfa' },
 };
 
 function getGreeting(): string {
@@ -22750,28 +23075,13 @@ export function HomeHub() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // ── Inject dark theme styles ──────────────────────────────────────────────
+  // ── Force dark theme on body ──────────────────────────────────────────────
   useEffect(() => {
-    const style = document.createElement('style');
-    style.id = 'homehub-dark-theme';
-    style.innerHTML = `
-      .homehub-dark {
-        background: #0f172a !important;
-        color: #f1f5f9 !important;
-        min-height: 100vh !important;
-      }
-      .homehub-dark .page-wrapper {
-        background: #0f172a !important;
-        padding-top: 0 !important;
-      }
-      .homehub-dark .mobile-content {
-        background: #0f172a !important;
-      }
-    `;
-    document.head.appendChild(style);
+    document.body.style.background = D.bg;
+    document.body.style.color = D.text;
     return () => {
-      const el = document.getElementById('homehub-dark-theme');
-      if (el) el.remove();
+      document.body.style.background = '';
+      document.body.style.color = '';
     };
   }, []);
 
@@ -22800,42 +23110,51 @@ export function HomeHub() {
   }
 
   return (
-    <div className="homehub-dark" style={{
+    <div style={{
       background: D.bg,
+      backgroundImage: D.bgGrad,
       color: D.text,
       minHeight: '100vh',
-      padding: '20px 16px 120px',
+      padding: '20px 20px 120px',
       fontFamily: "'Plus Jakarta Sans', sans-serif",
     }}>
-      <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
         {/* ── Welcome Header ──────────────────────────────────── */}
         <div style={{
           opacity: mounted ? 1 : 0,
           transform: mounted ? 'translateY(0)' : 'translateY(12px)',
           transition: 'all 0.4s cubic-bezier(0.34,1.2,0.64,1)',
-          marginBottom: 32,
+          marginBottom: 28,
         }}>
+          {/* Date chip */}
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '5px 12px', borderRadius: 20,
-            background: D.surface,
-            border: `1px solid ${D.border}`,
-            marginBottom: 14,
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '6px 14px',
+            borderRadius: 20,
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            marginBottom: 16,
           }}>
-            <Clock size={12} style={{ color: D.accent }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: D.muted, letterSpacing: '0.01em' }}>
+            <Clock size={13} style={{ color: D.accent }} />
+            <span style={{ fontSize: 12, fontWeight: 500, color: D.muted, letterSpacing: '0.02em' }}>
               {getDateString()}
             </span>
+            <span style={{
+              width: 4, height: 4, borderRadius: '50%',
+              background: D.green, margin: '0 4px',
+              boxShadow: `0 0 8px ${D.green}44`,
+            }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: D.green }}>Live</span>
           </div>
 
           <h1 style={{
-            fontSize: 28, fontWeight: 900, color: D.text,
+            fontSize: 30, fontWeight: 900, color: D.text,
             letterSpacing: '-0.04em', margin: 0, lineHeight: 1.1,
           }}>
-            {getGreeting()}, {firstName} 🎉
+            {getGreeting()}, {firstName} <span style={{ color: D.accent }}>✦</span>
           </h1>
-          <p style={{ color: D.muted, fontSize: 14, marginTop: 8, marginBottom: 0, fontWeight: 500 }}>
+          <p style={{ color: D.muted, fontSize: 14, marginTop: 6, marginBottom: 0, fontWeight: 400 }}>
             Here's your operations overview for today.
           </p>
         </div>
@@ -22848,36 +23167,42 @@ export function HomeHub() {
         }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            padding: '8px 14px', borderRadius: 10,
-            background: D.surface, border: `1px solid ${D.border}`,
+            padding: '8px 14px',
+            borderRadius: 10,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
           }}>
             <div style={{
               width: 7, height: 7, borderRadius: '50%',
               background: D.green,
-              boxShadow: `0 0 0 3px rgba(34,197,94,0.25)`,
+              boxShadow: `0 0 0 3px rgba(52,211,153,0.25)`,
               animation: 'pulse-ring 2s ease infinite',
             }} />
-            <span style={{ fontSize: 12, color: D.muted, fontWeight: 700 }}>System Status:</span>
+            <span style={{ fontSize: 12, color: D.muted, fontWeight: 600 }}>System:</span>
             <span style={{ fontSize: 12, fontWeight: 600, color: D.green }}>Operational</span>
           </div>
 
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            padding: '8px 14px', borderRadius: 10,
-            background: D.surface, border: `1px solid ${D.border}`,
+            padding: '8px 14px',
+            borderRadius: 10,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
           }}>
             <ArrowUpRight size={13} style={{ color: D.accent }} />
-            <span style={{ fontSize: 12, color: D.muted, fontWeight: 700 }}>Active Role:</span>
+            <span style={{ fontSize: 12, color: D.muted, fontWeight: 600 }}>Role:</span>
             <span style={{ fontSize: 12, fontWeight: 600, color: D.accent }}>{role}</span>
           </div>
 
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            padding: '8px 14px', borderRadius: 10,
-            background: D.surface, border: `1px solid ${D.border}`,
+            padding: '8px 14px',
+            borderRadius: 10,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
           }}>
             <Sparkles size={13} style={{ color: D.amber }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: D.muted }}>
+            <span style={{ fontSize: 12, fontWeight: 500, color: D.muted }}>
               {new Date().toLocaleDateString('en-IN', { weekday: 'short' })} — Let's get it done!
             </span>
           </div>
@@ -22887,7 +23212,8 @@ export function HomeHub() {
         <div style={{
           display: 'grid',
           gridTemplateColumns: mainBlocks.length >= 3 ? 'repeat(3,1fr)' : mainBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
-          gap: 16, marginBottom: 16,
+          gap: 14,
+          marginBottom: 14,
           opacity: mounted ? 1 : 0,
           transition: 'all 0.42s 0.12s cubic-bezier(0.34,1.2,0.64,1)',
         }}>
@@ -22901,7 +23227,8 @@ export function HomeHub() {
           <div style={{
             display: 'grid',
             gridTemplateColumns: largeBlocks.length === 4 ? 'repeat(4,1fr)' : largeBlocks.length === 3 ? 'repeat(3,1fr)' : largeBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
-            gap: 16, marginBottom: 16,
+            gap: 14,
+            marginBottom: 14,
             opacity: mounted ? 1 : 0,
             transition: 'all 0.42s 0.18s cubic-bezier(0.34,1.2,0.64,1)',
           }}>
@@ -22916,7 +23243,8 @@ export function HomeHub() {
           <div style={{
             display: 'grid',
             gridTemplateColumns: `repeat(${statCards.length}, 1fr)`,
-            gap: 16, marginBottom: 16,
+            gap: 14,
+            marginBottom: 14,
             opacity: mounted ? 1 : 0,
             transition: 'all 0.42s 0.22s cubic-bezier(0.34,1.2,0.64,1)',
           }}>
@@ -22928,36 +23256,40 @@ export function HomeHub() {
               <Link key={card.id} to={card.to} style={{ textDecoration: 'none' }}>
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '18px 20px', borderRadius: 16,
+                  padding: '16px 20px',
+                  borderRadius: 14,
                   background: D.surface,
-                  border: `1px solid ${D.border}`,
-                  cursor: 'pointer', transition: 'all 0.18s',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
                 }}
                   onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = `${card.color}44`;
                     (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-                    (e.currentTarget as HTMLElement).style.borderColor = `${D.accent}55`;
+                    (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 24px rgba(0,0,0,0.3)`;
                   }}
                   onMouseLeave={e => {
                     (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                    (e.currentTarget as HTMLElement).style.borderColor = D.border;
+                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = 'none';
                   }}
                 >
                   <div style={{
-                    width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                    background: `${card.color}22`,
+                    width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                    background: `${card.color}18`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <card.icon size={20} style={{ color: card.color }} strokeWidth={1.8} />
+                    <card.icon size={18} style={{ color: card.color }} strokeWidth={1.8} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: `${card.color}99`, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                       {card.label}
                     </div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: card.color, marginTop: 2 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: card.color, marginTop: 2 }}>
                       {displayValue}
                     </div>
                   </div>
-                  <ChevronRight size={16} style={{ color: `${card.color}60`, flexShrink: 0 }} />
+                  <ChevronRight size={15} style={{ color: `${card.color}50`, flexShrink: 0 }} />
                 </div>
               </Link>
               );
@@ -22968,55 +23300,60 @@ export function HomeHub() {
         {/* ── More Tools (everything else) ────── */}
         {isAdmin && moreTools.length > 0 && (
           <div style={{
-            marginTop: 8, padding: '18px 22px',
-            background: D.surface, border: `1px solid ${D.border}`,
-            borderRadius: 16,
+            marginTop: 6,
+            padding: '16px 20px',
+            background: D.surface,
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 14,
             opacity: mounted ? 1 : 0,
             transition: 'opacity 0.4s 0.3s ease',
           }}>
             <h3 style={{
               fontSize: 11, fontWeight: 700, color: D.muted,
-              margin: '0 0 14px', letterSpacing: '0.06em', textTransform: 'uppercase',
+              margin: '0 0 12px', letterSpacing: '0.06em', textTransform: 'uppercase',
             }}>
               More Tools
             </h3>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
               gap: 8,
             }}>
               {moreTools.map(tool => {
-                // Define color mapping for remaining tools
                 const colorMap: Record<string, string> = {
-                  'incentives': '#F472B6',
-                  'assignments': '#34D399',
-                  'session-log': '#A78BFA',
-                  'settlement': '#F59E0B',
-                  'accounts-settlement': '#F59E0B',
-                  'accounts-reports': '#14B8A6',
+                  'incentives': D.purple,
+                  'assignments': D.green,
+                  'session-log': D.purple,
+                  'settlement': D.amber,
+                  'accounts-settlement': D.amber,
+                  'accounts-reports': D.green,
                   'loading': D.accent,
                   'pack-orders': D.accent,
                 };
-                const color = colorMap[tool.id] || '#94A3B8';
+                const color = colorMap[tool.id] || D.muted;
                 return (
                   <Link key={tool.to} to={tool.to} style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '9px 12px', borderRadius: 10, textDecoration: 'none',
-                    fontSize: 13, fontWeight: 600, color: D.muted,
-                    background: D.bg, border: `1px solid ${D.border}`,
-                    transition: 'all 0.14s',
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 14px',
+                    borderRadius: 10,
+                    textDecoration: 'none',
+                    fontSize: 13, fontWeight: 500,
+                    color: D.muted,
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.04)',
+                    transition: 'all 0.15s',
                   }}
                     onMouseEnter={e => {
                       const el = e.currentTarget as HTMLElement;
-                      el.style.borderColor = `${color}55`;
-                      el.style.background  = `${color}15`;
+                      el.style.borderColor = `${color}44`;
+                      el.style.background  = `${color}12`;
                       el.style.color       = color;
                       el.style.transform   = 'translateY(-1px)';
                     }}
                     onMouseLeave={e => {
                       const el = e.currentTarget as HTMLElement;
-                      el.style.borderColor = D.border;
-                      el.style.background  = D.bg;
+                      el.style.borderColor = 'rgba(255,255,255,0.04)';
+                      el.style.background  = 'rgba(255,255,255,0.02)';
                       el.style.color       = D.muted;
                       el.style.transform   = 'translateY(0)';
                     }}
@@ -23036,22 +23373,22 @@ export function HomeHub() {
         onClick={() => setFabOpen(true)}
         style={{
           position: 'fixed', bottom: 'calc(28px + 70px)', right: 24,
-          width: 58, height: 58, borderRadius: '50%',
-          background: `linear-gradient(135deg, ${D.accent} 0%, ${D.accentH} 100%)`,
+          width: 56, height: 56, borderRadius: '50%',
+          background: D.accentGrad,
           border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: `0 8px 32px ${D.accentGlow}`,
+          boxShadow: `0 8px 32px rgba(234,88,12,0.35)`,
           zIndex: 150, transition: 'all 0.22s cubic-bezier(0.34,1.56,0.64,1)',
         }}
         onMouseEnter={e => {
           const el = e.currentTarget as HTMLElement;
           el.style.transform = 'scale(1.10)';
-          el.style.boxShadow = `0 12px 40px ${D.accentGlow}`;
+          el.style.boxShadow = `0 12px 40px rgba(234,88,12,0.45)`;
         }}
         onMouseLeave={e => {
           const el = e.currentTarget as HTMLElement;
           el.style.transform = 'scale(1)';
-          el.style.boxShadow = `0 8px 32px ${D.accentGlow}`;
+          el.style.boxShadow = `0 8px 32px rgba(234,88,12,0.35)`;
         }}
         title="Quick Actions"
       >
@@ -23062,23 +23399,25 @@ export function HomeHub() {
       {fabOpen && (
         <>
           <div onClick={() => setFabOpen(false)} style={{
-            position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.70)',
-            backdropFilter: 'blur(4px)', zIndex: 160,
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.70)',
+            backdropFilter: 'blur(6px)', zIndex: 160,
           }} />
           <div style={{
             position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 170,
-            background: D.surface, borderRadius: '20px 20px 0 0',
-            padding: '0 0 32px',
-            boxShadow: `0 -8px 40px rgba(0,0,0,0.4)`,
+            background: D.surface,
+            borderRadius: '20px 20px 0 0',
+            padding: '0 0 28px',
+            boxShadow: '0 -8px 40px rgba(0,0,0,0.5)',
             maxHeight: '80vh', overflowY: 'auto',
-            borderTop: `1px solid ${D.border}`,
+            borderTop: '1px solid rgba(255,255,255,0.06)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: D.border }} />
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)' }} />
             </div>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '16px 24px 20px', borderBottom: `1px solid ${D.border}`,
+              padding: '16px 24px 18px',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
             }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: D.text, letterSpacing: '-0.03em' }}>
@@ -23090,7 +23429,8 @@ export function HomeHub() {
               </div>
               <button onClick={() => setFabOpen(false)} style={{
                 width: 36, height: 36, borderRadius: '50%',
-                border: `1px solid ${D.border}`, background: D.bg,
+                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'rgba(255,255,255,0.04)',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: D.muted,
               }}>
@@ -23099,42 +23439,44 @@ export function HomeHub() {
             </div>
 
             <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))',
-              gap: 12, padding: '20px 24px',
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(155px,1fr))',
+              gap: 10, padding: '18px 20px',
             }}>
               {quickActions.map(action => (
                 <Link key={action.id} to={action.to} onClick={() => setFabOpen(false)} style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                  gap: 12, padding: '16px 14px', borderRadius: 14,
-                  border: `1px solid ${D.border}`, background: D.bg,
+                  gap: 10, padding: '14px 16px',
+                  borderRadius: 12,
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  background: 'rgba(255,255,255,0.02)',
                   textDecoration: 'none', cursor: 'pointer',
                   transition: 'all 0.18s cubic-bezier(0.34,1.3,0.64,1)',
                 }}
                   onMouseEnter={e => {
                     const el = e.currentTarget as HTMLElement;
-                    el.style.borderColor = `${action.color}55`;
-                    el.style.background  = `${action.color}15`;
+                    el.style.borderColor = `${action.color}44`;
+                    el.style.background  = `${action.color}12`;
                     el.style.transform   = 'translateY(-2px)';
                   }}
                   onMouseLeave={e => {
                     const el = e.currentTarget as HTMLElement;
-                    el.style.borderColor = D.border;
-                    el.style.background  = D.bg;
+                    el.style.borderColor = 'rgba(255,255,255,0.06)';
+                    el.style.background  = 'rgba(255,255,255,0.02)';
                     el.style.transform   = 'translateY(0)';
                   }}
                 >
                   <div style={{
-                    width: 40, height: 40, borderRadius: 10,
-                    background: `${action.color}22`,
+                    width: 36, height: 36, borderRadius: 8,
+                    background: `${action.color}18`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <action.icon size={20} style={{ color: action.color }} strokeWidth={1.8} />
+                    <action.icon size={17} style={{ color: action.color }} strokeWidth={1.8} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: D.text, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: D.text, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                       {action.label}
                     </div>
-                    <div style={{ fontSize: 11, color: D.muted, marginTop: 3, lineHeight: 1.3 }}>
+                    <div style={{ fontSize: 11, color: D.muted, marginTop: 2, lineHeight: 1.3 }}>
                       {action.description}
                     </div>
                   </div>
@@ -23165,96 +23507,117 @@ function NavBlockCard({ block, delay, fullWidth, badgeOverride, isLarge }: {
     <Link to={block.to} style={{
       gridColumn: fullWidth ? '1 / -1' : undefined,
       display: 'flex', flexDirection: 'column',
-      padding: large ? '28px 24px' : '24px',
-      borderRadius: 18,
-      border: `1px solid ${hovered ? `${D.accent}55` : D.border}`,
-      background: hovered ? `${D.accent}10` : D.surface,
+      padding: large ? '24px 22px' : '20px 18px',
+      borderRadius: 16,
+      border: `1px solid ${hovered ? `${block.accentText}44` : 'rgba(255,255,255,0.06)'}`,
+      background: hovered ? `${block.accentText}10` : D.surface,
       textDecoration: 'none', cursor: 'pointer',
-      transition: 'all 0.22s cubic-bezier(0.34,1.2,0.64,1)',
+      transition: 'all 0.25s cubic-bezier(0.34,1.2,0.64,1)',
       transform: hovered ? 'translateY(-3px)' : 'translateY(0)',
-      minHeight: large ? 180 : 150,
+      minHeight: large ? 170 : 140,
       position: 'relative', overflow: 'hidden',
+      boxShadow: hovered ? `0 8px 32px rgba(0,0,0,0.4)` : 'none',
     }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div style={{ position: 'absolute', top: 0, right: 0, width: 140, height: 140, borderRadius: '50%', background: `radial-gradient(circle,${block.accentText}15 0%,transparent 70%)`, transform: 'translate(30%,-30%)', pointerEvents: 'none', opacity: hovered ? 1 : 0, transition: 'opacity 0.22s' }} />
+      {/* Glow effect */}
+      <div style={{
+        position: 'absolute',
+        top: 0, right: 0,
+        width: 120, height: 120,
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${block.accentText}15 0%, transparent 70%)`,
+        transform: 'translate(30%, -30%)',
+        pointerEvents: 'none',
+        opacity: hovered ? 1 : 0,
+        transition: 'opacity 0.3s',
+      }} />
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 'auto' }}>
         <div style={{
-          width: large ? 60 : 52,
-          height: large ? 60 : 52,
-          borderRadius: 16,
-          background: hovered ? `${block.accentText}22` : `${block.accentText}15`,
+          width: large ? 52 : 44,
+          height: large ? 52 : 44,
+          borderRadius: 14,
+          background: hovered ? `${block.accentText}18` : 'rgba(255,255,255,0.04)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 0.22s',
+          transition: 'all 0.25s',
+          border: hovered ? `1px solid ${block.accentText}22` : '1px solid rgba(255,255,255,0.04)',
         }}>
-          <block.icon size={large ? 28 : 24} style={{ color: block.accentText }} strokeWidth={hovered ? 2.2 : 1.8} />
+          <block.icon size={large ? 24 : 20} style={{ color: block.accentText }} strokeWidth={hovered ? 2.2 : 1.8} />
         </div>
 
         {badgeText && (
           <span style={{
             display: 'inline-flex', alignItems: 'center',
-            padding: '4px 10px', borderRadius: 20,
-            fontSize: 11, fontWeight: 700, letterSpacing: '0.02em',
-            background: badgeStyle.bg, color: badgeStyle.color,
+            padding: '3px 10px',
+            borderRadius: 20,
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.02em',
+            background: badgeStyle.bg,
+            color: badgeStyle.color,
+            border: `1px solid ${badgeStyle.color}22`,
           }}>
             {badgeText}
           </span>
         )}
       </div>
 
-      <div style={{ marginTop: large ? 24 : 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+      <div style={{ marginTop: large ? 20 : 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
           <h3 style={{
-            fontSize: large ? 18 : 15,
-            fontWeight: 800, color: D.text,
-            margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2,
+            fontSize: large ? 17 : 14,
+            fontWeight: 800,
+            color: D.text,
+            margin: 0,
+            letterSpacing: '-0.02em',
+            lineHeight: 1.2,
           }}>
             {block.label}
           </h3>
-          <ChevronRight size={large ? 16 : 14} style={{
-            transition: 'transform 0.18s,color 0.15s',
-            transform: hovered ? 'translateX(3px)' : 'translateX(0)',
+          <ChevronRight size={large ? 15 : 13} style={{
+            transition: 'transform 0.2s,color 0.15s',
+            transform: hovered ? 'translateX(4px)' : 'translateX(0)',
             color: hovered ? block.accentText : D.muted,
           }} />
         </div>
-        <p style={{ 
-          fontSize: large ? 14 : 13, 
-          color: D.muted, 
-          margin: 0, 
-          lineHeight: 1.5, 
-          fontWeight: 500 
+        <p style={{
+          fontSize: large ? 13 : 12,
+          color: D.muted,
+          margin: 0,
+          lineHeight: 1.5,
+          fontWeight: 400,
         }}>
           {block.description}
         </p>
+
+        {/* Large card extra info */}
         {large && block.id === 'users' && (
-          <div style={{ marginTop: 12, display: 'flex', gap: 16 }}>
-            <span style={{ fontSize: 12, color: D.green, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.green }} /> 12 Active
+          <div style={{ marginTop: 12, display: 'flex', gap: 14 }}>
+            <span style={{ fontSize: 11, color: D.green, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: D.green }} /> 12 Active
             </span>
-            <span style={{ fontSize: 12, color: D.amber, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.amber }} /> 6 Pending
+            <span style={{ fontSize: 11, color: D.amber, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: D.amber }} /> 6 Pending
             </span>
           </div>
         )}
         {large && block.id === 'reports' && (
-          <div style={{ marginTop: 12, display: 'flex', gap: 16 }}>
-            <span style={{ fontSize: 12, color: D.accent, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <FileText size={12} /> 5 New Reports
+          <div style={{ marginTop: 12, display: 'flex', gap: 14 }}>
+            <span style={{ fontSize: 11, color: D.accent, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <FileText size={11} /> 5 New Reports
             </span>
-            <span style={{ fontSize: 12, color: D.green, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <ArrowUpRight size={12} /> +12% This Week
+            <span style={{ fontSize: 11, color: D.green, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <ArrowUpRight size={11} /> +12% This Week
             </span>
           </div>
         )}
         {large && block.id === 'catalog' && (
-          <div style={{ marginTop: 12, display: 'flex', gap: 16 }}>
-            <span style={{ fontSize: 12, color: '#A78BFA', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Settings size={12} /> {block.id === 'catalog' ? 'Groups & Units' : ''}
+          <div style={{ marginTop: 12, display: 'flex', gap: 14 }}>
+            <span style={{ fontSize: 11, color: D.purple, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Settings size={11} /> Groups & Units
             </span>
-            <span style={{ fontSize: 12, color: D.green, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Boxes size={12} /> Manage Catalog
+            <span style={{ fontSize: 11, color: D.green, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Boxes size={11} /> Manage Catalog
             </span>
           </div>
         )}
@@ -25557,13 +25920,7 @@ export default function ReviewOrdersPage() {
 ## File: src/pages/Salesman/RouteExecution.tsx
 ````typescript
 // PATH: src/pages/Salesman/RouteExecution.tsx
-// FIXES:
-// 1. "No Order" button - stays on page, moves to next customer
-// 2. "Skip" button - stays on page, moves to next customer
-// 3. Auto-advance to next pending customer after marking
-// 4. Better error handling - doesn't redirect on 400
-// 5. Shows visual feedback when moving to next customer
-// UPDATED: Dark theme with orange accent
+// UPDATED: Red borders for pending, orange Take Order button
 
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -25583,20 +25940,22 @@ const D = {
   surface:  '#1e293b',
   surface2: '#243447',
   border:   '#334155',
-  accent:   '#ea580c',
-  accentH:  '#c2410c',
+  accent:   '#ea580c',        // Orange for Take Order button
+  accentH:  '#c2410c',        // Darker orange on hover
   accentGlow: 'rgba(234,88,12,0.25)',
   text:     '#f1f5f9',
   muted:    '#94a3b8',
   sub:      '#64748b',
   green:    '#22c55e',
-  red:      '#ef4444',
+  red:      '#ef4444',        // Red for pending cards
+  redGlow:  'rgba(239,68,68,0.20)',
+  blue:     '#2563eb',
   amber:    '#f59e0b',
   card:     '#1e293b',
 };
 
 const STATUS_META: Record<VisitStatus, { label: string; bg: string; color: string; border: string; icon: React.ReactNode }> = {
-  Pending:     { label: 'Pending',    bg: 'rgba(234,88,12,0.12)', color: D.accent, border: 'rgba(234,88,12,0.25)', icon: <Clock size={14} /> },
+  Pending:     { label: 'Pending',    bg: 'rgba(239,68,68,0.10)', color: D.red, border: 'rgba(239,68,68,0.30)', icon: <Clock size={14} /> },
   OrderPlaced: { label: 'Order Done', bg: 'rgba(34,197,94,0.12)', color: D.green, border: 'rgba(34,197,94,0.25)', icon: <CheckCircle2 size={14} /> },
   Skipped:     { label: 'Skipped',    bg: 'rgba(239,68,68,0.12)', color: D.red, border: 'rgba(239,68,68,0.25)', icon: <XCircle size={14} /> },
   NoOrder:     { label: 'No Order',   bg: 'rgba(239,68,68,0.12)', color: D.red, border: 'rgba(239,68,68,0.25)', icon: <AlertCircle size={14} /> },
@@ -25689,8 +26048,8 @@ export default function RouteExecution() {
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         element.style.transition = 'border-color 0.3s, box-shadow 0.3s';
-        element.style.borderColor = '#22C55E';
-        element.style.boxShadow = '0 0 0 3px rgba(34,197,94,0.3)';
+        element.style.borderColor = '#ef4444';
+        element.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.25)';
         setTimeout(() => {
           element.style.borderColor = '';
           element.style.boxShadow = '';
@@ -26083,7 +26442,7 @@ export default function RouteExecution() {
             <div style={{ fontSize: 16, fontWeight: 800, color: D.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{execution.routeName}</div>
             <div style={{ fontSize: 13, color: D.muted, fontWeight: 500, marginTop: 1 }}>{doneCount} of {total} done · {pendingCount} pending</div>
             {nextCustomer && pendingCount > 0 && (
-              <div style={{ fontSize: 11, color: D.green, fontWeight: 600, marginTop: 2 }}>
+              <div style={{ fontSize: 11, color: D.red, fontWeight: 600, marginTop: 2 }}>
                 → Next: <span style={{ fontWeight: 700 }}>{nextCustomer}</span>
               </div>
             )}
@@ -26193,14 +26552,16 @@ export default function RouteExecution() {
               key={visit.customerId}
               id={`customer-${visit.customerId}`}
               style={{
-                background: D.surface, borderRadius: 16, overflow: 'hidden',
+                background: D.surface, 
+                borderRadius: 16, 
+                overflow: 'hidden',
                 border: isPending
-                  ? (isNext ? `3px solid ${D.green}` : `3px solid ${D.red}`)
+                  ? `2px solid ${D.red}`      // Red border for pending
                   : visit.visitStatus === 'OrderPlaced'
-                    ? `2px solid ${D.green}`
-                    : `2px solid ${D.red}`,
+                    ? `2px solid ${D.green}`   // Green border for done
+                    : `2px solid ${D.red}`,    // Red border for skipped/no order
                 boxShadow: isPending
-                  ? (isNext ? `0 4px 20px rgba(34,197,94,0.22)` : `0 4px 18px rgba(239,68,68,0.18)`)
+                  ? `0 2px 12px ${D.redGlow}`
                   : visit.visitStatus === 'OrderPlaced'
                     ? `0 2px 8px rgba(34,197,94,0.12)`
                     : `0 2px 8px rgba(239,68,68,0.10)`,
@@ -26208,31 +26569,13 @@ export default function RouteExecution() {
                 transition: 'all 0.3s ease',
               }}
             >
-              {/* "Next" badge for the next pending customer */}
-              {isPending && isNext && (
-                <div style={{
-                  background: D.green,
-                  color: '#fff',
-                  padding: '4px 12px',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}>
-                  <ChevronRight size={12} /> NEXT
-                </div>
-              )}
-
               <div style={{ padding: '16px 18px 14px', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                 <div style={{
                   width: 50, height: 50, borderRadius: 12, flexShrink: 0,
-                  background: isPending ? `linear-gradient(135deg, ${D.accent}, ${D.accentH})` : meta.bg,
+                  background: isPending ? D.red : meta.bg,
                   border: isPending ? 'none' : `1px solid ${meta.border}`,
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: isPending ? `0 3px 10px ${D.accentGlow}` : 'none',
+                  boxShadow: isPending ? `0 3px 10px ${D.redGlow}` : 'none',
                 }}>
                   <span style={{ fontSize: 11, fontWeight: 600, color: isPending ? 'rgba(255,255,255,0.7)' : D.muted }}>STOP</span>
                   <span style={{ fontSize: 22, fontWeight: 900, color: isPending ? '#fff' : meta.color, lineHeight: 1 }}>{visit.sequenceOrder}</span>
@@ -26259,7 +26602,7 @@ export default function RouteExecution() {
                   </div>
                   {isPending && nextStop && (
                     <div style={{ marginTop: 5, fontSize: 11, color: D.sub }}>
-                      → Next: <span style={{ fontWeight: 600, color: D.accent }}>{nextStop}</span>
+                      → Next: <span style={{ fontWeight: 600, color: D.red }}>{nextStop}</span>
                     </div>
                   )}
                 </div>
@@ -26302,7 +26645,7 @@ export default function RouteExecution() {
                       }, 80);
                     }}
                     disabled={isBusy}
-                    style={{ width: '100%', padding: '13px 18px', background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: isBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'inherit' }}
+                    style={{ width: '100%', padding: '13px 18px', background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: isBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'inherit', boxShadow: `0 4px 14px ${D.accentGlow}` }}
                   >
                     {isBusy ? <Spinner size={15} /> : <ShoppingCart size={17} />}
                     Take Order
@@ -26444,7 +26787,7 @@ export default function RouteExecution() {
 // Card-based customer list for a route. Tapping a card jumps straight to
 // order entry for that customer. Search matches name/phone as before, plus:
 // typing a plain number (e.g. "1") jumps to the shop at that stop/sequence
-// number, rather than doing a text search on it.
+// number, rather than doing a text search on it..
 
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';

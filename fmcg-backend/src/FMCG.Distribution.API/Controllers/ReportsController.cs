@@ -174,4 +174,28 @@ public class ReportsController(IMediator mediator) : ControllerBase
 
         return File(result.Data!, "application/pdf", fileName);
     }
+
+    // PATH: src/FMCG.Distribution.API/Controllers/ReportsController.cs
+    // ADD THIS ENDPOINT
+
+    [HttpGet("loading-sheet-all")]
+    [Authorize(Roles = "Warehouse,Admin,SuperAdmin")]
+    public async Task<IActionResult> GetLoadingSheetAll(
+        [FromQuery] DateTime? date)
+    {
+        var query = new GetLoadingSheetAllQuery
+        {
+            Date = date
+        };
+
+        var result = await mediator.Send(query);
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error });
+        }
+
+        var fileName = $"LoadingSheet_AllRoutes_{date:yyyyMMdd}.pdf";
+        return File(result.Data!, "application/pdf", fileName);
+    }
 }

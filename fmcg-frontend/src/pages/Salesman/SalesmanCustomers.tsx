@@ -2,7 +2,7 @@
 // Card-based customer list for a route. Tapping a card jumps straight to
 // order entry for that customer. Search matches name/phone as before, plus:
 // typing a plain number (e.g. "1") jumps to the shop at that stop/sequence
-// number, rather than doing a text search on it.
+// number, rather than doing a text search on it..
 
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
