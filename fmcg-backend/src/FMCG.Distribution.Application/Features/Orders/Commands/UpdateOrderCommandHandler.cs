@@ -1,5 +1,7 @@
 ﻿// PATH: src/FMCG.Distribution.Application/Features/Orders/Commands/UpdateOrderCommandHandler.cs
 // UPDATED: Allow Admin to edit Approved orders (not just Draft/PendingApproval)
+// FIXED: New items added to existing orders now use product.BasePrice for BasePriceAtTime
+//        instead of incorrectly using SellingPrice.
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -133,7 +135,7 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
                     Quantity = qty,
                     UnitId = itemDto.UnitId,
                     SellingPrice = itemDto.SellingPrice,
-                    BasePriceAtTime = itemDto.SellingPrice,
+                    BasePriceAtTime = product.BasePrice,  // ← FIXED: Use product's current base price, not SellingPrice
                     QuantityBags = itemDto.QuantityBags,
                     QuantityBoxes = itemDto.QuantityBoxes,
                     QuantityTins = itemDto.QuantityTins,
