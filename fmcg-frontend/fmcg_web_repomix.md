@@ -228,7 +228,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.bqeepfga3dc"
+    "revision": "0.g6tjqlksr6"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -11082,7 +11082,7 @@ export function AdminAnalytics() {
 ## File: src/pages/Admin/AdminCatalogConfig.tsx
 ````typescript
 // PATH: src/pages/Admin/AdminCatalogConfig.tsx
-// UPDATED: Added Size Groups tab with full CRUD, added UQC field to Units
+// UPDATED: Added isMobile for responsive grid
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -11095,6 +11095,7 @@ import { productGroupsApi, unitsApi, sizeGroupsApi } from '../../api/services';
 import type { ProductGroupDto, UnitDto, UnitPriorityDto, SizeGroupDto } from '../../types';
 import { Spinner, Alert, ConfirmModal } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -11721,6 +11722,7 @@ function UnitModal({
 export function AdminCatalogConfig() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const isMobile = useIsMobile(); // ── ADDED ──
 
   // State for Groups
   const [groups, setGroups] = useState<ProductGroupDto[]>([]);
@@ -12076,8 +12078,12 @@ export function AdminCatalogConfig() {
         {error && <Alert variant="error">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
 
-        {/* ── Four Column Layout ───────────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16 }}>
+        {/* ── Responsive Grid ── FIXED ── */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr 1fr', 
+          gap: 16 
+        }}>
 
           {/* ── Groups Card ── */}
           <div style={{
@@ -14596,8 +14602,7 @@ export function AdminIncentives() {
 ## File: src/pages/Admin/AdminOrderEdit.tsx
 ````typescript
 // PATH: src/pages/Admin/AdminOrderEdit.tsx
-// FIXED: Show Save button even when order has no items
-// Added Cancel Order option for admin when order is empty
+// FIXED: Quantity and Price inputs now properly editable
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -14613,6 +14618,7 @@ import {
 } from '../../types';
 import { Spinner, ConfirmModal, Alert } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -14675,16 +14681,26 @@ function ItemCard({
   onToggleExpand,
   onQtyChange,
   onPriceChange,
+  onQtyBlur,
+  onPriceBlur,
   onRemove,
   canEdit,
+  isMobile,
+  displayQty,
+  displayPrice,
 }: {
   line: LineItem;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onQtyChange: (value: string) => void;
-  onPriceChange: (value: string) => void;
+  onQtyChange: (productId: string, value: string) => void;
+  onPriceChange: (productId: string, value: string) => void;
+  onQtyBlur: (productId: string) => void;
+  onPriceBlur: (productId: string) => void;
   onRemove: () => void;
   canEdit: boolean;
+  isMobile: boolean;
+  displayQty: string;
+  displayPrice: string;
 }) {
   const variance = line.product.basePrice
     ? ((line.sellingPrice - line.product.basePrice) / line.product.basePrice) * 100
@@ -14748,68 +14764,116 @@ function ItemCard({
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-        <div style={{ width: 110, flexShrink: 0, minWidth: 0 }}>
+      {/* ── Responsive fields ── */}
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? 8 : 10, 
+        alignItems: isMobile ? 'stretch' : 'flex-end'
+      }}>
+        {/* Item Code - full width on mobile */}
+        <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Item Code</p>
           <div style={{
-            padding: '8px 8px', borderRadius: 8, border: `1px solid ${D.border}`,
-            background: D.bg, fontSize: 13, fontWeight: 800, color: D.text,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            padding: '8px 8px',
+            borderRadius: 8,
+            border: `1px solid ${D.border}`,
+            background: D.bg,
+            fontSize: 13,
+            fontWeight: 800,
+            color: D.text,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}>
             {line.product.itemCode || '—'}
           </div>
         </div>
 
-        <div style={{ width: 64, flexShrink: 0 }}>
+        {/* Qty - responsive width */}
+        <div style={{ width: isMobile ? '100%' : 64, flexShrink: 0 }}>
           <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Qty</p>
           <input
             type="text"
             inputMode="numeric"
-            value={line.qty === 0 ? '' : String(line.qty)}
-            onChange={e => onQtyChange(e.target.value)}
+            value={displayQty}
+            onChange={(e) => onQtyChange(line.productId, e.target.value)}
+            onBlur={() => onQtyBlur(line.productId)}
+            onFocus={(e) => e.target.select()}
             disabled={!canEdit}
             style={{
               width: '100%',
               textAlign: 'center',
               padding: '8px 4px',
-              border: `1px solid ${D.border}`,
+              border: `1px solid ${canEdit ? D.accent : D.border}`,
               borderRadius: 8,
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: 800,
               background: canEdit ? D.surface2 : D.bg,
               color: D.text,
               fontFamily: 'inherit',
               outline: 'none',
               boxSizing: 'border-box',
+              transition: 'all 0.15s',
             }}
           />
         </div>
 
-        <div style={{ width: 84, flexShrink: 0 }}>
+        {/* Price - responsive width */}
+        <div style={{ width: isMobile ? '100%' : 84, flexShrink: 0 }}>
           <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Price ₹</p>
           <input
             type="text"
             inputMode="decimal"
-            value={line.sellingPrice > 0 ? String(line.sellingPrice) : ''}
-            onChange={e => onPriceChange(e.target.value)}
+            value={displayPrice}
+            onChange={(e) => onPriceChange(line.productId, e.target.value)}
+            onBlur={() => onPriceBlur(line.productId)}
+            onFocus={(e) => e.target.select()}
             disabled={!canEdit}
             placeholder={String(line.product.basePrice ?? 0)}
             style={{
               width: '100%',
               textAlign: 'center',
               padding: '8px 4px',
-              border: `1px solid ${D.border}`,
+              border: `1px solid ${canEdit ? D.accent : D.border}`,
               borderRadius: 8,
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: 800,
               background: canEdit ? D.surface2 : D.bg,
               color: D.text,
               fontFamily: 'inherit',
               outline: 'none',
               boxSizing: 'border-box',
+              transition: 'all 0.15s',
             }}
           />
         </div>
+
+        {/* Delete button - full width on mobile, inline on desktop */}
+        {canEdit && (
+          <button
+            onClick={onRemove}
+            style={{
+              width: isMobile ? '100%' : 'auto',
+              padding: isMobile ? '10px' : '8px 9px',
+              borderRadius: 8,
+              border: '1px solid rgba(239,68,68,0.22)',
+              background: 'rgba(239,68,68,0.10)',
+              color: '#f87171',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              fontFamily: 'inherit',
+              flexShrink: 0,
+              marginTop: isMobile ? 0 : 'auto',
+            }}
+          >
+            <Trash2 size={15} />
+            {isMobile && <span style={{ fontSize: 12, fontWeight: 600 }}>Remove</span>}
+          </button>
+        )}
       </div>
 
       {isExpanded && (
@@ -14818,7 +14882,7 @@ function ItemCard({
           paddingTop: 12,
           borderTop: `1px solid ${D.border}`,
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fill, minmax(120px, 1fr))',
           gap: 8,
         }}>
           <div style={{ background: D.bg, borderRadius: 8, padding: '8px 12px' }}>
@@ -14849,6 +14913,7 @@ export function AdminOrderEdit() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const isMobile = useIsMobile();
 
   const [order, setOrder] = useState<OrderDetailDto | null>(null);
   const [customer, setCustomer] = useState<CustomerDto | null>(null);
@@ -14865,8 +14930,10 @@ export function AdminOrderEdit() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [tempQuantities, setTempQuantities] = useState<Record<string, string>>({});
-  const [tempPrices, setTempPrices] = useState<Record<string, string>>({});
+  
+  // ── FIX: Use local state for input values, not temp state ──
+  // We directly use line.qty and line.sellingPrice as the source of truth
+  // and update them immediately on input change.
 
   useEffect(() => {
     if (!orderId) {
@@ -14934,56 +15001,80 @@ export function AdminOrderEdit() {
     setShowSearch(false);
   }, []);
 
-  const handleQtyInput = (productId: string, value: string) => {
-    setTempQuantities(prev => ({ ...prev, [productId]: value }));
-  };
-
-  const handleQtyBlur = (productId: string) => {
-    const tmp = tempQuantities[productId];
-    if (tmp === undefined) return;
-    setTempQuantities(prev => { const n = { ...prev }; delete n[productId]; return n; });
-    const n = parseInt(tmp, 10);
-    if (!tmp || isNaN(n) || n <= 0) {
-      setLines(prev => prev.filter(l => l.product.id !== productId));
-    } else {
-      setLines(prev => prev.map(l => l.product.id === productId ? { ...l, qty: n } : l));
+  // ── FIX: Directly update qty on input change ──
+  const handleQtyChange = (productId: string, value: string) => {
+    const numValue = parseInt(value, 10);
+    if (value === '' || value === '-') {
+      // Allow empty or minus sign temporarily
+      setLines(prev => prev.map(l => 
+        l.productId === productId ? { ...l, qty: 0 } : l
+      ));
+      return;
+    }
+    if (!isNaN(numValue) && numValue >= 0) {
+      setLines(prev => prev.map(l => 
+        l.productId === productId ? { ...l, qty: numValue } : l
+      ));
     }
   };
 
-  const handlePriceInput = (productId: string, value: string) => {
-    setTempPrices(prev => ({ ...prev, [productId]: value }));
+  // ── FIX: Directly update price on input change ──
+  const handlePriceChange = (productId: string, value: string) => {
+    const numValue = parseFloat(value);
+    if (value === '' || value === '.') {
+      // Allow empty or decimal point temporarily
+      setLines(prev => prev.map(l => 
+        l.productId === productId ? { ...l, sellingPrice: 0 } : l
+      ));
+      return;
+    }
+    if (!isNaN(numValue) && numValue >= 0) {
+      setLines(prev => prev.map(l => 
+        l.productId === productId ? { ...l, sellingPrice: numValue } : l
+      ));
+    }
+  };
+
+  // ── FIX: On blur, clean up invalid values ──
+  const handleQtyBlur = (productId: string) => {
+    setLines(prev => prev.map(l => {
+      if (l.productId === productId) {
+        // If qty is 0 or invalid, remove the item
+        if (l.qty <= 0) {
+          return null;
+        }
+        return l;
+      }
+      return l;
+    }).filter((l): l is LineItem => l !== null));
   };
 
   const handlePriceBlur = (productId: string) => {
-    const tmp = tempPrices[productId];
-    if (tmp === undefined) return;
-    setTempPrices(prev => { const n = { ...prev }; delete n[productId]; return n; });
-    const n = parseFloat(tmp);
-    if (tmp === '' || isNaN(n) || n < 0) return;
-    setLines(prev => prev.map(l => l.product.id === productId ? { ...l, sellingPrice: n } : l));
-  };
-
-  const getDisplayQty = (productId: string, qty: number) => {
-    const tmp = tempQuantities[productId];
-    return tmp !== undefined ? tmp : qty === 0 ? '' : String(qty);
-  };
-
-  const getDisplayPrice = (productId: string, price: number) => {
-    const tmp = tempPrices[productId];
-    return tmp !== undefined ? tmp : price === 0 ? '' : String(price);
+    setLines(prev => prev.map(l => {
+      if (l.productId === productId) {
+        // If price is 0 or invalid, set to base price
+        if (l.sellingPrice <= 0) {
+          const product = products.find(p => String(p.id) === productId);
+          return { ...l, sellingPrice: product?.basePrice || 0 };
+        }
+        return l;
+      }
+      return l;
+    }));
   };
 
   const removeItem = (productId: string) => {
-    setLines(prev => prev.filter(l => l.product.id !== productId));
-    setTempQuantities(prev => { const n = { ...prev }; delete n[productId]; return n; });
-    setTempPrices(prev => { const n = { ...prev }; delete n[productId]; return n; });
+    setLines(prev => prev.filter(l => l.productId !== productId));
   };
 
   const totalItems = lines.reduce((s, l) => s + l.qty, 0);
 
   const buildPayload = () => {
+    const currentUser = user;
     return {
       id: orderId,
+      salesmanId: currentUser?.id || '',
+      isAdmin: true,
       customerId: String(order?.customerId),
       routeId: String(order?.routeId),
       orderDate: order?.orderDate || new Date().toISOString(),
@@ -14994,33 +15085,34 @@ export function AdminOrderEdit() {
         quantity: l.qty,
         unitId: l.product.productUnitId,
         sellingPrice: l.sellingPrice,
-      } as CreateOrderItemDto)),
+      })),
     };
   };
 
   const handleSave = async () => {
-    // ── FIX: Allow saving even with no items (clears the order) ──
     setSaving(true);
     setError('');
     setSuccessMsg('');
 
     try {
-      await ordersApi.update(orderId!, buildPayload());
+      const payload = buildPayload();
+      console.log('[AdminOrderEdit] Saving payload:', payload);
+      
+      await ordersApi.update(orderId!, payload);
       setSuccessMsg(lines.length === 0 ? 'Order cleared successfully!' : 'Order updated successfully!');
-      // Reload to reflect changes
       const updated = await ordersApi.getById(orderId!);
       setOrder(updated);
       setTimeout(() => {
         navigate('/admin/orders');
       }, 1500);
     } catch (err: unknown) {
+      console.error('[AdminOrderEdit] Save error:', err);
       setError(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setSaving(false);
     }
   };
 
-  // ── Cancel Order (Admin) ──
   const handleCancelOrder = async () => {
     if (!orderId) return;
     setCancelling(true);
@@ -15303,7 +15395,6 @@ export function AdminOrderEdit() {
             <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>No items in this order</p>
             <p style={{ fontSize: 12, color: D.sub, marginTop: 4 }}>Click the search bar above to add products</p>
             
-            {/* ── Cancel Order button when empty ── */}
             {isDraft && (
               <button
                 onClick={() => setShowCancelConfirm(true)}
@@ -15336,16 +15427,25 @@ export function AdminOrderEdit() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {lines.map(line => {
             const isExpanded = expandedProduct === line.product.id;
+            // ── FIX: Directly use line values for display ──
+            const displayQty = line.qty === 0 ? '' : String(line.qty);
+            const displayPrice = line.sellingPrice === 0 ? '' : String(line.sellingPrice);
+            
             return (
               <ItemCard
                 key={line.product.id}
                 line={line}
                 isExpanded={isExpanded}
                 onToggleExpand={() => setExpandedProduct(isExpanded ? null : line.product.id)}
-                onQtyChange={(value) => handleQtyInput(line.product.id, value)}
-                onPriceChange={(value) => handlePriceInput(line.product.id, value)}
-                onRemove={() => setShowDeleteConfirm(line.product.id)}
+                onQtyChange={handleQtyChange}
+                onPriceChange={handlePriceChange}
+                onQtyBlur={handleQtyBlur}
+                onPriceBlur={handlePriceBlur}
+                onRemove={() => removeItem(line.productId)}
                 canEdit={canEdit}
+                isMobile={isMobile}
+                displayQty={displayQty}
+                displayPrice={displayPrice}
               />
             );
           })}
@@ -22812,7 +22912,7 @@ export function RegisterPage() {
 ## File: src/pages/Dashboard/HomeHub.tsx
 ````typescript
 // PATH: src/pages/Dashboard/HomeHub.tsx
-// UPDATED: Premium dark theme with gradients and depth
+// UPDATED: Added isMobile for responsive grid
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -22827,6 +22927,7 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { routesApi, customersApi, ordersApi, settlementApi } from '../../api/services';
 import { fmt } from '../../types';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // ── Premium Dark Theme tokens ─────────────────────────────────────────────────
 const D = {
@@ -23039,6 +23140,7 @@ function getDateString(): string {
 export function HomeHub() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const isMobile = useIsMobile(); // ── ADDED ──
   const [fabOpen, setFabOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [liveStats, setLiveStats] = useState<{
@@ -23208,10 +23310,10 @@ export function HomeHub() {
           </div>
         </div>
 
-        {/* ── Main Nav Grid (Route Hub, Orders, Customers) ── */}
+        {/* ── Main Nav Grid (Route Hub, Orders, Customers) ── FIXED ── */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: mainBlocks.length >= 3 ? 'repeat(3,1fr)' : mainBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
+          gridTemplateColumns: isMobile ? '1fr' : mainBlocks.length >= 3 ? 'repeat(3,1fr)' : mainBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
           gap: 14,
           marginBottom: 14,
           opacity: mounted ? 1 : 0,
@@ -23222,11 +23324,11 @@ export function HomeHub() {
           ))}
         </div>
 
-        {/* ── Admin Large Cards: Products, Users, Reports, Catalog ── */}
+        {/* ── Admin Large Cards: Products, Users, Reports, Catalog ── FIXED ── */}
         {isAdmin && largeBlocks.length > 0 && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: largeBlocks.length === 4 ? 'repeat(4,1fr)' : largeBlocks.length === 3 ? 'repeat(3,1fr)' : largeBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
+            gridTemplateColumns: isMobile ? '1fr' : largeBlocks.length === 4 ? 'repeat(4,1fr)' : largeBlocks.length === 3 ? 'repeat(3,1fr)' : largeBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
             gap: 14,
             marginBottom: 14,
             opacity: mounted ? 1 : 0,
@@ -23242,7 +23344,7 @@ export function HomeHub() {
         {isAdmin && statCards.length > 0 && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${statCards.length}, 1fr)`,
+            gridTemplateColumns: isMobile ? '1fr' : `repeat(${statCards.length}, 1fr)`,
             gap: 14,
             marginBottom: 14,
             opacity: mounted ? 1 : 0,
@@ -23316,7 +23418,7 @@ export function HomeHub() {
             </h3>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+              gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fill, minmax(140px, 1fr))',
               gap: 8,
             }}>
               {moreTools.map(tool => {
@@ -23439,7 +23541,7 @@ export function HomeHub() {
             </div>
 
             <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(155px,1fr))',
+              display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fill,minmax(155px,1fr))',
               gap: 10, padding: '18px 20px',
             }}>
               {quickActions.map(action => (

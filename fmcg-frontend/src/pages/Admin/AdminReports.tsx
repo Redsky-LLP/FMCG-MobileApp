@@ -1,9 +1,12 @@
 // PATH: src/pages/Admin/AdminReports.tsx
-// UPDATED: Dark theme with orange accent, added Back to Dashboard button
+// UPDATED: Full working version with Preview + Download, native PDF viewer with zoom
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Download, RefreshCw, Loader, CalendarDays, Route as RouteIcon, ArrowLeft } from 'lucide-react';
+import { 
+  FileText, Download, RefreshCw, Loader, CalendarDays, 
+  ArrowLeft, Eye, X, CheckCircle, AlertCircle, Maximize2 
+} from 'lucide-react';
 import { reportsApi, routesApi, productGroupsApi, triggerPdfDownload } from '../../api/services';
 import type { RouteDto, ProductGroupDto } from '../../types';
 import { Alert } from '../../components/ui';
@@ -31,6 +34,313 @@ const D = {
 const today = new Date().toISOString().split('T')[0];
 const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
 
+// ── Reusable date input style for better visibility ────────────────────────
+const dateInputStyle = (isMobile: boolean): React.CSSProperties => ({
+  width: isMobile ? '100%' : 'auto',
+  background: D.surface,
+  border: `1px solid ${D.border}`,
+  color: D.text,
+  borderRadius: 8,
+  padding: '8px 12px',
+  fontSize: 13,
+  fontFamily: 'inherit',
+  outline: 'none',
+  colorScheme: 'dark',
+  WebkitAppearance: 'none',
+  minWidth: isMobile ? 'auto' : '150px',
+});
+
+const selectStyle = (isMobile: boolean): React.CSSProperties => ({
+  width: isMobile ? '100%' : 'auto',
+  background: D.surface,
+  border: `1px solid ${D.border}`,
+  color: D.text,
+  borderRadius: 8,
+  padding: '8px 12px',
+  fontSize: 13,
+  fontFamily: 'inherit',
+  outline: 'none',
+  cursor: 'pointer',
+  minWidth: isMobile ? 'auto' : '140px',
+});
+
+// ── Preview Modal Component ──────────────────────────────────────────────────
+function PreviewModal({ 
+  isOpen, 
+  onClose, 
+  pdfUrl, 
+  title,
+  isLoading,
+  onDownload,
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  pdfUrl: string | null;
+  title: string;
+  isLoading: boolean;
+  onDownload: () => void;
+}) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  if (!isOpen) return null;
+
+  // Use native PDF viewer with zoom=page-fit for better scaling
+  const viewerUrl = pdfUrl 
+    ? `${pdfUrl}#zoom=page-fit&toolbar=1&navpanes=1&scrollbar=1`
+    : null;
+
+  return (
+    <>
+      {/* Overlay */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.8)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 999,
+        }}
+      />
+      
+      {/* Modal */}
+      <div
+        style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: isFullscreen ? '98vw' : 'min(calc(100vw - 32px), 1100px)',
+          height: isFullscreen ? '98vh' : 'min(calc(100vh - 40px), 900px)',
+          background: D.surface,
+          borderRadius: isFullscreen ? 0 : 16,
+          border: `1px solid ${D.border}`,
+          boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          transition: 'all 0.3s ease',
+        }}
+      >
+        {/* Modal Header */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '14px 20px',
+            borderBottom: `1px solid ${D.border}`,
+            flexShrink: 0,
+            background: D.surface,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: `${D.accent}22`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <FileText size={16} color={D.accent} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: D.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {title}
+              </div>
+              <div style={{ fontSize: 11, color: D.sub }}>
+                {isLoading ? 'Generating preview...' : pdfUrl ? '✓ Ready - Use mouse wheel to zoom' : 'No data'}
+              </div>
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: 'transparent',
+                cursor: 'pointer',
+                color: D.muted,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            >
+              <Maximize2 size={14} />
+            </button>
+            <button
+              onClick={onClose}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: 'transparent',
+                cursor: 'pointer',
+                color: D.muted,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* PDF Content */}
+        <div
+          style={{
+            flex: 1,
+            overflow: 'hidden',
+            background: D.bg,
+            minHeight: 400,
+            position: 'relative',
+          }}
+        >
+          {isLoading ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                gap: 16,
+                minHeight: 400,
+              }}
+            >
+              <Loader size={48} style={{ animation: 'spin 1s linear infinite', color: D.accent }} />
+              <span style={{ color: D.muted, fontSize: 14 }}>Generating preview...</span>
+            </div>
+          ) : viewerUrl ? (
+            <iframe
+              src={viewerUrl}
+              style={{
+                width: '100%',
+                height: '100%',
+                minHeight: 500,
+                border: 'none',
+                background: '#fff',
+                borderRadius: 4,
+              }}
+              title="PDF Preview"
+            />
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                minHeight: 400,
+                gap: 12,
+                color: D.muted,
+              }}
+            >
+              <AlertCircle size={48} color={D.amber} />
+              <span style={{ fontSize: 16, fontWeight: 600, color: D.text }}>No Preview Available</span>
+              <span style={{ fontSize: 13, color: D.sub }}>No data found for the selected filters</span>
+              <span style={{ fontSize: 12, color: D.muted }}>Try adjusting your filters or download directly</span>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 20px',
+            borderTop: `1px solid ${D.border}`,
+            flexShrink: 0,
+            gap: 10,
+            flexWrap: 'wrap',
+            background: D.surface,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ 
+              fontSize: 11, 
+              color: pdfUrl ? D.green : D.sub,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}>
+              {pdfUrl ? (
+                <><CheckCircle size={12} color={D.green} /> Preview ready</>
+              ) : (
+                <><AlertCircle size={12} color={D.amber} /> No data</>
+              )}
+            </span>
+            {!isFullscreen && pdfUrl && (
+              <span style={{ fontSize: 10, color: D.sub }}>
+                🔍 Scroll to zoom · 📄 Auto-fit to page
+              </span>
+            )}
+          </div>
+          
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '8px 18px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: 'transparent',
+                color: D.muted,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Close
+            </button>
+            <button
+              onClick={onDownload}
+              disabled={!pdfUrl}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 20px',
+                borderRadius: 8,
+                border: 'none',
+                background: pdfUrl ? `linear-gradient(135deg, ${D.accent}, ${D.accentH})` : D.border,
+                color: pdfUrl ? '#fff' : D.muted,
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: pdfUrl ? 'pointer' : 'not-allowed',
+                fontFamily: 'inherit',
+                boxShadow: pdfUrl ? `0 4px 14px ${D.accentGlow}` : 'none',
+                opacity: pdfUrl ? 1 : 0.5,
+              }}
+            >
+              <Download size={14} />
+              Download PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
 export function AdminReports() {
   const { user } = useAuthStore();
   const isMobile = useIsMobile();
@@ -40,6 +350,13 @@ export function AdminReports() {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [error,      setError]      = useState('');
   const [msg,        setMsg]        = useState('');
+
+  // ── Preview state ──
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewDownloadFn, setPreviewDownloadFn] = useState<(() => void) | null>(null);
 
   // Filters per report
   const [loadRoute,  setLoadRoute]  = useState('');
@@ -73,6 +390,50 @@ export function AdminReports() {
     } finally { setDownloading(null); }
   }
 
+  // ── Preview function ──
+  async function previewReport(
+    key: string,
+    title: string,
+    fn: () => Promise<Blob>,
+    downloadFn: () => void
+  ) {
+    setPreviewTitle(title);
+    setPreviewDownloadFn(() => downloadFn);
+    setPreviewOpen(true);
+    setPreviewLoading(true);
+    setPreviewUrl(null);
+
+    try {
+      const blob = await fn();
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to generate preview');
+      // Still show the modal with error state
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  // ── Cleanup preview URL on close ──
+  const handlePreviewClose = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewOpen(false);
+    setPreviewUrl(null);
+    setPreviewDownloadFn(null);
+  };
+
+  // ── Handle download from preview modal ──
+  const handlePreviewDownload = () => {
+    if (previewDownloadFn) {
+      previewDownloadFn();
+      // Close modal after download starts
+      setTimeout(() => handlePreviewClose(), 800);
+    }
+  };
+
   // Report configurations
   const reports = [
     {
@@ -88,18 +449,7 @@ export function AdminReports() {
             className="input" 
             value={loadRoute} 
             onChange={(e) => setLoadRoute(e.target.value)} 
-            style={{ 
-              width: isMobile ? '100%' : 'auto', 
-              background: D.bg, 
-              border: `1px solid ${D.border}`,
-              color: D.text,
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 13,
-              fontFamily: 'inherit',
-              outline: 'none',
-              cursor: 'pointer',
-            }}
+            style={selectStyle(isMobile)}
           >
             <option value="">🌍 All Routes</option>
             {routes.map((r) => <option key={r.id} value={r.id}>📍 {r.name}</option>)}
@@ -109,21 +459,17 @@ export function AdminReports() {
             type="date" 
             value={loadDate} 
             onChange={(e) => setLoadDate(e.target.value)} 
-            style={{ 
-              width: isMobile ? '100%' : 'auto', 
-              background: D.bg, 
-              border: `1px solid ${D.border}`,
-              color: D.text,
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 13,
-              fontFamily: 'inherit',
-              outline: 'none',
-            }}
+            style={dateInputStyle(isMobile)}
           />
         </div>
       ),
       onDownload: () => download('loading', () => reportsApi.downloadLoadingSheet(loadRoute || undefined, loadDate), `LoadingSheet_${loadDate}.pdf`),
+      onPreview: () => {
+        const fn = () => reportsApi.downloadLoadingSheet(loadRoute || undefined, loadDate);
+        const downloadFn = () => download('loading', fn, `LoadingSheet_${loadDate}.pdf`);
+        const routeName = loadRoute ? routes.find(r => r.id === loadRoute)?.name : 'All Routes';
+        previewReport('loading', `Loading Sheet - ${loadDate} (${routeName})`, fn, downloadFn);
+      },
     },
     {
       key: 'billing',
@@ -138,18 +484,7 @@ export function AdminReports() {
             className="input" 
             value={billRoute} 
             onChange={(e) => setBillRoute(e.target.value)} 
-            style={{ 
-              width: isMobile ? '100%' : 'auto', 
-              background: D.bg, 
-              border: `1px solid ${D.border}`,
-              color: D.text,
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 13,
-              fontFamily: 'inherit',
-              outline: 'none',
-              cursor: 'pointer',
-            }}
+            style={selectStyle(isMobile)}
           >
             <option value="">🌍 All Routes</option>
             {routes.map((r) => <option key={r.id} value={r.id}>📍 {r.name}</option>)}
@@ -159,21 +494,17 @@ export function AdminReports() {
             type="date" 
             value={billDate} 
             onChange={(e) => setBillDate(e.target.value)} 
-            style={{ 
-              width: isMobile ? '100%' : 'auto', 
-              background: D.bg, 
-              border: `1px solid ${D.border}`,
-              color: D.text,
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 13,
-              fontFamily: 'inherit',
-              outline: 'none',
-            }}
+            style={dateInputStyle(isMobile)}
           />
         </div>
       ),
       onDownload: () => download('billing', () => reportsApi.downloadBillingSheet(billRoute || undefined, billDate), `BillingSheet_${billDate}.pdf`),
+      onPreview: () => {
+        const fn = () => reportsApi.downloadBillingSheet(billRoute || undefined, billDate);
+        const downloadFn = () => download('billing', fn, `BillingSheet_${billDate}.pdf`);
+        const routeName = billRoute ? routes.find(r => r.id === billRoute)?.name : 'All Routes';
+        previewReport('billing', `Billing Sheet - ${billDate} (${routeName})`, fn, downloadFn);
+      },
     },
     {
       key: 'routeSummary',
@@ -188,18 +519,7 @@ export function AdminReports() {
             className="input" 
             value={routeRptRoute} 
             onChange={(e) => setRouteRptRoute(e.target.value)} 
-            style={{ 
-              width: isMobile ? '100%' : 'auto', 
-              background: D.bg, 
-              border: `1px solid ${D.border}`,
-              color: D.text,
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 13,
-              fontFamily: 'inherit',
-              outline: 'none',
-              cursor: 'pointer',
-            }}
+            style={selectStyle(isMobile)}
           >
             <option value="">🌍 All Routes</option>
             {routes.map((r) => <option key={r.id} value={r.id}>📍 {r.name}</option>)}
@@ -209,17 +529,7 @@ export function AdminReports() {
             type="date" 
             value={routeFrom} 
             onChange={(e) => setRouteFrom(e.target.value)} 
-            style={{ 
-              width: isMobile ? '100%' : 'auto', 
-              background: D.bg, 
-              border: `1px solid ${D.border}`,
-              color: D.text,
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 13,
-              fontFamily: 'inherit',
-              outline: 'none',
-            }}
+            style={dateInputStyle(isMobile)}
           />
           <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
           <input 
@@ -227,21 +537,17 @@ export function AdminReports() {
             type="date" 
             value={routeTo} 
             onChange={(e) => setRouteTo(e.target.value)} 
-            style={{ 
-              width: isMobile ? '100%' : 'auto', 
-              background: D.bg, 
-              border: `1px solid ${D.border}`,
-              color: D.text,
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 13,
-              fontFamily: 'inherit',
-              outline: 'none',
-            }}
+            style={dateInputStyle(isMobile)}
           />
         </div>
       ),
       onDownload: () => download('routeSummary', () => reportsApi.downloadRouteSummary(routeRptRoute || undefined, routeFrom, routeTo), `RouteSummary_${routeFrom}_${routeTo}.pdf`),
+      onPreview: () => {
+        const fn = () => reportsApi.downloadRouteSummary(routeRptRoute || undefined, routeFrom, routeTo);
+        const downloadFn = () => download('routeSummary', fn, `RouteSummary_${routeFrom}_${routeTo}.pdf`);
+        const routeName = routeRptRoute ? routes.find(r => r.id === routeRptRoute)?.name : 'All Routes';
+        previewReport('routeSummary', `Route Summary - ${routeFrom} to ${routeTo} (${routeName})`, fn, downloadFn);
+      },
     },
     {
       key: 'productSummary',
@@ -256,18 +562,7 @@ export function AdminReports() {
             className="input" 
             value={prodGroup} 
             onChange={(e) => setProdGroup(e.target.value)} 
-            style={{ 
-              width: isMobile ? '100%' : 'auto', 
-              background: D.bg, 
-              border: `1px solid ${D.border}`,
-              color: D.text,
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 13,
-              fontFamily: 'inherit',
-              outline: 'none',
-              cursor: 'pointer',
-            }}
+            style={selectStyle(isMobile)}
           >
             <option value="">📦 All Groups</option>
             {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
@@ -277,17 +572,7 @@ export function AdminReports() {
             type="date" 
             value={prodFrom} 
             onChange={(e) => setProdFrom(e.target.value)} 
-            style={{ 
-              width: isMobile ? '100%' : 'auto', 
-              background: D.bg, 
-              border: `1px solid ${D.border}`,
-              color: D.text,
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 13,
-              fontFamily: 'inherit',
-              outline: 'none',
-            }}
+            style={dateInputStyle(isMobile)}
           />
           <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
           <input 
@@ -295,21 +580,17 @@ export function AdminReports() {
             type="date" 
             value={prodTo} 
             onChange={(e) => setProdTo(e.target.value)} 
-            style={{ 
-              width: isMobile ? '100%' : 'auto', 
-              background: D.bg, 
-              border: `1px solid ${D.border}`,
-              color: D.text,
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 13,
-              fontFamily: 'inherit',
-              outline: 'none',
-            }}
+            style={dateInputStyle(isMobile)}
           />
         </div>
       ),
       onDownload: () => download('productSummary', () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo), `ProductSummary_${prodFrom}_${prodTo}.pdf`),
+      onPreview: () => {
+        const fn = () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo);
+        const downloadFn = () => download('productSummary', fn, `ProductSummary_${prodFrom}_${prodTo}.pdf`);
+        const groupName = prodGroup ? groups.find(g => g.id === prodGroup)?.name : 'All Groups';
+        previewReport('productSummary', `Product Summary - ${prodFrom} to ${prodTo} (${groupName})`, fn, downloadFn);
+      },
     },
     {
       key: 'daily',
@@ -324,20 +605,15 @@ export function AdminReports() {
           type="date" 
           value={dailyDate} 
           onChange={(e) => setDailyDate(e.target.value)} 
-          style={{ 
-            width: isMobile ? '100%' : 'auto', 
-            background: D.bg, 
-            border: `1px solid ${D.border}`,
-            color: D.text,
-            borderRadius: 8,
-            padding: '8px 12px',
-            fontSize: 13,
-            fontFamily: 'inherit',
-            outline: 'none',
-          }}
+          style={dateInputStyle(isMobile)}
         />
       ),
       onDownload: () => download('daily', () => reportsApi.downloadDailySummary(dailyDate), `DailySummary_${dailyDate}.pdf`),
+      onPreview: () => {
+        const fn = () => reportsApi.downloadDailySummary(dailyDate);
+        const downloadFn = () => download('daily', fn, `DailySummary_${dailyDate}.pdf`);
+        previewReport('daily', `Daily Summary - ${dailyDate}`, fn, downloadFn);
+      },
     },
   ];
 
@@ -401,7 +677,7 @@ export function AdminReports() {
                 Reports
               </h1>
               <p style={{ color: D.muted, fontSize: 13, marginTop: 4, fontWeight: 500 }}>
-                Download PDF operational reports
+                Preview & download PDF operational reports
               </p>
             </div>
           </div>
@@ -457,46 +733,76 @@ export function AdminReports() {
                   {report.filters}
                 </div>
 
-                <button
-                  onClick={report.onDownload}
-                  disabled={downloading === report.key}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '10px 20px',
-                    borderRadius: 10,
-                    border: 'none',
-                    background: downloading === report.key
-                      ? D.border
-                      : `linear-gradient(135deg, ${report.color}, ${report.color}dd)`,
-                    color: '#fff',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: downloading === report.key ? 'not-allowed' : 'pointer',
-                    fontFamily: 'inherit',
-                    boxShadow: downloading === report.key
-                      ? 'none'
-                      : `0 4px 14px ${report.color}33`,
-                    transition: 'all 0.15s',
-                    flexShrink: 0,
-                  }}
-                  onMouseEnter={e => {
-                    if (downloading !== report.key) {
-                      (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-                      (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${report.color}44`;
+                {/* ── Action Buttons ── */}
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignSelf: 'center' }}>
+                  {/* Preview Button */}
+                  <button
+                    onClick={report.onPreview}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '10px 16px',
+                      borderRadius: 10,
+                      border: `1px solid ${report.color}44`,
+                      background: `${report.color}15`,
+                      color: report.color,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLElement).style.background = `${report.color}25`;
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.background = `${report.color}15`;
+                    }}
+                  >
+                    <Eye size={14} />
+                    Preview
+                  </button>
+
+                  {/* Download Button */}
+                  <button
+                    onClick={report.onDownload}
+                    disabled={downloading === report.key}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '10px 20px',
+                      borderRadius: 10,
+                      border: 'none',
+                      background: downloading === report.key
+                        ? D.border
+                        : `linear-gradient(135deg, ${report.color}, ${report.color}dd)`,
+                      color: '#fff',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: downloading === report.key ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit',
+                      boxShadow: downloading === report.key
+                        ? 'none'
+                        : `0 4px 14px ${report.color}33`,
+                      transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={e => {
+                      if (downloading !== report.key) {
+                        (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                        (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${report.color}44`;
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                      if (downloading !== report.key) {
+                        (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${report.color}33`;
+                      }
+                    }}
+                  >
+                    {downloading === report.key
+                      ? <><Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generating…</>
+                      : <><Download size={14} /> Download</>
                     }
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                    if (downloading !== report.key) {
-                      (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${report.color}33`;
-                    }
-                  }}
-                >
-                  {downloading === report.key
-                    ? <><Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generating…</>
-                    : <><Download size={16} /> Download PDF</>
-                  }
-                </button>
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -515,10 +821,20 @@ export function AdminReports() {
         }}>
           <CalendarDays size={16} color={D.sub} />
           <span style={{ fontSize: 12, color: D.muted }}>
-            Reports are generated in PDF format. All dates are in IST.
+            <strong>Preview</strong> before downloading · Reports are generated in PDF format · All dates in IST
           </span>
         </div>
       </div>
+
+      {/* ── Preview Modal ── */}
+      <PreviewModal
+        isOpen={previewOpen}
+        onClose={handlePreviewClose}
+        pdfUrl={previewUrl}
+        title={previewTitle}
+        isLoading={previewLoading}
+        onDownload={handlePreviewDownload}
+      />
     </div>
   );
 }

@@ -1,12 +1,12 @@
 // PATH: src/pages/Admin/AdminOrderEdit.tsx
-// UPDATED: Mobile-responsive item fields
+// UPDATED: Added "Add Products" button between items and retail remarks
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Search, Trash2, ShoppingCart, Save,
   ChevronDown, ChevronUp, AlertTriangle, ArrowLeft, Package, X, Edit2,
-  Trash
+  Trash, Plus
 } from 'lucide-react';
 import { ordersApi, productsApi, customersApi } from '../../api/services';
 import {
@@ -78,18 +78,26 @@ function ItemCard({
   onToggleExpand,
   onQtyChange,
   onPriceChange,
+  onQtyBlur,
+  onPriceBlur,
   onRemove,
   canEdit,
   isMobile,
+  displayQty,
+  displayPrice,
 }: {
   line: LineItem;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onQtyChange: (value: string) => void;
-  onPriceChange: (value: string) => void;
+  onQtyChange: (productId: string, value: string) => void;
+  onPriceChange: (productId: string, value: string) => void;
+  onQtyBlur: (productId: string) => void;
+  onPriceBlur: (productId: string) => void;
   onRemove: () => void;
   canEdit: boolean;
   isMobile: boolean;
+  displayQty: string;
+  displayPrice: string;
 }) {
   const variance = line.product.basePrice
     ? ((line.sellingPrice - line.product.basePrice) / line.product.basePrice) * 100
@@ -153,7 +161,7 @@ function ItemCard({
         </div>
       </div>
 
-      {/* ── FIX: Responsive fields ── */}
+      {/* ── Responsive fields ── */}
       <div style={{ 
         display: 'flex', 
         flexDirection: isMobile ? 'column' : 'row',
@@ -185,22 +193,25 @@ function ItemCard({
           <input
             type="text"
             inputMode="numeric"
-            value={line.qty === 0 ? '' : String(line.qty)}
-            onChange={e => onQtyChange(e.target.value)}
+            value={displayQty}
+            onChange={(e) => onQtyChange(line.productId, e.target.value)}
+            onBlur={() => onQtyBlur(line.productId)}
+            onFocus={(e) => e.target.select()}
             disabled={!canEdit}
             style={{
               width: '100%',
               textAlign: 'center',
               padding: '8px 4px',
-              border: `1px solid ${D.border}`,
+              border: `1px solid ${canEdit ? D.accent : D.border}`,
               borderRadius: 8,
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: 800,
               background: canEdit ? D.surface2 : D.bg,
               color: D.text,
               fontFamily: 'inherit',
               outline: 'none',
               boxSizing: 'border-box',
+              transition: 'all 0.15s',
             }}
           />
         </div>
@@ -211,23 +222,26 @@ function ItemCard({
           <input
             type="text"
             inputMode="decimal"
-            value={line.sellingPrice > 0 ? String(line.sellingPrice) : ''}
-            onChange={e => onPriceChange(e.target.value)}
+            value={displayPrice}
+            onChange={(e) => onPriceChange(line.productId, e.target.value)}
+            onBlur={() => onPriceBlur(line.productId)}
+            onFocus={(e) => e.target.select()}
             disabled={!canEdit}
             placeholder={String(line.product.basePrice ?? 0)}
             style={{
               width: '100%',
               textAlign: 'center',
               padding: '8px 4px',
-              border: `1px solid ${D.border}`,
+              border: `1px solid ${canEdit ? D.accent : D.border}`,
               borderRadius: 8,
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: 800,
               background: canEdit ? D.surface2 : D.bg,
               color: D.text,
               fontFamily: 'inherit',
               outline: 'none',
               boxSizing: 'border-box',
+              transition: 'all 0.15s',
             }}
           />
         </div>
@@ -296,7 +310,7 @@ export function AdminOrderEdit() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const isMobile = useIsMobile(); // ── ADDED ──
+  const isMobile = useIsMobile();
 
   const [order, setOrder] = useState<OrderDetailDto | null>(null);
   const [customer, setCustomer] = useState<CustomerDto | null>(null);
@@ -313,8 +327,10 @@ export function AdminOrderEdit() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [tempQuantities, setTempQuantities] = useState<Record<string, string>>({});
-  const [tempPrices, setTempPrices] = useState<Record<string, string>>({});
+  
+  // ── FIX: Use local state for input values, not temp state ──
+  // We directly use line.qty and line.sellingPrice as the source of truth
+  // and update them immediately on input change.
 
   useEffect(() => {
     if (!orderId) {
@@ -382,56 +398,80 @@ export function AdminOrderEdit() {
     setShowSearch(false);
   }, []);
 
-  const handleQtyInput = (productId: string, value: string) => {
-    setTempQuantities(prev => ({ ...prev, [productId]: value }));
-  };
-
-  const handleQtyBlur = (productId: string) => {
-    const tmp = tempQuantities[productId];
-    if (tmp === undefined) return;
-    setTempQuantities(prev => { const n = { ...prev }; delete n[productId]; return n; });
-    const n = parseInt(tmp, 10);
-    if (!tmp || isNaN(n) || n <= 0) {
-      setLines(prev => prev.filter(l => l.product.id !== productId));
-    } else {
-      setLines(prev => prev.map(l => l.product.id === productId ? { ...l, qty: n } : l));
+  // ── FIX: Directly update qty on input change ──
+  const handleQtyChange = (productId: string, value: string) => {
+    const numValue = parseInt(value, 10);
+    if (value === '' || value === '-') {
+      // Allow empty or minus sign temporarily
+      setLines(prev => prev.map(l => 
+        l.productId === productId ? { ...l, qty: 0 } : l
+      ));
+      return;
+    }
+    if (!isNaN(numValue) && numValue >= 0) {
+      setLines(prev => prev.map(l => 
+        l.productId === productId ? { ...l, qty: numValue } : l
+      ));
     }
   };
 
-  const handlePriceInput = (productId: string, value: string) => {
-    setTempPrices(prev => ({ ...prev, [productId]: value }));
+  // ── FIX: Directly update price on input change ──
+  const handlePriceChange = (productId: string, value: string) => {
+    const numValue = parseFloat(value);
+    if (value === '' || value === '.') {
+      // Allow empty or decimal point temporarily
+      setLines(prev => prev.map(l => 
+        l.productId === productId ? { ...l, sellingPrice: 0 } : l
+      ));
+      return;
+    }
+    if (!isNaN(numValue) && numValue >= 0) {
+      setLines(prev => prev.map(l => 
+        l.productId === productId ? { ...l, sellingPrice: numValue } : l
+      ));
+    }
+  };
+
+  // ── FIX: On blur, clean up invalid values ──
+  const handleQtyBlur = (productId: string) => {
+    setLines(prev => prev.map(l => {
+      if (l.productId === productId) {
+        // If qty is 0 or invalid, remove the item
+        if (l.qty <= 0) {
+          return null;
+        }
+        return l;
+      }
+      return l;
+    }).filter((l): l is LineItem => l !== null));
   };
 
   const handlePriceBlur = (productId: string) => {
-    const tmp = tempPrices[productId];
-    if (tmp === undefined) return;
-    setTempPrices(prev => { const n = { ...prev }; delete n[productId]; return n; });
-    const n = parseFloat(tmp);
-    if (tmp === '' || isNaN(n) || n < 0) return;
-    setLines(prev => prev.map(l => l.product.id === productId ? { ...l, sellingPrice: n } : l));
-  };
-
-  const getDisplayQty = (productId: string, qty: number) => {
-    const tmp = tempQuantities[productId];
-    return tmp !== undefined ? tmp : qty === 0 ? '' : String(qty);
-  };
-
-  const getDisplayPrice = (productId: string, price: number) => {
-    const tmp = tempPrices[productId];
-    return tmp !== undefined ? tmp : price === 0 ? '' : String(price);
+    setLines(prev => prev.map(l => {
+      if (l.productId === productId) {
+        // If price is 0 or invalid, set to base price
+        if (l.sellingPrice <= 0) {
+          const product = products.find(p => String(p.id) === productId);
+          return { ...l, sellingPrice: product?.basePrice || 0 };
+        }
+        return l;
+      }
+      return l;
+    }));
   };
 
   const removeItem = (productId: string) => {
-    setLines(prev => prev.filter(l => l.product.id !== productId));
-    setTempQuantities(prev => { const n = { ...prev }; delete n[productId]; return n; });
-    setTempPrices(prev => { const n = { ...prev }; delete n[productId]; return n; });
+    setLines(prev => prev.filter(l => l.productId !== productId));
   };
 
   const totalItems = lines.reduce((s, l) => s + l.qty, 0);
 
   const buildPayload = () => {
+    const currentUser = user;
     return {
       id: orderId,
+      salesmanId: currentUser?.id || '',
+      isAdmin: true,
       customerId: String(order?.customerId),
       routeId: String(order?.routeId),
       orderDate: order?.orderDate || new Date().toISOString(),
@@ -442,7 +482,7 @@ export function AdminOrderEdit() {
         quantity: l.qty,
         unitId: l.product.productUnitId,
         sellingPrice: l.sellingPrice,
-      } as CreateOrderItemDto)),
+      })),
     };
   };
 
@@ -452,7 +492,10 @@ export function AdminOrderEdit() {
     setSuccessMsg('');
 
     try {
-      await ordersApi.update(orderId!, buildPayload());
+      const payload = buildPayload();
+      console.log('[AdminOrderEdit] Saving payload:', payload);
+      
+      await ordersApi.update(orderId!, payload);
       setSuccessMsg(lines.length === 0 ? 'Order cleared successfully!' : 'Order updated successfully!');
       const updated = await ordersApi.getById(orderId!);
       setOrder(updated);
@@ -460,6 +503,7 @@ export function AdminOrderEdit() {
         navigate('/admin/orders');
       }, 1500);
     } catch (err: unknown) {
+      console.error('[AdminOrderEdit] Save error:', err);
       setError(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setSaving(false);
@@ -780,21 +824,63 @@ export function AdminOrderEdit() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {lines.map(line => {
             const isExpanded = expandedProduct === line.product.id;
+            // ── FIX: Directly use line values for display ──
+            const displayQty = line.qty === 0 ? '' : String(line.qty);
+            const displayPrice = line.sellingPrice === 0 ? '' : String(line.sellingPrice);
+            
             return (
               <ItemCard
                 key={line.product.id}
                 line={line}
                 isExpanded={isExpanded}
                 onToggleExpand={() => setExpandedProduct(isExpanded ? null : line.product.id)}
-                onQtyChange={(value) => handleQtyInput(line.product.id, value)}
-                onPriceChange={(value) => handlePriceInput(line.product.id, value)}
-                onRemove={() => setShowDeleteConfirm(line.product.id)}
+                onQtyChange={handleQtyChange}
+                onPriceChange={handlePriceChange}
+                onQtyBlur={handleQtyBlur}
+                onPriceBlur={handlePriceBlur}
+                onRemove={() => removeItem(line.productId)}
                 canEdit={canEdit}
                 isMobile={isMobile}
+                displayQty={displayQty}
+                displayPrice={displayPrice}
               />
             );
           })}
         </div>
+
+        {/* ── ADD PRODUCTS BUTTON ── Between items and retail remarks ── */}
+        {canEdit && (
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '12px 0 14px' }}>
+            <button
+              onClick={() => setShowSearch(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '12px 28px',
+                borderRadius: 28,
+                background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                border: 'none',
+                color: '#fff',
+                fontSize: 14,
+                fontWeight: 800,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                boxShadow: `0 4px 16px ${D.accentGlow}`,
+                touchAction: 'manipulation',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 24px ${D.accentGlow}`;
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px ${D.accentGlow}`;
+              }}
+            >
+              <Plus size={18} strokeWidth={2.5} /> Add Products
+            </button>
+          </div>
+        )}
 
         {/* ── Retail Remarks ── FULL WIDTH, NO PREVIEW BOX ──────────────────── */}
         <div style={{
