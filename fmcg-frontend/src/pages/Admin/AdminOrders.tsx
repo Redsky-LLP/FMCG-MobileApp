@@ -1,5 +1,10 @@
 // PATH: src/pages/Admin/AdminOrders.tsx
-// UPDATED: Fixed closed count to update after day close, added date display, added Back to Dashboard button
+// FIXED: 
+//  - Status filter now correctly maps string names to numeric enum values
+//  - Status count boxes work as clickable filters
+//  - Removed duplicate "Day Closed" button
+//  - Date picker has white text on dark background
+//  - Day Closed indicator shows the date
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -34,6 +39,24 @@ const D = {
   card:     '#1e293b',
 };
 
+// ── FIXED: Map status name to numeric enum value ─────────────────────────────
+const STATUS_TO_NUMBER: Record<string, number> = {
+  'Draft': 1,
+  'PendingApproval': 2,
+  'Approved': 3,
+  'Packed': 4,
+  'Closed': 5,
+};
+
+// ── Reverse map for display ──────────────────────────────────────────────────
+const NUMBER_TO_STATUS: Record<number, string> = {
+  1: 'Draft',
+  2: 'PendingApproval',
+  3: 'Approved',
+  4: 'Packed',
+  5: 'Closed',
+};
+
 const STATUS_LABELS: Record<string, string> = {
   'Draft': 'Draft',
   'PendingApproval': 'Pending Approval',
@@ -54,6 +77,33 @@ const STATUS_CONFIG: Record<string, { bg: string; color: string; dot: string }> 
   'Closed':          { bg: D.surface2, color: D.sub, dot: D.sub },
 };
 
+// ── Date input style with white text ──────────────────────────────────────────
+const dateInputStyle = {
+  padding: '7px 12px',
+  borderRadius: 8,
+  border: `1px solid ${D.border}`,
+  background: D.bg,
+  fontSize: 13,
+  fontFamily: 'inherit',
+  color: D.text,
+  outline: 'none',
+  cursor: 'pointer',
+  colorScheme: 'dark',
+};
+
+// ── Select style ──────────────────────────────────────────────────────────────
+const selectStyle = {
+  padding: '7px 12px',
+  borderRadius: 8,
+  border: `1px solid ${D.border}`,
+  background: D.bg,
+  fontSize: 13,
+  fontFamily: 'inherit',
+  color: D.text,
+  outline: 'none',
+  cursor: 'pointer',
+};
+
 export function AdminOrders() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -64,7 +114,7 @@ export function AdminOrders() {
   const [error,          setError]          = useState('');
   const [success,        setSuccess]        = useState('');
   const [routeFilter,    setRouteFilter]    = useState('');
-  const [statusFilter,   setStatusFilter]   = useState('');
+  const [statusFilter,   setStatusFilter]   = useState<string>('');
   const [dateFilter,     setDateFilter]     = useState('');
   const [search,         setSearch]         = useState('');
   const [approving,      setApproving]      = useState<string | null>(null);
@@ -86,7 +136,6 @@ export function AdminOrders() {
 
   useEffect(() => {
     if (!dateFilter) setDateFilter(today);
-    // Set current date for display
     const now = new Date();
     setCurrentDate(now.toLocaleDateString('en-IN', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
@@ -96,20 +145,22 @@ export function AdminOrders() {
   async function load() {
     setLoading(true); setError('');
     try {
+      // ── FIXED: Convert status name to numeric enum value ──
+      const statusNumber = statusFilter ? STATUS_TO_NUMBER[statusFilter] : undefined;
+      
       let allOrders: OrderDto[] = [];
       if (!routeFilter || routeFilter === 'all') {
         const results = await Promise.all(
-          routes.map(r => ordersApi.getByRoute(String(r.id), statusFilter !== '' ? parseInt(statusFilter) : undefined).catch(() => []))
+          routes.map(r => ordersApi.getByRoute(String(r.id), statusNumber).catch(() => []))
         );
         allOrders = results.flat();
       } else {
-        allOrders = await ordersApi.getByRoute(routeFilter, statusFilter !== '' ? parseInt(statusFilter) : undefined);
+        allOrders = await ordersApi.getByRoute(routeFilter, statusNumber);
       }
       let filtered = dateFilter ? allOrders.filter(o => o.orderDate?.startsWith(dateFilter)) : allOrders;
       filtered.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
       setOrders(filtered);
 
-      // Get closure status for today
       try {
         const status = await settlementApi.getStatus();
         setClosureStatus(status);
@@ -128,6 +179,14 @@ export function AdminOrders() {
 
   useEffect(() => { loadRoutes(); }, []);
   useEffect(() => { if (routes.length > 0 || routeFilter === 'all') load(); }, [routeFilter, statusFilter, dateFilter, routes.length]);
+
+  function setStatusFilterQuick(status: string) {
+    setStatusFilter(status);
+  }
+
+  function clearStatusFilter() {
+    setStatusFilter('');
+  }
 
   async function handleApprove(orderId: string) {
     setApproving(orderId); setError('');
@@ -157,7 +216,6 @@ export function AdminOrders() {
       setCloseDayNotes('');
       setSuccess(`✅ Day closed successfully! ${result.ordersLocked} orders locked. Revenue: ${fmt(result.totalRevenue)}`);
       
-      // Reload closure status
       const status = await settlementApi.getStatus();
       setClosureStatus(status);
       
@@ -222,10 +280,8 @@ export function AdminOrders() {
     closed: orders.filter(o => o.status === OrderStatus.Closed).length,
   };
 
-  // Update closed count when closure status changes
   useEffect(() => {
     if (closureStatus?.isClosed) {
-      // Reload orders to get updated closed count
       load();
     }
   }, [closureStatus?.isClosed]);
@@ -316,84 +372,155 @@ export function AdminOrders() {
                 <RefreshCw size={15} />
                 Refresh
               </button>
-              <button
-                onClick={() => { setShowCloseDayModal(true); setCloseDayError(''); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '9px 16px', borderRadius: 9,
-                  border: 'none',
-                  background: closureStatus?.isClosed 
-                    ? D.border 
-                    : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-                  cursor: closureStatus?.isClosed ? 'not-allowed' : 'pointer',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: closureStatus?.isClosed ? D.sub : '#fff',
-                  fontFamily: 'inherit',
-                  boxShadow: closureStatus?.isClosed ? 'none' : `0 4px 14px ${D.accentGlow}`,
-                  opacity: closureStatus?.isClosed ? 0.6 : 1,
-                }}
-                disabled={closureStatus?.isClosed}
-              >
-                <Lock size={15} />
-                {closureStatus?.isClosed ? 'Day Closed ✓' : 'Close Day'}
-              </button>
             </div>
           </div>
 
-          {/* Status count boxes */}
+          {/* ── Status count boxes - NOW CLICKABLE FILTERS ── */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {[
-              { label: 'Total', value: counts.total, color: D.text },
-              { label: 'Draft', value: counts.draft, color: D.amber },
-              { label: 'Closed', value: counts.closed, color: D.green },
-            ].map(c => (
-              <div key={c.label} style={{
-                flex: 1, minWidth: 100,
-                padding: '10px 14px',
-                borderRadius: 9,
-                background: D.surface,
-                border: `1px solid ${D.border}`,
-              }}>
-                <span style={{ fontSize: 12, color: D.sub, fontWeight: 600 }}>{c.label}</span>
-                <span style={{ 
-                  fontSize: 22, fontWeight: 900, color: c.color, display: 'block' 
-                }}>
-                  {c.value}
-                  {c.label === 'Closed' && closureStatus?.isClosed && (
-                    <span style={{ 
-                      fontSize: 10, fontWeight: 600, color: D.green, 
-                      marginLeft: 6, display: 'inline-block' 
-                    }}>
-                      ✓
-                    </span>
-                  )}
-                </span>
-              </div>
-            ))}
-            
-            {/* Closure status indicator */}
+              { label: 'Total', value: counts.total, color: D.text, filterValue: '' },
+              { label: 'Draft', value: counts.draft, color: D.amber, filterValue: 'Draft' },
+              { label: 'Closed', value: counts.closed, color: D.green, filterValue: 'Closed' },
+            ].map(c => {
+              const isActive = statusFilter === c.filterValue;
+              return (
+                <button
+                  key={c.label}
+                  onClick={() => setStatusFilterQuick(c.filterValue)}
+                  style={{
+                    flex: 1, minWidth: 100,
+                    padding: '10px 14px',
+                    borderRadius: 9,
+                    background: isActive ? `${c.color}20` : D.surface,
+                    border: isActive ? `1px solid ${c.color}66` : `1px solid ${D.border}`,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s',
+                    fontFamily: 'inherit',
+                  }}
+                  onMouseEnter={e => {
+                    if (!isActive) {
+                      (e.currentTarget as HTMLElement).style.borderColor = `${c.color}44`;
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!isActive) {
+                      (e.currentTarget as HTMLElement).style.borderColor = D.border;
+                    }
+                  }}
+                >
+                  <span style={{ fontSize: 12, color: D.sub, fontWeight: 600 }}>
+                    {c.label}
+                    {isActive && (
+                      <span style={{ marginLeft: 6, fontSize: 10, color: c.color }}>✓</span>
+                    )}
+                  </span>
+                  <span style={{ 
+                    fontSize: 22, fontWeight: 900, color: c.color, display: 'block' 
+                  }}>
+                    {c.value}
+                    {c.label === 'Closed' && closureStatus?.isClosed && c.value > 0 && (
+                      <span style={{ 
+                        fontSize: 10, fontWeight: 600, color: D.green, 
+                        marginLeft: 6, display: 'inline-block' 
+                      }}>
+                        ✓
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+
+            {/* ── Clear filter button ── */}
+            {statusFilter && (
+              <button
+                onClick={clearStatusFilter}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '0 12px',
+                  borderRadius: 9,
+                  border: `1px solid ${D.border}`,
+                  background: D.surface,
+                  color: D.muted,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.text; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
+              >
+                <X size={12} /> Clear
+              </button>
+            )}
+
+            {/* ── Day Closed status indicator ── */}
             {closureStatus?.isClosed && closureStatus.closedAt && (
               <div style={{
-                flex: 1, minWidth: 150,
+                flex: 1, minWidth: 170,
                 padding: '10px 14px',
                 borderRadius: 9,
                 background: 'rgba(34,197,94,0.08)',
                 border: `1px solid rgba(34,197,94,0.25)`,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
+                gap: 10,
               }}>
-                <CheckCircle size={16} color={D.green} />
+                <CheckCircle size={18} color={D.green} />
                 <div>
-                  <span style={{ fontSize: 11, color: D.green, fontWeight: 600, display: 'block' }}>
-                    Day Closed
+                  <span style={{ fontSize: 11, color: D.green, fontWeight: 700, display: 'block' }}>
+                    Day Closed ✓
                   </span>
                   <span style={{ fontSize: 10, color: D.muted }}>
-                    {new Date(closureStatus.closedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(closureStatus.closedAt).toLocaleDateString('en-IN', { 
+                      day: 'numeric', 
+                      month: 'short', 
+                      year: 'numeric' 
+                    })} · {new Date(closureStatus.closedAt).toLocaleTimeString('en-IN', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
                   </span>
                 </div>
               </div>
+            )}
+
+            {/* ── Close Day button (only when NOT closed) ── */}
+            {!closureStatus?.isClosed && (
+              <button
+                onClick={() => { setShowCloseDayModal(true); setCloseDayError(''); }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '10px 16px',
+                  borderRadius: 9,
+                  border: 'none',
+                  background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#fff',
+                  fontFamily: 'inherit',
+                  boxShadow: `0 4px 14px ${D.accentGlow}`,
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${D.accentGlow}`;
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${D.accentGlow}`;
+                }}
+              >
+                <Lock size={15} />
+                Close Day
+              </button>
             )}
           </div>
         </div>
@@ -403,7 +530,7 @@ export function AdminOrders() {
         {error   && <Alert variant="error">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
 
-        {/* ── Filters ────────────────────────────────────────────────────────── */}
+        {/* ── Filters ── */}
         <div style={{
           background: D.surface,
           borderRadius: 14,
@@ -424,9 +551,9 @@ export function AdminOrders() {
             <select 
               style={selectStyle} 
               value={statusFilter} 
-              onChange={e => setStatusFilter(e.target.value)}
+              onChange={e => setStatusFilterQuick(e.target.value)}
             >
-              <option value="">All Statuses</option>
+              <option value="">📋 All Statuses</option>
               <option value="Draft">Draft</option>
               <option value="PendingApproval">Pending Approval</option>
               <option value="Approved">Approved</option>
@@ -436,7 +563,7 @@ export function AdminOrders() {
 
             <input
               type="date" 
-              style={selectStyle}
+              style={dateInputStyle}
               value={dateFilter} 
               onChange={e => setDateFilter(e.target.value)}
             />
@@ -917,18 +1044,6 @@ export function AdminOrders() {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-const selectStyle: React.CSSProperties = {
-  padding: '7px 12px',
-  borderRadius: 8,
-  border: `1px solid ${D.border}`,
-  background: D.bg,
-  fontSize: 13,
-  fontFamily: 'inherit',
-  color: D.text,
-  outline: 'none',
-  cursor: 'pointer',
-};
-
 function actionBtn(bg: string, color: string, strong = false): React.CSSProperties {
   return {
     display: 'inline-flex',
