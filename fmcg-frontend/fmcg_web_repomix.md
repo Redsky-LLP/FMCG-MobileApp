@@ -16913,6 +16913,11 @@ Sugar - 50 kg`}
 //  - Removed duplicate "Day Closed" button
 //  - Date picker has white text on dark background
 //  - Day Closed indicator shows the date
+// UPDATED: Per-order "Closed [date] at [time]" line, shown once that specific
+// order has actually been locked by a Close Day run — distinct from the
+// order's own creation date/time, which never changes. Edit button now also
+// respects isLocked, not just status, matching what the edit page itself
+// already enforces server-side.
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -17522,9 +17527,9 @@ export function AdminOrders() {
                       const cfg = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG['Draft'];
                       const items = order.items ?? [];
                       const units = items.reduce((s, i) => s + i.quantity, 0);
-                      const isEditable = order.status === OrderStatus.Draft || 
+                      const isEditable = (order.status === OrderStatus.Draft || 
                                         order.status === OrderStatus.PendingApproval || 
-                                        order.status === OrderStatus.Approved;
+                                        order.status === OrderStatus.Approved) && !order.isLocked;
                       const isClosable = order.status === OrderStatus.Approved || 
                                         order.status === OrderStatus.Packed;
                       const isPending = order.status === OrderStatus.PendingApproval;
@@ -17574,6 +17579,21 @@ export function AdminOrders() {
                                   {getStatusLabel(order.status)}
                                 </span>
 
+                                {/* Locked indicator — separate from status, since a Draft/PendingApproval/
+                                    Approved order can also be locked by Close Day sweeping it up */}
+                                {order.isLocked && (
+                                  <span style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                                    padding: '4px 10px', borderRadius: 6,
+                                    fontSize: 11, fontWeight: 700,
+                                    background: 'rgba(148,163,184,0.12)',
+                                    color: D.sub,
+                                    border: `1px solid ${D.border}`,
+                                  }}>
+                                    <Lock size={10} /> Locked
+                                  </span>
+                                )}
+
                                 {routeFilter === 'all' && order.routeName && (
                                   <span style={{
                                     display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -17589,6 +17609,17 @@ export function AdminOrders() {
                               <div style={{ fontSize: 13, color: D.sub, marginTop: 4, fontFamily: 'monospace' }}>
                                 #{String(order.id).slice(0, 8)} · {fmtDate(order.orderDate)} at {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                               </div>
+
+                              {/* Closed-at line — only appears once THIS order has actually been
+                                  swept up by a Close Day run. Stays separate from the line above,
+                                  which always shows the order's real creation date/time. */}
+                              {order.closedAt && (
+                                <div style={{ fontSize: 12, color: D.sub, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Lock size={11} />
+                                  Closed {new Date(order.closedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} at{' '}
+                                  {new Date(order.closedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                              )}
 
                               {/* Items preview */}
                               {items.length > 0 && (
@@ -17751,6 +17782,12 @@ export function AdminOrders() {
               }}>
                 <div style={{ fontWeight: 700, fontSize: 15, color: D.text }}>{reviewOrder.customerName}</div>
                 <div style={{ fontSize: 13, color: D.sub, marginTop: 3 }}>{fmtDate(reviewOrder.orderDate)}</div>
+                {reviewOrder.closedAt && (
+                  <div style={{ fontSize: 12, color: D.sub, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Lock size={11} />
+                    Closed {fmtDate(reviewOrder.closedAt)}
+                  </div>
+                )}
                 <div style={{ marginTop: 8 }}>
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -17824,7 +17861,7 @@ export function AdminOrders() {
                   Approve Order
                 </button>
               )}
-              {(reviewOrder.status === OrderStatus.Draft || reviewOrder.status === OrderStatus.PendingApproval || reviewOrder.status === OrderStatus.Approved) && (
+              {(reviewOrder.status === OrderStatus.Draft || reviewOrder.status === OrderStatus.PendingApproval || reviewOrder.status === OrderStatus.Approved) && !reviewOrder.isLocked && (
                 <button
                   onClick={() => handleEdit(String(reviewOrder.id), String(reviewOrder.customerId))}
                   style={{ ...actionBtn(D.surface, D.muted), padding: '9px 16px', fontSize: 13, borderRadius: 9 }}
@@ -29459,14 +29496,16 @@ export default function SalesmanOrders() {
 // FIXES carried over from earlier passes:
 // 1. Route shows "Completed" immediately when returning
 // 2. No "Continue" loop — if route has submitted orders with no drafts → show Completed
-// 3. One active route at a time — blocks others while InProgress
+// 3. One active route at a time PER SALESMAN — blocks that same salesman's
+//    other routes while one is InProgress. Does NOT block other salesmen —
+//    each works their own assigned route independently and simultaneously.
 // 4. handleStartOrderTaking checks existing execution first
 // 5. Reloads on location.key change / on visibilitychange
 // 6. Completed route detection is AGGRESSIVE
 // 7. "Taken by X" — another salesman's in-progress route is shown, not hidden
-// 8. hasUnclosedCycle carried through from ActiveRouteDto — blocks brand-new
-//    routes (no executionId yet) from starting while anything anywhere is
-//    still open, until admin closes the day.
+// 8. Removed the global "hasUnclosedCycle" block — it was wrongly preventing
+//    EVERY salesman from starting ANY route the moment ANY salesman, anywhere,
+//    had one open. Multiple salesmen now correctly work independently.
 
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -29519,9 +29558,8 @@ interface EnrichedRoute {
   // editing, separately from "all stops visited" which just means the
   // salesman is done but admin hasn't closed yet (still editable).
   isAdminClosed?:       boolean;
-  // Repeated on every route by the backend — true if ANY execution anywhere
-  // in the system is still open. Used to block starting a brand-new route
-  // (no executionId) until admin closes the day.
+  // Still returned by the backend on every route, currently unused here —
+  // see header note #8. Harmless to leave on the type.
   hasUnclosedCycle?:    boolean;
 }
 
@@ -29915,9 +29953,7 @@ export function SalesmanRoutes() {
             {visibleRoutes.map(route => {
               const completed   = isEffectivelyCompleted(route);
               const inProgress  = isGenuinelyInProgress(route);
-              const hasUnclosedCycle = routes.some(r => r.hasUnclosedCycle);
-              const blocked = (!!activeRoute && activeRoute.routeId !== route.routeId && !completed)
-                || (!route.takenByOther && !route.executionId && hasUnclosedCycle);
+              const blocked = !!activeRoute && activeRoute.routeId !== route.routeId && !completed;
               return (
                 <RouteCard
                   key={route.routeId}
@@ -31869,6 +31905,7 @@ export interface OrderDto {
   remarks?:       string;
   approvedAt?:    string;
   isLocked?:      boolean;
+  closedAt?:      string;
 }
 
 export interface OrderDetailDto extends OrderDto {

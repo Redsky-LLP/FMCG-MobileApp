@@ -8880,6 +8880,7 @@ public class GetOrdersByRouteQueryHandler(IApplicationDbContext context)
             SubmittedAt = o.SubmittedAt,
             ClosedAt = o.ClosedAt,
             CreatedAt = o.CreatedAt,
+            IsLocked = o.IsLocked,
             Items = o.Items?.Select(i => new OrderItemDto
             {
                 Id = i.Id,
@@ -12924,13 +12925,12 @@ public class StartRouteExecutionResponse
 ## File: src/FMCG.Distribution.Application/Features/Routes/Commands/StartRouteExecutionCommandHandler.cs
 ```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Routes/Commands/StartRouteExecutionCommandHandler.cs
-// UPDATED: Added a global gate — a brand-new route cannot start while ANY
-// execution anywhere in the system is still open (not Completed/Abandoned).
-// This is what makes admin's Close Day the single event that makes every
-// route fresh again at once. Resuming an already-open execution (the check
-// right above this) is unaffected — this only blocks creating a new one
-// from scratch while a previous cycle is still hanging open.
-// (Previous header notes retained below.)
+// UPDATED: Removed the global "anyOpenExecutionExists" gate. It was blocking
+// EVERY salesman from starting ANY route the moment ANY salesman, anywhere,
+// had one open — which breaks the real workflow where multiple salesmen work
+// their own assigned routes simultaneously. The two guards that remain are
+// the correct ones: a route already taken by someone else stays locked
+// ("Taken by X"), and a salesman can't run two routes of their own at once.
 // Delivery mode still requires day closure and CLOSED orders.
 
 using System;
@@ -13035,7 +13035,8 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
 
         // Guard: no other open execution on a different route, regardless of
         // which day it was started — same reasoning as above, an unclosed
-        // execution from yesterday still counts as "active" today.
+        // execution from yesterday still counts as "active" today. This only
+        // applies to THIS salesman's own other routes, not anyone else's.
         var existingActiveExecution = await context.RouteExecutions
             .Where(e => e.SalesmanId == request.SalesmanId
                 && e.RouteId != request.RouteId
@@ -13051,23 +13052,6 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
             return Result<StartRouteExecutionResponse>.Failure(
                 $"You already have an active route execution for '{activeRoute?.Name}'. " +
                 "Please complete that route before starting a new one.");
-        }
-
-        // ── GLOBAL GATE: no brand-new route can start while ANY execution
-        // anywhere in the system is still open. This is what makes "admin
-        // closes the day" the single event that makes every route fresh
-        // again at once — without this, a route could leapfrog ahead and
-        // start a whole new cycle while a previous one is still unclosed. ──
-        var anyOpenExecutionExists = await context.RouteExecutions
-            .AnyAsync(e => e.Status != ExecutionStatus.Completed
-                        && e.Status != ExecutionStatus.Abandoned
-                        && !e.IsDeleted, cancellationToken);
-
-        if (anyOpenExecutionExists)
-        {
-            return Result<StartRouteExecutionResponse>.Failure(
-                "Cannot start a new route yet — there are unclosed orders from a previous cycle. " +
-                "Please wait for admin to close the day first.");
         }
 
         // Create new execution
@@ -43778,9 +43762,14 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         var draftCountAsOfClosure = ordersToLock.Count(o => o.Status == OrderStatus.Draft);
 
         // Lock each order
+        // Lock each order — and record exactly when, so admin can see it later
+        // even though the order's own OrderDate stays whatever day it was
+        // actually created on (could be a day or two before this closure ran).
+        var closureTimestamp = DateTime.UtcNow;
         foreach (var order in ordersToLock)
         {
             order.IsLocked = true;
+            order.ClosedAt = closureTimestamp;
             order.UpdateTimestamp(closedByUserId.ToString());
         }
 
