@@ -179,9 +179,14 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         var draftCountAsOfClosure = ordersToLock.Count(o => o.Status == OrderStatus.Draft);
 
         // Lock each order
+        // Lock each order — and record exactly when, so admin can see it later
+        // even though the order's own OrderDate stays whatever day it was
+        // actually created on (could be a day or two before this closure ran).
+        var closureTimestamp = DateTime.UtcNow;
         foreach (var order in ordersToLock)
         {
             order.IsLocked = true;
+            order.ClosedAt = closureTimestamp;
             order.UpdateTimestamp(closedByUserId.ToString());
         }
 

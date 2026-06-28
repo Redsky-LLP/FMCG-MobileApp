@@ -5,6 +5,11 @@
 //  - Removed duplicate "Day Closed" button
 //  - Date picker has white text on dark background
 //  - Day Closed indicator shows the date
+// UPDATED: Per-order "Closed [date] at [time]" line, shown once that specific
+// order has actually been locked by a Close Day run — distinct from the
+// order's own creation date/time, which never changes. Edit button now also
+// respects isLocked, not just status, matching what the edit page itself
+// already enforces server-side.
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -614,9 +619,9 @@ export function AdminOrders() {
                       const cfg = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG['Draft'];
                       const items = order.items ?? [];
                       const units = items.reduce((s, i) => s + i.quantity, 0);
-                      const isEditable = order.status === OrderStatus.Draft || 
+                      const isEditable = (order.status === OrderStatus.Draft || 
                                         order.status === OrderStatus.PendingApproval || 
-                                        order.status === OrderStatus.Approved;
+                                        order.status === OrderStatus.Approved) && !order.isLocked;
                       const isClosable = order.status === OrderStatus.Approved || 
                                         order.status === OrderStatus.Packed;
                       const isPending = order.status === OrderStatus.PendingApproval;
@@ -666,6 +671,21 @@ export function AdminOrders() {
                                   {getStatusLabel(order.status)}
                                 </span>
 
+                                {/* Locked indicator — separate from status, since a Draft/PendingApproval/
+                                    Approved order can also be locked by Close Day sweeping it up */}
+                                {order.isLocked && (
+                                  <span style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                                    padding: '4px 10px', borderRadius: 6,
+                                    fontSize: 11, fontWeight: 700,
+                                    background: 'rgba(148,163,184,0.12)',
+                                    color: D.sub,
+                                    border: `1px solid ${D.border}`,
+                                  }}>
+                                    <Lock size={10} /> Locked
+                                  </span>
+                                )}
+
                                 {routeFilter === 'all' && order.routeName && (
                                   <span style={{
                                     display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -681,6 +701,17 @@ export function AdminOrders() {
                               <div style={{ fontSize: 13, color: D.sub, marginTop: 4, fontFamily: 'monospace' }}>
                                 #{String(order.id).slice(0, 8)} · {fmtDate(order.orderDate)} at {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                               </div>
+
+                              {/* Closed-at line — only appears once THIS order has actually been
+                                  swept up by a Close Day run. Stays separate from the line above,
+                                  which always shows the order's real creation date/time. */}
+                              {order.closedAt && (
+                                <div style={{ fontSize: 12, color: D.sub, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Lock size={11} />
+                                  Closed {new Date(order.closedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} at{' '}
+                                  {new Date(order.closedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                              )}
 
                               {/* Items preview */}
                               {items.length > 0 && (
@@ -843,6 +874,12 @@ export function AdminOrders() {
               }}>
                 <div style={{ fontWeight: 700, fontSize: 15, color: D.text }}>{reviewOrder.customerName}</div>
                 <div style={{ fontSize: 13, color: D.sub, marginTop: 3 }}>{fmtDate(reviewOrder.orderDate)}</div>
+                {reviewOrder.closedAt && (
+                  <div style={{ fontSize: 12, color: D.sub, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Lock size={11} />
+                    Closed {fmtDate(reviewOrder.closedAt)}
+                  </div>
+                )}
                 <div style={{ marginTop: 8 }}>
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -916,7 +953,7 @@ export function AdminOrders() {
                   Approve Order
                 </button>
               )}
-              {(reviewOrder.status === OrderStatus.Draft || reviewOrder.status === OrderStatus.PendingApproval || reviewOrder.status === OrderStatus.Approved) && (
+              {(reviewOrder.status === OrderStatus.Draft || reviewOrder.status === OrderStatus.PendingApproval || reviewOrder.status === OrderStatus.Approved) && !reviewOrder.isLocked && (
                 <button
                   onClick={() => handleEdit(String(reviewOrder.id), String(reviewOrder.customerId))}
                   style={{ ...actionBtn(D.surface, D.muted), padding: '9px 16px', fontSize: 13, borderRadius: 9 }}

@@ -57,6 +57,7 @@ public class GetOrdersByRouteQueryHandler(IApplicationDbContext context)
             SubmittedAt = o.SubmittedAt,
             ClosedAt = o.ClosedAt,
             CreatedAt = o.CreatedAt,
+            IsLocked = o.IsLocked,
             Items = o.Items?.Select(i => new OrderItemDto
             {
                 Id = i.Id,

@@ -459,6 +459,7 @@ export interface OrderDto {
   remarks?:       string;
   approvedAt?:    string;
   isLocked?:      boolean;
+  closedAt?:      string;
 }
 
 export interface OrderDetailDto extends OrderDto {
