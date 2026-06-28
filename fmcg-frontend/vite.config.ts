@@ -155,7 +155,7 @@ export default defineConfig({
       },
 
       // Inject the service-worker registration into the app entry point
-      injectRegister: 'auto',
+      injectRegister: false,
 
       // Show the generated sw.js source in DevTools
       devOptions: {

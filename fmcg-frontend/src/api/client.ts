@@ -1,13 +1,9 @@
 // PATH: src/api/client.ts
 import axios from 'axios';
 
-// In production (Netlify), VITE_API_URL must be set in Netlify environment variables.
-// In development, it falls back to localhost:5002.
-const BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD
-    ? 'https://fmcg-distribution-api.onrender.com'
-    : 'http://localhost:5002');
+// Hardcoded backend URL for production APK
+// Replace the BASE_URL with HTTPS
+const BASE_URL = 'https://fmcg-api.duckdns.org';
 
 const apiClient = axios.create({
   baseURL: BASE_URL,

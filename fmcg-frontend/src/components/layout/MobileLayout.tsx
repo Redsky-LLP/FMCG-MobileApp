@@ -1,5 +1,5 @@
 // PATH: src/components/layout/MobileLayout.tsx
-// UPDATED: Fixed duplicate keys in navigation items
+// UPDATED: Dark theme to match Navbar.tsx and the rest of the app
 
 import React, { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -71,13 +71,26 @@ const FULL_SCREEN_PAGES = [
 // Nav height constant
 export const MOBILE_NAV_HEIGHT = 70;
 
-// Role colors for avatar badge
+// ── Dark theme tokens (matching Navbar.tsx) ────────────────────────────────
+const D = {
+  bg:         '#0a0e1a',
+  surface:    '#141b2d',
+  border:     'rgba(255,255,255,0.06)',
+  text:       '#f0f4ff',
+  muted:      '#8892b0',
+  sub:        '#5a6a8a',
+  accent:     '#ea580c',
+  accentGlow: 'rgba(234,88,12,0.25)',
+  navBg:      'rgba(10,14,26,0.92)',
+};
+
+// Role colors for avatar badge — dark theme variants (matching Navbar.tsx)
 const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
-  SuperAdmin: { bg: '#FEF3C7', text: '#92400E' },
-  Admin: { bg: '#EFF6FF', text: '#1D4ED8' },
-  Salesman: { bg: '#F0FDF4', text: '#15803D' },
-  Accounts: { bg: '#FDF4FF', text: '#7E22CE' },
-  Warehouse: { bg: '#FFF7ED', text: '#C2410C' },
+  SuperAdmin: { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24' },
+  Admin:      { bg: 'rgba(96,165,250,0.15)', text: '#60a5fa' },
+  Salesman:   { bg: 'rgba(52,211,153,0.15)', text: '#34d399' },
+  Accounts:   { bg: 'rgba(167,139,250,0.15)', text: '#a78bfa' },
+  Warehouse:  { bg: 'rgba(251,146,60,0.15)',  text: '#fb923c' },
 };
 
 interface MobileLayoutProps {
@@ -193,8 +206,10 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             position: 'sticky',
             top: 0,
             zIndex: 40,
-            background: '#FFFFFF',
-            borderBottom: '1px solid #E2E8F0',
+            background: D.navBg,
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            borderBottom: `1px solid ${D.border}`,
             padding: '12px 16px',
             display: 'flex',
             alignItems: 'center',
@@ -211,10 +226,10 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
               width: 40,
               height: 40,
               borderRadius: 10,
-              border: '1px solid #E2E8F0',
-              background: 'transparent',
+              border: `1px solid ${D.border}`,
+              background: 'rgba(255,255,255,0.03)',
               cursor: 'pointer',
-              color: '#64748B',
+              color: D.muted,
               flexShrink: 0,
             }}
           >
@@ -226,7 +241,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             style={{
               fontSize: '1.1rem',
               fontWeight: 800,
-              color: '#1E3A8A',
+              color: D.text,
               margin: 0,
               letterSpacing: '-0.03em',
               textAlign: 'center',
@@ -254,15 +269,17 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           bottom: 0,
           left: 0,
           right: 0,
-          background: '#FFFFFF',
-          borderTop: '1px solid #E2E8F0',
+          background: D.navBg,
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderTop: `1px solid ${D.border}`,
           display: 'flex',
           justifyContent: 'space-around',
           alignItems: 'center',
           padding: '8px 12px',
           paddingBottom: `calc(8px + env(safe-area-inset-bottom, 0px))`,
           zIndex: 60,
-          boxShadow: '0 -2px 10px rgba(15,23,42,0.05)',
+          boxShadow: '0 -2px 20px rgba(0,0,0,0.4)',
         }}
       >
         {navItems.map((item, index) => {
@@ -282,8 +299,8 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                 padding: '4px 12px',
                 borderRadius: 10,
                 textDecoration: 'none',
-                color: active ? '#2563EB' : '#94A3B8',
-                background: active ? '#EFF6FF' : 'transparent',
+                color: active ? D.accent : D.muted,
+                background: active ? 'rgba(234,88,12,0.12)' : 'transparent',
                 transition: 'all 0.15s',
                 minWidth: 56,
                 minHeight: 44,
@@ -306,8 +323,8 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(15,23,42,0.40)',
-            backdropFilter: 'blur(2px)',
+            background: 'rgba(0,0,0,0.60)',
+            backdropFilter: 'blur(4px)',
             zIndex: 200,
             animation: 'fade-in 0.18s ease',
           }}
@@ -322,8 +339,8 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           left: 0,
           bottom: 0,
           width: 280,
-          background: '#FFFFFF',
-          boxShadow: '4px 0 32px rgba(15,23,42,0.12)',
+          background: D.surface,
+          boxShadow: '4px 0 32px rgba(0,0,0,0.5)',
           zIndex: 210,
           display: 'flex',
           flexDirection: 'column',
@@ -336,7 +353,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         <div
           style={{
             padding: '20px 16px 16px',
-            borderBottom: '1px solid #E2E8F0',
+            borderBottom: `1px solid ${D.border}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -347,7 +364,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
               style={{
                 width: 36,
                 height: 36,
-                background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+                background: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
                 borderRadius: 10,
                 display: 'flex',
                 alignItems: 'center',
@@ -360,11 +377,11 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
               style={{
                 fontWeight: 800,
                 fontSize: 16,
-                color: '#1E3A8A',
+                color: D.text,
                 letterSpacing: '-0.03em',
               }}
             >
-              FMCG<span style={{ color: '#2563EB' }}>Dist</span>
+              FMCG<span style={{ color: D.accent }}>Dist</span>
             </span>
           </div>
           <button
@@ -373,13 +390,13 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
               width: 32,
               height: 32,
               borderRadius: 8,
-              border: '1px solid #E2E8F0',
-              background: 'transparent',
+              border: `1px solid ${D.border}`,
+              background: 'rgba(255,255,255,0.03)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              color: '#64748B',
+              color: D.muted,
             }}
           >
             <X size={16} />
@@ -391,9 +408,9 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           style={{
             padding: '16px',
             margin: '12px 16px',
-            background: '#EFF6FF',
+            background: 'rgba(255,255,255,0.04)',
             borderRadius: 12,
-            border: '1px solid rgba(37,99,235,0.12)',
+            border: `1px solid ${D.border}`,
             display: 'flex',
             alignItems: 'center',
             gap: 12,
@@ -404,12 +421,12 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
               width: 48,
               height: 48,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)',
+              background: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
+              boxShadow: '0 2px 10px rgba(234,88,12,0.25)',
             }}
           >
             <span style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{initials}</span>
@@ -419,7 +436,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
               style={{
                 fontSize: 14,
                 fontWeight: 700,
-                color: '#1E3A8A',
+                color: D.text,
                 letterSpacing: '-0.02em',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
@@ -460,7 +477,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             style={{
               fontSize: 10,
               fontWeight: 700,
-              color: '#94A3B8',
+              color: D.sub,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
               padding: '8px 8px 4px',
@@ -488,9 +505,9 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                   fontSize: 14,
                   fontWeight: active ? 700 : 500,
                   marginBottom: 2,
-                  color: active ? '#2563EB' : '#334155',
-                  background: active ? '#EFF6FF' : 'transparent',
-                  border: `1px solid ${active ? 'rgba(37,99,235,0.15)' : 'transparent'}`,
+                  color: active ? D.text : D.muted,
+                  background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
+                  border: `1px solid ${active ? 'rgba(234,88,12,0.20)' : 'transparent'}`,
                   transition: 'all 0.12s',
                 }}
               >
@@ -503,8 +520,8 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    background: active ? 'rgba(37,99,235,0.12)' : '#F8FAFC',
-                    color: active ? '#2563EB' : '#64748B',
+                    background: active ? 'rgba(234,88,12,0.15)' : 'rgba(255,255,255,0.04)',
+                    color: active ? D.accent : D.muted,
                   }}
                 >
                   <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
@@ -516,8 +533,9 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                       width: 6,
                       height: 6,
                       borderRadius: '50%',
-                      background: '#2563EB',
+                      background: D.accent,
                       flexShrink: 0,
+                      boxShadow: `0 0 8px ${D.accentGlow}`,
                     }}
                   />
                 )}
@@ -530,7 +548,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         <div
           style={{
             padding: '16px',
-            borderTop: '1px solid #E2E8F0',
+            borderTop: `1px solid ${D.border}`,
             flexShrink: 0,
           }}
         >
@@ -542,21 +560,21 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
               gap: 12,
               padding: '10px 14px',
               borderRadius: 10,
-              border: '1px solid #FEE2E2',
-              background: '#FEF2F2',
+              border: '1px solid rgba(239,68,68,0.20)',
+              background: 'rgba(239,68,68,0.10)',
               cursor: 'pointer',
               width: '100%',
               fontSize: 14,
               fontWeight: 600,
-              color: '#DC2626',
+              color: '#f87171',
               transition: 'all 0.15s',
               fontFamily: 'inherit',
             }}
             onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.background = '#FEE2E2';
+              (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.18)';
             }}
             onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.background = '#FEF2F2';
+              (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.10)';
             }}
           >
             <div
@@ -567,7 +585,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: '#FEE2E2',
+                background: 'rgba(239,68,68,0.15)',
               }}
             >
               <LogOut size={15} />

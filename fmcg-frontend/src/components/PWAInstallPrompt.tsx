@@ -2,6 +2,7 @@
 // REPLACE with this improved version
 
 import { useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { Download, Share, X, Smartphone, Monitor } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -55,8 +56,9 @@ export default function PWAInstallPrompt(props: PWAInstallPromptProps) {
   const [manualDismissed, setManualDismissed] = useState(false);
 
   useEffect(() => {
-    // Don't show if already installed or previously dismissed
-    if (isRunningAsInstalledPWA() || isDismissed()) return;
+    // Don't show if already installed, previously dismissed, or running
+    // inside the native Capacitor app (it's already "installed" by definition).
+    if (isRunningAsInstalledPWA() || isDismissed() || Capacitor.isNativePlatform()) return;
 
     const p = detectPlatform();
     setPlatform(p);

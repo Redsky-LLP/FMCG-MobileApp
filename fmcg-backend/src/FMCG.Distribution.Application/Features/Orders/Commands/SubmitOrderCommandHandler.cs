@@ -1,5 +1,8 @@
 ﻿// PATH: src/FMCG.Distribution.Application/Features/Orders/Commands/SubmitOrderCommandHandler.cs
-// COMPLETE FIX: Auto-completes RouteExecution when all orders for the route are submitted.
+// UPDATED: Removed AutoCompleteRouteExecutionIfAllSubmitted — it was flipping
+// RouteExecution to Completed the moment all orders on a route were submitted,
+// bypassing admin's Close Day entirely. Routes must now only become "fresh"
+// via the explicit admin close-day action (CloseDayCommandHandler).
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -41,9 +44,6 @@ public class SubmitOrderCommandHandler(IApplicationDbContext context)
         order.MarkModified(request.SalesmanId.ToString());
 
         await context.SaveChangesAsync(cancellationToken);
-
-        // ── CRITICAL FIX: Auto-complete RouteExecution if ALL orders for today are submitted ──
-        await AutoCompleteRouteExecutionIfAllSubmitted(order.RouteId, cancellationToken);
 
         // ── Build response DTO ──
         var customer = await context.Customers
@@ -98,84 +98,5 @@ public class SubmitOrderCommandHandler(IApplicationDbContext context)
             CreatedAt = order.CreatedAt,
             Items = itemDtos,
         }, "Order submitted for admin approval.");
-    }
-
-    /// <summary>
-    /// Auto-completes the RouteExecution when ALL orders for this route today are submitted.
-    /// This prevents the "active route execution" blocking issue.
-    /// </summary>
-    private async Task AutoCompleteRouteExecutionIfAllSubmitted(Guid routeId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var today = DateTime.UtcNow.Date;
-
-            // ── Get ALL orders for this route today ──
-            var allOrders = await context.Orders
-                .Where(o => o.RouteId == routeId
-                    && o.OrderDate.Date == today
-                    && !o.IsDeleted)
-                .ToListAsync(cancellationToken);
-
-            // If no orders, nothing to do
-            if (allOrders.Count == 0)
-                return;
-
-            // ── Check if there are ANY draft orders ──
-            var hasDraftOrders = allOrders.Any(o => o.Status == OrderStatus.Draft);
-            var hasSubmittedOrders = allOrders.Any(o => o.Status != OrderStatus.Draft);
-
-            // ── If there are submitted orders AND no drafts, auto-complete ──
-            if (hasSubmittedOrders && !hasDraftOrders)
-            {
-                // Find the active RouteExecution for this route today
-                var execution = await context.RouteExecutions
-                    .FirstOrDefaultAsync(e => e.RouteId == routeId
-                        && e.ExecutionDate.Date == today
-                        && e.Status == ExecutionStatus.InProgress
-                        && !e.IsDeleted,
-                        cancellationToken);
-
-                if (execution != null)
-                {
-                    // ── Complete the execution ──
-                    execution.Status = ExecutionStatus.Completed;
-                    execution.CompletedAt = DateTime.UtcNow;
-                    execution.UpdatedAt = DateTime.UtcNow;
-                    execution.UpdatedBy = "system";
-
-                    await context.SaveChangesAsync(cancellationToken);
-
-                    Console.WriteLine($"[Auto-Complete] RouteExecution {execution.Id} auto-completed for route {routeId}. All {allOrders.Count} orders submitted.");
-                }
-                else
-                {
-                    // Try to find any execution (including Draft) and complete it
-                    var anyExecution = await context.RouteExecutions
-                        .FirstOrDefaultAsync(e => e.RouteId == routeId
-                            && e.ExecutionDate.Date == today
-                            && !e.IsDeleted
-                            && (e.Status == ExecutionStatus.InProgress || e.Status == ExecutionStatus.Draft),
-                            cancellationToken);
-
-                    if (anyExecution != null)
-                    {
-                        anyExecution.Status = ExecutionStatus.Completed;
-                        anyExecution.CompletedAt = DateTime.UtcNow;
-                        anyExecution.UpdatedAt = DateTime.UtcNow;
-                        anyExecution.UpdatedBy = "system";
-
-                        await context.SaveChangesAsync(cancellationToken);
-
-                        Console.WriteLine($"[Auto-Complete] RouteExecution {anyExecution.Id} auto-completed from {anyExecution.Status} for route {routeId}.");
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            // ── Non-blocking: If auto-complete fails, don't fail the order submission ──
-            Console.WriteLine($"[Auto-Complete] Failed to auto-complete RouteExecution for route {routeId}: {ex.Message}");
-        }
     }
 }

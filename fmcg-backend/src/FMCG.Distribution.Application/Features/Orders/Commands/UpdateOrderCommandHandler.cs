@@ -53,6 +53,14 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
             return Result<OrderDetailDto>.Failure("Order not found.");
 
         // ── Permission matrix ──────────────────────────────────────────────────
+        // ── Universal lock check — applies to admin and salesman alike.
+        // Once admin runs Close Day, IsLocked is true on this order and
+        // nobody edits it anymore, regardless of role or status. ──
+        if (order.IsLocked)
+            return Result<OrderDetailDto>.Failure(
+                "This order is locked after daily closing and cannot be modified.");
+
+        // ── Permission matrix ──────────────────────────────────────────────────
         if (request.IsAdmin)
         {
             // Admin can edit: Draft, PendingApproval, OR Approved orders
@@ -72,10 +80,6 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
 
             if (order.SalesmanId != request.SalesmanId)
                 return Result<OrderDetailDto>.Failure("You are not authorised to modify this order.");
-
-            if (order.IsLocked)
-                return Result<OrderDetailDto>.Failure(
-                    "This order is locked after daily closing and cannot be modified.");
         }
 
         var customer = await context.Customers
@@ -233,6 +237,7 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
             ClosedAt = order.ClosedAt,
             CreatedAt = order.CreatedAt,
             Items = itemDtos,
+            IsLocked = order.IsLocked,
         }, "Order updated successfully.");
     }
 

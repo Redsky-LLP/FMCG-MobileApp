@@ -22,10 +22,22 @@ fmcg-backend/src/**/obj/
 fmcg-backend/.vs/
 
 # Frontend - node modules and build
+node_modules/
 fmcg-frontend/node_modules/
 fmcg-frontend/dist/
 fmcg-frontend/dist-ssr/
 fmcg-frontend/.vite/
+
+# Android - build artifacts only (keep AndroidManifest.xml, colors.xml,
+# styles.xml, MainActivity.java etc. tracked — those are real customizations)
+**/android/**/build/
+**/android/.gradle/
+**/android/local.properties
+**/android/captures/
+**/android/*.iml
+**/android/.idea/
+*.apk
+*.aab
 
 # Environment files
 .env

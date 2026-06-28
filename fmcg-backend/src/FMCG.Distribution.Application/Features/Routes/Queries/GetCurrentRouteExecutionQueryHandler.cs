@@ -1,5 +1,10 @@
 ﻿// PATH: src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionQueryHandler.cs
-// FIXES:
+// UPDATED: Removed the "ExecutionDate.Date == today" filter when looking up the
+// current execution. An open execution (not Completed, not Abandoned) must stay
+// "current" across a calendar-day rollover — it should only stop being current
+// once admin explicitly closes the day. Without this, a route looked "fresh"
+// again purely because the date changed, even though nothing was ever closed.
+// FIXES (carried over):
 //   IDE0290: Use primary constructor
 //   CA1860:  .Any() → .Count > 0
 //   IDE0028: Collection initialization simplified
@@ -20,18 +25,22 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
         GetCurrentRouteExecutionQuery request,
         CancellationToken cancellationToken)
     {
-        var today = DateTime.UtcNow.Date;
-
+        // No date filter here — an execution stays "current" until it's
+        // explicitly Completed (admin's Close Day) or Abandoned, regardless of
+        // which calendar day it was originally started on. This is what lets
+        // a route stay open into the next morning for catch-up orders until
+        // admin actually closes it. OrderByDescending just guards against the
+        // unlikely case of more than one open execution existing.
         var execution = await context.RouteExecutions
             .Include(e => e.Visits!)
                 .ThenInclude(v => v.Customer)
-            .FirstOrDefaultAsync(
+            .Where(
                 e => e.RouteId == request.RouteId
                   && e.SalesmanId == request.SalesmanId
-                  && e.ExecutionDate.Date == today
                   && e.Status != ExecutionStatus.Completed
-                  && e.Status != ExecutionStatus.Abandoned,
-                cancellationToken);
+                  && e.Status != ExecutionStatus.Abandoned)
+            .OrderByDescending(e => e.ExecutionDate)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (execution == null)
         {

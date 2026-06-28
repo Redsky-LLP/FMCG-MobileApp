@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Edit2, X, Save } from 'lucide-react';
 import { Spinner } from '../../../../components/ui';  // ← Fix: import from ui
+import { useIsMobile } from '../../../../hooks/useIsMobile';
 import type { RouteDto, UserDto } from '../../../../types';
 import type { RouteFormData } from '../types';
 
@@ -21,6 +22,7 @@ export function EditRouteCard({
   onSave,
   onCancel,
 }: EditRouteCardProps) {
+  const isMobile = useIsMobile();
   const [form, setForm] = useState<RouteFormData>({
     name: route.name,
     description: route.description || '',
@@ -81,7 +83,12 @@ export function EditRouteCard({
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        gap: 16,
+        marginBottom: 16,
+      }}>
         <div>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 7 }}>
             Route Name <span style={{ color: '#DC2626' }}>*</span>

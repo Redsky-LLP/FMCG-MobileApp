@@ -12,12 +12,8 @@
 
 import axios from 'axios';
 
-const BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD
-    ? 'https://fmcg-distribution-api.onrender.com'
-    : 'http://localhost:5002');
-
+// Hardcoded backend URL for production APK
+const BASE_URL = 'https://fmcg-api.duckdns.org';
 // Refresh if the token expires within this many seconds — gives a buffer so
 // we're not racing the actual expiry.
 const REFRESH_BUFFER_SECONDS = 5 * 60;

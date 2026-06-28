@@ -458,6 +458,7 @@ export interface OrderDto {
   createdDate?:   string;
   remarks?:       string;
   approvedAt?:    string;
+  isLocked?:      boolean;
 }
 
 export interface OrderDetailDto extends OrderDto {
@@ -701,6 +702,8 @@ export interface ActiveRouteDto {
     startedBySalesmanId?: string;
     isMine:               boolean;
     isDedicatedToAnother: boolean;
+    hasUnclosedCycle:     boolean;
+
 }
 
 export interface RoutePerformanceResponseDto {

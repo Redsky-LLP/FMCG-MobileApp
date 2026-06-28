@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
+using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
 using FMCG.Distribution.Domain.Enums;
@@ -22,8 +19,6 @@ public class GetActiveRoutesQueryHandler : IRequestHandler<GetActiveRoutesQuery,
 
     public async Task<Result<List<ActiveRouteDto>>> Handle(GetActiveRoutesQuery request, CancellationToken cancellationToken)
     {
-        var today = DateTime.UtcNow.Date;
-
         // Every active route is visible to every salesman — there is no admin
         // "assign route to salesman" step required for day-to-day use.
         var routes = await _context.Routes
@@ -32,15 +27,26 @@ public class GetActiveRoutesQueryHandler : IRequestHandler<GetActiveRoutesQuery,
             .OrderBy(r => r.SequenceOrder)
             .ToListAsync(cancellationToken);
 
-        // Today's executions across ALL salesmen — this is what makes a route
-        // show as "taken" to everyone else once one salesman starts it.
+        // Open executions across ALL salesmen — not scoped to today's date.
+        // An execution that's still InProgress/Draft from a previous day must
+        // keep showing the route as "taken" until admin closes it; otherwise
+        // a plain date rollover makes every route look free again on its own.
+        // If a route somehow has more than one open execution, the most
+        // recently started one wins.
         var executions = await _context.RouteExecutions
             .Include(e => e.Salesman)
-            .Where(e => e.ExecutionDate.Date == today
-                        && e.Status != ExecutionStatus.Completed
+            .Where(e => e.Status != ExecutionStatus.Completed
                         && e.Status != ExecutionStatus.Abandoned
                         && !e.IsDeleted)
+            .GroupBy(e => e.RouteId)
+            .Select(g => g.OrderByDescending(e => e.ExecutionDate).First())
             .ToDictionaryAsync(e => e.RouteId, e => e, cancellationToken);
+
+        // ── Global gate signal ─────────────────────────────────────────────
+        // True if ANYTHING anywhere is still open — drives whether brand-new
+        // routes are allowed to start. Cheap check: if the dictionary above has
+        // any entries at all, something is open (it only contains open ones).
+        var hasUnclosedCycle = executions.Count > 0;
 
         var result = routes.Select(r =>
         {
@@ -61,6 +67,7 @@ public class GetActiveRoutesQueryHandler : IRequestHandler<GetActiveRoutesQuery,
                 // A route is only "closed off" if it's permanently dedicated to a
                 // DIFFERENT specific salesman. Unassigned routes are open to anyone.
                 IsDedicatedToAnother = r.AssignedSalesmanId.HasValue && r.AssignedSalesmanId != request.SalesmanId,
+                HasUnclosedCycle = hasUnclosedCycle,
             };
         }).ToList();
 

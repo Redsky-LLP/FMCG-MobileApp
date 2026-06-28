@@ -196,7 +196,6 @@ function ItemCard({
             value={displayQty}
             onChange={(e) => onQtyChange(line.productId, e.target.value)}
             onBlur={() => onQtyBlur(line.productId)}
-            onFocus={(e) => e.target.select()}
             disabled={!canEdit}
             style={{
               width: '100%',
@@ -225,7 +224,6 @@ function ItemCard({
             value={displayPrice}
             onChange={(e) => onPriceChange(line.productId, e.target.value)}
             onBlur={() => onPriceBlur(line.productId)}
-            onFocus={(e) => e.target.select()}
             disabled={!canEdit}
             placeholder={String(line.product.basePrice ?? 0)}
             style={{
@@ -546,14 +544,16 @@ export function AdminOrderEdit() {
   }
 
   const orderStatus = order.status;
-  const canEdit = orderStatus !== OrderStatus.Closed;
+  const canEdit = orderStatus !== OrderStatus.Closed && !order.isLocked;
   const isDraft = orderStatus === OrderStatus.Draft;
 
   if (!canEdit) {
     return (
       <div style={{ minHeight: '100vh', background: D.bg, padding: '24px' }}>
         <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.30)', borderRadius: 12, padding: '16px', color: '#fca5a5', marginBottom: 16 }}>
-          Cannot edit order in '{getStatusLabel(orderStatus)}' status.
+          {order.isLocked
+            ? "This order is locked — admin has closed the day. It can no longer be edited."
+            : `Cannot edit order in '${getStatusLabel(orderStatus)}' status.`}
         </div>
         <button onClick={() => navigate('/admin/orders')} style={{ padding: '10px 20px', borderRadius: 10, background: D.surface, border: `1px solid ${D.border}`, color: D.muted, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
           ← Back to Orders
@@ -561,7 +561,6 @@ export function AdminOrderEdit() {
       </div>
     );
   }
-
   return (
     <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 100 }}>
 

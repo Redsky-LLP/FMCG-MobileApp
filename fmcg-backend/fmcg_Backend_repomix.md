@@ -8042,7 +8042,10 @@ public class SubmitOrderCommand : IRequest<Result<OrderDetailDto>>
 ## File: src/FMCG.Distribution.Application/Features/Orders/Commands/SubmitOrderCommandHandler.cs
 ```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Orders/Commands/SubmitOrderCommandHandler.cs
-// COMPLETE FIX: Auto-completes RouteExecution when all orders for the route are submitted.
+// UPDATED: Removed AutoCompleteRouteExecutionIfAllSubmitted — it was flipping
+// RouteExecution to Completed the moment all orders on a route were submitted,
+// bypassing admin's Close Day entirely. Routes must now only become "fresh"
+// via the explicit admin close-day action (CloseDayCommandHandler).
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -8084,9 +8087,6 @@ public class SubmitOrderCommandHandler(IApplicationDbContext context)
         order.MarkModified(request.SalesmanId.ToString());
 
         await context.SaveChangesAsync(cancellationToken);
-
-        // ── CRITICAL FIX: Auto-complete RouteExecution if ALL orders for today are submitted ──
-        await AutoCompleteRouteExecutionIfAllSubmitted(order.RouteId, cancellationToken);
 
         // ── Build response DTO ──
         var customer = await context.Customers
@@ -8141,85 +8141,6 @@ public class SubmitOrderCommandHandler(IApplicationDbContext context)
             CreatedAt = order.CreatedAt,
             Items = itemDtos,
         }, "Order submitted for admin approval.");
-    }
-
-    /// <summary>
-    /// Auto-completes the RouteExecution when ALL orders for this route today are submitted.
-    /// This prevents the "active route execution" blocking issue.
-    /// </summary>
-    private async Task AutoCompleteRouteExecutionIfAllSubmitted(Guid routeId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var today = DateTime.UtcNow.Date;
-
-            // ── Get ALL orders for this route today ──
-            var allOrders = await context.Orders
-                .Where(o => o.RouteId == routeId
-                    && o.OrderDate.Date == today
-                    && !o.IsDeleted)
-                .ToListAsync(cancellationToken);
-
-            // If no orders, nothing to do
-            if (allOrders.Count == 0)
-                return;
-
-            // ── Check if there are ANY draft orders ──
-            var hasDraftOrders = allOrders.Any(o => o.Status == OrderStatus.Draft);
-            var hasSubmittedOrders = allOrders.Any(o => o.Status != OrderStatus.Draft);
-
-            // ── If there are submitted orders AND no drafts, auto-complete ──
-            if (hasSubmittedOrders && !hasDraftOrders)
-            {
-                // Find the active RouteExecution for this route today
-                var execution = await context.RouteExecutions
-                    .FirstOrDefaultAsync(e => e.RouteId == routeId
-                        && e.ExecutionDate.Date == today
-                        && e.Status == ExecutionStatus.InProgress
-                        && !e.IsDeleted,
-                        cancellationToken);
-
-                if (execution != null)
-                {
-                    // ── Complete the execution ──
-                    execution.Status = ExecutionStatus.Completed;
-                    execution.CompletedAt = DateTime.UtcNow;
-                    execution.UpdatedAt = DateTime.UtcNow;
-                    execution.UpdatedBy = "system";
-
-                    await context.SaveChangesAsync(cancellationToken);
-
-                    Console.WriteLine($"[Auto-Complete] RouteExecution {execution.Id} auto-completed for route {routeId}. All {allOrders.Count} orders submitted.");
-                }
-                else
-                {
-                    // Try to find any execution (including Draft) and complete it
-                    var anyExecution = await context.RouteExecutions
-                        .FirstOrDefaultAsync(e => e.RouteId == routeId
-                            && e.ExecutionDate.Date == today
-                            && !e.IsDeleted
-                            && (e.Status == ExecutionStatus.InProgress || e.Status == ExecutionStatus.Draft),
-                            cancellationToken);
-
-                    if (anyExecution != null)
-                    {
-                        anyExecution.Status = ExecutionStatus.Completed;
-                        anyExecution.CompletedAt = DateTime.UtcNow;
-                        anyExecution.UpdatedAt = DateTime.UtcNow;
-                        anyExecution.UpdatedBy = "system";
-
-                        await context.SaveChangesAsync(cancellationToken);
-
-                        Console.WriteLine($"[Auto-Complete] RouteExecution {anyExecution.Id} auto-completed from {anyExecution.Status} for route {routeId}.");
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            // ── Non-blocking: If auto-complete fails, don't fail the order submission ──
-            Console.WriteLine($"[Auto-Complete] Failed to auto-complete RouteExecution for route {routeId}: {ex.Message}");
-        }
     }
 }
 ```
@@ -8304,6 +8225,14 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
             return Result<OrderDetailDto>.Failure("Order not found.");
 
         // ── Permission matrix ──────────────────────────────────────────────────
+        // ── Universal lock check — applies to admin and salesman alike.
+        // Once admin runs Close Day, IsLocked is true on this order and
+        // nobody edits it anymore, regardless of role or status. ──
+        if (order.IsLocked)
+            return Result<OrderDetailDto>.Failure(
+                "This order is locked after daily closing and cannot be modified.");
+
+        // ── Permission matrix ──────────────────────────────────────────────────
         if (request.IsAdmin)
         {
             // Admin can edit: Draft, PendingApproval, OR Approved orders
@@ -8323,10 +8252,6 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
 
             if (order.SalesmanId != request.SalesmanId)
                 return Result<OrderDetailDto>.Failure("You are not authorised to modify this order.");
-
-            if (order.IsLocked)
-                return Result<OrderDetailDto>.Failure(
-                    "This order is locked after daily closing and cannot be modified.");
         }
 
         var customer = await context.Customers
@@ -8484,6 +8409,7 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
             ClosedAt = order.ClosedAt,
             CreatedAt = order.CreatedAt,
             Items = itemDtos,
+            IsLocked = order.IsLocked,
         }, "Order updated successfully.");
     }
 
@@ -8580,20 +8506,25 @@ public class OrderDto
     public string? CustomerNameMalayalam { get; set; }
     public Guid RouteId { get; set; }
     public string RouteName { get; set; } = string.Empty;
-    public Guid SalesmanId { get; set; }           // ← ADD THIS
-    public string? SalesmanName { get; set; }      // ← ADD THIS
+    public Guid SalesmanId { get; set; }
+    public string? SalesmanName { get; set; }
     public OrderStatus Status { get; set; }
     public DateTime OrderDate { get; set; }
     public int TotalItems { get; set; }
-    public int ItemCount { get; set; }             // ← ADD THIS
+    public int ItemCount { get; set; }
     public decimal TotalQuantity { get; set; }
     public decimal TotalAmount { get; set; }
     public string? Remarks { get; set; }
     public DateTime? SubmittedAt { get; set; }
-    public DateTime? ApprovedAt { get; set; }      // ← ADD THIS
+    public DateTime? ApprovedAt { get; set; }
     public DateTime? ClosedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<OrderItemDto>? Items { get; set; }
+    // Set true the moment admin runs Close Day — now applies to every order,
+    // Draft included. This is the single source of truth for "can this be
+    // edited anymore," checked server-side on every update and read by the
+    // frontend to grey out the edit form before the user even tries.
+    public bool IsLocked { get; set; }
 }
 ```
 
@@ -8862,7 +8793,8 @@ public class GetOrderByIdQueryHandler(IApplicationDbContext context)
             SubmittedAt = order.SubmittedAt,
             ClosedAt = order.ClosedAt,
             CreatedAt = order.CreatedAt,
-            Items = itemDtos
+            Items = itemDtos,
+            IsLocked = order.IsLocked,
         };
 
         return Result<OrderDetailDto>.Success(resultDto);
@@ -12992,15 +12924,22 @@ public class StartRouteExecutionResponse
 ## File: src/FMCG.Distribution.Application/Features/Routes/Commands/StartRouteExecutionCommandHandler.cs
 ```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Routes/Commands/StartRouteExecutionCommandHandler.cs
-// UPDATED: Delivery mode now requires day closure and CLOSED orders
+// UPDATED: Added a global gate — a brand-new route cannot start while ANY
+// execution anywhere in the system is still open (not Completed/Abandoned).
+// This is what makes admin's Close Day the single event that makes every
+// route fresh again at once. Resuming an already-open execution (the check
+// right above this) is unaffected — this only blocks creating a new one
+// from scratch while a previous cycle is still hanging open.
+// (Previous header notes retained below.)
+// Delivery mode still requires day closure and CLOSED orders.
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;                           // ← ADD THIS
-using Microsoft.EntityFrameworkCore;      // ← ADD THIS
+using MediatR;
+using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
 using FMCG.Distribution.Domain.Entities;
@@ -13046,12 +12985,16 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
             ? request.ExecutionDate.Value.Date
             : DateTime.UtcNow.Date;
 
-        // Resume existing execution if any
+        // Resume existing execution if any — not scoped to today's date, since
+        // an open execution from yesterday must still be resumable here until
+        // admin explicitly closes it (Completed) or it's Abandoned. Most recent
+        // open one wins if more than one somehow exists.
         var existingExecution = await context.RouteExecutions
-            .FirstOrDefaultAsync(e => e.RouteId == request.RouteId
-                && e.ExecutionDate.Date == executionDate
+            .Where(e => e.RouteId == request.RouteId
                 && e.Status != ExecutionStatus.Completed
-                && e.Status != ExecutionStatus.Abandoned, cancellationToken);
+                && e.Status != ExecutionStatus.Abandoned)
+            .OrderByDescending(e => e.ExecutionDate)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (existingExecution != null)
         {
@@ -13063,7 +13006,7 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
                 var owner = await context.Users
                     .FirstOrDefaultAsync(u => u.Id == existingExecution.SalesmanId, cancellationToken);
                 return Result<StartRouteExecutionResponse>.Failure(
-                    $"This route was already started by {owner?.FullName ?? "another salesman"} today.");
+                    $"This route was already started by {owner?.FullName ?? "another salesman"} and hasn't been closed yet.");
             }
 
             if (existingExecution.Status == ExecutionStatus.Draft)
@@ -13090,13 +13033,16 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
             }, "Resuming existing route execution.");
         }
 
-        // Guard: no other active execution on a different route today
+        // Guard: no other open execution on a different route, regardless of
+        // which day it was started — same reasoning as above, an unclosed
+        // execution from yesterday still counts as "active" today.
         var existingActiveExecution = await context.RouteExecutions
-            .FirstOrDefaultAsync(e => e.SalesmanId == request.SalesmanId
-                && e.ExecutionDate.Date == executionDate
+            .Where(e => e.SalesmanId == request.SalesmanId
                 && e.RouteId != request.RouteId
                 && e.Status != ExecutionStatus.Completed
-                && e.Status != ExecutionStatus.Abandoned, cancellationToken);
+                && e.Status != ExecutionStatus.Abandoned)
+            .OrderByDescending(e => e.ExecutionDate)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (existingActiveExecution != null)
         {
@@ -13105,6 +13051,23 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
             return Result<StartRouteExecutionResponse>.Failure(
                 $"You already have an active route execution for '{activeRoute?.Name}'. " +
                 "Please complete that route before starting a new one.");
+        }
+
+        // ── GLOBAL GATE: no brand-new route can start while ANY execution
+        // anywhere in the system is still open. This is what makes "admin
+        // closes the day" the single event that makes every route fresh
+        // again at once — without this, a route could leapfrog ahead and
+        // start a whole new cycle while a previous one is still unclosed. ──
+        var anyOpenExecutionExists = await context.RouteExecutions
+            .AnyAsync(e => e.Status != ExecutionStatus.Completed
+                        && e.Status != ExecutionStatus.Abandoned
+                        && !e.IsDeleted, cancellationToken);
+
+        if (anyOpenExecutionExists)
+        {
+            return Result<StartRouteExecutionResponse>.Failure(
+                "Cannot start a new route yet — there are unclosed orders from a previous cycle. " +
+                "Please wait for admin to close the day first.");
         }
 
         // Create new execution
@@ -13381,18 +13344,21 @@ public class ActiveRouteDto
     // True when the route has a permanent AssignedSalesmanId set to someone else —
     // i.e. it's a dedicated route, not open for anyone to pick up.
     public bool IsDedicatedToAnother { get; set; }
+    // Same value repeated on every route in the list — true if ANY route execution
+    // anywhere in the system is still open (not Completed, not Abandoned). While
+    // this is true, a brand-new route (IsStarted == false) must not be startable —
+    // only resuming something already open is allowed. Goes false the moment admin
+    // runs Close Day, which is what makes every route "fresh" again at once.
+    public bool HasUnclosedCycle { get; set; }
 }
 ```
 
 ## File: src/FMCG.Distribution.Application/Features/Routes/Queries/GetActiveRoutesQueryHandler.cs
 ```csharp
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
+using MediatR;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
 using FMCG.Distribution.Domain.Enums;
@@ -13410,8 +13376,6 @@ public class GetActiveRoutesQueryHandler : IRequestHandler<GetActiveRoutesQuery,
 
     public async Task<Result<List<ActiveRouteDto>>> Handle(GetActiveRoutesQuery request, CancellationToken cancellationToken)
     {
-        var today = DateTime.UtcNow.Date;
-
         // Every active route is visible to every salesman — there is no admin
         // "assign route to salesman" step required for day-to-day use.
         var routes = await _context.Routes
@@ -13420,15 +13384,26 @@ public class GetActiveRoutesQueryHandler : IRequestHandler<GetActiveRoutesQuery,
             .OrderBy(r => r.SequenceOrder)
             .ToListAsync(cancellationToken);
 
-        // Today's executions across ALL salesmen — this is what makes a route
-        // show as "taken" to everyone else once one salesman starts it.
+        // Open executions across ALL salesmen — not scoped to today's date.
+        // An execution that's still InProgress/Draft from a previous day must
+        // keep showing the route as "taken" until admin closes it; otherwise
+        // a plain date rollover makes every route look free again on its own.
+        // If a route somehow has more than one open execution, the most
+        // recently started one wins.
         var executions = await _context.RouteExecutions
             .Include(e => e.Salesman)
-            .Where(e => e.ExecutionDate.Date == today
-                        && e.Status != ExecutionStatus.Completed
+            .Where(e => e.Status != ExecutionStatus.Completed
                         && e.Status != ExecutionStatus.Abandoned
                         && !e.IsDeleted)
+            .GroupBy(e => e.RouteId)
+            .Select(g => g.OrderByDescending(e => e.ExecutionDate).First())
             .ToDictionaryAsync(e => e.RouteId, e => e, cancellationToken);
+
+        // ── Global gate signal ─────────────────────────────────────────────
+        // True if ANYTHING anywhere is still open — drives whether brand-new
+        // routes are allowed to start. Cheap check: if the dictionary above has
+        // any entries at all, something is open (it only contains open ones).
+        var hasUnclosedCycle = executions.Count > 0;
 
         var result = routes.Select(r =>
         {
@@ -13449,6 +13424,7 @@ public class GetActiveRoutesQueryHandler : IRequestHandler<GetActiveRoutesQuery,
                 // A route is only "closed off" if it's permanently dedicated to a
                 // DIFFERENT specific salesman. Unassigned routes are open to anyone.
                 IsDedicatedToAnother = r.AssignedSalesmanId.HasValue && r.AssignedSalesmanId != request.SalesmanId,
+                HasUnclosedCycle = hasUnclosedCycle,
             };
         }).ToList();
 
@@ -13642,7 +13618,12 @@ public class CustomerVisitStatusDto
 ## File: src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionQueryHandler.cs
 ```csharp
 // PATH: src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionQueryHandler.cs
-// FIXES:
+// UPDATED: Removed the "ExecutionDate.Date == today" filter when looking up the
+// current execution. An open execution (not Completed, not Abandoned) must stay
+// "current" across a calendar-day rollover — it should only stop being current
+// once admin explicitly closes the day. Without this, a route looked "fresh"
+// again purely because the date changed, even though nothing was ever closed.
+// FIXES (carried over):
 //   IDE0290: Use primary constructor
 //   CA1860:  .Any() → .Count > 0
 //   IDE0028: Collection initialization simplified
@@ -13663,18 +13644,22 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
         GetCurrentRouteExecutionQuery request,
         CancellationToken cancellationToken)
     {
-        var today = DateTime.UtcNow.Date;
-
+        // No date filter here — an execution stays "current" until it's
+        // explicitly Completed (admin's Close Day) or Abandoned, regardless of
+        // which calendar day it was originally started on. This is what lets
+        // a route stay open into the next morning for catch-up orders until
+        // admin actually closes it. OrderByDescending just guards against the
+        // unlikely case of more than one open execution existing.
         var execution = await context.RouteExecutions
             .Include(e => e.Visits!)
                 .ThenInclude(v => v.Customer)
-            .FirstOrDefaultAsync(
+            .Where(
                 e => e.RouteId == request.RouteId
                   && e.SalesmanId == request.SalesmanId
-                  && e.ExecutionDate.Date == today
                   && e.Status != ExecutionStatus.Completed
-                  && e.Status != ExecutionStatus.Abandoned,
-                cancellationToken);
+                  && e.Status != ExecutionStatus.Abandoned)
+            .OrderByDescending(e => e.ExecutionDate)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (execution == null)
         {
@@ -43776,19 +43761,21 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         }
 
         // Get all submitted orders for locking
+        // Get ALL orders for locking — Draft included. Once admin closes the
+        // day, nothing related to it stays editable, full stop. A Draft that
+        // never got submitted in time is now admin's problem to resolve
+        // through other means (cancel it, or handle the customer manually) —
+        // it does not get a free pass to stay open indefinitely.
         var ordersToLock = await context.Orders
             .Include(o => o.Items)
             .Where(o => !o.IsDeleted
-                && o.Status != OrderStatus.Draft
                 && !o.IsLocked
                 && o.OrderDate <= closureDate)
             .ToListAsync(cancellationToken);
 
-        // Informational only — these are NOT included in today's settlement
-        // totals and do NOT block closing. Surfaced in the result message so
-        // admin knows they're still sitting there awaiting review.
-        var draftCountAsOfClosure = await context.Orders
-            .CountAsync(o => !o.IsDeleted && o.Status == OrderStatus.Draft && o.OrderDate <= closureDate, cancellationToken);
+        // Still informational for the closure message — admin should know
+        // how many of the orders just locked were never actually submitted.
+        var draftCountAsOfClosure = ordersToLock.Count(o => o.Status == OrderStatus.Draft);
 
         // Lock each order
         foreach (var order in ordersToLock)
@@ -43897,7 +43884,7 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         if (closedRouteCount > 0)
             parts.Add($"{closedRouteCount} route(s) closed and ready fresh tomorrow.");
         if (draftCount > 0)
-            parts.Add($"Note: {draftCount} draft order(s) weren't included (still awaiting review) — they're untouched and can still be edited.");
+            parts.Add($"Note: {draftCount} draft order(s) were never submitted and are now locked along with everything else — review them manually if needed.");
         return string.Join(" ", parts);
     }
 }

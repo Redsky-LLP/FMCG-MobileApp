@@ -78,7 +78,8 @@ public class GetOrderByIdQueryHandler(IApplicationDbContext context)
             SubmittedAt = order.SubmittedAt,
             ClosedAt = order.ClosedAt,
             CreatedAt = order.CreatedAt,
-            Items = itemDtos
+            Items = itemDtos,
+            IsLocked = order.IsLocked,
         };
 
         return Result<OrderDetailDto>.Success(resultDto);

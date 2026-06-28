@@ -18,6 +18,9 @@
 // 5. Reloads on location.key change / on visibilitychange
 // 6. Completed route detection is AGGRESSIVE
 // 7. "Taken by X" — another salesman's in-progress route is shown, not hidden
+// 8. hasUnclosedCycle carried through from ActiveRouteDto — blocks brand-new
+//    routes (no executionId yet) from starting while anything anywhere is
+//    still open, until admin closes the day.
 
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -70,6 +73,10 @@ interface EnrichedRoute {
   // editing, separately from "all stops visited" which just means the
   // salesman is done but admin hasn't closed yet (still editable).
   isAdminClosed?:       boolean;
+  // Repeated on every route by the backend — true if ANY execution anywhere
+  // in the system is still open. Used to block starting a brand-new route
+  // (no executionId) until admin closes the day.
+  hasUnclosedCycle?:    boolean;
 }
 
 export function SalesmanRoutes() {
@@ -103,6 +110,7 @@ export function SalesmanRoutes() {
             description:          r.description,
             customerCount:        r.customerCount,
             isDedicatedToAnother: r.isDedicatedToAnother,
+            hasUnclosedCycle:     r.hasUnclosedCycle,
           };
 
           // Someone else already has this route running today — it's locked.
@@ -461,7 +469,9 @@ export function SalesmanRoutes() {
             {visibleRoutes.map(route => {
               const completed   = isEffectivelyCompleted(route);
               const inProgress  = isGenuinelyInProgress(route);
-              const blocked     = !!activeRoute && activeRoute.routeId !== route.routeId && !completed;
+              const hasUnclosedCycle = routes.some(r => r.hasUnclosedCycle);
+              const blocked = (!!activeRoute && activeRoute.routeId !== route.routeId && !completed)
+                || (!route.takenByOther && !route.executionId && hasUnclosedCycle);
               return (
                 <RouteCard
                   key={route.routeId}

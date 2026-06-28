@@ -1,13 +1,20 @@
 ﻿// PATH: src/FMCG.Distribution.Application/Features/Routes/Commands/StartRouteExecutionCommandHandler.cs
-// UPDATED: Delivery mode now requires day closure and CLOSED orders
+// UPDATED: Added a global gate — a brand-new route cannot start while ANY
+// execution anywhere in the system is still open (not Completed/Abandoned).
+// This is what makes admin's Close Day the single event that makes every
+// route fresh again at once. Resuming an already-open execution (the check
+// right above this) is unaffected — this only blocks creating a new one
+// from scratch while a previous cycle is still hanging open.
+// (Previous header notes retained below.)
+// Delivery mode still requires day closure and CLOSED orders.
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;                           // ← ADD THIS
-using Microsoft.EntityFrameworkCore;      // ← ADD THIS
+using MediatR;
+using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
 using FMCG.Distribution.Domain.Entities;
@@ -53,12 +60,16 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
             ? request.ExecutionDate.Value.Date
             : DateTime.UtcNow.Date;
 
-        // Resume existing execution if any
+        // Resume existing execution if any — not scoped to today's date, since
+        // an open execution from yesterday must still be resumable here until
+        // admin explicitly closes it (Completed) or it's Abandoned. Most recent
+        // open one wins if more than one somehow exists.
         var existingExecution = await context.RouteExecutions
-            .FirstOrDefaultAsync(e => e.RouteId == request.RouteId
-                && e.ExecutionDate.Date == executionDate
+            .Where(e => e.RouteId == request.RouteId
                 && e.Status != ExecutionStatus.Completed
-                && e.Status != ExecutionStatus.Abandoned, cancellationToken);
+                && e.Status != ExecutionStatus.Abandoned)
+            .OrderByDescending(e => e.ExecutionDate)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (existingExecution != null)
         {
@@ -70,7 +81,7 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
                 var owner = await context.Users
                     .FirstOrDefaultAsync(u => u.Id == existingExecution.SalesmanId, cancellationToken);
                 return Result<StartRouteExecutionResponse>.Failure(
-                    $"This route was already started by {owner?.FullName ?? "another salesman"} today.");
+                    $"This route was already started by {owner?.FullName ?? "another salesman"} and hasn't been closed yet.");
             }
 
             if (existingExecution.Status == ExecutionStatus.Draft)
@@ -97,13 +108,16 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
             }, "Resuming existing route execution.");
         }
 
-        // Guard: no other active execution on a different route today
+        // Guard: no other open execution on a different route, regardless of
+        // which day it was started — same reasoning as above, an unclosed
+        // execution from yesterday still counts as "active" today.
         var existingActiveExecution = await context.RouteExecutions
-            .FirstOrDefaultAsync(e => e.SalesmanId == request.SalesmanId
-                && e.ExecutionDate.Date == executionDate
+            .Where(e => e.SalesmanId == request.SalesmanId
                 && e.RouteId != request.RouteId
                 && e.Status != ExecutionStatus.Completed
-                && e.Status != ExecutionStatus.Abandoned, cancellationToken);
+                && e.Status != ExecutionStatus.Abandoned)
+            .OrderByDescending(e => e.ExecutionDate)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (existingActiveExecution != null)
         {
@@ -112,6 +126,23 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
             return Result<StartRouteExecutionResponse>.Failure(
                 $"You already have an active route execution for '{activeRoute?.Name}'. " +
                 "Please complete that route before starting a new one.");
+        }
+
+        // ── GLOBAL GATE: no brand-new route can start while ANY execution
+        // anywhere in the system is still open. This is what makes "admin
+        // closes the day" the single event that makes every route fresh
+        // again at once — without this, a route could leapfrog ahead and
+        // start a whole new cycle while a previous one is still unclosed. ──
+        var anyOpenExecutionExists = await context.RouteExecutions
+            .AnyAsync(e => e.Status != ExecutionStatus.Completed
+                        && e.Status != ExecutionStatus.Abandoned
+                        && !e.IsDeleted, cancellationToken);
+
+        if (anyOpenExecutionExists)
+        {
+            return Result<StartRouteExecutionResponse>.Failure(
+                "Cannot start a new route yet — there are unclosed orders from a previous cycle. " +
+                "Please wait for admin to close the day first.");
         }
 
         // Create new execution

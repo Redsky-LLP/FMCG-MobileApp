@@ -162,19 +162,21 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         }
 
         // Get all submitted orders for locking
+        // Get ALL orders for locking — Draft included. Once admin closes the
+        // day, nothing related to it stays editable, full stop. A Draft that
+        // never got submitted in time is now admin's problem to resolve
+        // through other means (cancel it, or handle the customer manually) —
+        // it does not get a free pass to stay open indefinitely.
         var ordersToLock = await context.Orders
             .Include(o => o.Items)
             .Where(o => !o.IsDeleted
-                && o.Status != OrderStatus.Draft
                 && !o.IsLocked
                 && o.OrderDate <= closureDate)
             .ToListAsync(cancellationToken);
 
-        // Informational only — these are NOT included in today's settlement
-        // totals and do NOT block closing. Surfaced in the result message so
-        // admin knows they're still sitting there awaiting review.
-        var draftCountAsOfClosure = await context.Orders
-            .CountAsync(o => !o.IsDeleted && o.Status == OrderStatus.Draft && o.OrderDate <= closureDate, cancellationToken);
+        // Still informational for the closure message — admin should know
+        // how many of the orders just locked were never actually submitted.
+        var draftCountAsOfClosure = ordersToLock.Count(o => o.Status == OrderStatus.Draft);
 
         // Lock each order
         foreach (var order in ordersToLock)
@@ -283,7 +285,7 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         if (closedRouteCount > 0)
             parts.Add($"{closedRouteCount} route(s) closed and ready fresh tomorrow.");
         if (draftCount > 0)
-            parts.Add($"Note: {draftCount} draft order(s) weren't included (still awaiting review) — they're untouched and can still be edited.");
+            parts.Add($"Note: {draftCount} draft order(s) were never submitted and are now locked along with everything else — review them manually if needed.");
         return string.Join(" ", parts);
     }
 }

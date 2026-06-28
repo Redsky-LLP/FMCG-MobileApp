@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Route, X, Save } from 'lucide-react';
 import { Spinner } from '../../../../components/ui';  // ← Fix: import from ui
+import { useIsMobile } from '../../../../hooks/useIsMobile';
 import type { UserDto } from '../../../../types';
 import type { RouteFormData } from '../types';
 
@@ -19,6 +20,7 @@ export function AddRouteCard({
   onSave,
   onCancel,
 }: AddRouteCardProps) {
+  const isMobile = useIsMobile();
   const [form, setForm] = useState<RouteFormData>({ name: '', description: '', assignedSalesmanId: '' });
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -75,7 +77,12 @@ export function AddRouteCard({
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        gap: 16,
+        marginBottom: 16,
+      }}>
         <div>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 7 }}>
             Route Name <span style={{ color: '#DC2626' }}>*</span>
