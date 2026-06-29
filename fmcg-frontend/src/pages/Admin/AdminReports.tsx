@@ -1,11 +1,12 @@
 // PATH: src/pages/Admin/AdminReports.tsx
-// UPDATED: Full working version with Preview + Download, native PDF viewer with zoom
+// FIX: Mobile PDF preview - use native viewer or fallback to download
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   FileText, Download, RefreshCw, Loader, CalendarDays, 
-  ArrowLeft, Eye, X, CheckCircle, AlertCircle, Maximize2 
+  ArrowLeft, Eye, X, CheckCircle, AlertCircle, Maximize2,
+  Smartphone
 } from 'lucide-react';
 import { reportsApi, routesApi, productGroupsApi, triggerPdfDownload } from '../../api/services';
 import type { RouteDto, ProductGroupDto } from '../../types';
@@ -65,6 +66,10 @@ const selectStyle = (isMobile: boolean): React.CSSProperties => ({
 });
 
 // ── Preview Modal Component ──────────────────────────────────────────────────
+// PATH: src/pages/Admin/AdminReports.tsx
+// FIX: viewerUrl is not defined - define it properly
+
+// ── Preview Modal Component ──────────────────────────────────────────────────
 function PreviewModal({ 
   isOpen, 
   onClose, 
@@ -81,13 +86,22 @@ function PreviewModal({
   onDownload: () => void;
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const isMobile = useIsMobile();
 
   if (!isOpen) return null;
 
+  // ── FIX: Define viewerUrl here - it was missing ──
   // Use native PDF viewer with zoom=page-fit for better scaling
   const viewerUrl = pdfUrl 
     ? `${pdfUrl}#zoom=page-fit&toolbar=1&navpanes=1&scrollbar=1`
     : null;
+
+  // ── On mobile, use direct URL navigation instead of iframe ──
+  const handleOpenInBrowser = () => {
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank');
+    }
+  };
 
   return (
     <>
@@ -155,7 +169,7 @@ function PreviewModal({
                 {title}
               </div>
               <div style={{ fontSize: 11, color: D.sub }}>
-                {isLoading ? 'Generating preview...' : pdfUrl ? '✓ Ready - Use mouse wheel to zoom' : 'No data'}
+                {isLoading ? 'Generating preview...' : pdfUrl ? (isMobile ? '✓ Ready - Tap to open' : '✓ Ready - Use mouse wheel to zoom') : 'No data'}
               </div>
             </div>
           </div>
@@ -224,7 +238,8 @@ function PreviewModal({
               <Loader size={48} style={{ animation: 'spin 1s linear infinite', color: D.accent }} />
               <span style={{ color: D.muted, fontSize: 14 }}>Generating preview...</span>
             </div>
-          ) : viewerUrl ? (
+          ) : viewerUrl && !isMobile ? (
+            /* ── Desktop: iframe viewer ── */
             <iframe
               src={viewerUrl}
               style={{
@@ -237,6 +252,70 @@ function PreviewModal({
               }}
               title="PDF Preview"
             />
+          ) : viewerUrl && isMobile ? (
+            /* ── Mobile: Show "Open PDF" button with preview info ── */
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                minHeight: 400,
+                gap: 20,
+                padding: 24,
+                textAlign: 'center',
+              }}
+            >
+              <div
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  background: `${D.accent}22`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <FileText size={36} color={D.accent} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: 0 }}>
+                  PDF Ready
+                </h3>
+                <p style={{ fontSize: 14, color: D.muted, marginTop: 4 }}>
+                  {title}
+                </p>
+                <p style={{ fontSize: 12, color: D.sub, marginTop: 8 }}>
+                  Tap the button below to open the PDF in your browser
+                </p>
+              </div>
+              <button
+                onClick={handleOpenInBrowser}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '12px 32px',
+                  borderRadius: 12,
+                  border: 'none',
+                  background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                  color: '#fff',
+                  fontSize: 16,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  boxShadow: `0 4px 16px ${D.accentGlow}`,
+                }}
+              >
+                <Smartphone size={18} />
+                Open PDF
+              </button>
+              <p style={{ fontSize: 11, color: D.sub, marginTop: 8 }}>
+                ⚡ Opens in your device's PDF viewer
+              </p>
+            </div>
           ) : (
             <div
               style={{
@@ -286,9 +365,14 @@ function PreviewModal({
                 <><AlertCircle size={12} color={D.amber} /> No data</>
               )}
             </span>
-            {!isFullscreen && pdfUrl && (
+            {!isFullscreen && pdfUrl && !isMobile && (
               <span style={{ fontSize: 10, color: D.sub }}>
                 🔍 Scroll to zoom · 📄 Auto-fit to page
+              </span>
+            )}
+            {!isFullscreen && pdfUrl && isMobile && (
+              <span style={{ fontSize: 10, color: D.sub }}>
+                📱 Tap "Open PDF" to view
               </span>
             )}
           </div>
@@ -409,7 +493,6 @@ export function AdminReports() {
       setPreviewUrl(url);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to generate preview');
-      // Still show the modal with error state
     } finally {
       setPreviewLoading(false);
     }
@@ -429,7 +512,6 @@ export function AdminReports() {
   const handlePreviewDownload = () => {
     if (previewDownloadFn) {
       previewDownloadFn();
-      // Close modal after download starts
       setTimeout(() => handlePreviewClose(), 800);
     }
   };

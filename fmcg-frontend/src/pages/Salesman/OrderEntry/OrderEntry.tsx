@@ -10,6 +10,7 @@
 // 8. FIX: Cancel Order redirects to Route Execution page (not My Routes)
 // 9. FIX: Save Draft button centered in bottom bar
 // 10. FIX: hasExistingOrder declared before use
+// 11. FIX: Content no longer hidden behind bottom navigation bar
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -44,6 +45,9 @@ const D = {
   sub:     '#64748b',
   orange:  '#f97316',
 };
+
+// ── Mobile nav height constant ──────────────────────────────────────────────
+const MOBILE_NAV_HEIGHT = 70;
 
 export default function OrderEntry() {
   const { routeId, customerId } = useParams<{ routeId: string; customerId: string }>();
@@ -324,13 +328,26 @@ export default function OrderEntry() {
   const orderStatus = existingOrder?.status;
 
   return (
-    <div style={{ minHeight: '100vh', background: D.bg, color: D.text }}>
+    <div style={{ 
+      minHeight: '100vh', 
+      background: D.bg, 
+      color: D.text,
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
 
-      {/* ── Sticky dark header ──────────────────────────────────────────────── */}
-      <div style={{ position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 40, background: D.bg, borderBottom: `1px solid ${D.border}` }}>
+      {/* ── FIXED: Sticky header with no extra top space ── */}
+      <div style={{ 
+        position: 'sticky', 
+        top: isMobile ? `${MOBILE_NAV_HEIGHT}px` : 'var(--nav-h, 64px)', 
+        zIndex: 40, 
+        background: D.bg, 
+        borderBottom: `1px solid ${D.border}`,
+        flexShrink: 0,
+      }}>
 
         {/* Row 1: back + actions */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 6px' }}>
           <button
             onClick={() => navigate(-1)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, background: D.card, border: `1px solid ${D.border}`, borderRadius: 9, padding: '7px 12px', color: D.muted, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
@@ -360,7 +377,7 @@ export default function OrderEntry() {
         </div>
 
         {/* Row 2: date bar */}
-        <div style={{ margin: '0 14px 10px', padding: '8px 14px', borderRadius: 9, background: 'linear-gradient(135deg,#1e3a8a,#2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ margin: '0 16px 6px', padding: '6px 14px', borderRadius: 9, background: 'linear-gradient(135deg,#1e3a8a,#2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <CalendarDays size={14} color="rgba(255,255,255,0.8)" />
             <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
@@ -370,40 +387,48 @@ export default function OrderEntry() {
           <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: 'rgba(255,255,255,0.18)', padding: '2px 9px', borderRadius: 20 }}>TODAY</span>
         </div>
 
-        {/* Row 3: customer info — highlighted card so it's the first thing noticed */}
-        <div style={{ padding: '0 16px 12px' }}>
+        {/* Row 3: customer info */}
+        <div style={{ padding: '0 16px 10px' }}>
           <div style={{
-            padding: '14px 16px', borderRadius: 14,
+            padding: '12px 16px', borderRadius: 14,
             background: 'rgba(59,130,246,0.10)', border: '1px solid rgba(59,130,246,0.30)',
           }}>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: D.text, letterSpacing: '-0.02em' }}>{customer?.nameEnglish}</h1>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: D.text, letterSpacing: '-0.02em' }}>{customer?.nameEnglish}</h1>
             {customer?.nameMalayalam && <p style={{ margin: '2px 0 0', fontSize: 14, color: D.muted }} lang="ml">{customer.nameMalayalam}</p>}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 10 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
               {customer?.phoneNumber && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', fontSize: 14, fontWeight: 700, color: D.text }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', fontSize: 13, fontWeight: 700, color: D.text }}>
                   <Phone size={14} color={D.accent} /> {customer.phoneNumber}
                 </span>
               )}
               {customer?.address && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', fontSize: 14, fontWeight: 700, color: D.text }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', fontSize: 13, fontWeight: 700, color: D.text }}>
                   <MapPin size={14} color={D.accent} /> {customer.address}
                 </span>
               )}
             </div>
           </div>
           {/* Status badge */}
-          <div style={{ marginTop: 8 }}>
-            {!existingOrder        && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: '#422006', border: '1px solid #92400e', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fb923c' }}><Edit3 size={11} /> New Order</span>}
-            {orderStatus === OrderStatus.Draft             && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: '#422006', border: '1px solid #92400e', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fb923c' }}><Edit3 size={11} /> Draft — Editable</span>}
-            {orderStatus === OrderStatus.PendingApproval  && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: '#1e3a8a', border: '1px solid #2563eb', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#93c5fd' }}><Clock size={11} /> Pending Approval</span>}
-            {orderStatus === OrderStatus.Approved         && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: '#14532d', border: '1px solid #16a34a', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#86efac' }}><CheckCircle2 size={11} /> Approved</span>}
-            {orderStatus === OrderStatus.Closed           && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: '#0c4a6e', border: '1px solid #0284c7', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#7dd3fc' }}><Lock size={11} /> Closed — Read only</span>}
+          <div style={{ marginTop: 6 }}>
+            {!existingOrder        && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#422006', border: '1px solid #92400e', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fb923c' }}><Edit3 size={11} /> New Order</span>}
+            {orderStatus === OrderStatus.Draft             && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#422006', border: '1px solid #92400e', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fb923c' }}><Edit3 size={11} /> Draft — Editable</span>}
+            {orderStatus === OrderStatus.PendingApproval  && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#1e3a8a', border: '1px solid #2563eb', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#93c5fd' }}><Clock size={11} /> Pending Approval</span>}
+            {orderStatus === OrderStatus.Approved         && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#14532d', border: '1px solid #16a34a', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#86efac' }}><CheckCircle2 size={11} /> Approved</span>}
+            {orderStatus === OrderStatus.Closed           && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#0c4a6e', border: '1px solid #0284c7', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#7dd3fc' }}><Lock size={11} /> Closed — Read only</span>}
           </div>
         </div>
       </div>
 
-      {/* ── Main scrollable content ─────────────────────────────────────────── */}
-      <div style={{ padding: '10px 14px', paddingBottom: 130 }}>
+      {/* ── SCROLLABLE CONTENT ── */}
+      <div style={{ 
+        flex: 1, 
+        overflowY: 'auto', 
+        padding: '10px 16px',
+        /* ── FIX: Large bottom padding to clear both Save button AND mobile nav ── */
+        paddingBottom: isMobile 
+          ? 'calc(130px + env(safe-area-inset-bottom, 0px) + ' + MOBILE_NAV_HEIGHT + 'px)' 
+          : '130px',
+      }}>
 
         {/* Alerts */}
         {error && (
@@ -424,7 +449,7 @@ export default function OrderEntry() {
           </div>
         )}
 
-        {/* ── Empty state with Cancel option ── */}
+        {/* ── Empty state ── */}
         {lines.length === 0 && canEdit && (
           <div style={{ textAlign: 'center', padding: '32px 20px', background: D.card, border: `2px dashed ${D.border}`, borderRadius: 12, marginBottom: 12 }}>
             <Package size={40} color={D.border} style={{ marginBottom: 8 }} />
@@ -441,7 +466,7 @@ export default function OrderEntry() {
           </div>
         )}
 
-        {/* ── Item cards ─────────────────────────────────────────────────────── */}
+        {/* ── Item cards ── */}
         {lines.length > 0 && (
           <div style={{ marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -462,7 +487,7 @@ export default function OrderEntry() {
                     <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} />
                   </div>
 
-                  {/* ── Fields row: Item Code | Qty | Price | Delete ── */}
+                  {/* Fields row */}
                   <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
                     <div style={{ width: 110, flexShrink: 0, minWidth: 0 }}>
                       <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Item Code</p>
@@ -499,7 +524,6 @@ export default function OrderEntry() {
                       />
                     </div>
 
-                    {/* Delete button — inline with fields, aligned to input bottom */}
                     {canEdit && (
                       <button
                         onClick={() => removeItem(line.product.id)}
@@ -515,30 +539,9 @@ export default function OrderEntry() {
           </div>
         )}
 
-        {/* Retail remarks */}
-        {/* ── Add Products button — between items and retail remarks ── */}
-        {canEdit && lines.length > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0 14px' }}>
-            <button
-              onClick={() => setShowProducts(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '12px 28px', borderRadius: 28,
-                background: 'linear-gradient(135deg,#2563eb,#1d4ed8)',
-                border: 'none', color: '#fff', fontSize: 14, fontWeight: 800,
-                cursor: 'pointer', fontFamily: 'inherit',
-                boxShadow: '0 4px 16px rgba(37,99,235,0.35)',
-                touchAction: 'manipulation',
-              }}
-            >
-              <Plus size={18} strokeWidth={2.5} /> Add Products
-            </button>
-          </div>
-        )}
-
-        {/* ── Add Products button for empty state ── */}
-        {canEdit && lines.length === 0 && (
-          <div style={{ display: 'flex', justifyContent: 'center', margin: '0 0 14px' }}>
+        {/* Add Products button */}
+        {canEdit && (
+          <div style={{ display: 'flex', justifyContent: 'center', margin: lines.length > 0 ? '10px 0 14px' : '0 0 14px' }}>
             <button
               onClick={() => setShowProducts(true)}
               style={{
@@ -572,16 +575,24 @@ export default function OrderEntry() {
         </div>
       </div>
 
-      {/* ── Save Draft / Update sticky bottom bar ── */}
+      {/* ── Save Draft sticky bottom bar ── */}
       {canEdit && lines.length > 0 && (
         <div style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 45,
-          background: D.bg, borderTop: `1px solid ${D.border}`,
+          position: 'fixed', 
+          bottom: 0, 
+          left: 0, 
+          right: 0, 
+          zIndex: 45,
+          background: D.bg, 
+          borderTop: `1px solid ${D.border}`,
           padding: '10px 14px',
-          paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px) + 70px)',
+          /* ── FIX: Add bottom padding for mobile nav ── */
+          paddingBottom: isMobile 
+            ? 'calc(10px + env(safe-area-inset-bottom, 0px) + ' + MOBILE_NAV_HEIGHT + 'px)' 
+            : '10px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',  // ← CENTERED
+          justifyContent: 'center',
           gap: 10,
         }}>
           <button
@@ -591,7 +602,7 @@ export default function OrderEntry() {
               display: 'flex',
               alignItems: 'center',
               gap: 7,
-              padding: '11px 32px',  // ← wider padding for center alignment
+              padding: '11px 32px',
               background: saving ? D.card : 'linear-gradient(135deg,#1e3a8a,#2563eb)',
               border: 'none',
               borderRadius: 10,
