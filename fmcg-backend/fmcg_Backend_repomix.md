@@ -409,14 +409,13 @@ ENTRYPOINT ["dotnet", "FMCG.Distribution.API.dll"]
     "Key": "FMCG_Distribution_SuperSecretKey_32Chars_2024!",
     "Issuer": "FMCG.Distribution",
     "Audience": "FMCG.Distribution.Frontend",
-    "ExpiryMinutes": 10
+    "ExpiryMinutes": 480
   },
   "DatabaseSettings": {
     "Provider": "PostgreSQL"
   },
   "ConnectionStrings": {
-    "PostgresConnection": "Host=aws-1-ap-northeast-1.pooler.supabase.com;Database=postgres;Username=postgres.guczkzraryugkxfhrafo;Password=Asdfg@12345!&;SSL Mode=Require;Trust Server Certificate=true",
-    "SqlServerConnection": "Server=(localdb)\\mssqllocaldb;Database=FMCG_Distribution;Trusted_Connection=True;TrustServerCertificate=true"
+    "PostgresConnection": "Host=localhost;Database=fmcg_local_dev;Username=postgres;Password=local123"
   }
 }
 ```
@@ -3539,7 +3538,7 @@ public class WarehouseController(IApplicationDbContext context) : ControllerBase
                 .ThenInclude(i => i.Product)
             .Where(o =>
                 !o.IsDeleted &&
-                o.Status == OrderStatus.Approved &&   // Approved = ready for warehouse
+                (o.Status == OrderStatus.Closed || o.IsLocked) &&
                 o.OrderDate.Date >= from &&
                 o.OrderDate.Date <= to);
 
@@ -10956,7 +10955,7 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
                 .Include(o => o.Items!)
                     .ThenInclude(i => i.Unit)
                 .Where(o => !o.IsDeleted
-                    && o.Status == OrderStatus.Closed
+                    && (o.Status == OrderStatus.Closed || o.IsLocked)
                     && o.OrderDate.Date == targetDate.Date)
                 .ToListAsync(cancellationToken);
 
@@ -11460,7 +11459,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 .Include(o => o.Items!)
                     .ThenInclude(i => i.Unit)
                 .Where(o => !o.IsDeleted
-                    && o.Status == OrderStatus.Closed
+                    && (o.Status == OrderStatus.Closed || o.IsLocked)
                     && o.OrderDate.Date == targetDate.Date);
 
             if (request.RouteId.HasValue)
@@ -13163,10 +13162,12 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
         var customerIds = routeCustomers.Select(c => c.Id).ToList();
 
         // Only CLOSED orders can be delivered
+        // Only CLOSED orders can be delivered — covers both the per-order
+        // Close action AND orders only ever locked in bulk via Close Day.
         var customerIdsWithOrders = await context.Orders
             .Where(o => customerIds.Contains(o.CustomerId)
                 && !o.IsDeleted
-                && o.Status == OrderStatus.Closed
+                && (o.Status == OrderStatus.Closed || o.IsLocked)
                 && o.OrderDate.Date <= deliveryDate)
             .Select(o => o.CustomerId)
             .Distinct()

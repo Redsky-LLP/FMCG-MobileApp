@@ -27,6 +27,7 @@ import { Spinner } from '../../../components/ui';
 import { LineItem } from './types';
 import { PriceVarianceBadge } from './types';
 import { PreviousOrdersModal } from './components/PreviousOrdersModal';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -48,6 +49,7 @@ export default function OrderEntry() {
   const { routeId, customerId } = useParams<{ routeId: string; customerId: string }>();
   const navigate  = useNavigate();
   const location  = useLocation();
+  const isMobile = useIsMobile();
 
   const executionContext = location.state as { executionId?: string; customerVisitId?: string } | null;
 
@@ -325,7 +327,7 @@ export default function OrderEntry() {
     <div style={{ minHeight: '100vh', background: D.bg, color: D.text }}>
 
       {/* ── Sticky dark header ──────────────────────────────────────────────── */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 40, background: D.bg, borderBottom: `1px solid ${D.border}` }}>
+      <div style={{ position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 40, background: D.bg, borderBottom: `1px solid ${D.border}` }}>
 
         {/* Row 1: back + actions */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 8px' }}>

@@ -3,7 +3,8 @@ import axios from 'axios';
 
 // Hardcoded backend URL for production APK
 // Replace the BASE_URL with HTTPS
-const BASE_URL = 'https://fmcg-api.duckdns.org';
+//const BASE_URL = 'https://fmcg-api.duckdns.org';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002';
 
 const apiClient = axios.create({
   baseURL: BASE_URL,

@@ -36,6 +36,7 @@ import type { ActiveRouteDto } from '../../types';
 import { OrderStatus } from '../../types';
 import { PageLoader, EmptyState, Badge, Spinner } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -91,6 +92,7 @@ export function SalesmanRoutes() {
   const { user } = useAuthStore();
   const navigate  = useNavigate();
   const location  = useLocation();
+  const isMobile = useIsMobile();
 
   async function load() {
     setLoading(true); setError('');
@@ -291,7 +293,7 @@ export function SalesmanRoutes() {
       {/* Header */}
       <div style={{
         position: 'sticky',
-        top: 0,
+        top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)',
         zIndex: 20,
         background: D.bg,
         borderBottom: `1px solid ${D.border}`,

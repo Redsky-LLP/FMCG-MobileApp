@@ -565,9 +565,9 @@ export function AdminOrderEdit() {
     <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 100 }}>
 
       {/* ── Header ────────────────────────────────────────────────────────────── */}
-      <div style={{
+    <div style={{
         position: 'sticky',
-        top: 0,
+        top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)',
         zIndex: 30,
         background: D.bg,
         borderBottom: `1px solid ${D.border}`,

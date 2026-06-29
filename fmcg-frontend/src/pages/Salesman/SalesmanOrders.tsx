@@ -16,6 +16,7 @@ import { customersApi, ordersApi, routesApi } from '../../api/services';
 import { CustomerDto, OrderDto, RouteDto, OrderStatus, fmt, OrderItemDto } from '../../types';
 import { Spinner } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -44,7 +45,9 @@ function OrderStatusBadge({ status }: { status: OrderStatus }) {
     [OrderStatus.Packed]:           { label: 'Packed',           bg: 'rgba(124,58,237,0.15)', color: '#7C3AED', icon: <Package size={11} /> },
     [OrderStatus.Closed]:           { label: 'Closed',           bg: 'rgba(34,197,94,0.15)', color: D.green, icon: <CheckCircle2 size={11} /> },
   };
+  const isMobile = useIsMobile();
   const c = cfg[status] || cfg[OrderStatus.Draft];
+  
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -210,6 +213,7 @@ export default function SalesmanOrders() {
   const navigate    = useNavigate();
   const location    = useLocation();
   const { user }    = useAuthStore();
+  const isMobile    = useIsMobile();
 
   const [route,        setRoute]        = useState<RouteDto | null>(null);
   const [customers,    setCustomers]    = useState<CustomerDto[]>([]);
@@ -308,7 +312,7 @@ export default function SalesmanOrders() {
     <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 100 }}>
 
       {/* ── Sticky header ───────────────────────────────── */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})` }}>
+      <div style={{ position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 20, background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})` }}>
         <div style={{ padding: '12px 14px 10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

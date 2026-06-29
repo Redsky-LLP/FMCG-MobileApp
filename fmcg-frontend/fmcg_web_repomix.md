@@ -1415,7 +1415,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.d4c05g4qkr4"
+    "revision": "0.fctpcnvjo5o"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -16418,9 +16418,9 @@ export function AdminOrderEdit() {
     <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 100 }}>
 
       {/* ── Header ────────────────────────────────────────────────────────────── */}
-      <div style={{
+    <div style={{
         position: 'sticky',
-        top: 0,
+        top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)',
         zIndex: 30,
         background: D.bg,
         borderBottom: `1px solid ${D.border}`,
@@ -17204,7 +17204,7 @@ export function AdminOrders() {
 
       {/* ── Header ───────────────────────────────────────────────────────────── */}
       <div style={{
-        position: 'sticky', top: 0, zIndex: 20,
+        position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 20,
         background: D.bg,
         borderBottom: `1px solid ${D.border}`,
         padding: '16px 20px',
@@ -26650,6 +26650,7 @@ import { Spinner } from '../../../components/ui';
 import { LineItem } from './types';
 import { PriceVarianceBadge } from './types';
 import { PreviousOrdersModal } from './components/PreviousOrdersModal';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -26671,6 +26672,7 @@ export default function OrderEntry() {
   const { routeId, customerId } = useParams<{ routeId: string; customerId: string }>();
   const navigate  = useNavigate();
   const location  = useLocation();
+  const isMobile = useIsMobile();
 
   const executionContext = location.state as { executionId?: string; customerVisitId?: string } | null;
 
@@ -26948,7 +26950,7 @@ export default function OrderEntry() {
     <div style={{ minHeight: '100vh', background: D.bg, color: D.text }}>
 
       {/* ── Sticky dark header ──────────────────────────────────────────────── */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 40, background: D.bg, borderBottom: `1px solid ${D.border}` }}>
+      <div style={{ position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 40, background: D.bg, borderBottom: `1px solid ${D.border}` }}>
 
         {/* Row 1: back + actions */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 8px' }}>
@@ -27800,6 +27802,7 @@ import { routesApi, ordersApi } from '../../api/services';
 import type { CurrentRouteExecutionDto, CustomerVisitDto, VisitStatus, CompleteRouteExecutionResponse } from '../../types';
 import { OrderStatus } from '../../types';
 import { Spinner } from '../../components/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -27833,6 +27836,7 @@ export default function RouteExecution() {
   const navigate    = useNavigate();
   const location    = useLocation();
   const executionMode = location.state?.mode as 'order-taking' | 'delivery' | undefined;
+  const isMobile = useIsMobile();
 
   const [execution,   setExecution]   = useState<CurrentRouteExecutionDto | null>(null);
   const [loading,     setLoading]     = useState(true);
@@ -28297,8 +28301,7 @@ export default function RouteExecution() {
     <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: allDone ? 130 : 32 }}>
 
       {/* Sticky header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: D.bg, borderBottom: `1px solid ${D.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px 10px' }}>
+      <div style={{ position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 50, background: D.bg, borderBottom: `1px solid ${D.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px 10px' }}>
           <button
             onClick={() => navigate('/salesman/routes')}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, background: `${D.accent}22`, border: `1px solid ${D.accent}44`, color: D.accent, fontSize: 14, fontWeight: 700, cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
@@ -29013,6 +29016,7 @@ import { customersApi, ordersApi, routesApi } from '../../api/services';
 import { CustomerDto, OrderDto, RouteDto, OrderStatus, fmt, OrderItemDto } from '../../types';
 import { Spinner } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -29041,7 +29045,9 @@ function OrderStatusBadge({ status }: { status: OrderStatus }) {
     [OrderStatus.Packed]:           { label: 'Packed',           bg: 'rgba(124,58,237,0.15)', color: '#7C3AED', icon: <Package size={11} /> },
     [OrderStatus.Closed]:           { label: 'Closed',           bg: 'rgba(34,197,94,0.15)', color: D.green, icon: <CheckCircle2 size={11} /> },
   };
+  const isMobile = useIsMobile();
   const c = cfg[status] || cfg[OrderStatus.Draft];
+  
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -29207,6 +29213,7 @@ export default function SalesmanOrders() {
   const navigate    = useNavigate();
   const location    = useLocation();
   const { user }    = useAuthStore();
+  const isMobile    = useIsMobile();
 
   const [route,        setRoute]        = useState<RouteDto | null>(null);
   const [customers,    setCustomers]    = useState<CustomerDto[]>([]);
@@ -29305,7 +29312,7 @@ export default function SalesmanOrders() {
     <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 100 }}>
 
       {/* ── Sticky header ───────────────────────────────── */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})` }}>
+      <div style={{ position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 20, background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})` }}>
         <div style={{ padding: '12px 14px 10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -29519,6 +29526,7 @@ import type { ActiveRouteDto } from '../../types';
 import { OrderStatus } from '../../types';
 import { PageLoader, EmptyState, Badge, Spinner } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -29574,6 +29582,7 @@ export function SalesmanRoutes() {
   const { user } = useAuthStore();
   const navigate  = useNavigate();
   const location  = useLocation();
+  const isMobile = useIsMobile();
 
   async function load() {
     setLoading(true); setError('');
@@ -29774,7 +29783,7 @@ export function SalesmanRoutes() {
       {/* Header */}
       <div style={{
         position: 'sticky',
-        top: 0,
+        top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)',
         zIndex: 20,
         background: D.bg,
         borderBottom: `1px solid ${D.border}`,

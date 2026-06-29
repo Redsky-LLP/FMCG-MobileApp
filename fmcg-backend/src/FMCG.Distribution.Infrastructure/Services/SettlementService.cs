@@ -149,11 +149,18 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
 
     public async Task<DailyClosureResultDto> CloseOperationalDayAsync(Guid closedByUserId, DateTime closureDate, string? notes, CancellationToken cancellationToken = default)
     {
+        // ── DEBUG LOGGING ──
+        Console.WriteLine($"[CloseDay] ========================================");
+        Console.WriteLine($"[CloseDay] Closing for date: {closureDate}");
+        Console.WriteLine($"[CloseDay] ClosedByUserId: {closedByUserId}");
+        Console.WriteLine($"[CloseDay] ========================================");
+
         // Validate before closing
         var validation = await ValidateSettlementBeforeClosureAsync(null, closureDate, cancellationToken);
 
         if (!validation.IsValid)
         {
+            Console.WriteLine($"[CloseDay] Validation failed: {string.Join("; ", validation.ValidationErrors)}");
             return new DailyClosureResultDto
             {
                 Success = false,
@@ -161,34 +168,46 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
             };
         }
 
-        // Get all submitted orders for locking
-        // Get ALL orders for locking — Draft included. Once admin closes the
-        // day, nothing related to it stays editable, full stop. A Draft that
-        // never got submitted in time is now admin's problem to resolve
-        // through other means (cancel it, or handle the customer manually) —
-        // it does not get a free pass to stay open indefinitely.
+        // ── FIX 1: Compare only DATE part, not full timestamp ──
+        // This ensures orders created TODAY and closed TODAY are also locked.
         var ordersToLock = await context.Orders
             .Include(o => o.Items)
             .Where(o => !o.IsDeleted
                 && !o.IsLocked
-                && o.OrderDate <= closureDate)
+                && o.OrderDate.Date <= closureDate.Date)  // ← FIXED: Compare only Date!
             .ToListAsync(cancellationToken);
 
-        // Still informational for the closure message — admin should know
-        // how many of the orders just locked were never actually submitted.
+        Console.WriteLine($"[CloseDay] Found {ordersToLock.Count} orders to lock");
+        foreach (var order in ordersToLock)
+        {
+            Console.WriteLine($"  - Order {order.OrderNumber}: Status={order.Status}, OrderDate={order.OrderDate}, IsLocked={order.IsLocked}");
+        }
+
+        if (ordersToLock.Count == 0)
+        {
+            Console.WriteLine($"[CloseDay] ⚠️ WARNING: No orders found to lock!");
+        }
+
         var draftCountAsOfClosure = ordersToLock.Count(o => o.Status == OrderStatus.Draft);
 
-        // Lock each order
-        // Lock each order — and record exactly when, so admin can see it later
-        // even though the order's own OrderDate stays whatever day it was
-        // actually created on (could be a day or two before this closure ran).
+        // ── FIX 2: Lock each order AND change status from Draft to Closed ──
         var closureTimestamp = DateTime.UtcNow;
         foreach (var order in ordersToLock)
         {
             order.IsLocked = true;
             order.ClosedAt = closureTimestamp;
+
+            // ── NEW: Change Draft status to Closed ──
+            if (order.Status == OrderStatus.Draft)
+            {
+                order.Status = OrderStatus.Closed;
+            }
+
             order.UpdateTimestamp(closedByUserId.ToString());
         }
+
+        Console.WriteLine($"[CloseDay] Locked {ordersToLock.Count} orders at {closureTimestamp}");
+        Console.WriteLine($"[CloseDay] Changed {draftCountAsOfClosure} orders from Draft to Closed");
 
         // Create daily closure record
         var summary = validation.SettlementSummary!;
@@ -208,14 +227,9 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         await context.DailyClosures.AddAsync(closure, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 
-        // ── Also close every open route execution ───────────────────────────
-        // Without this, the settlement closure above locks orders and creates
-        // the DailyClosure record, but route execution status never changes —
-        // so order-taking routes would stay stuck at "in progress" forever and
-        // never go back to a fresh, startable state for the next day. This is
-        // what actually makes route cards reset.
-        // Non-blocking: if this fails for any reason, the settlement closure
-        // itself has already succeeded and should not be rolled back over it.
+        Console.WriteLine($"[CloseDay] DailyClosure record saved with ID: {closure.Id}");
+
+        // ── Also close every open route execution ──
         int closedRouteCount = 0;
         try
         {
@@ -229,12 +243,15 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
             if (closeDayResult.IsSuccess && closeDayResult.Data != null)
             {
                 closedRouteCount = closeDayResult.Data.ClosedRouteCount;
+                Console.WriteLine($"[CloseDay] Closed {closedRouteCount} route executions");
             }
         }
-        catch { /* swallow — settlement closure itself already succeeded */ }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CloseDay] Error closing routes: {ex.Message}");
+        }
 
-        // ── Auto-generate reports post-closure ────────────────────────────────
-        // Non-blocking: report failures do not roll back the closure.
+        // ── Auto-generate reports post-closure ──
         string? loadingUrl = null;
         string? billingUrl = null;
 
@@ -246,13 +263,13 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
 
             if (loadingResult.IsSuccess && loadingResult.Data != null)
             {
-                // Store bytes in a temp location; return a relative download URL.
-                // The Reports controller already exposes GET /api/v1/reports/loading-sheet
-                // with ?date= and ?routeId= params — point frontend there directly.
                 loadingUrl = $"/api/v1/reports/loading-sheet?date={closureDate:yyyy-MM-dd}";
             }
         }
-        catch { /* swallow — report is non-critical */ }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CloseDay] Error generating loading sheet: {ex.Message}");
+        }
 
         try
         {
@@ -265,8 +282,14 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
                 billingUrl = $"/api/v1/reports/billing-sheet?date={closureDate:yyyy-MM-dd}";
             }
         }
-        catch { /* swallow — report is non-critical */ }
-        // ─────────────────────────────────────────────────────────────────────
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CloseDay] Error generating billing sheet: {ex.Message}");
+        }
+
+        Console.WriteLine($"[CloseDay] ========================================");
+        Console.WriteLine($"[CloseDay] CloseDay completed successfully!");
+        Console.WriteLine($"[CloseDay] ========================================");
 
         return new DailyClosureResultDto
         {

@@ -12,6 +12,7 @@ import { routesApi, ordersApi } from '../../api/services';
 import type { CurrentRouteExecutionDto, CustomerVisitDto, VisitStatus, CompleteRouteExecutionResponse } from '../../types';
 import { OrderStatus } from '../../types';
 import { Spinner } from '../../components/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -45,6 +46,7 @@ export default function RouteExecution() {
   const navigate    = useNavigate();
   const location    = useLocation();
   const executionMode = location.state?.mode as 'order-taking' | 'delivery' | undefined;
+  const isMobile = useIsMobile();
 
   const [execution,   setExecution]   = useState<CurrentRouteExecutionDto | null>(null);
   const [loading,     setLoading]     = useState(true);
@@ -509,8 +511,7 @@ export default function RouteExecution() {
     <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: allDone ? 130 : 32 }}>
 
       {/* Sticky header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: D.bg, borderBottom: `1px solid ${D.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px 10px' }}>
+      <div style={{ position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 50, background: D.bg, borderBottom: `1px solid ${D.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px 10px' }}>
           <button
             onClick={() => navigate('/salesman/routes')}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, background: `${D.accent}22`, border: `1px solid ${D.accent}44`, color: D.accent, fontSize: 14, fontWeight: 700, cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}

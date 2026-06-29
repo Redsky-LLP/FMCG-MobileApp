@@ -7,9 +7,9 @@
 //  - Day Closed indicator shows the date
 // UPDATED: Per-order "Closed [date] at [time]" line, shown once that specific
 // order has actually been locked by a Close Day run — distinct from the
-// order's own creation date/time, which never changes. Edit button now also
-// respects isLocked, not just status, matching what the edit page itself
-// already enforces server-side.
+// order's own creation date/time, which never changes.
+// FIXED: Edit button now respects isLocked AND uses string comparison for status
+// FIXED: Close button also respects isLocked
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -296,7 +296,7 @@ export function AdminOrders() {
 
       {/* ── Header ───────────────────────────────────────────────────────────── */}
       <div style={{
-        position: 'sticky', top: 0, zIndex: 20,
+        position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 20,
         background: D.bg,
         borderBottom: `1px solid ${D.border}`,
         padding: '16px 20px',
@@ -615,16 +615,22 @@ export function AdminOrders() {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {dateOrders.map(order => {
+                      // ── FIXED: Use string comparison for status ──
                       const statusKey = String(order.status);
                       const cfg = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG['Draft'];
                       const items = order.items ?? [];
                       const units = items.reduce((s, i) => s + i.quantity, 0);
-                      const isEditable = (order.status === OrderStatus.Draft || 
-                                        order.status === OrderStatus.PendingApproval || 
-                                        order.status === OrderStatus.Approved) && !order.isLocked;
-                      const isClosable = order.status === OrderStatus.Approved || 
-                                        order.status === OrderStatus.Packed;
-                      const isPending = order.status === OrderStatus.PendingApproval;
+                      
+                      // ── FIXED: Use string comparison, NOT enum ──
+                      const isEditable = (statusKey === 'Draft' || 
+                                        statusKey === 'PendingApproval' || 
+                                        statusKey === 'Approved') && !order.isLocked;
+                      
+                      // ── FIXED: Also require !isLocked for Close button ──
+                      const isClosable = (statusKey === 'Approved' || 
+                                        statusKey === 'Packed') && !order.isLocked;
+                      
+                      const isPending = statusKey === 'PendingApproval';
                       const isExpanded = expandedOrder === String(order.id);
 
                       return (
@@ -941,7 +947,7 @@ export function AdminOrders() {
               )}
             </div>
 
-            {/* Modal footer actions */}
+            {/* ── Modal footer actions ── */}
             <div style={{ padding: '14px 20px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               {reviewOrder.status === OrderStatus.PendingApproval && (
                 <button
@@ -953,24 +959,34 @@ export function AdminOrders() {
                   Approve Order
                 </button>
               )}
-              {(reviewOrder.status === OrderStatus.Draft || reviewOrder.status === OrderStatus.PendingApproval || reviewOrder.status === OrderStatus.Approved) && !reviewOrder.isLocked && (
-                <button
-                  onClick={() => handleEdit(String(reviewOrder.id), String(reviewOrder.customerId))}
-                  style={{ ...actionBtn(D.surface, D.muted), padding: '9px 16px', fontSize: 13, borderRadius: 9 }}
-                >
-                  <Edit2 size={14} /> Edit Order
-                </button>
-              )}
-              {(reviewOrder.status === OrderStatus.Approved || reviewOrder.status === OrderStatus.Packed) && (
-                <button
-                  onClick={() => handleClose(String(reviewOrder.id))}
-                  disabled={closing === String(reviewOrder.id)}
-                  style={{ ...actionBtn(D.green, '#FFFFFF', true), padding: '9px 16px', fontSize: 13, borderRadius: 9 }}
-                >
-                  {closing === String(reviewOrder.id) ? <Spinner size={14} /> : <CheckCircle size={14} />}
-                  Close Order
-                </button>
-              )}
+              
+              {/* ── FIXED: Edit button uses string comparison and !isLocked ── */}
+              {(() => {
+                const modalStatusKey = String(reviewOrder.status);
+                return (modalStatusKey === 'Draft' || modalStatusKey === 'PendingApproval' || modalStatusKey === 'Approved') && !reviewOrder.isLocked ? (
+                  <button
+                    onClick={() => handleEdit(String(reviewOrder.id), String(reviewOrder.customerId))}
+                    style={{ ...actionBtn(D.surface, D.muted), padding: '9px 16px', fontSize: 13, borderRadius: 9 }}
+                  >
+                    <Edit2 size={14} /> Edit Order
+                  </button>
+                ) : null;
+              })()}
+              
+              {/* ── FIXED: Close button uses string comparison and !isLocked ── */}
+              {(() => {
+                const modalStatusKey = String(reviewOrder.status);
+                return (modalStatusKey === 'Approved' || modalStatusKey === 'Packed') && !reviewOrder.isLocked ? (
+                  <button
+                    onClick={() => handleClose(String(reviewOrder.id))}
+                    disabled={closing === String(reviewOrder.id)}
+                    style={{ ...actionBtn(D.green, '#FFFFFF', true), padding: '9px 16px', fontSize: 13, borderRadius: 9 }}
+                  >
+                    {closing === String(reviewOrder.id) ? <Spinner size={14} /> : <CheckCircle size={14} />}
+                    Close Order
+                  </button>
+                ) : null;
+              })()}
             </div>
           </div>
         </div>

@@ -515,7 +515,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             await connection.OpenAsync(cancellationToken);
 
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT nextval('order_number_seq')";
+        command.CommandText = "SELECT nextval('public.order_number_seq')";
+
 
         var result = await command.ExecuteScalarAsync(cancellationToken);
         return Convert.ToInt64(result);
