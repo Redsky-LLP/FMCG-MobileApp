@@ -46,7 +46,7 @@ public class WarehouseController(IApplicationDbContext context) : ControllerBase
                 .ThenInclude(i => i.Product)
             .Where(o =>
                 !o.IsDeleted &&
-                o.Status == OrderStatus.Approved &&   // Approved = ready for warehouse
+                (o.Status == OrderStatus.Closed || o.IsLocked) &&
                 o.OrderDate.Date >= from &&
                 o.OrderDate.Date <= to);
 

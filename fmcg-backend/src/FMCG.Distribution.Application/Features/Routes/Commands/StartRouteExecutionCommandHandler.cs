@@ -237,10 +237,12 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
         var customerIds = routeCustomers.Select(c => c.Id).ToList();
 
         // Only CLOSED orders can be delivered
+        // Only CLOSED orders can be delivered — covers both the per-order
+        // Close action AND orders only ever locked in bulk via Close Day.
         var customerIdsWithOrders = await context.Orders
             .Where(o => customerIds.Contains(o.CustomerId)
                 && !o.IsDeleted
-                && o.Status == OrderStatus.Closed
+                && (o.Status == OrderStatus.Closed || o.IsLocked)
                 && o.OrderDate.Date <= deliveryDate)
             .Select(o => o.CustomerId)
             .Distinct()

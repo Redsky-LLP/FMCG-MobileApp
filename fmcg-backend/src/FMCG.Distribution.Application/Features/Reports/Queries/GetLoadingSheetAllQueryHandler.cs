@@ -36,7 +36,7 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
                 .Include(o => o.Items!)
                     .ThenInclude(i => i.Unit)
                 .Where(o => !o.IsDeleted
-                    && o.Status == OrderStatus.Closed
+                    && (o.Status == OrderStatus.Closed || o.IsLocked)
                     && o.OrderDate.Date == targetDate.Date)
                 .ToListAsync(cancellationToken);
 
