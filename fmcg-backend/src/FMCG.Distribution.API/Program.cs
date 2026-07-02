@@ -110,6 +110,7 @@ var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<stri
         "http://localhost:4200",
         "http://localhost:5002",
         "https://willowy-sawine-450377.netlify.app",  // ← ADD THIS
+        "https://fmcg-api.duckdns.org",
         "capacitor://localhost",
         "http://localhost",
         "https://localhost"

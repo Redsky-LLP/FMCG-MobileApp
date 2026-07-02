@@ -26,7 +26,7 @@ export function EditRouteCard({
   const [form, setForm] = useState<RouteFormData>({
     name: route.name,
     description: route.description || '',
-    assignedSalesmanId: route.assignedSalesmanId || '',
+    // assignedSalesmanId: route.assignedSalesmanId || '',
   });
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -108,28 +108,7 @@ export function EditRouteCard({
             onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none'; e.target.style.background = '#F8FAFC'; }}
           />
         </div>
-        <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 7 }}>
-            Assign Salesman
-          </label>
-          <select
-            value={form.assignedSalesmanId}
-            onChange={e => update('assignedSalesmanId', e.target.value)}
-            style={{
-              width: '100%', padding: '11px 14px',
-              background: '#F8FAFC', border: '1px solid #E2E8F0',
-              borderRadius: 10, fontSize: 14, color: '#334155',
-              outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
-            }}
-          >
-            <option value="">— Unassigned —</option>
-            {salesmen.map(s => (
-              <option key={String(s.id)} value={String(s.id)}>
-                {s.fullName} ({s.email})
-              </option>
-            ))}
-          </select>
-        </div>
+        
       </div>
 
       <div style={{ marginBottom: 24 }}>
