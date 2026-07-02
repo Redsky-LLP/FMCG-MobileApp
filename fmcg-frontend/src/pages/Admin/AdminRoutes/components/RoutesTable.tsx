@@ -1,10 +1,10 @@
 // PATH: src/pages/Admin/AdminRoutes/components/RoutesTable.tsx
-// UPDATED: Dark theme with orange accent
+// UPDATED: Dark theme with orange accent - REMOVED ASSIGN, ALLOW DELETE WITH CUSTOMERS
 
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '../../../../components/ui';
 import { ActionBtn } from './ActionBtn';
-import { Route, Users, Edit2, Trash2, Calendar, AlertTriangle } from 'lucide-react';
+import { Route, Users, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import { fmtDate } from '../../../../types';
 import type { RouteDto } from '../../../../types';
 import { useIsMobile } from '../../../../hooks/useIsMobile';
@@ -29,13 +29,12 @@ const D = {
 
 interface RoutesTableProps {
   routes:    RouteDto[];
-  onAssign:  (route: RouteDto) => void;
   onEdit:    (route: RouteDto) => void;
   onDelete:  (routeId: string) => void;
 }
 
 export function RoutesTable({
-  routes, onAssign, onEdit, onDelete,
+  routes, onEdit, onDelete,
 }: RoutesTableProps) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -90,16 +89,6 @@ export function RoutesTable({
               </div>
 
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12, fontSize: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: `${D.accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <span style={{ fontSize: 9, fontWeight: 800, color: D.accent }}>
-                      {r.assignedSalesmanName ? r.assignedSalesmanName.charAt(0).toUpperCase() : '?'}
-                    </span>
-                  </div>
-                  <span style={{ color: r.assignedSalesmanName ? D.text : D.sub, fontStyle: r.assignedSalesmanName ? 'normal' : 'italic', fontWeight: 600 }}>
-                    {r.assignedSalesmanName ?? 'Not Assigned'}
-                  </span>
-                </div>
                 <button
                   onClick={() => navigate(`/admin/customers?routeId=${r.id}`)}
                   style={{
@@ -120,12 +109,10 @@ export function RoutesTable({
               </div>
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <ActionBtn icon={Calendar} label="Assign" color="blue" title="Assign salesman to this route" onClick={() => onAssign(r)} />
                 <ActionBtn icon={Edit2} label="Edit" color="default" title="Edit route" onClick={() => onEdit(r)} />
                 <ActionBtn
                   icon={Trash2} label="Delete" color="red"
-                  title={hasCustomers(r.customerCount) ? 'Cannot delete route with customers' : 'Delete route'}
-                  disabled={hasCustomers(r.customerCount)}
+                  title="Delete route"
                   onClick={() => onDelete(String(r.id))}
                 />
               </div>
@@ -148,7 +135,7 @@ export function RoutesTable({
         <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse', fontSize: 14, background: D.surface }}>
           <thead>
             <tr>
-              {['Route Name', 'Assigned Salesman', 'Customers', 'Status', 'Created', 'Actions'].map(h => (
+              {['Route Name', 'Customers', 'Status', 'Created',].map(h => (
                 <th key={h} style={{
                   background: D.bg,
                   color: D.muted,
@@ -196,21 +183,6 @@ export function RoutesTable({
                   </td>
 
                   <td style={{ padding: '14px 16px' }}>
-                    {r.assignedSalesmanName ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <div style={{ width: 26, height: 26, borderRadius: '50%', background: `${D.accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <span style={{ fontSize: 10, fontWeight: 800, color: D.accent }}>
-                            {r.assignedSalesmanName.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: D.text }}>{r.assignedSalesmanName}</span>
-                      </div>
-                    ) : (
-                      <span style={{ fontSize: 13, color: D.sub, fontStyle: 'italic' }}>— Not Assigned —</span>
-                    )}
-                  </td>
-
-                  <td style={{ padding: '14px 16px' }}>
                     <button
                       onClick={() => navigate(`/admin/customers?routeId=${r.id}`)}
                       title="View customers for this route"
@@ -242,12 +214,10 @@ export function RoutesTable({
 
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' as const }}>
-                      <ActionBtn icon={Calendar} label="Assign" color="blue" title="Assign salesman to this route" onClick={() => onAssign(r)} />
                       <ActionBtn icon={Edit2} label="Edit" color="default" title="Edit route" onClick={() => onEdit(r)} />
                       <ActionBtn
                         icon={Trash2} label="Delete" color="red"
-                        title={hasCustomers(r.customerCount) ? 'Cannot delete route with customers' : 'Delete route'}
-                        disabled={hasCustomers(r.customerCount)}
+                        title="Delete route"
                         onClick={() => onDelete(String(r.id))}
                       />
                     </div>

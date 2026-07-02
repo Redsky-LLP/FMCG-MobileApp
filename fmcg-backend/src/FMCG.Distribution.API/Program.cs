@@ -108,6 +108,7 @@ var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<stri
         "https://localhost:5173",
         "http://localhost:3000",
         "http://localhost:4200",
+        "http://localhost:5002",
         "https://willowy-sawine-450377.netlify.app",  // ← ADD THIS
         "capacitor://localhost",
         "http://localhost",
@@ -198,7 +199,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();

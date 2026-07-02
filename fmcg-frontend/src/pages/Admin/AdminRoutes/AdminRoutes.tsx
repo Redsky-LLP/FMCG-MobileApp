@@ -36,7 +36,7 @@ export function AdminRoutes() {
   const [error,       setError]       = useState('');
   const [success,     setSuccess]     = useState('');
   const [saving,      setSaving]      = useState(false);
-  const [salesmen,    setSalesmen]    = useState<UserDto[]>([]);
+  // const [salesmen,    setSalesmen]    = useState<UserDto[]>([]);
   const [showAddCard, setShowAddCard] = useState(false);
 
   async function load() {
@@ -46,12 +46,9 @@ export function AdminRoutes() {
     finally { setLoading(false); }
   }
 
-  async function loadSalesmen() {
-    try { setSalesmen(await usersApi.getAll('Salesman')); } catch {}
-  }
-
+  
   useEffect(() => { load(); }, []);
-  useEffect(() => { if (showAddCard) loadSalesmen(); }, [showAddCard]);
+  // useEffect(() => { if (showAddCard) loadSalesmen(); }, [showAddCard]);
 
   async function handleAdd(form: RouteFormData) {
     if (!form.name.trim()) return;
@@ -60,7 +57,7 @@ export function AdminRoutes() {
       await routesApi.create({
         name: form.name,
         description: form.description || undefined,
-        assignedSalesmanId: form.assignedSalesmanId || undefined,
+        // assignedSalesmanId: form.assignedSalesmanId || undefined,
       });
       setShowAddCard(false);
       setSuccess('Route created successfully!');
@@ -74,9 +71,7 @@ export function AdminRoutes() {
     navigate(`/admin/routes/edit/${route.id}`, { state: { route } });
   }
 
-  function handleAssign(route: RouteDto) {
-    navigate(`/admin/routes/assign/${route.id}`, { state: { routeId: route.id, routeName: route.name } });
-  }
+  
 
   function handleDelete(routeId: string) {
     const route = routes.find(r => String(r.id) === routeId);
@@ -236,7 +231,7 @@ export function AdminRoutes() {
         {showAddCard && (
           <div style={{ marginBottom: 20 }}>
             <AddRouteCard
-              salesmen={salesmen}
+              // salesmen={salesmen}
               saving={saving}
               error={error}
               onSave={handleAdd}
@@ -255,7 +250,7 @@ export function AdminRoutes() {
         ) : (
           <RoutesTable
             routes={routes}
-            onAssign={handleAssign}
+            // onAssign={handleAssign}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />

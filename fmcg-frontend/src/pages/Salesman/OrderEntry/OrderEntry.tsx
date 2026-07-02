@@ -234,18 +234,22 @@ export default function OrderEntry() {
   };
 
   const buildPayload = (): CreateOrderCommand => ({
-    customerId:      String(customerId),
-    routeId:         String(routeId),
-    orderDate:       new Date().toISOString(),
-    items:           lines.map(l => ({ productId: l.product.id, quantity: l.qty, unitId: l.product.productUnitId, sellingPrice: l.sellingPrice })),
-    executionId:     executionContext?.executionId,
-    customerVisitId: executionContext?.customerVisitId,
-    ...(remarks ? { remarks } : {}),
-  });
-
+  customerId:      String(customerId),
+  routeId:         String(routeId),
+  orderDate:       new Date().toISOString(),
+  items:           lines.map(l => ({ 
+    productId: l.product.id, 
+    quantity: l.qty, 
+    unitId: l.product.productUnitId, 
+    sellingPrice: l.sellingPrice 
+  })),
+  executionId:     executionContext?.executionId,
+  customerVisitId: executionContext?.customerVisitId,
+  ...(remarks ? { remarks } : {}),
+});
   const handleSave = async () => {
     if (!canEdit) { setError('Cannot edit this order.'); return; }
-    if (lines.length === 0 && !remarks.trim()) { setError('Add at least one product first.'); return; }
+    if (lines.length === 0 && !remarks.trim()) { setError('Add at least one product or retail remark.'); return; }
     const incomplete = lines.find(l => !l.qty || !l.sellingPrice);
     if (incomplete) {
       setError(`Enter quantity and price for "${incomplete.product.nameEnglish}" before saving.`);
@@ -412,7 +416,7 @@ export default function OrderEntry() {
           <div style={{ marginTop: 6 }}>
             {!existingOrder        && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#422006', border: '1px solid #92400e', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fb923c' }}><Edit3 size={11} /> New Order</span>}
             {orderStatus === OrderStatus.Draft             && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#422006', border: '1px solid #92400e', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fb923c' }}><Edit3 size={11} /> Draft — Editable</span>}
-            {orderStatus === OrderStatus.PendingApproval  && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#1e3a8a', border: '1px solid #2563eb', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#93c5fd' }}><Clock size={11} /> Pending Approval</span>}
+            {/* {orderStatus === OrderStatus.PendingApproval  && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#1e3a8a', border: '1px solid #2563eb', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#93c5fd' }}><Clock size={11} /> Pending Approval</span>} */}
             {orderStatus === OrderStatus.Approved         && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#14532d', border: '1px solid #16a34a', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#86efac' }}><CheckCircle2 size={11} /> Approved</span>}
             {orderStatus === OrderStatus.Closed           && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#0c4a6e', border: '1px solid #0284c7', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#7dd3fc' }}><Lock size={11} /> Closed — Read only</span>}
           </div>
@@ -484,7 +488,7 @@ export default function OrderEntry() {
                     {line.product.nameMalayalam && (
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: D.muted }} lang="ml">{line.product.nameMalayalam}</p>
                     )}
-                    <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} />
+                    {/* <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} /> */}
                   </div>
 
                   {/* Fields row */}
@@ -576,7 +580,7 @@ export default function OrderEntry() {
       </div>
 
       {/* ── Save Draft sticky bottom bar ── */}
-      {canEdit && lines.length > 0 && (
+      {canEdit && (lines.length > 0 || remarks.trim()) && (
         <div style={{
           position: 'fixed', 
           bottom: 0, 

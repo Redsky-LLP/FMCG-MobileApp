@@ -3,7 +3,7 @@
 export interface RouteFormData {
   name: string;
   description: string;
-  assignedSalesmanId: string;
+  // assignedSalesmanId: string;
 }
 
 export interface AssignFormData {

@@ -104,8 +104,12 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             });
         }
 
-        if (orderItems.Count == 0)
-            return Result<OrderDetailDto>.Failure("At least one item is required to create an order.");
+        // ── FIX: Allow orders with only remarks (no items) ──
+        // If there are no items but remarks exist, create an order with empty items list
+        if (orderItems.Count == 0 && string.IsNullOrWhiteSpace(request.Remarks))
+        {
+            return Result<OrderDetailDto>.Failure("Add at least one product or retail remark to create an order.");
+        }
 
         // ── Generate unique order number via PostgreSQL sequence ───────────────
         // nextval('order_number_seq') is atomic — the DB guarantees each call

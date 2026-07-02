@@ -81,6 +81,13 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
             if (order.SalesmanId != request.SalesmanId)
                 return Result<OrderDetailDto>.Failure("You are not authorised to modify this order.");
         }
+        // ── FIX: Allow orders with only remarks (no items) ──
+        // If there are no items in the request but remarks exist, allow the update
+        if (request.Items.Count == 0 && string.IsNullOrWhiteSpace(request.Remarks))
+        {
+            return Result<OrderDetailDto>.Failure("Add at least one product or retail remark to update this order.");
+        }
+
 
         var customer = await context.Customers
             .FirstOrDefaultAsync(c => c.Id == request.CustomerId && !c.IsDeleted, cancellationToken);
@@ -108,7 +115,9 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
                         return Result<OrderDetailDto>.Failure("Product not found or inactive.");
 
                     var qty = ResolveQuantity(itemDto.Quantity, itemDto.QuantityBags, itemDto.QuantityBoxes, itemDto.QuantityTins);
-                    if (qty <= 0) return Result<OrderDetailDto>.Failure("Quantity must be > 0.");
+                    // ── FIX: Allow zero quantity for remarks-only orders ──
+                    // Quantity can be 0 only if there are no other items and remarks exist
+                    if (qty < 0) return Result<OrderDetailDto>.Failure("Quantity cannot be negative.");
 
                     existingItem.ProductId = itemDto.ProductId;
                     existingItem.Quantity = qty;

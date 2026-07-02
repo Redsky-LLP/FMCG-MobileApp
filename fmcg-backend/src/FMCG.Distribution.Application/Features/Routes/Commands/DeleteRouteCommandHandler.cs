@@ -24,10 +24,15 @@ public class DeleteRouteCommandHandler : IRequestHandler<DeleteRouteCommand, Res
         }
 
         // Check if route has customers
-        var hasCustomers = await _context.Customers.AnyAsync(c => c.RouteId == request.Id && !c.IsDeleted, cancellationToken);
-        if (hasCustomers)
+        // ── FIX: Allow deletion even if route has customers ──
+        // Instead of blocking, delete all customers associated with this route
+        var customers = await _context.Customers
+            .Where(c => c.RouteId == request.Id && !c.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var customer in customers)
         {
-            return Result<bool>.Failure("Cannot delete route with assigned customers. Deactivate instead.");
+            customer.SoftDelete("system");  // Soft delete each customer
         }
 
         route.SoftDelete("system");
