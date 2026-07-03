@@ -1415,7 +1415,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.44i7tthffdg"
+    "revision": "0.ne7ltple2hc"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -19008,13 +19008,14 @@ export function AdminProducts() {
 ## File: src/pages/Admin/AdminReports.tsx
 ````typescript
 // PATH: src/pages/Admin/AdminReports.tsx
-// UPDATED: Full working version with Preview + Download, native PDF viewer with zoom
+// FIX: Mobile PDF preview - use native viewer or fallback to download
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   FileText, Download, RefreshCw, Loader, CalendarDays, 
-  ArrowLeft, Eye, X, CheckCircle, AlertCircle, Maximize2 
+  ArrowLeft, Eye, X, CheckCircle, AlertCircle, Maximize2,
+  Smartphone
 } from 'lucide-react';
 import { reportsApi, routesApi, productGroupsApi, triggerPdfDownload } from '../../api/services';
 import type { RouteDto, ProductGroupDto } from '../../types';
@@ -19074,6 +19075,10 @@ const selectStyle = (isMobile: boolean): React.CSSProperties => ({
 });
 
 // ── Preview Modal Component ──────────────────────────────────────────────────
+// PATH: src/pages/Admin/AdminReports.tsx
+// FIX: viewerUrl is not defined - define it properly
+
+// ── Preview Modal Component ──────────────────────────────────────────────────
 function PreviewModal({ 
   isOpen, 
   onClose, 
@@ -19090,13 +19095,22 @@ function PreviewModal({
   onDownload: () => void;
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const isMobile = useIsMobile();
 
   if (!isOpen) return null;
 
+  // ── FIX: Define viewerUrl here - it was missing ──
   // Use native PDF viewer with zoom=page-fit for better scaling
   const viewerUrl = pdfUrl 
     ? `${pdfUrl}#zoom=page-fit&toolbar=1&navpanes=1&scrollbar=1`
     : null;
+
+  // ── On mobile, use direct URL navigation instead of iframe ──
+  const handleOpenInBrowser = () => {
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank');
+    }
+  };
 
   return (
     <>
@@ -19164,7 +19178,7 @@ function PreviewModal({
                 {title}
               </div>
               <div style={{ fontSize: 11, color: D.sub }}>
-                {isLoading ? 'Generating preview...' : pdfUrl ? '✓ Ready - Use mouse wheel to zoom' : 'No data'}
+                {isLoading ? 'Generating preview...' : pdfUrl ? (isMobile ? '✓ Ready - Tap to open' : '✓ Ready - Use mouse wheel to zoom') : 'No data'}
               </div>
             </div>
           </div>
@@ -19233,7 +19247,8 @@ function PreviewModal({
               <Loader size={48} style={{ animation: 'spin 1s linear infinite', color: D.accent }} />
               <span style={{ color: D.muted, fontSize: 14 }}>Generating preview...</span>
             </div>
-          ) : viewerUrl ? (
+          ) : viewerUrl && !isMobile ? (
+            /* ── Desktop: iframe viewer ── */
             <iframe
               src={viewerUrl}
               style={{
@@ -19246,6 +19261,70 @@ function PreviewModal({
               }}
               title="PDF Preview"
             />
+          ) : viewerUrl && isMobile ? (
+            /* ── Mobile: Show "Open PDF" button with preview info ── */
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                minHeight: 400,
+                gap: 20,
+                padding: 24,
+                textAlign: 'center',
+              }}
+            >
+              <div
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  background: `${D.accent}22`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <FileText size={36} color={D.accent} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: 0 }}>
+                  PDF Ready
+                </h3>
+                <p style={{ fontSize: 14, color: D.muted, marginTop: 4 }}>
+                  {title}
+                </p>
+                <p style={{ fontSize: 12, color: D.sub, marginTop: 8 }}>
+                  Tap the button below to open the PDF in your browser
+                </p>
+              </div>
+              <button
+                onClick={handleOpenInBrowser}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '12px 32px',
+                  borderRadius: 12,
+                  border: 'none',
+                  background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                  color: '#fff',
+                  fontSize: 16,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  boxShadow: `0 4px 16px ${D.accentGlow}`,
+                }}
+              >
+                <Smartphone size={18} />
+                Open PDF
+              </button>
+              <p style={{ fontSize: 11, color: D.sub, marginTop: 8 }}>
+                ⚡ Opens in your device's PDF viewer
+              </p>
+            </div>
           ) : (
             <div
               style={{
@@ -19295,9 +19374,14 @@ function PreviewModal({
                 <><AlertCircle size={12} color={D.amber} /> No data</>
               )}
             </span>
-            {!isFullscreen && pdfUrl && (
+            {!isFullscreen && pdfUrl && !isMobile && (
               <span style={{ fontSize: 10, color: D.sub }}>
                 🔍 Scroll to zoom · 📄 Auto-fit to page
+              </span>
+            )}
+            {!isFullscreen && pdfUrl && isMobile && (
+              <span style={{ fontSize: 10, color: D.sub }}>
+                📱 Tap "Open PDF" to view
               </span>
             )}
           </div>
@@ -19418,7 +19502,6 @@ export function AdminReports() {
       setPreviewUrl(url);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to generate preview');
-      // Still show the modal with error state
     } finally {
       setPreviewLoading(false);
     }
@@ -19438,7 +19521,6 @@ export function AdminReports() {
   const handlePreviewDownload = () => {
     if (previewDownloadFn) {
       previewDownloadFn();
-      // Close modal after download starts
       setTimeout(() => handlePreviewClose(), 800);
     }
   };
@@ -19889,7 +19971,7 @@ export function AdminRoutes() {
   const [error,       setError]       = useState('');
   const [success,     setSuccess]     = useState('');
   const [saving,      setSaving]      = useState(false);
-  const [salesmen,    setSalesmen]    = useState<UserDto[]>([]);
+  // const [salesmen,    setSalesmen]    = useState<UserDto[]>([]);
   const [showAddCard, setShowAddCard] = useState(false);
 
   async function load() {
@@ -19899,12 +19981,9 @@ export function AdminRoutes() {
     finally { setLoading(false); }
   }
 
-  async function loadSalesmen() {
-    try { setSalesmen(await usersApi.getAll('Salesman')); } catch {}
-  }
-
+  
   useEffect(() => { load(); }, []);
-  useEffect(() => { if (showAddCard) loadSalesmen(); }, [showAddCard]);
+  // useEffect(() => { if (showAddCard) loadSalesmen(); }, [showAddCard]);
 
   async function handleAdd(form: RouteFormData) {
     if (!form.name.trim()) return;
@@ -19913,7 +19992,7 @@ export function AdminRoutes() {
       await routesApi.create({
         name: form.name,
         description: form.description || undefined,
-        assignedSalesmanId: form.assignedSalesmanId || undefined,
+        // assignedSalesmanId: form.assignedSalesmanId || undefined,
       });
       setShowAddCard(false);
       setSuccess('Route created successfully!');
@@ -19927,9 +20006,7 @@ export function AdminRoutes() {
     navigate(`/admin/routes/edit/${route.id}`, { state: { route } });
   }
 
-  function handleAssign(route: RouteDto) {
-    navigate(`/admin/routes/assign/${route.id}`, { state: { routeId: route.id, routeName: route.name } });
-  }
+  
 
   function handleDelete(routeId: string) {
     const route = routes.find(r => String(r.id) === routeId);
@@ -20089,7 +20166,7 @@ export function AdminRoutes() {
         {showAddCard && (
           <div style={{ marginBottom: 20 }}>
             <AddRouteCard
-              salesmen={salesmen}
+              // salesmen={salesmen}
               saving={saving}
               error={error}
               onSave={handleAdd}
@@ -20108,7 +20185,7 @@ export function AdminRoutes() {
         ) : (
           <RoutesTable
             routes={routes}
-            onAssign={handleAssign}
+            // onAssign={handleAssign}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
@@ -20355,15 +20432,34 @@ export function ActionBtn({
 
 ## File: src/pages/Admin/AdminRoutes/components/AddRouteCard.tsx
 ````typescript
+// PATH: src/pages/Admin/AdminRoutes/components/AddRouteCard.tsx
+// UPDATED: Dark theme with orange accent
+
 import { useEffect, useRef, useState } from 'react';
 import { Route, X, Save } from 'lucide-react';
-import { Spinner } from '../../../../components/ui';  // ← Fix: import from ui
+import { Spinner } from '../../../../components/ui';
 import { useIsMobile } from '../../../../hooks/useIsMobile';
-import type { UserDto } from '../../../../types';
 import type { RouteFormData } from '../types';
 
+// ── Dark theme tokens ─────────────────────────────────────────────────────────
+const D = {
+  bg:       '#0f172a',
+  surface:  '#1e293b',
+  surface2: '#243447',
+  border:   '#334155',
+  accent:   '#ea580c',
+  accentH:  '#c2410c',
+  accentGlow: 'rgba(234,88,12,0.25)',
+  text:     '#f1f5f9',
+  muted:    '#94a3b8',
+  sub:      '#64748b',
+  green:    '#22c55e',
+  red:      '#ef4444',
+  amber:    '#f59e0b',
+  card:     '#1e293b',
+};
+
 interface AddRouteCardProps {
-  salesmen: UserDto[];
   saving: boolean;
   error: string;
   onSave: (form: RouteFormData) => void;
@@ -20371,14 +20467,13 @@ interface AddRouteCardProps {
 }
 
 export function AddRouteCard({
-  salesmen,
   saving,
   error,
   onSave,
   onCancel,
 }: AddRouteCardProps) {
   const isMobile = useIsMobile();
-  const [form, setForm] = useState<RouteFormData>({ name: '', description: '', assignedSalesmanId: '' });
+  const [form, setForm] = useState<RouteFormData>({ name: '', description: '' });
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { nameRef.current?.focus(); }, []);
@@ -20389,10 +20484,10 @@ export function AddRouteCard({
 
   return (
     <div style={{
-      background: '#fff',
-      border: '1px solid rgba(37,99,235,0.25)',
+      background: D.surface,
+      border: `1px solid ${D.border}`,
       borderRadius: 16,
-      boxShadow: '0 4px 24px rgba(37,99,235,0.10)',
+      boxShadow: `0 4px 24px ${D.accentGlow}`,
       padding: '28px 28px 24px',
       animation: 'slide-up 0.22s cubic-bezier(0.34,1.2,0.64,1)',
     }}>
@@ -20401,23 +20496,33 @@ export function AddRouteCard({
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10,
-            background: 'linear-gradient(135deg,#1E3A8A,#2563EB)',
+            background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <Route size={17} color="#fff" strokeWidth={2} />
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#1E3A8A', letterSpacing: '-0.02em' }}>Add New Route</div>
-            <div style={{ fontSize: 12, color: '#64748B', fontWeight: 500 }}>Fill in the details below</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: D.text, letterSpacing: '-0.02em' }}>Add New Route</div>
+            <div style={{ fontSize: 12, color: D.muted, fontWeight: 500 }}>Fill in the details below</div>
           </div>
         </div>
         <button
           onClick={onCancel}
           style={{
             width: 32, height: 32, borderRadius: 8,
-            border: '1px solid var(--border)', background: 'transparent',
+            border: `1px solid ${D.border}`,
+            background: 'transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: 'var(--text-sub)',
+            cursor: 'pointer', color: D.muted,
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = D.accent;
+            e.currentTarget.style.color = D.text;
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = D.border;
+            e.currentTarget.style.color = D.muted;
           }}
         >
           <X size={15} />
@@ -20427,8 +20532,9 @@ export function AddRouteCard({
       {error && (
         <div style={{
           padding: '10px 14px', borderRadius: 10, marginBottom: 20,
-          background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.20)',
-          color: '#B91C1C', fontSize: 13, fontWeight: 500,
+          background: 'rgba(239,68,68,0.10)',
+          border: `1px solid ${D.red}33`,
+          color: D.red, fontSize: 13, fontWeight: 500,
         }}>
           {error}
         </div>
@@ -20441,8 +20547,8 @@ export function AddRouteCard({
         marginBottom: 16,
       }}>
         <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 7 }}>
-            Route Name <span style={{ color: '#DC2626' }}>*</span>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: D.muted, marginBottom: 7, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>
+            Route Name <span style={{ color: D.red }}>*</span>
           </label>
           <input
             ref={nameRef}
@@ -20451,63 +20557,79 @@ export function AddRouteCard({
             placeholder="e.g., Changanassery, North Zone"
             style={{
               width: '100%', padding: '11px 14px',
-              background: '#F8FAFC', border: '1px solid #E2E8F0',
-              borderRadius: 10, fontSize: 14, color: '#334155',
+              background: D.bg,
+              border: `1px solid ${D.border}`,
+              borderRadius: 10, fontSize: 14, color: D.text,
               outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const,
+              transition: 'all 0.15s',
             }}
-            onFocus={e => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.10)'; e.target.style.background = '#fff'; }}
-            onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none'; e.target.style.background = '#F8FAFC'; }}
+            onFocus={e => {
+              e.target.style.borderColor = D.accent;
+              e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`;
+              e.target.style.background = D.surface2;
+            }}
+            onBlur={e => {
+              e.target.style.borderColor = D.border;
+              e.target.style.boxShadow = 'none';
+              e.target.style.background = D.bg;
+            }}
           />
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 7 }}>
-            Assign Salesman
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: D.muted, marginBottom: 7, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>
+            Description
           </label>
-          <select
-            value={form.assignedSalesmanId}
-            onChange={e => update('assignedSalesmanId', e.target.value)}
+          <input
+            value={form.description}
+            onChange={e => update('description', e.target.value)}
+            placeholder="Optional — e.g., 10 shops, morning route"
             style={{
               width: '100%', padding: '11px 14px',
-              background: '#F8FAFC', border: '1px solid #E2E8F0',
-              borderRadius: 10, fontSize: 14, color: '#334155',
-              outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
+              background: D.bg,
+              border: `1px solid ${D.border}`,
+              borderRadius: 10, fontSize: 14, color: D.text,
+              outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const,
+              transition: 'all 0.15s',
             }}
-          >
-            <option value="">— Unassigned —</option>
-            {salesmen.map(s => (
-              <option key={String(s.id)} value={String(s.id)}>
-                {s.fullName} ({s.email})
-              </option>
-            ))}
-          </select>
+            onFocus={e => {
+              e.target.style.borderColor = D.accent;
+              e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`;
+              e.target.style.background = D.surface2;
+            }}
+            onBlur={e => {
+              e.target.style.borderColor = D.border;
+              e.target.style.boxShadow = 'none';
+              e.target.style.background = D.bg;
+            }}
+          />
         </div>
       </div>
 
-      <div style={{ marginBottom: 24 }}>
-        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 7 }}>
-          Description
-        </label>
-        <input
-          value={form.description}
-          onChange={e => update('description', e.target.value)}
-          placeholder="Optional — e.g., 10 shops, morning route"
-          style={{
-            width: '100%', padding: '11px 14px',
-            background: '#F8FAFC', border: '1px solid #E2E8F0',
-            borderRadius: 10, fontSize: 14, color: '#334155',
-            outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const,
-          }}
-        />
-      </div>
+      {/* ── Assign Salesman field removed ── */}
 
-      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: 20 }}>
+      <div style={{
+        display: 'flex',
+        gap: 10,
+        justifyContent: 'flex-end',
+        borderTop: `1px solid ${D.border}`,
+        paddingTop: 20,
+      }}>
         <button
           onClick={onCancel}
           style={{
             padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700,
-            color: 'var(--text-sub)', border: '1px solid var(--border)',
+            color: D.muted, border: `1px solid ${D.border}`,
             background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = D.accent;
+            e.currentTarget.style.color = D.text;
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = D.border;
+            e.currentTarget.style.color = D.muted;
           }}
         >
           Cancel
@@ -20519,9 +20641,23 @@ export function AddRouteCard({
             display: 'inline-flex', alignItems: 'center', gap: 8,
             padding: '10px 24px', borderRadius: 10, fontSize: 14, fontWeight: 800,
             color: '#fff', border: 'none',
-            background: saving || !form.name.trim() ? '#93C5FD' : 'linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)',
+            background: saving || !form.name.trim() ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
             cursor: saving || !form.name.trim() ? 'not-allowed' : 'pointer',
-            fontFamily: 'inherit', boxShadow: saving ? 'none' : '0 4px 14px rgba(37,99,235,0.28)',
+            fontFamily: 'inherit',
+            boxShadow: saving ? 'none' : `0 4px 14px ${D.accentGlow}`,
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => {
+            if (!saving && form.name.trim()) {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = `0 6px 20px ${D.accentGlow}`;
+            }
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            if (!saving && form.name.trim()) {
+              e.currentTarget.style.boxShadow = `0 4px 14px ${D.accentGlow}`;
+            }
           }}
         >
           {saving ? <Spinner size={16} /> : <><Save size={15} /> Create Route</>}
@@ -20710,7 +20846,7 @@ export function EditRouteCard({
   const [form, setForm] = useState<RouteFormData>({
     name: route.name,
     description: route.description || '',
-    assignedSalesmanId: route.assignedSalesmanId || '',
+    // assignedSalesmanId: route.assignedSalesmanId || '',
   });
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -20792,28 +20928,7 @@ export function EditRouteCard({
             onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none'; e.target.style.background = '#F8FAFC'; }}
           />
         </div>
-        <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 7 }}>
-            Assign Salesman
-          </label>
-          <select
-            value={form.assignedSalesmanId}
-            onChange={e => update('assignedSalesmanId', e.target.value)}
-            style={{
-              width: '100%', padding: '11px 14px',
-              background: '#F8FAFC', border: '1px solid #E2E8F0',
-              borderRadius: 10, fontSize: 14, color: '#334155',
-              outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
-            }}
-          >
-            <option value="">— Unassigned —</option>
-            {salesmen.map(s => (
-              <option key={String(s.id)} value={String(s.id)}>
-                {s.fullName} ({s.email})
-              </option>
-            ))}
-          </select>
-        </div>
+        
       </div>
 
       <div style={{ marginBottom: 24 }}>
@@ -21019,12 +21134,12 @@ export function OverrideRouteCard({
 ## File: src/pages/Admin/AdminRoutes/components/RoutesTable.tsx
 ````typescript
 // PATH: src/pages/Admin/AdminRoutes/components/RoutesTable.tsx
-// UPDATED: Dark theme with orange accent
+// UPDATED: Dark theme with orange accent - REMOVED ASSIGN, ALLOW DELETE WITH CUSTOMERS
 
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '../../../../components/ui';
 import { ActionBtn } from './ActionBtn';
-import { Route, Users, Edit2, Trash2, Calendar, AlertTriangle } from 'lucide-react';
+import { Route, Users, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import { fmtDate } from '../../../../types';
 import type { RouteDto } from '../../../../types';
 import { useIsMobile } from '../../../../hooks/useIsMobile';
@@ -21049,13 +21164,12 @@ const D = {
 
 interface RoutesTableProps {
   routes:    RouteDto[];
-  onAssign:  (route: RouteDto) => void;
   onEdit:    (route: RouteDto) => void;
   onDelete:  (routeId: string) => void;
 }
 
 export function RoutesTable({
-  routes, onAssign, onEdit, onDelete,
+  routes, onEdit, onDelete,
 }: RoutesTableProps) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -21110,16 +21224,6 @@ export function RoutesTable({
               </div>
 
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12, fontSize: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: `${D.accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <span style={{ fontSize: 9, fontWeight: 800, color: D.accent }}>
-                      {r.assignedSalesmanName ? r.assignedSalesmanName.charAt(0).toUpperCase() : '?'}
-                    </span>
-                  </div>
-                  <span style={{ color: r.assignedSalesmanName ? D.text : D.sub, fontStyle: r.assignedSalesmanName ? 'normal' : 'italic', fontWeight: 600 }}>
-                    {r.assignedSalesmanName ?? 'Not Assigned'}
-                  </span>
-                </div>
                 <button
                   onClick={() => navigate(`/admin/customers?routeId=${r.id}`)}
                   style={{
@@ -21140,12 +21244,10 @@ export function RoutesTable({
               </div>
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <ActionBtn icon={Calendar} label="Assign" color="blue" title="Assign salesman to this route" onClick={() => onAssign(r)} />
                 <ActionBtn icon={Edit2} label="Edit" color="default" title="Edit route" onClick={() => onEdit(r)} />
                 <ActionBtn
                   icon={Trash2} label="Delete" color="red"
-                  title={hasCustomers(r.customerCount) ? 'Cannot delete route with customers' : 'Delete route'}
-                  disabled={hasCustomers(r.customerCount)}
+                  title="Delete route"
                   onClick={() => onDelete(String(r.id))}
                 />
               </div>
@@ -21168,7 +21270,7 @@ export function RoutesTable({
         <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse', fontSize: 14, background: D.surface }}>
           <thead>
             <tr>
-              {['Route Name', 'Assigned Salesman', 'Customers', 'Status', 'Created', 'Actions'].map(h => (
+              {['Route Name', 'Customers', 'Status', 'Created',].map(h => (
                 <th key={h} style={{
                   background: D.bg,
                   color: D.muted,
@@ -21216,21 +21318,6 @@ export function RoutesTable({
                   </td>
 
                   <td style={{ padding: '14px 16px' }}>
-                    {r.assignedSalesmanName ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <div style={{ width: 26, height: 26, borderRadius: '50%', background: `${D.accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <span style={{ fontSize: 10, fontWeight: 800, color: D.accent }}>
-                            {r.assignedSalesmanName.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: D.text }}>{r.assignedSalesmanName}</span>
-                      </div>
-                    ) : (
-                      <span style={{ fontSize: 13, color: D.sub, fontStyle: 'italic' }}>— Not Assigned —</span>
-                    )}
-                  </td>
-
-                  <td style={{ padding: '14px 16px' }}>
                     <button
                       onClick={() => navigate(`/admin/customers?routeId=${r.id}`)}
                       title="View customers for this route"
@@ -21262,12 +21349,10 @@ export function RoutesTable({
 
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' as const }}>
-                      <ActionBtn icon={Calendar} label="Assign" color="blue" title="Assign salesman to this route" onClick={() => onAssign(r)} />
                       <ActionBtn icon={Edit2} label="Edit" color="default" title="Edit route" onClick={() => onEdit(r)} />
                       <ActionBtn
                         icon={Trash2} label="Delete" color="red"
-                        title={hasCustomers(r.customerCount) ? 'Cannot delete route with customers' : 'Delete route'}
-                        disabled={hasCustomers(r.customerCount)}
+                        title="Delete route"
                         onClick={() => onDelete(String(r.id))}
                       />
                     </div>
@@ -21286,14 +21371,31 @@ export function RoutesTable({
 ## File: src/pages/Admin/AdminRoutes/DeleteRoutePage.tsx
 ````typescript
 // PATH: src/pages/Admin/AdminRoutes/DeleteRoutePage.tsx
-// NEW FILE: Dedicated delete confirmation page instead of modal
-// Navigated to from RoutesTable when Delete is clicked
+// UPDATED: Dark theme with orange accent
 
 import { useState } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { ArrowLeft, Trash2, AlertTriangle, Route, ShieldAlert } from 'lucide-react';
 import { routesApi } from '../../../api/services';
 import { Spinner } from '../../../components/ui';
+
+// ── Dark theme tokens ─────────────────────────────────────────────────────────
+const D = {
+  bg:       '#0f172a',
+  surface:  '#1e293b',
+  surface2: '#243447',
+  border:   '#334155',
+  accent:   '#ea580c',
+  accentH:  '#c2410c',
+  accentGlow: 'rgba(234,88,12,0.25)',
+  text:     '#f1f5f9',
+  muted:    '#94a3b8',
+  sub:      '#64748b',
+  green:    '#22c55e',
+  red:      '#ef4444',
+  amber:    '#f59e0b',
+  card:     '#1e293b',
+};
 
 export default function DeleteRoutePage() {
   const navigate  = useNavigate();
@@ -21311,7 +21413,6 @@ export default function DeleteRoutePage() {
     try {
       await routesApi.delete(id);
       setConfirmed(true);
-      // Navigate back after short delay so user sees success
       setTimeout(() => navigate('/admin/routes'), 1800);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Delete failed');
@@ -21319,28 +21420,29 @@ export default function DeleteRoutePage() {
     }
   }
 
-  // ── Success state ──────────────────────────────────────────
+  // ── Success state ──
   if (confirmed) {
     return (
       <div style={{
-        minHeight: '100vh', background: '#F8FAFC',
+        minHeight: '100vh', background: D.bg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 24,
       }}>
         <div style={{ textAlign: 'center', maxWidth: 380 }}>
           <div style={{
             width: 72, height: 72, borderRadius: '50%',
-            background: '#F0FDF4', border: '2px solid #BBF7D0',
+            background: 'rgba(34,197,94,0.15)',
+            border: `2px solid ${D.green}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 20px',
           }}>
             <span style={{ fontSize: 32 }}>✓</span>
           </div>
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', margin: '0 0 8px' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: D.text, margin: '0 0 8px' }}>
             Route Deleted
           </h2>
-          <p style={{ fontSize: 14, color: '#64748B', margin: 0 }}>
-            <strong>{routeName}</strong> has been permanently removed.
+          <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>
+            <strong style={{ color: D.text }}>{routeName}</strong> has been permanently removed.
             Redirecting back to routes…
           </p>
         </div>
@@ -21349,11 +21451,12 @@ export default function DeleteRoutePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8FAFC' }}>
+    <div style={{ minHeight: '100vh', background: D.bg }}>
 
-      {/* ── Top bar with back button ─────────────────────────── */}
+      {/* ── Top bar with back button ── */}
       <div style={{
-        background: '#fff', borderBottom: '1px solid #E2E8F0',
+        background: D.surface,
+        borderBottom: `1px solid ${D.border}`,
         padding: '14px 24px',
         display: 'flex', alignItems: 'center', gap: 14,
       }}>
@@ -21362,26 +21465,35 @@ export default function DeleteRoutePage() {
           style={{
             display: 'flex', alignItems: 'center', gap: 7,
             padding: '7px 14px', borderRadius: 9,
-            border: '1px solid #E2E8F0', background: '#F8FAFC',
-            color: '#475569', cursor: 'pointer', fontFamily: 'inherit',
-            fontSize: 13, fontWeight: 600, transition: 'all 0.14s',
+            border: `1px solid ${D.border}`,
+            background: D.bg,
+            color: D.muted,
+            cursor: 'pointer', fontFamily: 'inherit',
+            fontSize: 13, fontWeight: 600,
+            transition: 'all 0.14s',
           }}
-          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#F1F5F9'}
-          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#F8FAFC'}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = D.accent;
+            e.currentTarget.style.color = D.text;
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = D.border;
+            e.currentTarget.style.color = D.muted;
+          }}
         >
           <ArrowLeft size={14} />
           Back to Routes
         </button>
-        <div style={{ width: 1, height: 20, background: '#E2E8F0' }} />
+        <div style={{ width: 1, height: 20, background: D.border }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Route size={15} color="#64748B" />
-          <span style={{ fontSize: 13, color: '#64748B', fontWeight: 500 }}>Routes</span>
-          <span style={{ color: '#CBD5E1', fontSize: 13 }}>/</span>
-          <span style={{ fontSize: 13, color: '#DC2626', fontWeight: 600 }}>Delete</span>
+          <Route size={15} style={{ color: D.muted }} />
+          <span style={{ fontSize: 13, color: D.muted, fontWeight: 500 }}>Routes</span>
+          <span style={{ color: D.border, fontSize: 13 }}>/</span>
+          <span style={{ fontSize: 13, color: D.red, fontWeight: 600 }}>Delete</span>
         </div>
       </div>
 
-      {/* ── Main content — centered card ─────────────────────── */}
+      {/* ── Main content — centered card ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         minHeight: 'calc(100vh - 61px)', padding: 24,
@@ -21392,45 +21504,48 @@ export default function DeleteRoutePage() {
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
             <div style={{
               width: 80, height: 80, borderRadius: '50%',
-              background: 'linear-gradient(135deg,#FEF2F2,#FEE2E2)',
-              border: '2px solid #FECACA',
+              background: 'rgba(239,68,68,0.12)',
+              border: `2px solid ${D.red}44`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 16px',
-              boxShadow: '0 8px 24px rgba(220,38,38,0.15)',
+              boxShadow: `0 8px 24px rgba(239,68,68,0.15)`,
             }}>
-              <ShieldAlert size={34} color="#DC2626" strokeWidth={1.8} />
+              <ShieldAlert size={34} color={D.red} strokeWidth={1.8} />
             </div>
             <h1 style={{
-              fontSize: 22, fontWeight: 800, color: '#0F172A',
+              fontSize: 22, fontWeight: 800, color: D.text,
               margin: '0 0 8px', letterSpacing: '-0.03em',
             }}>
               Delete Route
             </h1>
-            <p style={{ fontSize: 14, color: '#64748B', margin: 0 }}>
+            <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>
               You are about to permanently delete this route.
             </p>
           </div>
 
           {/* Route info card */}
           <div style={{
-            background: '#fff', borderRadius: 16,
-            border: '1px solid #E2E8F0',
-            padding: '20px 22px', marginBottom: 16,
-            boxShadow: '0 1px 6px rgba(15,23,42,0.06)',
+            background: D.surface,
+            borderRadius: 16,
+            border: `1px solid ${D.border}`,
+            padding: '20px 22px',
+            marginBottom: 16,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{
                 width: 48, height: 48, borderRadius: 13,
-                background: '#FEF2F2', border: '1.5px solid #FECACA',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                background: 'rgba(239,68,68,0.10)',
+                border: `1.5px solid ${D.red}33`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
               }}>
-                <Route size={22} color="#DC2626" strokeWidth={1.8} />
+                <Route size={22} color={D.red} strokeWidth={1.8} />
               </div>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: D.text, letterSpacing: '-0.02em' }}>
                   {routeName}
                 </div>
-                <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 3 }}>
+                <div style={{ fontSize: 12, color: D.sub, marginTop: 3 }}>
                   Route ID: {id?.slice(0, 8)}…
                 </div>
               </div>
@@ -21439,23 +21554,24 @@ export default function DeleteRoutePage() {
 
           {/* Warning consequences card */}
           <div style={{
-            background: '#FFFBEB', borderRadius: 14,
-            border: '1px solid #FDE68A',
-            padding: '16px 18px', marginBottom: 24,
+            background: 'rgba(245,158,11,0.08)',
+            borderRadius: 14,
+            border: `1px solid ${D.amber}44`,
+            padding: '16px 18px',
+            marginBottom: 24,
           }}>
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              <AlertTriangle size={17} color="#D97706" style={{ flexShrink: 0, marginTop: 1 }} />
+              <AlertTriangle size={17} color={D.amber} style={{ flexShrink: 0, marginTop: 1 }} />
               <div>
-                <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#92400E' }}>
+                <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: D.amber }}>
                   This action cannot be undone. The following will be lost:
                 </p>
                 <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 5 }}>
                   {[
                     'All customer mappings for this route',
                     'Route assignment history',
-                    'Salesman assignment for this route',
                   ].map(item => (
-                    <li key={item} style={{ fontSize: 13, color: '#B45309' }}>{item}</li>
+                    <li key={item} style={{ fontSize: 13, color: D.muted }}>{item}</li>
                   ))}
                 </ul>
               </div>
@@ -21466,8 +21582,9 @@ export default function DeleteRoutePage() {
           {error && (
             <div style={{
               padding: '12px 16px', borderRadius: 10, marginBottom: 16,
-              background: '#FEF2F2', border: '1px solid #FECACA',
-              fontSize: 13, color: '#DC2626', fontWeight: 600,
+              background: 'rgba(239,68,68,0.10)',
+              border: `1px solid ${D.red}33`,
+              fontSize: 13, color: D.red, fontWeight: 600,
             }}>
               {error}
             </div>
@@ -21479,12 +21596,21 @@ export default function DeleteRoutePage() {
               onClick={() => navigate(-1)}
               style={{
                 flex: 1, padding: '13px', borderRadius: 11,
-                border: '1.5px solid #E2E8F0', background: '#fff',
-                color: '#475569', cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: 14, fontWeight: 700, transition: 'all 0.15s',
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.muted,
+                cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: 14, fontWeight: 700,
+                transition: 'all 0.15s',
               }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#F8FAFC'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#fff'}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = D.accent;
+                e.currentTarget.style.color = D.text;
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = D.border;
+                e.currentTarget.style.color = D.muted;
+              }}
             >
               Cancel
             </button>
@@ -21495,14 +21621,26 @@ export default function DeleteRoutePage() {
               style={{
                 flex: 1, padding: '13px', borderRadius: 11,
                 border: 'none',
-                background: deleting
-                  ? '#FCA5A5'
-                  : 'linear-gradient(135deg,#B91C1C 0%,#DC2626 100%)',
-                color: '#fff', cursor: deleting ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
+                background: deleting ? D.border : `linear-gradient(135deg, ${D.red}, #b91c1c)`,
+                color: '#fff',
+                cursor: deleting ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+                fontSize: 14, fontWeight: 700,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                boxShadow: deleting ? 'none' : '0 4px 14px rgba(220,38,38,0.35)',
+                boxShadow: deleting ? 'none' : `0 4px 14px rgba(239,68,68,0.35)`,
                 transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => {
+                if (!deleting) {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = `0 6px 20px rgba(239,68,68,0.45)`;
+                }
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                if (!deleting) {
+                  e.currentTarget.style.boxShadow = `0 4px 14px rgba(239,68,68,0.35)`;
+                }
               }}
             >
               {deleting
@@ -21512,7 +21650,7 @@ export default function DeleteRoutePage() {
             </button>
           </div>
 
-          <p style={{ textAlign: 'center', fontSize: 11, color: '#CBD5E1', marginTop: 16 }}>
+          <p style={{ textAlign: 'center', fontSize: 11, color: D.sub, marginTop: 16 }}>
             Route data will be permanently removed from the database
           </p>
         </div>
@@ -21524,12 +21662,33 @@ export default function DeleteRoutePage() {
 
 ## File: src/pages/Admin/AdminRoutes/EditRoutePage.tsx
 ````typescript
+// PATH: src/pages/Admin/AdminRoutes/EditRoutePage.tsx
+// UPDATED: Dark theme with orange accent
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Save, Edit2 } from 'lucide-react';
 import { Spinner, Alert } from '../../../components/ui';
-import { routesApi, usersApi } from '../../../api/services';
-import type { RouteDto, UserDto } from '../../../types';
+import { routesApi } from '../../../api/services';
+import type { RouteDto } from '../../../types';
+
+// ── Dark theme tokens ─────────────────────────────────────────────────────────
+const D = {
+  bg:       '#0f172a',
+  surface:  '#1e293b',
+  surface2: '#243447',
+  border:   '#334155',
+  accent:   '#ea580c',
+  accentH:  '#c2410c',
+  accentGlow: 'rgba(234,88,12,0.25)',
+  text:     '#f1f5f9',
+  muted:    '#94a3b8',
+  sub:      '#64748b',
+  green:    '#22c55e',
+  red:      '#ef4444',
+  amber:    '#f59e0b',
+  card:     '#1e293b',
+};
 
 export default function EditRoutePage() {
   const navigate = useNavigate();
@@ -21539,9 +21698,7 @@ export default function EditRoutePage() {
   const [form, setForm] = useState({
     name: route?.name || '',
     description: route?.description || '',
-    assignedSalesmanId: route?.assignedSalesmanId || '',
   });
-  const [salesmen, setSalesmen] = useState<UserDto[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -21551,7 +21708,6 @@ export default function EditRoutePage() {
       navigate('/admin/routes');
       return;
     }
-    usersApi.getAll('Salesman').then(setSalesmen).catch(() => {});
   }, [route, navigate]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -21567,8 +21723,8 @@ export default function EditRoutePage() {
         id: String(route.id),
         name: form.name,
         description: form.description || undefined,
-        assignedSalesmanId: form.assignedSalesmanId || undefined,
-      });
+        isActive: true,
+      } as any);
       setSuccess('Route updated successfully!');
       setTimeout(() => {
         navigate('/admin/routes');
@@ -21581,99 +21737,210 @@ export default function EditRoutePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-10">
-      <div className="max-w-3xl mx-auto px-5 py-6">
-        <div className="mb-6">
+    <div style={{ minHeight: '100vh', background: D.bg, padding: '20px 16px 40px' }}>
+      <div style={{ maxWidth: 800, margin: '0 auto' }}>
+        
+        {/* ── Back Button ────────────────────────────────────────────────────── */}
+        <div style={{ marginBottom: 20 }}>
           <button
             onClick={() => navigate('/admin/routes')}
-            className="flex items-center gap-2 text-slate-600 hover:text-blue-600 mb-4"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '8px 16px', borderRadius: 10,
+              background: D.surface,
+              border: `1px solid ${D.border}`,
+              color: D.muted,
+              fontSize: 13, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.color = D.text;
+              e.currentTarget.style.borderColor = D.accent;
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.color = D.muted;
+              e.currentTarget.style.borderColor = D.border;
+            }}
           >
-            <ArrowLeft size={18} /> Back to Routes
+            <ArrowLeft size={16} /> Back to Routes
           </button>
-          
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center">
-              <Edit2 size={22} color="#fff" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-800">Edit Route</h1>
-              <p className="text-slate-500">{route?.name}</p>
-            </div>
+        </div>
+
+        {/* ── Header ────────────────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14,
+            background: `${D.accent}22`,
+            border: `1px solid ${D.accent}44`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Edit2 size={22} color={D.accent} />
+          </div>
+          <div>
+            <h1 style={{ fontSize: 24, fontWeight: 900, color: D.text, margin: 0, letterSpacing: '-0.03em' }}>
+              Edit Route
+            </h1>
+            <p style={{ color: D.muted, fontSize: 13, marginTop: 2, fontWeight: 500 }}>
+              {route?.name}
+            </p>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        {/* ── Form Card ────────────────────────────────────────────────────── */}
+        <div style={{
+          background: D.surface,
+          border: `1px solid ${D.border}`,
+          borderRadius: 16,
+          padding: '28px 28px 24px',
+        }}>
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div style={{
+              padding: '10px 14px', borderRadius: 10, marginBottom: 20,
+              background: 'rgba(239,68,68,0.10)',
+              border: '1px solid rgba(239,68,68,0.25)',
+              color: D.red, fontSize: 13, fontWeight: 500,
+            }}>
               {error}
             </div>
           )}
           {success && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+            <div style={{
+              padding: '10px 14px', borderRadius: 10, marginBottom: 20,
+              background: 'rgba(34,197,94,0.10)',
+              border: '1px solid rgba(34,197,94,0.25)',
+              color: D.green, fontSize: 13, fontWeight: 600,
+            }}>
               ✓ {success}
             </div>
           )}
 
           <form onSubmit={handleSubmit}>
-            <div className="space-y-5">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">
-                  Route Name <span className="text-red-500">*</span>
+                <label style={{
+                  display: 'block', fontSize: 12, fontWeight: 700,
+                  color: D.muted, marginBottom: 6, textTransform: 'uppercase' as const,
+                  letterSpacing: '0.04em',
+                }}>
+                  Route Name <span style={{ color: D.red }}>*</span>
                 </label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                   placeholder="e.g., Changanassery, North Zone"
+                  style={{
+                    width: '100%', padding: '11px 14px',
+                    background: D.bg,
+                    border: `1px solid ${D.border}`,
+                    borderRadius: 10, fontSize: 14, color: D.text,
+                    outline: 'none', fontFamily: 'inherit',
+                    boxSizing: 'border-box' as const,
+                    transition: 'all 0.15s',
+                  }}
+                  onFocus={e => {
+                    e.target.style.borderColor = D.accent;
+                    e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`;
+                    e.target.style.background = D.surface2;
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = D.border;
+                    e.target.style.boxShadow = 'none';
+                    e.target.style.background = D.bg;
+                  }}
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                <label style={{
+                  display: 'block', fontSize: 12, fontWeight: 700,
+                  color: D.muted, marginBottom: 6, textTransform: 'uppercase' as const,
+                  letterSpacing: '0.04em',
+                }}>
                   Description
                 </label>
                 <input
                   type="text"
                   value={form.description}
                   onChange={e => setForm({ ...form, description: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                  placeholder="Optional - e.g., 10 shops, morning route"
+                  placeholder="Optional - e.g., 3 customers"
+                  style={{
+                    width: '100%', padding: '11px 14px',
+                    background: D.bg,
+                    border: `1px solid ${D.border}`,
+                    borderRadius: 10, fontSize: 14, color: D.text,
+                    outline: 'none', fontFamily: 'inherit',
+                    boxSizing: 'border-box' as const,
+                    transition: 'all 0.15s',
+                  }}
+                  onFocus={e => {
+                    e.target.style.borderColor = D.accent;
+                    e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`;
+                    e.target.style.background = D.surface2;
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = D.border;
+                    e.target.style.boxShadow = 'none';
+                    e.target.style.background = D.bg;
+                  }}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">
-                  Assign Salesman
-                </label>
-                <select
-                  value={form.assignedSalesmanId}
-                  onChange={e => setForm({ ...form, assignedSalesmanId: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                >
-                  <option value="">— Unassigned —</option>
-                  {salesmen.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.fullName} ({s.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* ── Assign Salesman field removed ── */}
             </div>
 
-            <div className="flex gap-3 justify-end mt-8 pt-4 border-t border-slate-100">
+            <div style={{
+              display: 'flex', gap: 10, justifyContent: 'flex-end',
+              marginTop: 24, paddingTop: 20,
+              borderTop: `1px solid ${D.border}`,
+            }}>
               <button
                 type="button"
                 onClick={() => navigate('/admin/routes')}
-                className="px-5 py-2.5 text-sm font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                style={{
+                  padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700,
+                  color: D.muted, border: `1px solid ${D.border}`,
+                  background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.borderColor = D.accent;
+                  e.currentTarget.style.color = D.text;
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.borderColor = D.border;
+                  e.currentTarget.style.color = D.muted;
+                }}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  padding: '10px 24px', borderRadius: 10, fontSize: 14, fontWeight: 800,
+                  color: '#fff', border: 'none',
+                  background: saving ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                  boxShadow: saving ? 'none' : `0 4px 14px ${D.accentGlow}`,
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => {
+                  if (!saving) {
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                    e.currentTarget.style.boxShadow = `0 6px 20px ${D.accentGlow}`;
+                  }
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  if (!saving) {
+                    e.currentTarget.style.boxShadow = `0 4px 14px ${D.accentGlow}`;
+                  }
+                }}
               >
                 {saving ? <Spinner size={16} /> : <Save size={16} />}
                 Save Changes
@@ -21879,7 +22146,7 @@ export default function OverrideRoutePage() {
 export interface RouteFormData {
   name: string;
   description: string;
-  assignedSalesmanId: string;
+  // assignedSalesmanId: string;
 }
 
 export interface AssignFormData {
@@ -26650,6 +26917,7 @@ export { default } from './OrderEntry';
 // 8. FIX: Cancel Order redirects to Route Execution page (not My Routes)
 // 9. FIX: Save Draft button centered in bottom bar
 // 10. FIX: hasExistingOrder declared before use
+// 11. FIX: Content no longer hidden behind bottom navigation bar
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -26684,6 +26952,9 @@ const D = {
   sub:     '#64748b',
   orange:  '#f97316',
 };
+
+// ── Mobile nav height constant ──────────────────────────────────────────────
+const MOBILE_NAV_HEIGHT = 70;
 
 export default function OrderEntry() {
   const { routeId, customerId } = useParams<{ routeId: string; customerId: string }>();
@@ -26870,18 +27141,22 @@ export default function OrderEntry() {
   };
 
   const buildPayload = (): CreateOrderCommand => ({
-    customerId:      String(customerId),
-    routeId:         String(routeId),
-    orderDate:       new Date().toISOString(),
-    items:           lines.map(l => ({ productId: l.product.id, quantity: l.qty, unitId: l.product.productUnitId, sellingPrice: l.sellingPrice })),
-    executionId:     executionContext?.executionId,
-    customerVisitId: executionContext?.customerVisitId,
-    ...(remarks ? { remarks } : {}),
-  });
-
+  customerId:      String(customerId),
+  routeId:         String(routeId),
+  orderDate:       new Date().toISOString(),
+  items:           lines.map(l => ({ 
+    productId: l.product.id, 
+    quantity: l.qty, 
+    unitId: l.product.productUnitId, 
+    sellingPrice: l.sellingPrice 
+  })),
+  executionId:     executionContext?.executionId,
+  customerVisitId: executionContext?.customerVisitId,
+  ...(remarks ? { remarks } : {}),
+});
   const handleSave = async () => {
     if (!canEdit) { setError('Cannot edit this order.'); return; }
-    if (lines.length === 0 && !remarks.trim()) { setError('Add at least one product first.'); return; }
+    if (lines.length === 0 && !remarks.trim()) { setError('Add at least one product or retail remark.'); return; }
     const incomplete = lines.find(l => !l.qty || !l.sellingPrice);
     if (incomplete) {
       setError(`Enter quantity and price for "${incomplete.product.nameEnglish}" before saving.`);
@@ -26964,13 +27239,26 @@ export default function OrderEntry() {
   const orderStatus = existingOrder?.status;
 
   return (
-    <div style={{ minHeight: '100vh', background: D.bg, color: D.text }}>
+    <div style={{ 
+      minHeight: '100vh', 
+      background: D.bg, 
+      color: D.text,
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
 
-      {/* ── Sticky dark header ──────────────────────────────────────────────── */}
-      <div style={{ position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 40, background: D.bg, borderBottom: `1px solid ${D.border}` }}>
+      {/* ── FIXED: Sticky header with no extra top space ── */}
+      <div style={{ 
+        position: 'sticky', 
+        top: isMobile ? `${MOBILE_NAV_HEIGHT}px` : 'var(--nav-h, 64px)', 
+        zIndex: 40, 
+        background: D.bg, 
+        borderBottom: `1px solid ${D.border}`,
+        flexShrink: 0,
+      }}>
 
         {/* Row 1: back + actions */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 6px' }}>
           <button
             onClick={() => navigate(-1)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, background: D.card, border: `1px solid ${D.border}`, borderRadius: 9, padding: '7px 12px', color: D.muted, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
@@ -27000,7 +27288,7 @@ export default function OrderEntry() {
         </div>
 
         {/* Row 2: date bar */}
-        <div style={{ margin: '0 14px 10px', padding: '8px 14px', borderRadius: 9, background: 'linear-gradient(135deg,#1e3a8a,#2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ margin: '0 16px 6px', padding: '6px 14px', borderRadius: 9, background: 'linear-gradient(135deg,#1e3a8a,#2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <CalendarDays size={14} color="rgba(255,255,255,0.8)" />
             <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
@@ -27010,40 +27298,48 @@ export default function OrderEntry() {
           <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: 'rgba(255,255,255,0.18)', padding: '2px 9px', borderRadius: 20 }}>TODAY</span>
         </div>
 
-        {/* Row 3: customer info — highlighted card so it's the first thing noticed */}
-        <div style={{ padding: '0 16px 12px' }}>
+        {/* Row 3: customer info */}
+        <div style={{ padding: '0 16px 10px' }}>
           <div style={{
-            padding: '14px 16px', borderRadius: 14,
+            padding: '12px 16px', borderRadius: 14,
             background: 'rgba(59,130,246,0.10)', border: '1px solid rgba(59,130,246,0.30)',
           }}>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: D.text, letterSpacing: '-0.02em' }}>{customer?.nameEnglish}</h1>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: D.text, letterSpacing: '-0.02em' }}>{customer?.nameEnglish}</h1>
             {customer?.nameMalayalam && <p style={{ margin: '2px 0 0', fontSize: 14, color: D.muted }} lang="ml">{customer.nameMalayalam}</p>}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 10 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
               {customer?.phoneNumber && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', fontSize: 14, fontWeight: 700, color: D.text }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', fontSize: 13, fontWeight: 700, color: D.text }}>
                   <Phone size={14} color={D.accent} /> {customer.phoneNumber}
                 </span>
               )}
               {customer?.address && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', fontSize: 14, fontWeight: 700, color: D.text }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', fontSize: 13, fontWeight: 700, color: D.text }}>
                   <MapPin size={14} color={D.accent} /> {customer.address}
                 </span>
               )}
             </div>
           </div>
           {/* Status badge */}
-          <div style={{ marginTop: 8 }}>
-            {!existingOrder        && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: '#422006', border: '1px solid #92400e', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fb923c' }}><Edit3 size={11} /> New Order</span>}
-            {orderStatus === OrderStatus.Draft             && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: '#422006', border: '1px solid #92400e', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fb923c' }}><Edit3 size={11} /> Draft — Editable</span>}
-            {orderStatus === OrderStatus.PendingApproval  && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: '#1e3a8a', border: '1px solid #2563eb', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#93c5fd' }}><Clock size={11} /> Pending Approval</span>}
-            {orderStatus === OrderStatus.Approved         && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: '#14532d', border: '1px solid #16a34a', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#86efac' }}><CheckCircle2 size={11} /> Approved</span>}
-            {orderStatus === OrderStatus.Closed           && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: '#0c4a6e', border: '1px solid #0284c7', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#7dd3fc' }}><Lock size={11} /> Closed — Read only</span>}
+          <div style={{ marginTop: 6 }}>
+            {!existingOrder        && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#422006', border: '1px solid #92400e', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fb923c' }}><Edit3 size={11} /> New Order</span>}
+            {orderStatus === OrderStatus.Draft             && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#422006', border: '1px solid #92400e', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fb923c' }}><Edit3 size={11} /> Draft — Editable</span>}
+            {/* {orderStatus === OrderStatus.PendingApproval  && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#1e3a8a', border: '1px solid #2563eb', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#93c5fd' }}><Clock size={11} /> Pending Approval</span>} */}
+            {orderStatus === OrderStatus.Approved         && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#14532d', border: '1px solid #16a34a', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#86efac' }}><CheckCircle2 size={11} /> Approved</span>}
+            {orderStatus === OrderStatus.Closed           && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#0c4a6e', border: '1px solid #0284c7', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#7dd3fc' }}><Lock size={11} /> Closed — Read only</span>}
           </div>
         </div>
       </div>
 
-      {/* ── Main scrollable content ─────────────────────────────────────────── */}
-      <div style={{ padding: '10px 14px', paddingBottom: 130 }}>
+      {/* ── SCROLLABLE CONTENT ── */}
+      <div style={{ 
+        flex: 1, 
+        overflowY: 'auto', 
+        padding: '10px 16px',
+        /* ── FIX: Large bottom padding to clear both Save button AND mobile nav ── */
+        paddingBottom: isMobile 
+          ? 'calc(130px + env(safe-area-inset-bottom, 0px) + ' + MOBILE_NAV_HEIGHT + 'px)' 
+          : '130px',
+      }}>
 
         {/* Alerts */}
         {error && (
@@ -27064,7 +27360,7 @@ export default function OrderEntry() {
           </div>
         )}
 
-        {/* ── Empty state with Cancel option ── */}
+        {/* ── Empty state ── */}
         {lines.length === 0 && canEdit && (
           <div style={{ textAlign: 'center', padding: '32px 20px', background: D.card, border: `2px dashed ${D.border}`, borderRadius: 12, marginBottom: 12 }}>
             <Package size={40} color={D.border} style={{ marginBottom: 8 }} />
@@ -27081,7 +27377,7 @@ export default function OrderEntry() {
           </div>
         )}
 
-        {/* ── Item cards ─────────────────────────────────────────────────────── */}
+        {/* ── Item cards ── */}
         {lines.length > 0 && (
           <div style={{ marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -27099,10 +27395,10 @@ export default function OrderEntry() {
                     {line.product.nameMalayalam && (
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: D.muted }} lang="ml">{line.product.nameMalayalam}</p>
                     )}
-                    <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} />
+                    {/* <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} /> */}
                   </div>
 
-                  {/* ── Fields row: Item Code | Qty | Price | Delete ── */}
+                  {/* Fields row */}
                   <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
                     <div style={{ width: 110, flexShrink: 0, minWidth: 0 }}>
                       <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Item Code</p>
@@ -27139,7 +27435,6 @@ export default function OrderEntry() {
                       />
                     </div>
 
-                    {/* Delete button — inline with fields, aligned to input bottom */}
                     {canEdit && (
                       <button
                         onClick={() => removeItem(line.product.id)}
@@ -27155,30 +27450,9 @@ export default function OrderEntry() {
           </div>
         )}
 
-        {/* Retail remarks */}
-        {/* ── Add Products button — between items and retail remarks ── */}
-        {canEdit && lines.length > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0 14px' }}>
-            <button
-              onClick={() => setShowProducts(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '12px 28px', borderRadius: 28,
-                background: 'linear-gradient(135deg,#2563eb,#1d4ed8)',
-                border: 'none', color: '#fff', fontSize: 14, fontWeight: 800,
-                cursor: 'pointer', fontFamily: 'inherit',
-                boxShadow: '0 4px 16px rgba(37,99,235,0.35)',
-                touchAction: 'manipulation',
-              }}
-            >
-              <Plus size={18} strokeWidth={2.5} /> Add Products
-            </button>
-          </div>
-        )}
-
-        {/* ── Add Products button for empty state ── */}
-        {canEdit && lines.length === 0 && (
-          <div style={{ display: 'flex', justifyContent: 'center', margin: '0 0 14px' }}>
+        {/* Add Products button */}
+        {canEdit && (
+          <div style={{ display: 'flex', justifyContent: 'center', margin: lines.length > 0 ? '10px 0 14px' : '0 0 14px' }}>
             <button
               onClick={() => setShowProducts(true)}
               style={{
@@ -27212,16 +27486,24 @@ export default function OrderEntry() {
         </div>
       </div>
 
-      {/* ── Save Draft / Update sticky bottom bar ── */}
-      {canEdit && lines.length > 0 && (
+      {/* ── Save Draft sticky bottom bar ── */}
+      {canEdit && (lines.length > 0 || remarks.trim()) && (
         <div style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 45,
-          background: D.bg, borderTop: `1px solid ${D.border}`,
+          position: 'fixed', 
+          bottom: 0, 
+          left: 0, 
+          right: 0, 
+          zIndex: 45,
+          background: D.bg, 
+          borderTop: `1px solid ${D.border}`,
           padding: '10px 14px',
-          paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px) + 70px)',
+          /* ── FIX: Add bottom padding for mobile nav ── */
+          paddingBottom: isMobile 
+            ? 'calc(10px + env(safe-area-inset-bottom, 0px) + ' + MOBILE_NAV_HEIGHT + 'px)' 
+            : '10px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',  // ← CENTERED
+          justifyContent: 'center',
           gap: 10,
         }}>
           <button
@@ -27231,7 +27513,7 @@ export default function OrderEntry() {
               display: 'flex',
               alignItems: 'center',
               gap: 7,
-              padding: '11px 32px',  // ← wider padding for center alignment
+              padding: '11px 32px',
               background: saving ? D.card : 'linear-gradient(135deg,#1e3a8a,#2563eb)',
               border: 'none',
               borderRadius: 10,

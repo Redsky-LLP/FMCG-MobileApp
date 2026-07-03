@@ -415,7 +415,7 @@ ENTRYPOINT ["dotnet", "FMCG.Distribution.API.dll"]
     "Provider": "PostgreSQL"
   },
   "ConnectionStrings": {
-    "PostgresConnection": "Host=localhost;Database=fmcg_local_dev;Username=postgres;Password=local123"
+    "PostgresConnection": "Host=localhost;Database=fmcg_local_dev;Username=postgres;Password=postgres"
   }
 }
 ```
@@ -435,7 +435,8 @@ ENTRYPOINT ["dotnet", "FMCG.Distribution.API.dll"]
     "https://localhost:5173",
     "http://localhost:3000",
     "http://localhost:4200",
-    "https://willowy-sawine-450377.netlify.app"
+    "https://willowy-sawine-450377.netlify.app",
+    "http://141.148.211.66"
   ],
   "Jwt": {
     "Key": "FMCG_Distribution_SuperSecretKey_32Chars_2024!",
@@ -3969,7 +3970,9 @@ var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<stri
         "https://localhost:5173",
         "http://localhost:3000",
         "http://localhost:4200",
+        "http://localhost:5002",
         "https://willowy-sawine-450377.netlify.app",  // ← ADD THIS
+        "https://fmcg-api.duckdns.org",
         "capacitor://localhost",
         "http://localhost",
         "https://localhost"
@@ -4059,7 +4062,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
@@ -7817,8 +7820,12 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             });
         }
 
-        if (orderItems.Count == 0)
-            return Result<OrderDetailDto>.Failure("At least one item is required to create an order.");
+        // ── FIX: Allow orders with only remarks (no items) ──
+        // If there are no items but remarks exist, create an order with empty items list
+        if (orderItems.Count == 0 && string.IsNullOrWhiteSpace(request.Remarks))
+        {
+            return Result<OrderDetailDto>.Failure("Add at least one product or retail remark to create an order.");
+        }
 
         // ── Generate unique order number via PostgreSQL sequence ───────────────
         // nextval('order_number_seq') is atomic — the DB guarantees each call
@@ -8252,6 +8259,13 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
             if (order.SalesmanId != request.SalesmanId)
                 return Result<OrderDetailDto>.Failure("You are not authorised to modify this order.");
         }
+        // ── FIX: Allow orders with only remarks (no items) ──
+        // If there are no items in the request but remarks exist, allow the update
+        if (request.Items.Count == 0 && string.IsNullOrWhiteSpace(request.Remarks))
+        {
+            return Result<OrderDetailDto>.Failure("Add at least one product or retail remark to update this order.");
+        }
+
 
         var customer = await context.Customers
             .FirstOrDefaultAsync(c => c.Id == request.CustomerId && !c.IsDeleted, cancellationToken);
@@ -8279,7 +8293,9 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
                         return Result<OrderDetailDto>.Failure("Product not found or inactive.");
 
                     var qty = ResolveQuantity(itemDto.Quantity, itemDto.QuantityBags, itemDto.QuantityBoxes, itemDto.QuantityTins);
-                    if (qty <= 0) return Result<OrderDetailDto>.Failure("Quantity must be > 0.");
+                    // ── FIX: Allow zero quantity for remarks-only orders ──
+                    // Quantity can be 0 only if there are no other items and remarks exist
+                    if (qty < 0) return Result<OrderDetailDto>.Failure("Quantity cannot be negative.");
 
                     existingItem.ProductId = itemDto.ProductId;
                     existingItem.Quantity = qty;
@@ -12691,10 +12707,15 @@ public class DeleteRouteCommandHandler : IRequestHandler<DeleteRouteCommand, Res
         }
 
         // Check if route has customers
-        var hasCustomers = await _context.Customers.AnyAsync(c => c.RouteId == request.Id && !c.IsDeleted, cancellationToken);
-        if (hasCustomers)
+        // ── FIX: Allow deletion even if route has customers ──
+        // Instead of blocking, delete all customers associated with this route
+        var customers = await _context.Customers
+            .Where(c => c.RouteId == request.Id && !c.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var customer in customers)
         {
-            return Result<bool>.Failure("Cannot delete route with assigned customers. Deactivate instead.");
+            customer.SoftDelete("system");  // Soft delete each customer
         }
 
         route.SoftDelete("system");

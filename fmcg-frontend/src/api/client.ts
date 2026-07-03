@@ -1,10 +1,8 @@
 // PATH: src/api/client.ts
 import axios from 'axios';
 
-// Hardcoded backend URL for production APK
-// Replace the BASE_URL with HTTPS
-//const BASE_URL = 'https://fmcg-api.duckdns.org';
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002';
+// ── Hardcoded backend URL for production ──
+const BASE_URL = 'https://fmcg-api.duckdns.org';
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -81,6 +79,7 @@ apiClient.interceptors.response.use(
         const response = await axios.post(`${BASE_URL}/api/v1/auth/refresh`, {
           refreshToken,
         });
+        
         // Backend wraps every response in a Result<T> envelope: { isSuccess, data: {...} }
         const payload = response.data?.data ?? response.data;
         const { token, refreshToken: newRefreshToken } = payload;
