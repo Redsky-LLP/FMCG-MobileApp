@@ -403,7 +403,15 @@ ENTRYPOINT ["dotnet", "FMCG.Distribution.API.dll"]
     "http://localhost:5173",
     "https://localhost:5173",
     "http://localhost:3000",
-    "http://localhost:4200"
+    "http://localhost:4200",
+    "https://willowy-sawine-450377.netlify.app",
+    "http://localhost:5002",
+    "https://fmcg-api.duckdns.org",
+    "http://141.148.211.66",
+    "https://141.148.211.66",
+    "capacitor://localhost",
+    "http://localhost",
+    "https://localhost"
   ],
   "Jwt": {
     "Key": "FMCG_Distribution_SuperSecretKey_32Chars_2024!",
@@ -415,7 +423,8 @@ ENTRYPOINT ["dotnet", "FMCG.Distribution.API.dll"]
     "Provider": "PostgreSQL"
   },
   "ConnectionStrings": {
-    "PostgresConnection": "Host=localhost;Database=fmcg_local_dev;Username=postgres;Password=postgres"
+    "PostgresConnection": "Host=localhost;Database=fmcg_local_dev;Username=postgres;Password=postgres",
+    "SqlServerConnection": "Server=(localdb)\\mssqllocaldb;Database=FMCG_Distribution;Trusted_Connection=True;TrustServerCertificate=true"
   }
 }
 ```
@@ -436,7 +445,12 @@ ENTRYPOINT ["dotnet", "FMCG.Distribution.API.dll"]
     "http://localhost:3000",
     "http://localhost:4200",
     "https://willowy-sawine-450377.netlify.app",
-    "http://141.148.211.66"
+    "https://fmcg-api.duckdns.org",
+    "http://141.148.211.66",
+    "https://141.148.211.66",
+    "capacitor://localhost",
+    "http://localhost",
+    "https://localhost"
   ],
   "Jwt": {
     "Key": "FMCG_Distribution_SuperSecretKey_32Chars_2024!",
@@ -448,7 +462,7 @@ ENTRYPOINT ["dotnet", "FMCG.Distribution.API.dll"]
     "Provider": "PostgreSQL"
   },
   "ConnectionStrings": {
-    "PostgresConnection": "Host=dpg-d8h9qgdckfvc73dp7bh0-a;Port=5432;Database=fmcg_db_mdrh;Username=fmcg_user;Password=a8XfgAftW9635YQZOzAHEP6IDwzSTA2p",
+    "PostgresConnection": "Host=aws-1-ap-northeast-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.guczkzraryugkxfhrafo;Password=bp7w7xvFzRvfEvWN;SslMode=Require;TrustServerCertificate=true;CommandTimeout=60",
     "SqlServerConnection": "Server=(localdb)\\mssqllocaldb;Database=FMCG_Distribution;Trusted_Connection=True;TrustServerCertificate=true"
   }
 }
