@@ -292,93 +292,61 @@ export function AdminOrders() {
   }, [closureStatus?.isClosed]);
 
   return (
-    <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 80 }}>
-
-      {/* ── Header ───────────────────────────────────────────────────────────── */}
+    <div style={{ background: D.bg, paddingBottom: 8 }}>
       <div style={{
-        position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 20,
-        background: D.bg,
+        padding: '4px 0 8px',
         borderBottom: `1px solid ${D.border}`,
-        padding: '16px 20px',
+        marginBottom: 8,
       }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          {/* ── Back Button ────────────────────────────────────────────────────── */}
-          <div style={{ marginBottom: 14 }}>
-            <Link 
-              to={user?.role === 'Admin' || user?.role === 'SuperAdmin' ? '/admin/dashboard' : '/'}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 16px',
-                borderRadius: 10,
-                background: D.surface,
-                border: `1px solid ${D.border}`,
-                color: D.muted,
-                fontSize: 13,
-                fontWeight: 600,
-                textDecoration: 'none',
-                transition: 'all 0.2s',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.color = D.text;
-                e.currentTarget.style.borderColor = D.accent;
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.color = D.muted;
-                e.currentTarget.style.borderColor = D.border;
-              }}
-            >
-              <ArrowLeft size={16} />
-              Back to Dashboard
-            </Link>
-          </div>
+        <Link 
+          to={user?.role === 'Admin' || user?.role === 'SuperAdmin' ? '/admin/dashboard' : '/'}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '4px 10px',
+            borderRadius: 6,
+            background: D.surface,
+            border: `1px solid ${D.border}`,
+            color: D.muted,
+            fontSize: 10,
+            fontWeight: 600,
+            textDecoration: 'none',
+            marginBottom: 6,
+          }}
+        >
+          <ArrowLeft size={12} /> Dashboard
+        </Link>
 
-          {/* Top row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{
-                width: 42, height: 42, borderRadius: 10,
-                background: D.accent,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: `0 4px 14px ${D.accentGlow}`,
-              }}>
-                <ShoppingCart size={20} color="#FFFFFF" />
-              </div>
-              <div>
-                <h1 style={{ fontSize: 20, fontWeight: 900, margin: 0, color: D.text, letterSpacing: '-0.02em' }}>
-                  Orders
-                </h1>
-                <p style={{ fontSize: 14, color: D.muted, margin: 0, fontWeight: 600 }}>
-                  {orders.length} order{orders.length !== 1 ? 's' : ''} · {currentDate}
-                </p>
-              </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: D.accent,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <ShoppingCart size={16} color="#FFFFFF" />
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={load}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '9px 16px', borderRadius: 9,
-                  border: `1px solid ${D.border}`,
-                  background: D.surface,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: D.muted,
-                  fontFamily: 'inherit',
-                  transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.text; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
-              >
-                <RefreshCw size={15} />
-                Refresh
-              </button>
+            <div>
+              <h1 style={{ fontSize: 14, fontWeight: 900, margin: 0, color: D.text }}>Orders</h1>
+              <p style={{ fontSize: 10, color: D.muted, margin: 0 }}>{orders.length} orders</p>
             </div>
           </div>
+          <button
+            onClick={load}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 3,
+              padding: '4px 10px', borderRadius: 6,
+              border: `1px solid ${D.border}`,
+              background: D.surface,
+              color: D.muted,
+              fontSize: 10, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            <RefreshCw size={12} /> Refresh
+          </button>
+        </div>
 
           {/* ── Status count boxes - NOW CLICKABLE FILTERS ── */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -529,7 +497,6 @@ export function AdminOrders() {
             )}
           </div>
         </div>
-      </div>
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 20px' }}>
         {error   && <Alert variant="error">{error}</Alert>}

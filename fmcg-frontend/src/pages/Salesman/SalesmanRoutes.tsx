@@ -289,139 +289,120 @@ export function SalesmanRoutes() {
     : routes;
 
   return (
-    <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 80 }}>
-      {/* Header */}
+    <div style={{ background: D.bg }}>
       <div style={{
-        position: 'sticky',
-        top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)',
-        zIndex: 20,
-        background: D.bg,
+        padding: '6px 0 10px',
         borderBottom: `1px solid ${D.border}`,
-        padding: '16px 20px',
+        marginBottom: 10,
       }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-              <div style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-              }}>
-                {firstName.charAt(0).toUpperCase()}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <h1 style={{ fontSize: 18, fontWeight: 900, color: D.text, margin: 0, letterSpacing: '-0.02em' }}>
-                  {greeting}, {firstName} 👋
-                </h1>
-                <p style={{ fontSize: 13, color: D.muted, margin: '2px 0 0' }}>
-                  {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
-              </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+            }}>
+              {firstName.charAt(0).toUpperCase()}
             </div>
-            <button
-              onClick={load}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '8px 16px',
-                borderRadius: 10,
-                border: `1px solid ${D.border}`,
-                background: D.surface,
-                color: D.muted,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                transition: 'all 0.15s',
-                flexShrink: 0,
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.text; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
-            >
-              <RefreshCw size={14} /> Refresh
-            </button>
+            <div>
+              <h1 style={{ fontSize: 13, fontWeight: 800, color: D.text, margin: 0 }}>
+                {greeting}, {firstName} 👋
+              </h1>
+              <p style={{ fontSize: 10, color: D.muted, margin: '1px 0 0' }}>
+                {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+              </p>
+            </div>
           </div>
+          <button
+            onClick={load}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 3,
+              padding: '4px 10px',
+              borderRadius: 6,
+              border: `1px solid ${D.border}`,
+              background: D.surface,
+              color: D.muted,
+              fontSize: 10,
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            <RefreshCw size={12} /> Refresh
+          </button>
+        </div>
 
-          {/* Route search — only shown once there are enough routes to need it */}
-          {showRouteSearch && (
-            <div style={{ position: 'relative', marginTop: 14 }}>
-              <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: D.sub }} />
-              <input
-                type="text"
-                placeholder="Search routes by name..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 36px 9px 36px',
-                  fontSize: 13,
-                  border: `1px solid ${D.border}`,
-                  borderRadius: 10,
-                  background: D.surface,
-                  color: D.text,
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                  transition: 'border-color 0.15s',
-                }}
-                onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-                onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer' }}
-                >
-                  <X size={15} />
-                </button>
-              )}
-            </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 3,
+            fontSize: 9, fontWeight: 600, padding: '2px 8px',
+            borderRadius: 12,
+            background: isDayClosed ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
+            border: `1px solid ${isDayClosed ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
+            color: isDayClosed ? D.green : D.amber,
+          }}>
+            {isDayClosed ? <CheckCircle2 size={9} /> : <Lock size={9} />}
+            {isDayClosed ? 'Day closed' : 'Day open'}
+          </span>
+
+          {completedCount > 0 && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 9, fontWeight: 600, padding: '2px 8px',
+              borderRadius: 12,
+              background: 'rgba(59,130,246,0.12)',
+              border: '1px solid rgba(59,130,246,0.25)',
+              color: '#3B82F6',
+            }}>
+              <CheckCircle2 size={9} /> {completedCount}/{routes.length} done
+            </span>
           )}
 
-          {/* Status chips — compact row instead of stacked full-width banners */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+          {activeRoute && (
             <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontSize: 12, fontWeight: 600, padding: '6px 14px',
-              borderRadius: 20,
-              background: isDayClosed ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
-              border: `1px solid ${isDayClosed ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
-              color: isDayClosed ? D.green : D.amber,
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 9, fontWeight: 600, padding: '2px 8px',
+              borderRadius: 12,
+              background: 'rgba(245,158,11,0.12)',
+              border: '1px solid rgba(245,158,11,0.25)',
+              color: D.amber,
             }}>
-              {isDayClosed ? <CheckCircle2 size={12} /> : <Lock size={12} />}
-              {isDayClosed ? 'Day closed — Delivery available' : 'Day not closed — Delivery disabled'}
+              <AlertTriangle size={9} /> Complete {activeRoute.routeName}
             </span>
+          )}
+        </div>
 
-            {completedCount > 0 && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                fontSize: 12, fontWeight: 600, padding: '6px 14px',
-                borderRadius: 20,
-                background: 'rgba(59,130,246,0.12)',
-                border: '1px solid rgba(59,130,246,0.25)',
-                color: '#3B82F6',
-              }}>
-                <CheckCircle2 size={12} /> {completedCount} of {routes.length} route{routes.length !== 1 ? 's' : ''} completed today
-              </span>
-            )}
-
-            {activeRoute && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                fontSize: 12, fontWeight: 600, padding: '6px 14px',
-                borderRadius: 20,
-                background: 'rgba(245,158,11,0.12)',
-                border: '1px solid rgba(245,158,11,0.25)',
-                color: D.amber,
-              }}>
-                <AlertTriangle size={12} /> Complete <strong style={{ color: D.text }}>{activeRoute.routeName}</strong> before starting another
-              </span>
+        {showRouteSearch && (
+          <div style={{ position: 'relative', marginTop: 8 }}>
+            <Search size={12} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: D.sub }} />
+            <input
+              type="text"
+              placeholder="Search routes..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '4px 28px 4px 28px',
+                fontSize: 11,
+                border: `1px solid ${D.border}`,
+                borderRadius: 6,
+                background: D.surface,
+                color: D.text,
+                outline: 'none',
+                fontFamily: 'inherit',
+              }}
+            />
+            {search && (
+              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer' }}>
+                <X size={12} />
+              </button>
             )}
           </div>
-        </div>
+        )}
       </div>
 
       {error && (

@@ -1415,7 +1415,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.93s3vhd2dqo"
+    "revision": "0.0vp8ocbnkt"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -6528,8 +6528,9 @@ generateIcons().catch(err => {
 
     <!-- ── Viewport ───────────────────────────────────────────────────────── -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <!-- Add to index.html head -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no" />
 
     <!-- ── PWA manifest ──────────────────────────────────────────────────── -->
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -7630,7 +7631,6 @@ const SalesmanRoutes    = lazy(() => import('./pages/Salesman/SalesmanRoutes').t
 const SalesmanOrders    = lazy(() => import('./pages/Salesman/SalesmanOrders'));
 const OrderEntry = lazy(() => import('./pages/Salesman/OrderEntry/OrderEntry'));
 // ReviewOrdersPage removed — submit-all now happens directly on the execute page
-const SalesmanIncentives = lazy(() => import('./pages/Salesman/SalesmanIncentives'));
 const RouteExecution    = lazy(() => import('./pages/Salesman/RouteExecution'));
 const SalesmanCustomers = lazy(() => import('./pages/Salesman/SalesmanCustomers'));
 
@@ -7807,7 +7807,6 @@ export default function App() {
               <Route path="routes/:routeId/order/:customerId" element={<OrderEntry />} />
               {/* review-orders route removed — submit happens on execute page */}
               <Route path="routes/:routeId/customers" element={<SalesmanCustomers />} />
-              <Route path="incentives" element={<SalesmanIncentives />} />
             </Route>
 
             {/* ── Accounts ── */}
@@ -8622,7 +8621,7 @@ export function HeaderSearch({ onSearch, placeholder = "Search orders, customers
 ## File: src/components/layout/MobileLayout.tsx
 ````typescript
 // PATH: src/components/layout/MobileLayout.tsx
-// UPDATED: Dark theme to match Navbar.tsx and the rest of the app
+// COMPLETE FIXED VERSION - Clean mobile layout without duplicate headers
 
 import React, { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -8645,6 +8644,7 @@ import {
   User,
   Settings,
   ChevronRight,
+  CalendarDays,
 } from 'lucide-react';
 
 interface NavItem {
@@ -8658,7 +8658,6 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   Salesman: [
     { to: '/salesman/routes', label: 'My Routes', icon: MapPin, roles: ['Salesman'] },
     { to: '/salesman/orders', label: 'Orders', icon: ShoppingCart, roles: ['Salesman'] },
-    { to: '/salesman/incentives', label: 'Incentives', icon: TrendingUp, roles: ['Salesman'] },
   ],
   Warehouse: [
     { to: '/warehouse/loading', label: 'Loading', icon: Truck, roles: ['Warehouse'] },
@@ -8668,33 +8667,28 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   Accounts: [
     { to: '/accounts/settlement', label: 'Settlement', icon: Calculator, roles: ['Accounts'] },
     { to: '/accounts/reports', label: 'Reports', icon: FileText, roles: ['Accounts'] },
-    { to: '/accounts/settlement', label: 'Outstanding', icon: Users, roles: ['Accounts'] },
   ],
   Admin: [
     { to: '/admin/dashboard', label: 'Home', icon: LayoutDashboard, roles: ['Admin', 'SuperAdmin'] },
     { to: '/admin/routes', label: 'Routes', icon: MapPin, roles: ['Admin', 'SuperAdmin'] },
     { to: '/admin/orders', label: 'Orders', icon: ShoppingCart, roles: ['Admin', 'SuperAdmin'] },
-    { to: '/admin/settlement', label: 'Settle', icon: Calculator, roles: ['Admin', 'SuperAdmin'] },
   ],
   SuperAdmin: [
     { to: '/admin/dashboard', label: 'Home', icon: LayoutDashboard, roles: ['SuperAdmin'] },
     { to: '/admin/routes', label: 'Routes', icon: MapPin, roles: ['SuperAdmin'] },
     { to: '/admin/orders', label: 'Orders', icon: ShoppingCart, roles: ['SuperAdmin'] },
-    { to: '/admin/settlement', label: 'Settle', icon: Calculator, roles: ['SuperAdmin'] },
   ],
 };
 
-// Pages that have their OWN fixed bottom action bar — hide mobile top bar
 const FULL_SCREEN_PAGES = [
   '/order/',
   '/execute',
   '/review-orders',
 ];
 
-// Nav height constant
-export const MOBILE_NAV_HEIGHT = 70;
+export const MOBILE_NAV_HEIGHT = 58;
+const SAFE_TOP_INSET = 'env(safe-area-inset-top, 0px)';
 
-// ── Dark theme tokens (matching Navbar.tsx) ────────────────────────────────
 const D = {
   bg:         '#0a0e1a',
   surface:    '#141b2d',
@@ -8707,7 +8701,6 @@ const D = {
   navBg:      'rgba(10,14,26,0.92)',
 };
 
-// Role colors for avatar badge — dark theme variants (matching Navbar.tsx)
 const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
   SuperAdmin: { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24' },
   Admin:      { bg: 'rgba(96,165,250,0.15)', text: '#60a5fa' },
@@ -8727,7 +8720,6 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Inject CSS variable so pages can reference nav height
   useEffect(() => {
     document.documentElement.style.setProperty('--mobile-nav-h', `${MOBILE_NAV_HEIGHT}px`);
     return () => {
@@ -8735,12 +8727,10 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
     };
   }, []);
 
-  // Close drawer on route change
   useEffect(() => {
     setDrawerOpen(false);
   }, [location.pathname]);
 
-  // Prevent body scroll when drawer open
   useEffect(() => {
     document.body.style.overflow = drawerOpen ? 'hidden' : '';
     return () => {
@@ -8757,17 +8747,13 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
   const roleColor = ROLE_COLORS[role] || ROLE_COLORS.Admin;
 
   const isActive = (to: string) => {
-    // Any sub-page of a route (execute / order entry / review-orders / customers)
-    // belongs to the "My Routes" tab, not "Orders"
     if (to === '/salesman/routes' && location.pathname.includes('/salesman/routes')) {
       return true;
     }
-    // Handle dashboard routes
     if (to === '/admin/dashboard' && location.pathname === '/admin/dashboard') return true;
     if (to === '/accounts/settlement' && location.pathname.includes('/accounts/settlement')) return true;
     if (to === '/warehouse/loading' && location.pathname.includes('/warehouse/loading')) return true;
     if (to === '/warehouse/dispatch' && location.pathname.includes('/warehouse/dispatch')) return true;
-    // Exact match for all others
     return location.pathname === to;
   };
 
@@ -8778,10 +8764,8 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
     const path = location.pathname;
     if (path.includes('/salesman/routes') && path.includes('/order/')) return 'Order Entry';
     if (path.includes('/salesman/routes') && path.includes('/execute')) return 'Route Execution';
-    if (path.includes('/salesman/routes') && path.includes('/review')) return 'Review Orders';
     if (path.includes('/salesman/routes')) return 'My Routes';
     if (path.includes('/salesman/orders')) return 'My Orders';
-    if (path.includes('/salesman/incentives')) return 'My Incentives';
     if (path.includes('/warehouse/loading')) return 'Loading Sheet';
     if (path.includes('/warehouse/dispatch')) return 'Pack Orders';
     if (path.includes('/warehouse/dashboard')) return 'Dashboard';
@@ -8819,54 +8803,53 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         flexDirection: 'column',
         minHeight: '100vh',
         paddingBottom: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+        background: D.bg,
       }}
     >
-      {/* Top App Bar - hidden on full-screen pages */}
+      {/* ── Top App Bar - Minimal ── */}
       {!isFullScreen && (
         <div
           className="mobile-top-bar"
           style={{
-            position: 'sticky',
+            position: 'fixed',
             top: 0,
+            left: 0,
+            right: 0,
             zIndex: 40,
-            background: D.navBg,
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            borderBottom: `1px solid ${D.border}`,
-            padding: '12px 16px',
+            background: 'transparent',
+            padding: `max(2px, ${SAFE_TOP_INSET}) 10px 0px`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            height: `calc(32px + ${SAFE_TOP_INSET})`,
           }}
         >
-          {/* Hamburger Menu Button */}
           <button
             onClick={() => setDrawerOpen(true)}
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: 40,
-              height: 40,
-              borderRadius: 10,
+              width: 28,
+              height: 28,
+              borderRadius: 6,
               border: `1px solid ${D.border}`,
-              background: 'rgba(255,255,255,0.03)',
+              background: 'rgba(255,255,255,0.05)',
               cursor: 'pointer',
               color: D.muted,
               flexShrink: 0,
             }}
           >
-            <Menu size={20} />
+            <Menu size={15} />
           </button>
 
-          {/* Page Title */}
           <h1
             style={{
-              fontSize: '1.1rem',
-              fontWeight: 800,
+              fontSize: '0.8rem',
+              fontWeight: 600,
               color: D.text,
               margin: 0,
-              letterSpacing: '-0.03em',
+              letterSpacing: '-0.02em',
               textAlign: 'center',
               flex: 1,
             }}
@@ -8874,17 +8857,41 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             {getPageTitle()}
           </h1>
 
-          {/* Spacer for alignment */}
-          <div style={{ width: 40, flexShrink: 0 }} />
+          <div style={{ width: 28, flexShrink: 0 }} />
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="mobile-content" style={{ flex: 1 }}>
+      {/* ── Date status bar ── */}
+      {!isFullScreen && (
+        <div style={{
+          margin: `calc(32px + ${SAFE_TOP_INSET}) 8px 4px`,
+          padding: '3px 10px',
+          borderRadius: 6,
+          background: 'linear-gradient(135deg, #ea580c, #c2410c)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <CalendarDays size={11} color="rgba(255,255,255,0.85)" />
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>
+              {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+          </div>
+          <span style={{ fontSize: 8, fontWeight: 800, background: 'rgba(255,255,255,0.18)', color: '#fff', padding: '1px 6px', borderRadius: 12 }}>TODAY</span>
+        </div>
+      )}
+
+      {/* ── Main Content ── */}
+      <div className="mobile-content" style={{ 
+        flex: 1, 
+        paddingTop: !isFullScreen ? 0 : 0,
+        paddingBottom: 4,
+      }}>
         {children}
       </div>
 
-      {/* Bottom Navigation Bar */}
+      {/* ── Bottom Navigation Bar ── */}
       <div
         className="mobile-bottom-nav"
         style={{
@@ -8899,16 +8906,16 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           display: 'flex',
           justifyContent: 'space-around',
           alignItems: 'center',
-          padding: '8px 12px',
-          paddingBottom: `calc(8px + env(safe-area-inset-bottom, 0px))`,
+          padding: '2px 8px',
+          paddingBottom: `calc(2px + env(safe-area-inset-bottom, 0px))`,
           zIndex: 60,
           boxShadow: '0 -2px 20px rgba(0,0,0,0.4)',
+          height: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
         }}
       >
         {navItems.map((item, index) => {
           const Icon = item.icon;
           const active = isActive(item.to);
-          // Use unique key combining to and index to avoid duplicates
           const uniqueKey = `${item.to}-${index}`;
           return (
             <Link
@@ -8918,20 +8925,20 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 3,
-                padding: '4px 12px',
-                borderRadius: 10,
+                gap: 1,
+                padding: '2px 10px',
+                borderRadius: 6,
                 textDecoration: 'none',
                 color: active ? D.accent : D.muted,
                 background: active ? 'rgba(234,88,12,0.12)' : 'transparent',
                 transition: 'all 0.15s',
-                minWidth: 56,
-                minHeight: 44,
+                minWidth: 44,
+                minHeight: 36,
                 justifyContent: 'center',
               }}
             >
-              <Icon size={20} />
-              <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, letterSpacing: '-0.01em' }}>
+              <Icon size={17} strokeWidth={active ? 2.2 : 1.8} />
+              <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, letterSpacing: '-0.01em' }}>
                 {item.label}
               </span>
             </Link>
@@ -8939,7 +8946,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         })}
       </div>
 
-      {/* Drawer Overlay */}
+      {/* ── Drawer Overlay ── */}
       {drawerOpen && (
         <div
           onClick={() => setDrawerOpen(false)}
@@ -8954,14 +8961,14 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         />
       )}
 
-      {/* Slide-out Drawer Menu */}
+      {/* ── Slide-out Drawer Menu ── */}
       <div
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
           bottom: 0,
-          width: 280,
+          width: 260,
           background: D.surface,
           boxShadow: '4px 0 32px rgba(0,0,0,0.5)',
           zIndex: 210,
@@ -8972,34 +8979,34 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           willChange: 'transform',
         }}
       >
-        {/* Drawer Header with Close Button */}
+        {/* Drawer Header */}
         <div
           style={{
-            padding: '20px 16px 16px',
+            padding: '12px 14px 10px',
             borderBottom: `1px solid ${D.border}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div
               style={{
-                width: 36,
-                height: 36,
+                width: 28,
+                height: 28,
                 background: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
-                borderRadius: 10,
+                borderRadius: 6,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Package size={18} color="#fff" strokeWidth={2.2} />
+              <Package size={14} color="#fff" strokeWidth={2.2} />
             </div>
             <span
               style={{
                 fontWeight: 800,
-                fontSize: 16,
+                fontSize: 13,
                 color: D.text,
                 letterSpacing: '-0.03em',
               }}
@@ -9010,9 +9017,9 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           <button
             onClick={() => setDrawerOpen(false)}
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
+              width: 26,
+              height: 26,
+              borderRadius: 6,
               border: `1px solid ${D.border}`,
               background: 'rgba(255,255,255,0.03)',
               display: 'flex',
@@ -9022,42 +9029,42 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
               color: D.muted,
             }}
           >
-            <X size={16} />
+            <X size={13} />
           </button>
         </div>
 
         {/* User Profile Section */}
         <div
           style={{
-            padding: '16px',
-            margin: '12px 16px',
+            padding: '10px',
+            margin: '6px 10px',
             background: 'rgba(255,255,255,0.04)',
-            borderRadius: 12,
+            borderRadius: 8,
             border: `1px solid ${D.border}`,
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
+            gap: 8,
           }}
         >
           <div
             style={{
-              width: 48,
-              height: 48,
+              width: 36,
+              height: 36,
               borderRadius: '50%',
               background: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: '0 2px 10px rgba(234,88,12,0.25)',
+              boxShadow: '0 2px 8px rgba(234,88,12,0.25)',
             }}
           >
-            <span style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{initials}</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#fff' }}>{initials}</span>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: 700,
                 color: D.text,
                 letterSpacing: '-0.02em',
@@ -9068,14 +9075,14 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             >
               {user.name}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
               <span
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  padding: '2px 8px',
-                  borderRadius: 20,
-                  fontSize: 10,
+                  padding: '1px 6px',
+                  borderRadius: 12,
+                  fontSize: 8,
                   fontWeight: 700,
                   background: roleColor.bg,
                   color: roleColor.text,
@@ -9093,17 +9100,17 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '8px 12px',
+            padding: '4px 8px',
           }}
         >
           <div
             style={{
-              fontSize: 10,
+              fontSize: 8,
               fontWeight: 700,
               color: D.sub,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              padding: '8px 8px 4px',
+              padding: '4px 8px 2px',
             }}
           >
             Menu
@@ -9121,13 +9128,13 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 12,
-                  padding: '10px 12px',
-                  borderRadius: 10,
+                  gap: 8,
+                  padding: '6px 8px',
+                  borderRadius: 6,
                   textDecoration: 'none',
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: active ? 700 : 500,
-                  marginBottom: 2,
+                  marginBottom: 1,
                   color: active ? D.text : D.muted,
                   background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
                   border: `1px solid ${active ? 'rgba(234,88,12,0.20)' : 'transparent'}`,
@@ -9136,9 +9143,9 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
               >
                 <div
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
+                    width: 26,
+                    height: 26,
+                    borderRadius: 6,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -9147,18 +9154,18 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                     color: active ? D.accent : D.muted,
                   }}
                 >
-                  <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
+                  <Icon size={13} strokeWidth={active ? 2.2 : 1.8} />
                 </div>
                 <span style={{ flex: 1 }}>{item.label}</span>
                 {active && (
                   <div
                     style={{
-                      width: 6,
-                      height: 6,
+                      width: 4,
+                      height: 4,
                       borderRadius: '50%',
                       background: D.accent,
                       flexShrink: 0,
-                      boxShadow: `0 0 8px ${D.accentGlow}`,
+                      boxShadow: `0 0 6px ${D.accentGlow}`,
                     }}
                   />
                 )}
@@ -9170,7 +9177,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         {/* Footer with Sign Out */}
         <div
           style={{
-            padding: '16px',
+            padding: '10px',
             borderTop: `1px solid ${D.border}`,
             flexShrink: 0,
           }}
@@ -9180,14 +9187,14 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
-              padding: '10px 14px',
-              borderRadius: 10,
+              gap: 8,
+              padding: '6px 10px',
+              borderRadius: 6,
               border: '1px solid rgba(239,68,68,0.20)',
               background: 'rgba(239,68,68,0.10)',
               cursor: 'pointer',
               width: '100%',
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: 600,
               color: '#f87171',
               transition: 'all 0.15s',
@@ -9202,16 +9209,16 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           >
             <div
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
+                width: 26,
+                height: 26,
+                borderRadius: 6,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 background: 'rgba(239,68,68,0.15)',
               }}
             >
-              <LogOut size={15} />
+              <LogOut size={13} />
             </div>
             Sign Out
           </button>
@@ -9263,8 +9270,6 @@ const NAV_ITEMS: NavItem[] = [
 
   // Salesman
   { to: '/salesman/routes',     label: 'My Routes',  icon: Route,        roles: ['Salesman'] },
-  { to: '/salesman/incentives', label: 'Incentives', icon: TrendingUp,   roles: ['Salesman'] },
-
   // Accounts
   { to: '/accounts/settlement', label: 'Settlement', icon: Calculator, roles: ['Accounts'] },
   { to: '/accounts/reports',    label: 'Reports',    icon: FileText,   roles: ['Accounts'] },
@@ -9278,7 +9283,7 @@ const NAV_ITEMS: NavItem[] = [
 const PRIMARY_SHORTCUTS: Record<string, string[]> = {
   Admin:      ['/admin/dashboard', '/admin/orders', '/admin/routes'],
   SuperAdmin: ['/admin/dashboard', '/admin/orders', '/admin/routes'],
-  Salesman:   ['/salesman/routes', '/salesman/incentives'],
+  Salesman:   ['/salesman/routes'],
   Accounts:   ['/accounts/settlement', '/accounts/reports'],
   Warehouse:  ['/warehouse/loading', '/warehouse/dashboard'],
 };
@@ -10843,10 +10848,16 @@ export function useSessionTimeout() {
   --shadow-lg:     0 12px 40px rgba(15,23,42,0.12), 0 4px 12px rgba(15,23,42,0.06);
   --shadow-blue:   0 8px 32px rgba(37,99,235,0.18);
   --nav-h:         64px;
+  --app-height:    100vh;
 }
 
 /* ── Reset & Base ───────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  min-height: 100%;
+}
 
 html, body {
   margin: 0; padding: 0;
@@ -10857,9 +10868,28 @@ html, body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100%;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
   /* Safe area for notched iPhones / Android tablets */
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
+}
+
+body {
+  min-height: var(--app-height);
+}
+
+@supports (height: 100dvh) {
+  :root { --app-height: 100dvh; }
+  html, body, #root { min-height: 100dvh; }
+}
+
+@media (max-width: 767px) {
+  main { padding-top: 0 !important; }
+  .page-root, .page-wrapper { padding-top: 0 !important; }
 }
 
 /* ── Scrollbar ──────────────────────────────────────────────── */
@@ -12332,17 +12362,17 @@ export function AdminAnalytics() {
 ## File: src/pages/Admin/AdminCatalogConfig.tsx
 ````typescript
 // PATH: src/pages/Admin/AdminCatalogConfig.tsx
-// UPDATED: Added isMobile for responsive grid
+// UPDATED: Added Unit Size card, Packing Category (renamed from Priorities) with add/edit, and Incentives card
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Settings, Plus, Edit2, Trash2, X, Save,
-  Boxes, Ruler, ArrowLeft, RefreshCw, ArrowUp, ArrowDown,
-  TrendingUp, Layers,
+  Boxes, Ruler, ArrowLeft, RefreshCw,
+  TrendingUp, Layers, Package, Award, Scale,
 } from 'lucide-react';
-import { productGroupsApi, unitsApi, sizeGroupsApi } from '../../api/services';
-import type { ProductGroupDto, UnitDto, UnitPriorityDto, SizeGroupDto } from '../../types';
+import { productGroupsApi, unitsApi, sizeGroupsApi, incentivesApi } from '../../api/services';
+import type { ProductGroupDto, UnitDto, UnitPriorityDto, SizeGroupDto, ProductIncentiveDto } from '../../types';
 import { Spinner, Alert, ConfirmModal } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -12753,7 +12783,7 @@ function GroupModal({
 }
 
 // ── ────────────────────────────────────────────────────────────────────────────
-// ── Unit Modal (with UQC) ─────────────────────────────────────────────────────
+// ── Unit Modal (with UQC and Unit Size) ───────────────────────────────────────
 // ── ────────────────────────────────────────────────────────────────────────────
 
 function UnitModal({
@@ -12766,19 +12796,21 @@ function UnitModal({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { name: string; abbreviation: string; uqc: string }) => void;
+  onSave: (data: { name: string; abbreviation: string; uqc: string; unitSize?: number }) => void;
   editing: boolean;
-  initialData: { name: string; abbreviation: string; uqc: string };
+  initialData: { name: string; abbreviation: string; uqc: string; unitSize?: number };
   saving: boolean;
 }) {
   const [name, setName] = useState(initialData.name);
   const [abbreviation, setAbbreviation] = useState(initialData.abbreviation);
   const [uqc, setUqc] = useState(initialData.uqc);
+  const [unitSize, setUnitSize] = useState<number | undefined>(initialData.unitSize);
 
   useEffect(() => {
     setName(initialData.name);
     setAbbreviation(initialData.abbreviation);
     setUqc(initialData.uqc);
+    setUnitSize(initialData.unitSize);
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
@@ -12789,6 +12821,7 @@ function UnitModal({
       name: name.trim(),
       abbreviation: abbreviation.trim(),
       uqc: uqc.trim().toUpperCase(),
+      unitSize: unitSize,
     });
   };
 
@@ -12895,6 +12928,32 @@ function UnitModal({
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Unit Size (numeric)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={unitSize ?? ''}
+              onChange={e => setUnitSize(e.target.value ? parseFloat(e.target.value) : undefined)}
+              placeholder="e.g., 50, 25, 10"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
               UQC (Unit Quantity Code) <span style={{ fontSize: 11, color: D.sub }}>(optional)</span>
             </label>
             <input
@@ -12966,13 +13025,496 @@ function UnitModal({
 }
 
 // ── ────────────────────────────────────────────────────────────────────────────
+// ── Packing Category Modal ────────────────────────────────────────────────────
+// ── ────────────────────────────────────────────────────────────────────────────
+
+function PackingCategoryModal({
+  isOpen,
+  onClose,
+  onSave,
+  editing,
+  initialData,
+  existingCategories,
+  saving,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: { name: string; priority: number }) => void;
+  editing: boolean;
+  initialData: { id?: string | undefined; name: string; priority: number };
+  existingCategories: { id: string; name: string; priority: number }[];
+  saving: boolean;
+}) {
+  const [name, setName] = useState(initialData.name);
+  const [priority, setPriority] = useState<string>(initialData.priority ? String(initialData.priority) : '');
+  const [priorityError, setPriorityError] = useState('');
+
+  useEffect(() => {
+    setName(initialData.name);
+    setPriority(initialData.priority ? String(initialData.priority) : '');
+    setPriorityError('');
+  }, [initialData, isOpen]);
+
+  // Get used priorities (excluding current if editing)
+  const usedPriorities = existingCategories
+    .filter(c => !initialData.id || c.id !== initialData.id)
+    .map(c => c.priority);
+
+  const handlePriorityChange = (value: string) => {
+    setPriority(value);
+    if (value === '') {
+      setPriorityError('');
+      return;
+    }
+    const numValue = parseInt(value, 10);
+    if (isNaN(numValue) || numValue < 1) {
+      setPriorityError('Priority must be a positive number.');
+      return;
+    }
+    if (usedPriorities.includes(numValue)) {
+      setPriorityError(`Priority ${numValue} is already used by another category.`);
+    } else {
+      setPriorityError('');
+    }
+  };
+
+  // Get the numeric value for validation
+  const getNumericPriority = (): number | null => {
+    if (priority === '') return null;
+    const num = parseInt(priority, 10);
+    return isNaN(num) ? null : num;
+  };
+
+  if (!isOpen) return null;
+
+  const handleSubmit = () => {
+    if (!name.trim()) {
+      setPriorityError('Category name is required');
+      return;
+    }
+    const numPriority = getNumericPriority();
+    if (numPriority === null || numPriority < 1) {
+      setPriorityError('Please enter a valid priority number (1 or higher).');
+      return;
+    }
+    if (usedPriorities.includes(numPriority)) {
+      setPriorityError(`Priority ${numPriority} is already used. Choose a different number.`);
+      return;
+    }
+    onSave({ name: name.trim(), priority: numPriority });
+  };
+
+  const numPriority = getNumericPriority();
+  const isValid = numPriority !== null && numPriority >= 1 && !usedPriorities.includes(numPriority);
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: D.surface,
+          borderRadius: 16,
+          maxWidth: 480,
+          width: '100%',
+          border: `1px solid ${D.border}`,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: `1px solid ${D.border}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: 0 }}>
+            {editing ? 'Edit Packing Category' : 'Add Packing Category'}
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '4px',
+              borderRadius: 6,
+              border: 'none',
+              background: 'transparent',
+              color: D.sub,
+              cursor: 'pointer',
+            }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div style={{ padding: '20px' }}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Category Name *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g., Heavy, Medium, Light, Fragile"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+              autoFocus
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Priority (1 = highest)
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={priority}
+              onChange={e => handlePriorityChange(e.target.value)}
+              placeholder="Enter priority number"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${priorityError ? D.red : D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+            />
+            {priorityError && (
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: D.red }}>
+                ⚠️ {priorityError}
+              </p>
+            )}
+            {!priorityError && priority && numPriority !== null && usedPriorities.includes(numPriority) && (
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: D.amber }}>
+                ⚠️ Priority {numPriority} is already in use by another category.
+              </p>
+            )}
+            {!priorityError && priority && numPriority !== null && !usedPriorities.includes(numPriority) && (
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: D.green }}>
+                ✅ Available
+              </p>
+            )}
+            <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
+              💡 Used priorities: {usedPriorities.length > 0 
+                ? usedPriorities.sort((a,b) => a-b).join(', ')
+                : 'None yet'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '9px 20px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: 'transparent',
+                color: D.muted,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={saving || !name.trim() || !!priorityError || !isValid}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '9px 20px',
+                borderRadius: 8,
+                border: 'none',
+                background: (saving || !name.trim() || !!priorityError || !isValid)
+                  ? D.border
+                  : D.accent,
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: (saving || !name.trim() || !!priorityError || !isValid)
+                  ? 'not-allowed'
+                  : 'pointer',
+                fontFamily: 'inherit',
+                opacity: (saving || !name.trim() || !!priorityError || !isValid) ? 0.5 : 1,
+              }}
+            >
+              {saving ? <Spinner size={14} /> : <Save size={14} />}
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ────────────────────────────────────────────────────────────────────────────
+// ── Incentive Modal ────────────────────────────────────────────────────────────
+// ── ────────────────────────────────────────────────────────────────────────────
+
+function IncentiveModal({
+  isOpen,
+  onClose,
+  onSave,
+  editing,
+  initialData,
+  saving,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: { name: string; rate: number; type: 'percentage' | 'fixed' }) => void;
+  editing: boolean;
+  initialData: { name: string; rate: number; type: 'percentage' | 'fixed' };
+  saving: boolean;
+}) {
+  const [name, setName] = useState(initialData.name);
+  const [rate, setRate] = useState<string>(initialData.rate ? String(initialData.rate) : '');
+  const [type, setType] = useState<'percentage' | 'fixed'>(initialData.type);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    setName(initialData.name);
+    setRate(initialData.rate ? String(initialData.rate) : '');
+    setType(initialData.type);
+  }, [initialData, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = () => {
+    if (!name.trim()) {
+      setError('Incentive name is required');
+      return;
+    }
+    const numRate = parseFloat(rate);
+    if (isNaN(numRate) || numRate <= 0) {
+      setError('Please enter a valid rate greater than 0.');
+      return;
+    }
+    onSave({ name: name.trim(), rate: numRate, type });
+  };
+
+  useEffect(() => {
+    setError('');
+  }, [name, rate, type]);
+
+  const numRate = parseFloat(rate);
+  const isValid = name.trim() && !isNaN(numRate) && numRate > 0;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: D.surface,
+          borderRadius: 16,
+          maxWidth: 480,
+          width: '100%',
+          border: `1px solid ${D.border}`,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: `1px solid ${D.border}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: 0 }}>
+            {editing ? 'Edit Incentive' : 'Add Incentive'}
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '4px',
+              borderRadius: 6,
+              border: 'none',
+              background: 'transparent',
+              color: D.sub,
+              cursor: 'pointer',
+            }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div style={{ padding: '20px' }}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Incentive Name *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g., Bulk Order Bonus, New Customer Incentive"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+              autoFocus
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Rate
+            </label>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={rate}
+              onChange={e => setRate(e.target.value)}
+              placeholder="Enter rate (e.g., 10, 5.5)"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Type
+            </label>
+            <select
+              value={type}
+              onChange={e => setType(e.target.value as 'percentage' | 'fixed')}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+                cursor: 'pointer',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+            >
+              <option value="percentage">Percentage (%)</option>
+              <option value="fixed">Fixed Amount (₹)</option>
+            </select>
+          </div>
+          {error && (
+            <p style={{ margin: '0 0 12px', fontSize: 12, color: D.red }}>
+              ⚠️ {error}
+            </p>
+          )}
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '9px 20px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: 'transparent',
+                color: D.muted,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={saving || !isValid}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '9px 20px',
+                borderRadius: 8,
+                border: 'none',
+                background: (saving || !isValid) ? D.border : '#8B5CF6',
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: (saving || !isValid) ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+                opacity: (saving || !isValid) ? 0.5 : 1,
+              }}
+            >
+              {saving ? <Spinner size={14} /> : <Save size={14} />}
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ────────────────────────────────────────────────────────────────────────────
 // ── Main Page ──────────────────────────────────────────────────────────────────
 // ── ────────────────────────────────────────────────────────────────────────────
 
 export function AdminCatalogConfig() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  const isMobile = useIsMobile(); // ── ADDED ──
+  const isMobile = useIsMobile();
 
   // State for Groups
   const [groups, setGroups] = useState<ProductGroupDto[]>([]);
@@ -12982,32 +13524,43 @@ export function AdminCatalogConfig() {
   const [units, setUnits] = useState<UnitDto[]>([]);
   const [unitsLoading, setUnitsLoading] = useState(true);
 
-  // ── NEW: State for Size Groups ──
+  // ── State for Size Groups ──
   const [sizeGroups, setSizeGroups] = useState<SizeGroupDto[]>([]);
   const [sizeGroupsLoading, setSizeGroupsLoading] = useState(true);
 
-  // State for Priorities
-  const [priorities, setPriorities] = useState<UnitPriorityDto[]>([]);
+  // ── State for Packing Categories (replaces Priorities) ──
+  const [packingCategories, setPackingCategories] = useState<{ id: string; name: string; priority: number }[]>([]);
+  const [packingCategoriesLoading, setPackingCategoriesLoading] = useState(true);
+
+  // ── State for Incentives ──
+  const [incentives, setIncentives] = useState<ProductIncentiveDto[]>([]);
+  const [incentivesLoading, setIncentivesLoading] = useState(true);
 
   // Modal states
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [showSizeGroupModal, setShowSizeGroupModal] = useState(false);
+  const [showPackingCategoryModal, setShowPackingCategoryModal] = useState(false);
+  const [showIncentiveModal, setShowIncentiveModal] = useState(false);
+
   const [editingGroup, setEditingGroup] = useState<ProductGroupDto | null>(null);
   const [editingUnit, setEditingUnit] = useState<UnitDto | null>(null);
   const [editingSizeGroup, setEditingSizeGroup] = useState<SizeGroupDto | null>(null);
+  const [editingPackingCategory, setEditingPackingCategory] = useState<{ id: string; name: string; priority: number } | null>(null);
+  const [editingIncentive, setEditingIncentive] = useState<ProductIncentiveDto | null>(null);
 
   // Form states
   const [groupForm, setGroupForm] = useState({ name: '', nameMl: '' });
-  const [unitForm, setUnitForm] = useState({ name: '', abbreviation: '', uqc: '' });
+  const [unitForm, setUnitForm] = useState({ name: '', abbreviation: '', uqc: '', unitSize: undefined as number | undefined });
   const [sizeGroupForm, setSizeGroupForm] = useState({ name: '', nameMl: '', description: '' });
+  const [packingCategoryForm, setPackingCategoryForm] = useState<{ id?: string | undefined; name: string; priority: number }>({ id: undefined, name: '', priority: 0 });
+  const [incentiveForm, setIncentiveForm] = useState({ name: '', rate: 0, type: 'percentage' as 'percentage' | 'fixed' });
 
   // UI states
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'group' | 'unit' | 'sizeGroup'; id: string; name: string } | null>(null);
-  const [updatingPriority, setUpdatingPriority] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'group' | 'unit' | 'sizeGroup' | 'packingCategory' | 'incentive'; id: string; name: string } | null>(null);
 
   // ── Load Data ──
   async function loadGroups() {
@@ -13034,7 +13587,6 @@ export function AdminCatalogConfig() {
     }
   }
 
-  // ── NEW: Load Size Groups ──
   async function loadSizeGroups() {
     setSizeGroupsLoading(true);
     try {
@@ -13047,17 +13599,38 @@ export function AdminCatalogConfig() {
     }
   }
 
-  async function loadPriorities() {
+  async function loadPackingCategories() {
+    setPackingCategoriesLoading(true);
     try {
       const data = await unitsApi.getPriorities();
-      setPriorities(data);
-    } catch {
-      setPriorities([]);
+      // Transform to packing categories with names
+      const categories = data.map((u: UnitPriorityDto) => ({
+        id: u.id,
+        name: u.name,
+        priority: u.loadingPriority,
+      }));
+      setPackingCategories(categories);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load packing categories');
+    } finally {
+      setPackingCategoriesLoading(false);
+    }
+  }
+
+  async function loadIncentives() {
+    setIncentivesLoading(true);
+    try {
+      const data = await incentivesApi.getProductIncentives();
+      setIncentives(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load incentives');
+    } finally {
+      setIncentivesLoading(false);
     }
   }
 
   async function loadAll() {
-    await Promise.all([loadGroups(), loadUnits(), loadSizeGroups(), loadPriorities()]);
+    await Promise.all([loadGroups(), loadUnits(), loadSizeGroups(), loadPackingCategories(), loadIncentives()]);
   }
 
   useEffect(() => {
@@ -13119,7 +13692,7 @@ export function AdminCatalogConfig() {
   // ── Unit Handlers ──
   function openAddUnit() {
     setEditingUnit(null);
-    setUnitForm({ name: '', abbreviation: '', uqc: '' });
+    setUnitForm({ name: '', abbreviation: '', uqc: '', unitSize: undefined });
     setShowUnitModal(true);
   }
 
@@ -13129,11 +13702,12 @@ export function AdminCatalogConfig() {
       name: unit.name,
       abbreviation: unit.abbreviation || '',
       uqc: unit.uqc || '',
+      unitSize: (unit as any).unitSize,
     });
     setShowUnitModal(true);
   }
 
-  async function handleSaveUnit(data: { name: string; abbreviation: string; uqc: string }) {
+  async function handleSaveUnit(data: { name: string; abbreviation: string; uqc: string; unitSize?: number }) {
     if (!data.name.trim()) {
       setError('Unit name is required');
       return;
@@ -13243,16 +13817,139 @@ export function AdminCatalogConfig() {
     }
   }
 
-  // ── Priority Handlers ──
+  // ── Packing Category Handlers ──
+  function openAddPackingCategory() {
+    setEditingPackingCategory(null);
+    const maxPriority = packingCategories.length > 0 ? Math.max(...packingCategories.map(c => c.priority)) : 0;
+    setPackingCategoryForm({ id: undefined, name: '', priority: 0 });
+    setShowPackingCategoryModal(true);
+  }
+
+  function openEditPackingCategory(category: { id: string; name: string; priority: number }) {
+    setEditingPackingCategory(category);
+    setPackingCategoryForm({ id: category.id, name: category.name, priority: category.priority });
+    setShowPackingCategoryModal(true);
+  }
+
+  async function handleSavePackingCategory(data: { name: string; priority: number }) {
+    if (!data.name.trim()) {
+      setError('Category name is required');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      if (editingPackingCategory) {
+        // Update priority via API
+        await unitsApi.updatePriority(editingPackingCategory.id, data.priority);
+        setSuccess('Packing category updated successfully!');
+      } else {
+        // Create new unit as a packing category
+        const result = await unitsApi.create(data.name);
+        if (result?.id) {
+          await unitsApi.updatePriority(result.id, data.priority);
+        }
+        setSuccess('Packing category created successfully!');
+      }
+      setShowPackingCategoryModal(false);
+      await loadPackingCategories();
+      await loadUnits();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save packing category');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeletePackingCategory(id: string) {
+    try {
+      await unitsApi.delete(id);
+      setSuccess('Packing category deleted successfully!');
+      await loadPackingCategories();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete packing category');
+    } finally {
+      setDeleteConfirm(null);
+    }
+  }
+
+  // ── Incentive Handlers ──
+  function openAddIncentive() {
+    setEditingIncentive(null);
+    setIncentiveForm({ name: '', rate: 0, type: 'percentage' });
+    setShowIncentiveModal(true);
+  }
+
+  function openEditIncentive(incentive: ProductIncentiveDto) {
+    setEditingIncentive(incentive);
+    setIncentiveForm({
+      name: incentive.productName || '',
+      rate: incentive.incentiveValue,
+      type: incentive.incentiveType === 2 ? 'percentage' : 'fixed',
+    });
+    setShowIncentiveModal(true);
+  }
+
+  async function handleSaveIncentive(data: { name: string; rate: number; type: 'percentage' | 'fixed' }) {
+    if (!data.name.trim() || data.rate <= 0) {
+      setError('Name and rate are required');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      const payload = {
+        productId: '00000000-0000-0000-0000-000000000000', // Placeholder - admin would select a product
+        incentiveValue: data.rate,
+        incentiveType: data.type === 'percentage' ? 2 : 1,
+        effectiveDate: new Date().toISOString().slice(0, 10),
+        description: data.name,
+      };
+
+      if (editingIncentive) {
+        await incentivesApi.updateProductIncentive(editingIncentive.id, payload);
+        setSuccess('Incentive updated successfully!');
+      } else {
+        await incentivesApi.createProductIncentive(payload);
+        setSuccess('Incentive created successfully!');
+      }
+      setShowIncentiveModal(false);
+      await loadIncentives();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save incentive');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteIncentive(id: string) {
+    try {
+      await incentivesApi.deleteProductIncentive(id);
+      setSuccess('Incentive deleted successfully!');
+      await loadIncentives();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete incentive');
+    } finally {
+      setDeleteConfirm(null);
+    }
+  }
+
+  // ── Priority Handler (for reordering) ──
   async function handleUpdatePriority(unitId: string, newPriority: number) {
-    setUpdatingPriority(unitId);
     try {
       await unitsApi.updatePriority(unitId, newPriority);
-      await loadPriorities();
-    } catch (err: unknown) {
-      setError('Failed to update priority');
-    } finally {
-      setUpdatingPriority(null);
+      await loadPackingCategories();
+      await loadUnits();
+      setSuccess('Priority updated!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update priority');
     }
   }
 
@@ -13302,7 +13999,7 @@ export function AdminCatalogConfig() {
               Catalog Config
             </h1>
             <p style={{ color: D.muted, fontSize: 14, marginTop: 4, fontWeight: 500 }}>
-              Product Groups, Units &amp; Size Groups Management
+              Product Groups, Units, Size Groups, Packing Categories &amp; Incentives
             </p>
           </div>
           <button
@@ -13328,10 +14025,10 @@ export function AdminCatalogConfig() {
         {error && <Alert variant="error">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
 
-        {/* ── Responsive Grid ── FIXED ── */}
+        {/* ── Responsive Grid ── */}
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr 1fr', 
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr 1fr 1fr', 
           gap: 16 
         }}>
 
@@ -13533,6 +14230,11 @@ export function AdminCatalogConfig() {
                         {unit.abbreviation && (
                           <span style={{ color: D.sub }}>[{unit.abbreviation}]</span>
                         )}
+                        {(unit as any).unitSize !== undefined && (unit as any).unitSize !== null && (
+                          <span style={{ color: D.green, fontWeight: 600 }}>
+                            Size: {(unit as any).unitSize}
+                          </span>
+                        )}
                         {unit.uqc && (
                           <span style={{ color: D.accent, fontWeight: 700, background: `${D.accent}15`, padding: '1px 6px', borderRadius: 4 }}>
                             UQC: {unit.uqc}
@@ -13691,7 +14393,7 @@ export function AdminCatalogConfig() {
             </div>
           </div>
 
-          {/* ── Loading Priorities Card ── */}
+          {/* ── Packing Categories Card (renamed from Priorities) ── */}
           <div style={{
             background: D.surface,
             borderRadius: 16,
@@ -13703,37 +14405,189 @@ export function AdminCatalogConfig() {
               borderBottom: `1px solid ${D.border}`,
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
+              justifyContent: 'space-between',
             }}>
-              <TrendingUp size={16} style={{ color: D.accent }} />
-              <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
-                Priorities
-              </h2>
-              <span style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: D.muted,
-                background: D.bg,
-                padding: '1px 8px',
-                borderRadius: 12,
-              }}>
-                {priorities.length}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Package size={16} style={{ color: D.accent }} />
+                <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
+                  Packing Categories
+                </h2>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: D.muted,
+                  background: D.bg,
+                  padding: '1px 8px',
+                  borderRadius: 12,
+                }}>
+                  {packingCategories.length}
+                </span>
+              </div>
+              <button
+                onClick={openAddPackingCategory}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: D.accent,
+                  color: '#fff',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <Plus size={12} /> Add
+              </button>
             </div>
 
             <div style={{ padding: '10px 12px', maxHeight: 300, overflowY: 'auto' }}>
               <div style={{ fontSize: 10, color: D.muted, marginBottom: 8, padding: '6px 8px', background: D.bg, borderRadius: 6 }}>
-                <strong style={{ color: D.accent }}>1</strong> = Load FIRST ·
-                <strong style={{ color: D.accent }}> 99</strong> = Load LAST
+                <strong style={{ color: D.accent }}>1</strong> = Highest priority · 
+                <strong style={{ color: D.accent }}> 99</strong> = Lowest priority
               </div>
-              {priorities.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '16px 0', color: D.muted, fontSize: 12 }}>
-                  No units with priorities
+              {packingCategoriesLoading ? (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <Spinner size={20} />
+                </div>
+              ) : packingCategories.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px 0', color: D.muted, fontSize: 12 }}>
+                  No packing categories yet
                 </div>
               ) : (
-                priorities.map((unit) => (
+                packingCategories
+                  .sort((a, b) => a.priority - b.priority)
+                  .map((category) => (
+                    <div
+                      key={category.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 8px',
+                        marginBottom: 4,
+                        borderRadius: 8,
+                        background: D.bg,
+                        border: `1px solid ${D.border}`,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 6,
+                          flexShrink: 0,
+                          background: `${D.accent}15`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: 12,
+                          color: D.accent,
+                        }}>
+                          {category.priority}
+                        </div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: D.text }}>
+                          {category.name}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 2 }}>
+                        <button
+                          onClick={() => openEditPackingCategory(category)}
+                          style={{
+                            padding: '3px 6px',
+                            borderRadius: 4,
+                            border: 'none',
+                            background: 'transparent',
+                            color: D.sub,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <Edit2 size={12} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm({ type: 'packingCategory', id: category.id, name: category.name })}
+                          style={{
+                            padding: '3px 6px',
+                            borderRadius: 4,
+                            border: 'none',
+                            background: 'transparent',
+                            color: D.sub,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+
+          {/* ── Incentives Card ── */}
+          <div style={{
+            background: D.surface,
+            borderRadius: 16,
+            border: `1px solid ${D.border}`,
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '14px 16px',
+              borderBottom: `1px solid ${D.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Award size={16} style={{ color: '#8B5CF6' }} />
+                <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
+                  Incentives
+                </h2>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: D.muted,
+                  background: D.bg,
+                  padding: '1px 8px',
+                  borderRadius: 12,
+                }}>
+                  {incentives.length}
+                </span>
+              </div>
+              <button
+                onClick={openAddIncentive}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: '#8B5CF6',
+                  color: '#fff',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <Plus size={12} /> Add
+              </button>
+            </div>
+
+            <div style={{ padding: '10px 12px', maxHeight: 300, overflowY: 'auto' }}>
+              {incentivesLoading ? (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <Spinner size={20} />
+                </div>
+              ) : incentives.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px 0', color: D.muted, fontSize: 12 }}>
+                  No incentives yet
+                </div>
+              ) : (
+                incentives.map(incentive => (
                   <div
-                    key={unit.id}
+                    key={incentive.id}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -13745,58 +14599,45 @@ export function AdminCatalogConfig() {
                       border: `1px solid ${D.border}`,
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 6,
-                        flexShrink: 0,
-                        background: `${D.accent}15`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 800,
-                        fontSize: 12,
-                        color: D.accent,
-                      }}>
-                        {unit.loadingPriority}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, color: D.text, fontSize: 13 }}>
+                        {incentive.productName || 'Unnamed'}
                       </div>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: D.text }}>
-                          {unit.name}
-                        </div>
+                      <div style={{ display: 'flex', gap: 6, fontSize: 10, flexWrap: 'wrap' }}>
+                        <span style={{ color: '#8B5CF6', fontWeight: 600 }}>
+                          {incentive.incentiveType === 2 ? `${incentive.incentiveValue}%` : `₹${incentive.incentiveValue}`}
+                        </span>
+                        <span style={{ color: D.sub }}>
+                          {incentive.isActive ? 'Active' : 'Inactive'}
+                        </span>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 2 }}>
                       <button
-                        onClick={() => handleUpdatePriority(unit.id, Math.max(1, unit.loadingPriority - 1))}
-                        disabled={updatingPriority === unit.id || unit.loadingPriority <= 1}
+                        onClick={() => openEditIncentive(incentive)}
                         style={{
                           padding: '3px 6px',
                           borderRadius: 4,
                           border: 'none',
                           background: 'transparent',
                           color: D.sub,
-                          cursor: (updatingPriority === unit.id || unit.loadingPriority <= 1) ? 'not-allowed' : 'pointer',
-                          opacity: (updatingPriority === unit.id || unit.loadingPriority <= 1) ? 0.3 : 1,
+                          cursor: 'pointer',
                         }}
                       >
-                        <ArrowUp size={12} />
+                        <Edit2 size={12} />
                       </button>
                       <button
-                        onClick={() => handleUpdatePriority(unit.id, unit.loadingPriority + 1)}
-                        disabled={updatingPriority === unit.id}
+                        onClick={() => setDeleteConfirm({ type: 'incentive', id: incentive.id, name: incentive.productName || 'Incentive' })}
                         style={{
                           padding: '3px 6px',
                           borderRadius: 4,
                           border: 'none',
                           background: 'transparent',
                           color: D.sub,
-                          cursor: updatingPriority === unit.id ? 'not-allowed' : 'pointer',
-                          opacity: updatingPriority === unit.id ? 0.3 : 1,
+                          cursor: 'pointer',
                         }}
                       >
-                        <ArrowDown size={12} />
+                        <Trash2 size={12} />
                       </button>
                     </div>
                   </div>
@@ -13807,7 +14648,7 @@ export function AdminCatalogConfig() {
         </div>
       </div>
 
-      {/* ── Group Modal ── */}
+      {/* ── Modals ── */}
       <GroupModal
         isOpen={showGroupModal}
         onClose={() => setShowGroupModal(false)}
@@ -13817,7 +14658,6 @@ export function AdminCatalogConfig() {
         saving={loading}
       />
 
-      {/* ── Unit Modal ── */}
       <UnitModal
         isOpen={showUnitModal}
         onClose={() => setShowUnitModal(false)}
@@ -13827,7 +14667,6 @@ export function AdminCatalogConfig() {
         saving={loading}
       />
 
-      {/* ── Size Group Modal ── */}
       <SizeGroupModal
         isOpen={showSizeGroupModal}
         onClose={() => setShowSizeGroupModal(false)}
@@ -13837,10 +14676,29 @@ export function AdminCatalogConfig() {
         saving={loading}
       />
 
+      <PackingCategoryModal
+        isOpen={showPackingCategoryModal}
+        onClose={() => setShowPackingCategoryModal(false)}
+        onSave={handleSavePackingCategory}
+        editing={!!editingPackingCategory}
+        initialData={packingCategoryForm}
+        existingCategories={packingCategories}
+        saving={loading}
+      />
+
+      <IncentiveModal
+        isOpen={showIncentiveModal}
+        onClose={() => setShowIncentiveModal(false)}
+        onSave={handleSaveIncentive}
+        editing={!!editingIncentive}
+        initialData={incentiveForm}
+        saving={loading}
+      />
+
       {/* ── Delete Confirmation ── */}
       <ConfirmModal
         open={!!deleteConfirm}
-        title={`Delete ${deleteConfirm?.type === 'group' ? 'Group' : deleteConfirm?.type === 'unit' ? 'Unit' : 'Size Group'}`}
+        title={`Delete ${deleteConfirm?.type === 'group' ? 'Group' : deleteConfirm?.type === 'unit' ? 'Unit' : deleteConfirm?.type === 'sizeGroup' ? 'Size Group' : deleteConfirm?.type === 'packingCategory' ? 'Packing Category' : 'Incentive'}`}
         message={`Are you sure you want to delete "${deleteConfirm?.name}"? This action cannot be undone.`}
         confirmLabel="Delete"
         danger
@@ -13852,6 +14710,10 @@ export function AdminCatalogConfig() {
               handleDeleteUnit(deleteConfirm.id);
             } else if (deleteConfirm.type === 'sizeGroup') {
               handleDeleteSizeGroup(deleteConfirm.id);
+            } else if (deleteConfirm.type === 'packingCategory') {
+              handleDeletePackingCategory(deleteConfirm.id);
+            } else if (deleteConfirm.type === 'incentive') {
+              handleDeleteIncentive(deleteConfirm.id);
             }
           }
         }}
@@ -24335,9 +25197,10 @@ export function LoginPage() {
 ````typescript
 // PATH: src/pages/Auth/PinLoginPage.tsx
 // PIN-only login - Eastern-style dark theme
+// FIXED: Reduced padding/spacing to fit on one screen without scrolling
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';  // ← Added useLocation
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Package, Delete, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '../../api/services';
 import { useAuthStore, getRoleHome } from '../../store/authStore';
@@ -24371,23 +25234,30 @@ function DigitBtn({
       onPointerUp={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
       style={{
-        width: '100%', paddingTop: 16, paddingBottom: 16,
-        borderRadius: 12,
+        width: '100%',
+        paddingTop: 12,
+        paddingBottom: 12,
+        borderRadius: 10,
         border: `1px solid ${pressed ? T.accent : T.border}`,
         background: pressed ? T.accent : T.surface,
         color: pressed ? '#fff' : T.text,
-        fontSize: 22, fontWeight: 500,
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
+        fontSize: 20,
+        fontWeight: 500,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: 'background 0.08s, border-color 0.08s',
-        gap: 2, fontFamily: 'inherit',
+        gap: 1,
+        fontFamily: 'inherit',
         WebkitTapHighlightColor: 'transparent',
         touchAction: 'manipulation',
+        minHeight: 44,
       }}
     >
       <span>{label}</span>
-      {sub && <span style={{ fontSize: 9, color: pressed ? 'rgba(255,255,255,0.7)' : T.sub, letterSpacing: 1, fontWeight: 400 }}>{sub}</span>}
+      {sub && <span style={{ fontSize: 8, color: pressed ? 'rgba(255,255,255,0.7)' : T.sub, letterSpacing: 1, fontWeight: 400 }}>{sub}</span>}
     </button>
   );
 }
@@ -24408,7 +25278,7 @@ const PIN_LENGTH = 4;
 
 export default function PinLoginPage() {
   const navigate  = useNavigate();
-  const location  = useLocation();  // ← ADDED
+  const location  = useLocation();
   const { setUser } = useAuthStore();
 
   const [pin,     setPin]     = useState('');
@@ -24416,7 +25286,6 @@ export default function PinLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
 
-  // ── NEW: Check for session expired state ──
   useEffect(() => {
     const sessionExpired = location.state?.sessionExpired;
     const sessionMessage = location.state?.message;
@@ -24463,71 +25332,94 @@ export default function PinLoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
+      height: '100vh',
       background: T.bg,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '20px 16px',
-      paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '12px 16px',
+      paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+      overflow: 'hidden',
     }}>
-      <div style={{ width: '100%', maxWidth: 340 }}>
+      <div style={{ width: '100%', maxWidth: 320 }}>
 
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+        {/* ── Logo ── Smaller ── */}
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
           <div style={{
-            width: 56, height: 56, background: T.accent, borderRadius: 14,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 14px',
-            boxShadow: '0 8px 24px rgba(234,88,12,0.35)',
+            width: 44,
+            height: 44,
+            background: T.accent,
+            borderRadius: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 8px',
+            boxShadow: '0 6px 20px rgba(234,88,12,0.30)',
           }}>
-            <Package size={28} color="#fff" strokeWidth={2} />
+            <Package size={22} color="#fff" strokeWidth={2} />
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: T.text, margin: 0, letterSpacing: '-0.02em' }}>
+          <h1 style={{
+            fontSize: 18,
+            fontWeight: 700,
+            color: T.text,
+            margin: 0,
+            letterSpacing: '-0.02em',
+          }}>
             FMCG<span style={{ color: T.accent }}>Dist</span>
           </h1>
-          <p style={{ color: T.sub, fontSize: 12, marginTop: 4, fontWeight: 500 }}>
+          <p style={{
+            color: T.sub,
+            fontSize: 11,
+            marginTop: 2,
+            fontWeight: 500,
+          }}>
             Enter your PIN to login
           </p>
         </div>
 
-        {/* Card */}
+        {/* ── Card ── Smaller padding ── */}
         <div style={{
           background: T.surface,
           border: `1px solid ${T.border}`,
-          borderRadius: 20,
-          padding: '24px 20px',
+          borderRadius: 16,
+          padding: '16px 16px 14px',
         }}>
 
-          {/* Error */}
+          {/* ── Error ── */}
           {error && (
             <div style={{
-              padding: '10px 14px', borderRadius: 10, marginBottom: 16,
+              padding: '6px 10px',
+              borderRadius: 8,
+              marginBottom: 10,
               background: 'rgba(220,38,38,0.12)',
               border: '1px solid rgba(220,38,38,0.30)',
-              color: '#fca5a5', fontSize: 13, fontWeight: 500,
+              color: '#fca5a5',
+              fontSize: 12,
+              fontWeight: 500,
             }}>
               {error}
             </div>
           )}
 
-          {/* PIN Display */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            {/* PIN dots with show/hide toggle */}
+          {/* ── PIN Display ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             <div style={{ position: 'relative', width: '100%' }}>
               <div style={{
                 display: 'flex',
                 justifyContent: 'center',
-                gap: 14,
-                padding: '12px 0',
+                gap: 12,
+                padding: '6px 0',
               }}>
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} style={{
-                    width: 16,
-                    height: 16,
+                    width: 14,
+                    height: 14,
                     borderRadius: '50%',
                     background: i < pin.length ? T.accent : 'transparent',
                     border: `2px solid ${i < pin.length ? T.accent : T.border}`,
                     transition: 'all 0.15s cubic-bezier(0.34,1.4,0.64,1)',
-                    transform: i < pin.length ? 'scale(1.15)' : 'scale(1)',
-                    boxShadow: i < pin.length ? '0 2px 8px rgba(234,88,12,0.40)' : 'none',
+                    transform: i < pin.length ? 'scale(1.1)' : 'scale(1)',
+                    boxShadow: i < pin.length ? '0 2px 6px rgba(234,88,12,0.35)' : 'none',
                   }} />
                 ))}
               </div>
@@ -24543,53 +25435,28 @@ export default function PinLoginPage() {
                   border: 'none',
                   color: T.muted,
                   cursor: 'pointer',
-                  padding: 4,
+                  padding: 2,
                 }}
               >
-                {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
 
-            {/* Hidden PIN input for accessibility */}
-            {showPin && (
-              <div style={{ width: '100%' }}>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={4}
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    background: T.bg,
-                    border: `1px solid ${T.border}`,
-                    borderRadius: 10,
-                    fontSize: 20,
-                    color: T.text,
-                    textAlign: 'center',
-                    letterSpacing: 8,
-                    outline: 'none',
-                    fontFamily: 'inherit',
-                  }}
-                  autoFocus
-                />
-              </div>
+            {!showPin && (
+              <p style={{ color: T.sub, fontSize: 10, margin: 0 }}>
+                {pin.length < 4 ? `Enter ${4 - pin.length} more digit${4 - pin.length > 1 ? 's' : ''}` : 'PIN complete ✓'}
+              </p>
             )}
-
-            <p style={{ color: T.sub, fontSize: 11, margin: 0 }}>
-              {pin.length < 4 ? `Enter ${4 - pin.length} more digit${4 - pin.length > 1 ? 's' : ''}` : 'PIN complete ✓'}
-            </p>
           </div>
 
-          {/* Number Pad */}
+          {/* ── Number Pad ── Tighter spacing ── */}
           {loading ? (
-            <div style={{ padding: 24, textAlign: 'center' }}>
-              <Spinner size={36} />
-              <p style={{ color: T.sub, fontSize: 13, marginTop: 12 }}>Verifying PIN...</p>
+            <div style={{ padding: 16, textAlign: 'center' }}>
+              <Spinner size={32} />
+              <p style={{ color: T.sub, fontSize: 12, marginTop: 8 }}>Verifying PIN...</p>
             </div>
           ) : (
-            <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 16 }}>
+            <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginTop: 10 }}>
               {KEYS.map(k => (
                 <DigitBtn key={k.label} label={k.label} sub={k.sub}
                   onClick={() => handlePress(k.label)} disabled={loading} />
@@ -24600,30 +25467,37 @@ export default function PinLoginPage() {
                 onClick={backspace}
                 disabled={loading || pin.length === 0}
                 style={{
-                  width: '100%', paddingTop: 16, paddingBottom: 16,
-                  borderRadius: 12,
-                  border: `1px solid ${T.border}`, background: T.surface,
+                  width: '100%',
+                  paddingTop: 12,
+                  paddingBottom: 12,
+                  borderRadius: 10,
+                  border: `1px solid ${T.border}`,
+                  background: T.surface,
                   color: T.muted,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   cursor: pin.length === 0 ? 'not-allowed' : 'pointer',
                   opacity: pin.length === 0 ? 0.35 : 1,
-                  transition: 'all 0.12s', touchAction: 'manipulation',
+                  transition: 'all 0.12s',
+                  touchAction: 'manipulation',
                   fontFamily: 'inherit',
+                  minHeight: 44,
                 }}
               >
-                <Delete size={20} />
+                <Delete size={18} />
               </button>
             </div>
           )}
 
-          {/* Footer links */}
+          {/* ── Footer links ── Tighter ── */}
           <div style={{
-            marginTop: 20,
+            marginTop: 12,
             textAlign: 'center',
-            fontSize: 12,
+            fontSize: 11,
             color: T.sub,
             borderTop: `1px solid ${T.border}`,
-            paddingTop: 16,
+            paddingTop: 10,
           }}>
             <a href="/login" style={{ color: T.sub, textDecoration: 'none', fontWeight: 500 }}>
               Use email & password instead
@@ -24960,7 +25834,8 @@ export function RegisterPage() {
 ## File: src/pages/Dashboard/HomeHub.tsx
 ````typescript
 // PATH: src/pages/Dashboard/HomeHub.tsx
-// UPDATED: Added isMobile for responsive grid
+// UPDATED: Removed Record Payment, Scan Product, Daily Settlement from Quick Actions
+//          Removed Analytics - View Insights from main page
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -25140,26 +26015,17 @@ const NAV_BLOCKS: NavBlock[] = [
   },
 ];
 
-// ── Small stat cards for Admin ─────────────────────────────────
-const STAT_CARDS: StatCard[] = [
-  {
-    id: 'analytics', label: 'Analytics',
-    value: 'View Insights', icon: BarChart3,
-    to: '/admin/analytics',
-    color: D.accent, bg: D.accentGlow, roles: ['Admin', 'SuperAdmin'],
-  },
-];
+// ── REMOVED: Analytics stat card ──
+// The "View Insights" card has been removed from the main page
 
-// ── Quick Actions ──────────────────────────────────────────────
+// ── Quick Actions ──
+// REMOVED: Record Payment, Scan Product, Daily Settlement
 const QUICK_ACTIONS: QuickAction[] = [
   { id: 'new-order', label: 'New Order', description: 'Create a fresh customer order', icon: ClipboardList, to: '/admin/orders', color: D.accent, roles: ['Admin', 'SuperAdmin', 'Salesman'] },
-  { id: 'record-payment', label: 'Record Payment', description: 'Log a collection or payment', icon: Banknote, to: '/admin/settlement', color: D.green, roles: ['Admin', 'SuperAdmin', 'Accounts'] },
-  { id: 'scan-sku', label: 'Scan Product', description: 'Scan barcode or search SKU', icon: ScanBarcode, to: '/admin/products', color: D.purple, roles: ['Admin', 'SuperAdmin', 'Warehouse'] },
   { id: 'add-customer', label: 'Add Customer', description: 'Register a new customer', icon: Users, to: '/admin/customers', color: D.amber, roles: ['Admin', 'SuperAdmin', 'Salesman'] },
   { id: 'view-routes', label: 'View Routes', description: 'Check today\'s route map', icon: Route, to: '/salesman/routes', color: D.accent, roles: ['Salesman'] },
   { id: 'start-route', label: 'Start Route', description: 'Begin executing a delivery route', icon: Zap, to: '/salesman/routes', color: '#06B6D4', roles: ['Salesman'] },
   { id: 'reports', label: 'View Reports', description: 'Open financial and sales reports', icon: FileText, to: '/admin/reports', color: D.green, roles: ['Admin', 'SuperAdmin', 'Accounts'] },
-  { id: 'settlement', label: 'Daily Settlement', description: 'Close and settle today\'s accounts', icon: Calculator, to: '/accounts/settlement', color: D.green, roles: ['Admin', 'SuperAdmin', 'Accounts'] },
   { id: 'users', label: 'Manage Users', description: 'Add or edit system users', icon: UserCog, to: '/admin/users', color: D.blue, roles: ['Admin', 'SuperAdmin'] },
 ];
 
@@ -25188,7 +26054,7 @@ function getDateString(): string {
 export function HomeHub() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  const isMobile = useIsMobile(); // ── ADDED ──
+  const isMobile = useIsMobile();
   const [fabOpen, setFabOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [liveStats, setLiveStats] = useState<{
@@ -25242,7 +26108,7 @@ export function HomeHub() {
   const isAdmin      = role === 'Admin' || role === 'SuperAdmin';
 
   const blocks       = NAV_BLOCKS.filter(b => b.roles.includes(role));
-  const statCards    = STAT_CARDS.filter(s => s.roles.includes(role));
+  // REMOVED: statCards filter for Analytics
   const quickActions = QUICK_ACTIONS.filter(a => a.roles.includes(role));
 
   // Filter blocks: main blocks (Route Hub, Orders, Customers)
@@ -25358,7 +26224,7 @@ export function HomeHub() {
           </div>
         </div>
 
-        {/* ── Main Nav Grid (Route Hub, Orders, Customers) ── FIXED ── */}
+        {/* ── Main Nav Grid (Route Hub, Orders, Customers) ── */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr' : mainBlocks.length >= 3 ? 'repeat(3,1fr)' : mainBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
@@ -25372,7 +26238,7 @@ export function HomeHub() {
           ))}
         </div>
 
-        {/* ── Admin Large Cards: Products, Users, Reports, Catalog ── FIXED ── */}
+        {/* ── Admin Large Cards: Products, Users, Reports, Catalog ── */}
         {isAdmin && largeBlocks.length > 0 && (
           <div style={{
             display: 'grid',
@@ -25385,65 +26251,6 @@ export function HomeHub() {
             {largeBlocks.map((block, idx) => (
               <NavBlockCard key={block.id} block={block} delay={idx * 0.05} fullWidth={false} isLarge={true} />
             ))}
-          </div>
-        )}
-
-        {/* ── Admin Stat Cards ───── */}
-        {isAdmin && statCards.length > 0 && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : `repeat(${statCards.length}, 1fr)`,
-            gap: 14,
-            marginBottom: 14,
-            opacity: mounted ? 1 : 0,
-            transition: 'all 0.42s 0.22s cubic-bezier(0.34,1.2,0.64,1)',
-          }}>
-            {statCards.map(card => {
-              const displayValue = card.id === 'collections' && liveStats.outstanding !== undefined
-                ? `₹${fmt(liveStats.outstanding)} Due`
-                : card.value;
-              return (
-              <Link key={card.id} to={card.to} style={{ textDecoration: 'none' }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '16px 20px',
-                  borderRadius: 14,
-                  background: D.surface,
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.borderColor = `${card.color}44`;
-                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-                    (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 24px rgba(0,0,0,0.3)`;
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)';
-                    (e.currentTarget as HTMLElement).style.boxShadow = 'none';
-                  }}
-                >
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                    background: `${card.color}18`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <card.icon size={18} style={{ color: card.color }} strokeWidth={1.8} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: `${card.color}99`, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                      {card.label}
-                    </div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: card.color, marginTop: 2 }}>
-                      {displayValue}
-                    </div>
-                  </div>
-                  <ChevronRight size={15} style={{ color: `${card.color}50`, flexShrink: 0 }} />
-                </div>
-              </Link>
-              );
-            })}
           </div>
         )}
 
@@ -25545,7 +26352,7 @@ export function HomeHub() {
         <Plus size={24} color="#fff" strokeWidth={2.5} />
       </button>
 
-      {/* ── Quick Action Modal ──────────────────────────────── */}
+      {/* ── Quick Action Modal ── */}
       {fabOpen && (
         <>
           <div onClick={() => setFabOpen(false)} style={{

@@ -509,71 +509,58 @@ export default function RouteExecution() {
 
   return (
     <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: allDone ? 130 : 32 }}>
-
-      {/* Sticky header */}
-      <div style={{ position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 50, background: D.bg, borderBottom: `1px solid ${D.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px 10px' }}>
+      <div style={{ background: D.bg, borderBottom: `1px solid ${D.border}`, marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px 4px' }}>
           <button
             onClick={() => navigate('/salesman/routes')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, background: `${D.accent}22`, border: `1px solid ${D.accent}44`, color: D.accent, fontSize: 14, fontWeight: 700, cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 6, background: 'rgba(234,88,12,0.12)', border: `1px solid rgba(234,88,12,0.30)`, color: D.accent, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            <ArrowLeft size={18} /> Back
+            <ArrowLeft size={12} /> Back
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: D.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{execution.routeName}</div>
-            <div style={{ fontSize: 13, color: D.muted, fontWeight: 500, marginTop: 1 }}>{doneCount} of {total} done · {pendingCount} pending</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: D.text }}>{execution.routeName}</div>
+            <div style={{ fontSize: 10, color: D.muted }}>{doneCount} of {total} done · {pendingCount} pending</div>
             {nextCustomer && pendingCount > 0 && (
-              <div style={{ fontSize: 11, color: D.red, fontWeight: 600, marginTop: 2 }}>
-                → Next: <span style={{ fontWeight: 700 }}>{nextCustomer}</span>
+              <div style={{ fontSize: 9, color: D.red, fontWeight: 600 }}>
+                → Next: {nextCustomer}
               </div>
             )}
           </div>
         </div>
 
-        <div style={{ padding: '0 20px 10px' }}>
-          <div style={{ height: 6, background: D.border, borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{ width: `${progress}%`, height: '100%', borderRadius: 3, background: allDone ? D.green : `linear-gradient(90deg, ${D.accent}, ${D.accentH})`, transition: 'width 0.4s ease' }} />
+        <div style={{ padding: '0 10px 4px' }}>
+          <div style={{ height: 3, background: D.border, borderRadius: 1, overflow: 'hidden' }}>
+            <div style={{ width: `${progress}%`, height: '100%', background: allDone ? D.green : D.accent }} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: allDone ? D.green : D.accent }}>{progress}%</span>
-            <span style={{ fontSize: 12, color: D.sub, fontWeight: 600 }}>{allDone ? 'All done!' : `${pendingCount} remaining`}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: allDone ? D.green : D.accent }}>{progress}%</span>
+            <span style={{ fontSize: 9, color: D.sub }}>{allDone ? 'All done!' : `${pendingCount} remaining`}</span>
           </div>
         </div>
 
-        <div style={{ margin: '0 16px 12px', padding: '9px 14px', borderRadius: 10, background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: `0 2px 8px ${D.accentGlow}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <CalendarDays size={16} color="rgba(255,255,255,0.85)" />
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>
-              {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-            </span>
-          </div>
-          <span style={{ fontSize: 11, fontWeight: 800, background: 'rgba(255,255,255,0.18)', color: '#fff', padding: '3px 10px', borderRadius: 20 }}>TODAY</span>
-        </div>
-
-        <div style={{ padding: '0 16px 12px' }}>
-          <div style={{ position: 'relative', marginBottom: 8 }}>
-            <Search size={15} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: D.sub, pointerEvents: 'none' }} />
+        <div style={{ padding: '0 10px 6px' }}>
+          <div style={{ position: 'relative', marginBottom: 4 }}>
+            <Search size={11} style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', color: D.sub, pointerEvents: 'none' }} />
             <input
               type="text"
-              placeholder="Search shop name, phone, area, or stop number..."
+              placeholder="Search shop..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '9px 12px 9px 34px', border: `1px solid ${D.border}`, borderRadius: 10, fontSize: 14, color: D.text, background: D.surface, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+              style={{ width: '100%', padding: '3px 8px 3px 24px', border: `1px solid ${D.border}`, borderRadius: 6, fontSize: 10, color: D.text, background: D.surface, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
             />
             {search && (
-              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer', padding: 4 }}>
-                <XCircle size={15} />
+              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer', padding: 2 }}>
+                <XCircle size={12} />
               </button>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+          <div style={{ display: 'flex', gap: 3, overflowX: 'auto', paddingBottom: 1 }}>
             {FILTER_CHIPS.map(chip => (
               <button
                 key={chip.key}
                 onClick={() => setStatusFilter(chip.key)}
                 style={{
-                  padding: '5px 12px', borderRadius: 16, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                  padding: '1px 8px', borderRadius: 10, fontSize: 9, fontWeight: 700, whiteSpace: 'nowrap',
                   background: statusFilter === chip.key ? D.accent : D.surface,
                   color: statusFilter === chip.key ? '#fff' : D.muted,
                   border: `1px solid ${statusFilter === chip.key ? D.accent : D.border}`,

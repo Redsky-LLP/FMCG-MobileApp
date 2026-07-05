@@ -15,7 +15,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
-  ArrowLeft, Edit3, Lock, Plus, Save,
+  ArrowLeft, Edit3, Lock, Save,
   CalendarDays, Trash2, CheckCircle2, Clock,
   ChevronLeft, ChevronRight, Search, X, Package,
   AlertTriangle, Trash, Phone, MapPin,
@@ -332,93 +332,66 @@ export default function OrderEntry() {
   const orderStatus = existingOrder?.status;
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: D.bg, 
+    <div style={{
+      minHeight: '100vh',
+      background: D.bg,
       color: D.text,
       display: 'flex',
       flexDirection: 'column',
     }}>
-
-      {/* ── FIXED: Sticky header with no extra top space ── */}
-      <div style={{ 
-        position: 'sticky', 
-        top: isMobile ? `${MOBILE_NAV_HEIGHT}px` : 'var(--nav-h, 64px)', 
-        zIndex: 40, 
-        background: D.bg, 
+      <div style={{
+        background: D.bg,
         borderBottom: `1px solid ${D.border}`,
         flexShrink: 0,
+        padding: '4px 10px 8px',
       }}>
-
-        {/* Row 1: back + actions */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <button
             onClick={() => navigate(-1)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: D.card, border: `1px solid ${D.border}`, borderRadius: 9, padding: '7px 12px', color: D.muted, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(255,255,255,0.06)', border: `1px solid ${D.border}`, borderRadius: 6, padding: '3px 8px', color: D.muted, fontSize: 10, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={12} /> Back
           </button>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 3 }}>
             {previousOrders.length > 0 && canEdit && (
               <button
                 onClick={() => setShowPreviousModal(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#312e81', border: '1px solid #4338ca', borderRadius: 8, padding: '7px 11px', color: '#a5b4fc', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 2, background: '#312e81', border: '1px solid #4338ca', borderRadius: 6, padding: '3px 7px', color: '#a5b4fc', fontSize: 9, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
               >
-                <ChevronLeft size={13} /><ChevronRight size={13} /> Previous
+                <ChevronLeft size={10} /><ChevronRight size={10} /> Prev
               </button>
             )}
-
-            {/* ── Cancel Order button (always visible for Draft orders) ── */}
             {canCancel && (
               <button
                 onClick={() => setShowCancelConfirm(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.30)', borderRadius: 8, padding: '6px 12px', color: '#ef4444', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 6, padding: '3px 8px', color: '#ef4444', fontSize: 9, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
               >
-                <Trash size={14} /> Cancel Order
+                <Trash size={11} /> Cancel
               </button>
             )}
           </div>
         </div>
 
-        {/* Row 2: date bar */}
-        <div style={{ margin: '0 16px 6px', padding: '6px 14px', borderRadius: 9, background: 'linear-gradient(135deg,#1e3a8a,#2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <CalendarDays size={14} color="rgba(255,255,255,0.8)" />
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
-              {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-            </span>
+        <div style={{ marginTop: 4, padding: '6px 8px', borderRadius: 6, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)' }}>
+          <h1 style={{ margin: 0, fontSize: 14, fontWeight: 900, color: D.text }}>{customer?.nameEnglish}</h1>
+          {customer?.nameMalayalam && <p style={{ margin: '1px 0 0', fontSize: 10, color: D.muted }} lang="ml">{customer.nameMalayalam}</p>}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
+            {customer?.phoneNumber && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '1px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', fontSize: 9, fontWeight: 700, color: D.text }}>
+                <Phone size={9} color={D.accent} /> {customer.phoneNumber}
+              </span>
+            )}
+            {customer?.address && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '1px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', fontSize: 9, fontWeight: 700, color: D.text }}>
+                <MapPin size={9} color={D.accent} /> {customer.address}
+              </span>
+            )}
           </div>
-          <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: 'rgba(255,255,255,0.18)', padding: '2px 9px', borderRadius: 20 }}>TODAY</span>
-        </div>
-
-        {/* Row 3: customer info */}
-        <div style={{ padding: '0 16px 10px' }}>
-          <div style={{
-            padding: '12px 16px', borderRadius: 14,
-            background: 'rgba(59,130,246,0.10)', border: '1px solid rgba(59,130,246,0.30)',
-          }}>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: D.text, letterSpacing: '-0.02em' }}>{customer?.nameEnglish}</h1>
-            {customer?.nameMalayalam && <p style={{ margin: '2px 0 0', fontSize: 14, color: D.muted }} lang="ml">{customer.nameMalayalam}</p>}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
-              {customer?.phoneNumber && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', fontSize: 13, fontWeight: 700, color: D.text }}>
-                  <Phone size={14} color={D.accent} /> {customer.phoneNumber}
-                </span>
-              )}
-              {customer?.address && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', fontSize: 13, fontWeight: 700, color: D.text }}>
-                  <MapPin size={14} color={D.accent} /> {customer.address}
-                </span>
-              )}
-            </div>
-          </div>
-          {/* Status badge */}
-          <div style={{ marginTop: 6 }}>
-            {!existingOrder        && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#422006', border: '1px solid #92400e', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fb923c' }}><Edit3 size={11} /> New Order</span>}
-            {orderStatus === OrderStatus.Draft             && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#422006', border: '1px solid #92400e', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fb923c' }}><Edit3 size={11} /> Draft — Editable</span>}
-            {/* {orderStatus === OrderStatus.PendingApproval  && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#1e3a8a', border: '1px solid #2563eb', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#93c5fd' }}><Clock size={11} /> Pending Approval</span>} */}
-            {orderStatus === OrderStatus.Approved         && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#14532d', border: '1px solid #16a34a', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#86efac' }}><CheckCircle2 size={11} /> Approved</span>}
-            {orderStatus === OrderStatus.Closed           && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#0c4a6e', border: '1px solid #0284c7', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#7dd3fc' }}><Lock size={11} /> Closed — Read only</span>}
+          <div style={{ marginTop: 3 }}>
+            {!existingOrder && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '1px 6px', background: '#422006', border: '1px solid #92400e', borderRadius: 12, fontSize: 8, fontWeight: 700, color: '#fb923c' }}><Edit3 size={8} /> New</span>}
+            {orderStatus === OrderStatus.Draft && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '1px 6px', background: '#422006', border: '1px solid #92400e', borderRadius: 12, fontSize: 8, fontWeight: 700, color: '#fb923c' }}><Edit3 size={8} /> Draft</span>}
+            {orderStatus === OrderStatus.Approved && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '1px 6px', background: '#14532d', border: '1px solid #16a34a', borderRadius: 12, fontSize: 8, fontWeight: 700, color: '#86efac' }}><CheckCircle2 size={8} /> Approved</span>}
+            {orderStatus === OrderStatus.Closed && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '1px 6px', background: '#0c4a6e', border: '1px solid #0284c7', borderRadius: 12, fontSize: 8, fontWeight: 700, color: '#7dd3fc' }}><Lock size={8} /> Closed</span>}
           </div>
         </div>
       </div>
@@ -543,23 +516,63 @@ export default function OrderEntry() {
           </div>
         )}
 
-        {/* Add Products button */}
+        {/* ── ADD PRODUCTS - LARGE FLOATING PLUS BUTTON ── */}
         {canEdit && (
-          <div style={{ display: 'flex', justifyContent: 'center', margin: lines.length > 0 ? '10px 0 14px' : '0 0 14px' }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: lines.length > 0 ? '12px 0 16px' : '0 0 16px',
+          }}>
             <button
               onClick={() => setShowProducts(true)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '12px 28px', borderRadius: 28,
-                background: 'linear-gradient(135deg,#2563eb,#1d4ed8)',
-                border: 'none', color: '#fff', fontSize: 14, fontWeight: 800,
-                cursor: 'pointer', fontFamily: 'inherit',
-                boxShadow: '0 4px 16px rgba(37,99,235,0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                background: `linear-gradient(135deg, #2563eb, #1d4ed8)`,
+                border: 'none',
+                color: '#fff',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                boxShadow: '0 4px 20px rgba(37,99,235,0.45)',
                 touchAction: 'manipulation',
+                transition: 'all 0.2s ease',
+                fontSize: 36,
+                fontWeight: 300,
+                lineHeight: 1,
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 28px rgba(37,99,235,0.55)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(37,99,235,0.45)';
+              }}
+              onTouchStart={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(0.92)';
+              }}
+              onTouchEnd={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
               }}
             >
-              <Plus size={18} strokeWidth={2.5} /> Add Products
+              +
             </button>
+
+            <span style={{
+              marginTop: 6,
+              fontSize: 10,
+              fontWeight: 600,
+              color: '#94a3b8',
+              letterSpacing: '0.04em',
+            }}>
+              ADD ITEMS
+            </span>
           </div>
         )}
 

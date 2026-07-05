@@ -1,27 +1,21 @@
 // PATH: src/components/layout/MobileLayout.tsx
-// COMPLETE FIXED VERSION - Clean mobile layout without duplicate headers
+// COMPLETE FIX - Proper fixed header with content scrolling below
 
 import React, { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuthStore, getRoleHome } from '../../store/authStore';
+import { useAuthStore } from '../../store/authStore';
 
 import {
   MapPin,
   ShoppingCart,
-  TrendingUp,
   LayoutDashboard,
   Truck,
   FileText,
   Calculator,
-  Users,
   Package,
-  Home,
   LogOut,
   Menu,
   X,
-  User,
-  Settings,
-  ChevronRight,
   CalendarDays,
 } from 'lucide-react';
 
@@ -40,7 +34,6 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   Warehouse: [
     { to: '/warehouse/loading', label: 'Loading', icon: Truck, roles: ['Warehouse'] },
     { to: '/warehouse/dispatch', label: 'Dispatch', icon: Package, roles: ['Warehouse'] },
-    { to: '/warehouse/dashboard', label: 'Reports', icon: FileText, roles: ['Warehouse'] },
   ],
   Accounts: [
     { to: '/accounts/settlement', label: 'Settlement', icon: Calculator, roles: ['Accounts'] },
@@ -58,14 +51,10 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   ],
 };
 
-const FULL_SCREEN_PAGES = [
-  '/order/',
-  '/execute',
-  '/review-orders',
-];
-
-export const MOBILE_NAV_HEIGHT = 58;
-const SAFE_TOP_INSET = 'env(safe-area-inset-top, 0px)';
+export const MOBILE_NAV_HEIGHT = 52;
+export const MOBILE_HEADER_HEIGHT = 44;
+export const MOBILE_DATE_BAR_HEIGHT = 26;
+export const MOBILE_TOTAL_HEADER_HEIGHT = MOBILE_HEADER_HEIGHT + MOBILE_DATE_BAR_HEIGHT;
 
 const D = {
   bg:         '#0a0e1a',
@@ -98,10 +87,13 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Set CSS variables
   useEffect(() => {
     document.documentElement.style.setProperty('--mobile-nav-h', `${MOBILE_NAV_HEIGHT}px`);
+    document.documentElement.style.setProperty('--mobile-header-h', `${MOBILE_TOTAL_HEADER_HEIGHT}px`);
     return () => {
       document.documentElement.style.removeProperty('--mobile-nav-h');
+      document.documentElement.style.removeProperty('--mobile-header-h');
     };
   }, []);
 
@@ -125,17 +117,13 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
   const roleColor = ROLE_COLORS[role] || ROLE_COLORS.Admin;
 
   const isActive = (to: string) => {
-    if (to === '/salesman/routes' && location.pathname.includes('/salesman/routes')) {
-      return true;
-    }
+    if (to === '/salesman/routes' && location.pathname.includes('/salesman/routes')) return true;
     if (to === '/admin/dashboard' && location.pathname === '/admin/dashboard') return true;
     if (to === '/accounts/settlement' && location.pathname.includes('/accounts/settlement')) return true;
     if (to === '/warehouse/loading' && location.pathname.includes('/warehouse/loading')) return true;
     if (to === '/warehouse/dispatch' && location.pathname.includes('/warehouse/dispatch')) return true;
     return location.pathname === to;
   };
-
-  const isFullScreen = FULL_SCREEN_PAGES.some(p => location.pathname.includes(p));
 
   const getPageTitle = () => {
     if (title) return title;
@@ -153,15 +141,10 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
     if (path.includes('/admin/routes')) return 'Routes';
     if (path.includes('/admin/orders') && path.includes('/edit')) return 'Edit Order';
     if (path.includes('/admin/orders')) return 'Orders';
-    if (path.includes('/admin/settlement')) return 'Settlement';
     if (path.includes('/admin/products')) return 'Products';
     if (path.includes('/admin/customers')) return 'Customers';
     if (path.includes('/admin/users')) return 'Users';
     if (path.includes('/admin/reports')) return 'Reports';
-    if (path.includes('/admin/analytics')) return 'Analytics';
-    if (path.includes('/admin/incentives')) return 'Incentives';
-    if (path.includes('/admin/settings')) return 'Settings';
-    if (path.includes('/admin/assignments')) return 'Assignments';
     return 'FMCG Dist';
   };
 
@@ -175,103 +158,110 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
 
   return (
     <div
-      className="mobile-layout"
       style={{
         display: 'flex',
         flexDirection: 'column',
-        minHeight: '100vh',
-        paddingBottom: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+        height: '100vh',
+        maxHeight: '100vh',
+        overflow: 'hidden',
         background: D.bg,
       }}
     >
-      {/* ── Top App Bar - Minimal ── */}
-      {!isFullScreen && (
-        <div
-          className="mobile-top-bar"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 40,
-            background: 'transparent',
-            padding: `max(2px, ${SAFE_TOP_INSET}) 10px 0px`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            height: `calc(32px + ${SAFE_TOP_INSET})`,
-          }}
-        >
-          <button
-            onClick={() => setDrawerOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 28,
-              height: 28,
-              borderRadius: 6,
-              border: `1px solid ${D.border}`,
-              background: 'rgba(255,255,255,0.05)',
-              cursor: 'pointer',
-              color: D.muted,
-              flexShrink: 0,
-            }}
-          >
-            <Menu size={15} />
-          </button>
-
-          <h1
-            style={{
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              color: D.text,
-              margin: 0,
-              letterSpacing: '-0.02em',
-              textAlign: 'center',
-              flex: 1,
-            }}
-          >
-            {getPageTitle()}
-          </h1>
-
-          <div style={{ width: 28, flexShrink: 0 }} />
-        </div>
-      )}
-
-      {/* ── Date status bar ── */}
-      {!isFullScreen && (
-        <div style={{
-          margin: `calc(32px + ${SAFE_TOP_INSET}) 8px 4px`,
-          padding: '3px 10px',
-          borderRadius: 6,
-          background: 'linear-gradient(135deg, #ea580c, #c2410c)',
+      {/* ── FIXED HEADER ── */}
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 50,
+          background: D.bg,
+          borderBottom: `1px solid ${D.border}`,
+          height: MOBILE_HEADER_HEIGHT,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <CalendarDays size={11} color="rgba(255,255,255,0.85)" />
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>
-              {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-            </span>
-          </div>
-          <span style={{ fontSize: 8, fontWeight: 800, background: 'rgba(255,255,255,0.18)', color: '#fff', padding: '1px 6px', borderRadius: 12 }}>TODAY</span>
-        </div>
-      )}
+          padding: '0 10px',
+          flexShrink: 0,
+        }}
+      >
+        <button
+          onClick={() => setDrawerOpen(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 30,
+            height: 30,
+            borderRadius: 6,
+            border: `1px solid ${D.border}`,
+            background: 'rgba(255,255,255,0.05)',
+            cursor: 'pointer',
+            color: D.muted,
+            flexShrink: 0,
+          }}
+        >
+          <Menu size={17} />
+        </button>
 
-      {/* ── Main Content ── */}
-      <div className="mobile-content" style={{ 
-        flex: 1, 
-        paddingTop: !isFullScreen ? 0 : 0,
-        paddingBottom: 4,
-      }}>
+        <h1
+          style={{
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            color: D.text,
+            margin: 0,
+            letterSpacing: '-0.02em',
+            textAlign: 'center',
+            flex: 1,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            padding: '0 4px',
+          }}
+        >
+          {getPageTitle()}
+        </h1>
+
+        <div style={{ width: 30, flexShrink: 0 }} />
+      </div>
+
+      {/* ── DATE STATUS BAR ── */}
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 49,
+          background: 'linear-gradient(135deg, #ea580c, #c2410c)',
+          padding: '2px 10px',
+          height: MOBILE_DATE_BAR_HEIGHT,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <CalendarDays size={10} color="rgba(255,255,255,0.85)" />
+          <span style={{ fontSize: 9, fontWeight: 700, color: '#fff' }}>
+            {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+          </span>
+        </div>
+        <span style={{ fontSize: 7, fontWeight: 800, background: 'rgba(255,255,255,0.18)', color: '#fff', padding: '1px 6px', borderRadius: 10 }}>TODAY</span>
+      </div>
+
+      {/* ── SCROLLABLE CONTENT ── */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          padding: '8px 10px',
+          paddingBottom: `${MOBILE_NAV_HEIGHT + 8}px`,
+          WebkitOverflowScrolling: 'touch',
+          background: D.bg,
+        }}
+      >
         {children}
       </div>
 
-      {/* ── Bottom Navigation Bar ── */}
+      {/* ── FIXED BOTTOM NAV ── */}
       <div
-        className="mobile-bottom-nav"
         style={{
           position: 'fixed',
           bottom: 0,
@@ -284,26 +274,24 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           display: 'flex',
           justifyContent: 'space-around',
           alignItems: 'center',
-          padding: '2px 8px',
-          paddingBottom: `calc(2px + env(safe-area-inset-bottom, 0px))`,
+          height: MOBILE_NAV_HEIGHT,
           zIndex: 60,
-          boxShadow: '0 -2px 20px rgba(0,0,0,0.4)',
-          height: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+          padding: '0 4px',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
-        {navItems.map((item, index) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.to);
-          const uniqueKey = `${item.to}-${index}`;
           return (
             <Link
-              key={uniqueKey}
+              key={item.to}
               to={item.to}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 1,
+                gap: 0,
                 padding: '2px 10px',
                 borderRadius: 6,
                 textDecoration: 'none',
@@ -315,8 +303,8 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                 justifyContent: 'center',
               }}
             >
-              <Icon size={17} strokeWidth={active ? 2.2 : 1.8} />
-              <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, letterSpacing: '-0.01em' }}>
+              <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
+              <span style={{ fontSize: 8, fontWeight: active ? 700 : 500 }}>
                 {item.label}
               </span>
             </Link>
@@ -324,7 +312,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         })}
       </div>
 
-      {/* ── Drawer Overlay ── */}
+      {/* ── DRAWER ── */}
       {drawerOpen && (
         <div
           onClick={() => setDrawerOpen(false)}
@@ -334,12 +322,10 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             background: 'rgba(0,0,0,0.60)',
             backdropFilter: 'blur(4px)',
             zIndex: 200,
-            animation: 'fade-in 0.18s ease',
           }}
         />
       )}
 
-      {/* ── Slide-out Drawer Menu ── */}
       <div
         style={{
           position: 'fixed',
@@ -360,7 +346,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         {/* Drawer Header */}
         <div
           style={{
-            padding: '12px 14px 10px',
+            padding: '12px 14px',
             borderBottom: `1px solid ${D.border}`,
             display: 'flex',
             alignItems: 'center',
@@ -372,23 +358,16 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
               style={{
                 width: 28,
                 height: 28,
-                background: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
+                background: 'linear-gradient(135deg, #ea580c, #f97316)',
                 borderRadius: 6,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Package size={14} color="#fff" strokeWidth={2.2} />
+              <Package size={14} color="#fff" />
             </div>
-            <span
-              style={{
-                fontWeight: 800,
-                fontSize: 13,
-                color: D.text,
-                letterSpacing: '-0.03em',
-              }}
-            >
+            <span style={{ fontWeight: 800, fontSize: 13, color: D.text }}>
               FMCG<span style={{ color: D.accent }}>Dist</span>
             </span>
           </div>
@@ -400,18 +379,18 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
               borderRadius: 6,
               border: `1px solid ${D.border}`,
               background: 'rgba(255,255,255,0.03)',
+              cursor: 'pointer',
+              color: D.muted,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              cursor: 'pointer',
-              color: D.muted,
             }}
           >
             <X size={13} />
           </button>
         </div>
 
-        {/* User Profile Section */}
+        {/* User Profile */}
         <div
           style={{
             padding: '10px',
@@ -426,15 +405,14 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         >
           <div
             style={{
-              width: 36,
-              height: 36,
+              width: 34,
+              height: 34,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
+              background: 'linear-gradient(135deg, #ea580c, #f97316)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: '0 2px 8px rgba(234,88,12,0.25)',
             }}
           >
             <span style={{ fontSize: 12, fontWeight: 800, color: '#fff' }}>{initials}</span>
@@ -445,7 +423,6 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                 fontSize: 12,
                 fontWeight: 700,
                 color: D.text,
-                letterSpacing: '-0.02em',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -453,18 +430,16 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             >
               {user.name}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+            <div style={{ marginTop: 1 }}>
               <span
                 style={{
                   display: 'inline-flex',
-                  alignItems: 'center',
                   padding: '1px 6px',
-                  borderRadius: 12,
-                  fontSize: 8,
+                  borderRadius: 10,
+                  fontSize: 7,
                   fontWeight: 700,
                   background: roleColor.bg,
                   color: roleColor.text,
-                  letterSpacing: '0.02em',
                 }}
               >
                 {user.role}
@@ -473,34 +448,14 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           </div>
         </div>
 
-        {/* Navigation Items */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '4px 8px',
-          }}
-        >
-          <div
-            style={{
-              fontSize: 8,
-              fontWeight: 700,
-              color: D.sub,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              padding: '4px 8px 2px',
-            }}
-          >
-            Menu
-          </div>
-
-          {navItems.map((item, index) => {
+        {/* Nav Items */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '4px 8px' }}>
+          {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.to);
-            const uniqueKey = `drawer-${item.to}-${index}`;
             return (
               <Link
-                key={uniqueKey}
+                key={item.to}
                 to={item.to}
                 onClick={() => setDrawerOpen(false)}
                 style={{
@@ -512,11 +467,9 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                   textDecoration: 'none',
                   fontSize: 12,
                   fontWeight: active ? 700 : 500,
-                  marginBottom: 1,
                   color: active ? D.text : D.muted,
                   background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
                   border: `1px solid ${active ? 'rgba(234,88,12,0.20)' : 'transparent'}`,
-                  transition: 'all 0.12s',
                 }}
               >
                 <div
@@ -527,12 +480,11 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    flexShrink: 0,
                     background: active ? 'rgba(234,88,12,0.15)' : 'rgba(255,255,255,0.04)',
                     color: active ? D.accent : D.muted,
                   }}
                 >
-                  <Icon size={13} strokeWidth={active ? 2.2 : 1.8} />
+                  <Icon size={13} />
                 </div>
                 <span style={{ flex: 1 }}>{item.label}</span>
                 {active && (
@@ -542,8 +494,6 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                       height: 4,
                       borderRadius: '50%',
                       background: D.accent,
-                      flexShrink: 0,
-                      boxShadow: `0 0 6px ${D.accentGlow}`,
                     }}
                   />
                 )}
@@ -552,52 +502,27 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           })}
         </div>
 
-        {/* Footer with Sign Out */}
-        <div
-          style={{
-            padding: '10px',
-            borderTop: `1px solid ${D.border}`,
-            flexShrink: 0,
-          }}
-        >
+        {/* Sign Out */}
+        <div style={{ padding: '8px 10px', borderTop: `1px solid ${D.border}` }}>
           <button
             onClick={handleLogout}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
+              gap: 6,
               padding: '6px 10px',
               borderRadius: 6,
               border: '1px solid rgba(239,68,68,0.20)',
               background: 'rgba(239,68,68,0.10)',
               cursor: 'pointer',
               width: '100%',
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: 600,
               color: '#f87171',
-              transition: 'all 0.15s',
               fontFamily: 'inherit',
             }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.18)';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.10)';
-            }}
           >
-            <div
-              style={{
-                width: 26,
-                height: 26,
-                borderRadius: 6,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'rgba(239,68,68,0.15)',
-              }}
-            >
-              <LogOut size={13} />
-            </div>
+            <LogOut size={13} />
             Sign Out
           </button>
         </div>

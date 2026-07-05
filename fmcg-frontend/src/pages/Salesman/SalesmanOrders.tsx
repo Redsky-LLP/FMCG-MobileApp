@@ -310,46 +310,41 @@ export default function SalesmanOrders() {
 
   return (
     <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 100 }}>
-
-      {/* ── Sticky header ───────────────────────────────── */}
-      <div style={{ position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 20, background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})` }}>
-        <div style={{ padding: '12px 14px 10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <button
-                onClick={() => navigate('/salesman/routes')}
-                style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.20)', border: 'none', borderRadius: 8, padding: '6px 10px', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', touchAction: 'manipulation' }}
-              >
-                <ArrowLeft size={15} /> Routes
-              </button>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={load} style={{ background: 'rgba(255,255,255,0.20)', border: 'none', borderRadius: 8, padding: '7px 10px', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', touchAction: 'manipulation' }}>
-                <RefreshCw size={13} /> Refresh
+      <div style={{ background: D.bg, borderBottom: `1px solid ${D.border}`, marginBottom: 8 }}>
+        <div style={{ padding: '8px 10px 6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <button
+              onClick={() => navigate('/salesman/routes')}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.06)', border: `1px solid ${D.border}`, borderRadius: 6, padding: '4px 8px', color: D.muted, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              <ArrowLeft size={12} /> Routes
+            </button>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button onClick={load} style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${D.border}`, borderRadius: 6, padding: '4px 8px', color: D.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 600, fontFamily: 'inherit' }}>
+                <RefreshCw size={11} /> Refresh
               </button>
               {draftCount > 0 && (
                 <button
                   onClick={handleSubmitAll}
                   disabled={submittingAll}
-                  style={{ background: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', color: D.accent, cursor: submittingAll ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 800, fontFamily: 'inherit', touchAction: 'manipulation', opacity: submittingAll ? 0.6 : 1 }}
+                  style={{ background: '#fff', border: 'none', borderRadius: 6, padding: '4px 8px', color: D.accent, cursor: submittingAll ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 800, fontFamily: 'inherit', opacity: submittingAll ? 0.6 : 1 }}
                 >
-                  {submittingAll ? <Spinner size={13} /> : <Send size={13} />}
-                  Submit All ({draftCount})
+                  {submittingAll ? <Spinner size={10} /> : <Send size={10} />}
+                  Submit ({draftCount})
                 </button>
               )}
             </div>
           </div>
 
-          <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>
+          <h1 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: D.text }}>
             {route?.name ?? 'Route Orders'}
           </h1>
-          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>
-            {customers.length} customers · ₹{fmt(totalAmount)} total · {today}
+          <p style={{ margin: '2px 0 0', fontSize: 10, color: D.muted }}>
+            {customers.length} customers · ₹{fmt(totalAmount)} total
           </p>
         </div>
 
-        {/* Stats strip */}
-        <div style={{ display: 'flex', gap: 0, background: 'rgba(0,0,0,0.15)', overflowX: 'auto', padding: '0 14px 10px' }}>
+        <div style={{ display: 'flex', gap: 4, overflowX: 'auto', padding: '0 10px 6px' }}>
           {[
             { label: 'All', val: orders.length, active: statusFilter === 'all', onClick: () => setStatusFilter('all') },
             { label: 'Draft', val: draftCount, active: statusFilter === OrderStatus.Draft, onClick: () => setStatusFilter(OrderStatus.Draft) },
@@ -357,37 +352,31 @@ export default function SalesmanOrders() {
             { label: 'Approved', val: approvedCount, active: statusFilter === OrderStatus.Approved, onClick: () => setStatusFilter(OrderStatus.Approved) },
             { label: 'Closed', val: closedCount, active: statusFilter === OrderStatus.Closed, onClick: () => setStatusFilter(OrderStatus.Closed) },
           ].map(s => (
-            <button key={s.label} onClick={s.onClick} style={{ flexShrink: 0, background: s.active ? '#fff' : 'rgba(255,255,255,0.18)', border: 'none', borderRadius: 20, padding: '4px 12px', marginRight: 6, color: s.active ? D.accent : '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', touchAction: 'manipulation' }}>
+            <button key={s.label} onClick={s.onClick} style={{ flexShrink: 0, background: s.active ? 'rgba(234,88,12,0.15)' : 'rgba(255,255,255,0.04)', border: `1px solid ${s.active ? D.accent : D.border}`, borderRadius: 12, padding: '1px 8px', color: s.active ? D.accent : D.muted, fontSize: 8, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
               {s.label} {s.val}
             </button>
           ))}
         </div>
 
-        {/* Progress bar */}
         {customers.length > 0 && (
-          <div style={{ margin: '0 14px 10px' }}>
-            <div style={{ height: 4, background: 'rgba(255,255,255,0.25)', borderRadius: 2, overflow: 'hidden' }}>
-              <div style={{ width: `${(orders.length / customers.length) * 100}%`, height: '100%', background: '#fff', borderRadius: 2, transition: 'width 0.4s' }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Order Progress</span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: 700 }}>{orders.length} of {customers.length} customers</span>
+          <div style={{ margin: '0 10px 6px' }}>
+            <div style={{ height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 1, overflow: 'hidden' }}>
+              <div style={{ width: `${(orders.length / customers.length) * 100}%`, height: '100%', background: D.accent, borderRadius: 1 }} />
             </div>
           </div>
         )}
 
-        {/* Search */}
-        <div style={{ margin: '0 14px 12px', position: 'relative' }}>
-          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.6)', pointerEvents: 'none' }} />
+        <div style={{ margin: '0 10px 8px', position: 'relative' }}>
+          <Search size={11} style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', color: D.sub, pointerEvents: 'none' }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search customer or order..."
-            style={{ width: '100%', padding: '8px 34px 8px 32px', background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 8, fontSize: 13, color: '#fff', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '3px 8px 3px 24px', background: D.surface, border: `1px solid ${D.border}`, borderRadius: 6, fontSize: 10, color: D.text, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
           />
           {search && (
-            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 2, touchAction: 'manipulation' }}>
-              <X size={14} />
+            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer', padding: 2 }}>
+              <X size={12} />
             </button>
           )}
         </div>
