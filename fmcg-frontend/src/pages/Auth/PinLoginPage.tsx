@@ -1,8 +1,9 @@
 // PATH: src/pages/Auth/PinLoginPage.tsx
 // PIN-only login - Eastern-style dark theme
+// FIXED: Reduced padding/spacing to fit on one screen without scrolling
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';  // ← Added useLocation
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Package, Delete, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '../../api/services';
 import { useAuthStore, getRoleHome } from '../../store/authStore';
@@ -36,23 +37,30 @@ function DigitBtn({
       onPointerUp={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
       style={{
-        width: '100%', paddingTop: 16, paddingBottom: 16,
-        borderRadius: 12,
+        width: '100%',
+        paddingTop: 12,
+        paddingBottom: 12,
+        borderRadius: 10,
         border: `1px solid ${pressed ? T.accent : T.border}`,
         background: pressed ? T.accent : T.surface,
         color: pressed ? '#fff' : T.text,
-        fontSize: 22, fontWeight: 500,
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
+        fontSize: 20,
+        fontWeight: 500,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: 'background 0.08s, border-color 0.08s',
-        gap: 2, fontFamily: 'inherit',
+        gap: 1,
+        fontFamily: 'inherit',
         WebkitTapHighlightColor: 'transparent',
         touchAction: 'manipulation',
+        minHeight: 44,
       }}
     >
       <span>{label}</span>
-      {sub && <span style={{ fontSize: 9, color: pressed ? 'rgba(255,255,255,0.7)' : T.sub, letterSpacing: 1, fontWeight: 400 }}>{sub}</span>}
+      {sub && <span style={{ fontSize: 8, color: pressed ? 'rgba(255,255,255,0.7)' : T.sub, letterSpacing: 1, fontWeight: 400 }}>{sub}</span>}
     </button>
   );
 }
@@ -73,7 +81,7 @@ const PIN_LENGTH = 4;
 
 export default function PinLoginPage() {
   const navigate  = useNavigate();
-  const location  = useLocation();  // ← ADDED
+  const location  = useLocation();
   const { setUser } = useAuthStore();
 
   const [pin,     setPin]     = useState('');
@@ -81,7 +89,6 @@ export default function PinLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
 
-  // ── NEW: Check for session expired state ──
   useEffect(() => {
     const sessionExpired = location.state?.sessionExpired;
     const sessionMessage = location.state?.message;
@@ -128,71 +135,94 @@ export default function PinLoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
+      height: '100vh',
       background: T.bg,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '20px 16px',
-      paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '12px 16px',
+      paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+      overflow: 'hidden',
     }}>
-      <div style={{ width: '100%', maxWidth: 340 }}>
+      <div style={{ width: '100%', maxWidth: 320 }}>
 
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+        {/* ── Logo ── Smaller ── */}
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
           <div style={{
-            width: 56, height: 56, background: T.accent, borderRadius: 14,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 14px',
-            boxShadow: '0 8px 24px rgba(234,88,12,0.35)',
+            width: 44,
+            height: 44,
+            background: T.accent,
+            borderRadius: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 8px',
+            boxShadow: '0 6px 20px rgba(234,88,12,0.30)',
           }}>
-            <Package size={28} color="#fff" strokeWidth={2} />
+            <Package size={22} color="#fff" strokeWidth={2} />
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: T.text, margin: 0, letterSpacing: '-0.02em' }}>
+          <h1 style={{
+            fontSize: 18,
+            fontWeight: 700,
+            color: T.text,
+            margin: 0,
+            letterSpacing: '-0.02em',
+          }}>
             FMCG<span style={{ color: T.accent }}>Dist</span>
           </h1>
-          <p style={{ color: T.sub, fontSize: 12, marginTop: 4, fontWeight: 500 }}>
+          <p style={{
+            color: T.sub,
+            fontSize: 11,
+            marginTop: 2,
+            fontWeight: 500,
+          }}>
             Enter your PIN to login
           </p>
         </div>
 
-        {/* Card */}
+        {/* ── Card ── Smaller padding ── */}
         <div style={{
           background: T.surface,
           border: `1px solid ${T.border}`,
-          borderRadius: 20,
-          padding: '24px 20px',
+          borderRadius: 16,
+          padding: '16px 16px 14px',
         }}>
 
-          {/* Error */}
+          {/* ── Error ── */}
           {error && (
             <div style={{
-              padding: '10px 14px', borderRadius: 10, marginBottom: 16,
+              padding: '6px 10px',
+              borderRadius: 8,
+              marginBottom: 10,
               background: 'rgba(220,38,38,0.12)',
               border: '1px solid rgba(220,38,38,0.30)',
-              color: '#fca5a5', fontSize: 13, fontWeight: 500,
+              color: '#fca5a5',
+              fontSize: 12,
+              fontWeight: 500,
             }}>
               {error}
             </div>
           )}
 
-          {/* PIN Display */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            {/* PIN dots with show/hide toggle */}
+          {/* ── PIN Display ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             <div style={{ position: 'relative', width: '100%' }}>
               <div style={{
                 display: 'flex',
                 justifyContent: 'center',
-                gap: 14,
-                padding: '12px 0',
+                gap: 12,
+                padding: '6px 0',
               }}>
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} style={{
-                    width: 16,
-                    height: 16,
+                    width: 14,
+                    height: 14,
                     borderRadius: '50%',
                     background: i < pin.length ? T.accent : 'transparent',
                     border: `2px solid ${i < pin.length ? T.accent : T.border}`,
                     transition: 'all 0.15s cubic-bezier(0.34,1.4,0.64,1)',
-                    transform: i < pin.length ? 'scale(1.15)' : 'scale(1)',
-                    boxShadow: i < pin.length ? '0 2px 8px rgba(234,88,12,0.40)' : 'none',
+                    transform: i < pin.length ? 'scale(1.1)' : 'scale(1)',
+                    boxShadow: i < pin.length ? '0 2px 6px rgba(234,88,12,0.35)' : 'none',
                   }} />
                 ))}
               </div>
@@ -208,53 +238,28 @@ export default function PinLoginPage() {
                   border: 'none',
                   color: T.muted,
                   cursor: 'pointer',
-                  padding: 4,
+                  padding: 2,
                 }}
               >
-                {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
 
-            {/* Hidden PIN input for accessibility */}
-            {showPin && (
-              <div style={{ width: '100%' }}>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={4}
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    background: T.bg,
-                    border: `1px solid ${T.border}`,
-                    borderRadius: 10,
-                    fontSize: 20,
-                    color: T.text,
-                    textAlign: 'center',
-                    letterSpacing: 8,
-                    outline: 'none',
-                    fontFamily: 'inherit',
-                  }}
-                  autoFocus
-                />
-              </div>
+            {!showPin && (
+              <p style={{ color: T.sub, fontSize: 10, margin: 0 }}>
+                {pin.length < 4 ? `Enter ${4 - pin.length} more digit${4 - pin.length > 1 ? 's' : ''}` : 'PIN complete ✓'}
+              </p>
             )}
-
-            <p style={{ color: T.sub, fontSize: 11, margin: 0 }}>
-              {pin.length < 4 ? `Enter ${4 - pin.length} more digit${4 - pin.length > 1 ? 's' : ''}` : 'PIN complete ✓'}
-            </p>
           </div>
 
-          {/* Number Pad */}
+          {/* ── Number Pad ── Tighter spacing ── */}
           {loading ? (
-            <div style={{ padding: 24, textAlign: 'center' }}>
-              <Spinner size={36} />
-              <p style={{ color: T.sub, fontSize: 13, marginTop: 12 }}>Verifying PIN...</p>
+            <div style={{ padding: 16, textAlign: 'center' }}>
+              <Spinner size={32} />
+              <p style={{ color: T.sub, fontSize: 12, marginTop: 8 }}>Verifying PIN...</p>
             </div>
           ) : (
-            <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 16 }}>
+            <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginTop: 10 }}>
               {KEYS.map(k => (
                 <DigitBtn key={k.label} label={k.label} sub={k.sub}
                   onClick={() => handlePress(k.label)} disabled={loading} />
@@ -265,30 +270,37 @@ export default function PinLoginPage() {
                 onClick={backspace}
                 disabled={loading || pin.length === 0}
                 style={{
-                  width: '100%', paddingTop: 16, paddingBottom: 16,
-                  borderRadius: 12,
-                  border: `1px solid ${T.border}`, background: T.surface,
+                  width: '100%',
+                  paddingTop: 12,
+                  paddingBottom: 12,
+                  borderRadius: 10,
+                  border: `1px solid ${T.border}`,
+                  background: T.surface,
                   color: T.muted,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   cursor: pin.length === 0 ? 'not-allowed' : 'pointer',
                   opacity: pin.length === 0 ? 0.35 : 1,
-                  transition: 'all 0.12s', touchAction: 'manipulation',
+                  transition: 'all 0.12s',
+                  touchAction: 'manipulation',
                   fontFamily: 'inherit',
+                  minHeight: 44,
                 }}
               >
-                <Delete size={20} />
+                <Delete size={18} />
               </button>
             </div>
           )}
 
-          {/* Footer links */}
+          {/* ── Footer links ── Tighter ── */}
           <div style={{
-            marginTop: 20,
+            marginTop: 12,
             textAlign: 'center',
-            fontSize: 12,
+            fontSize: 11,
             color: T.sub,
             borderTop: `1px solid ${T.border}`,
-            paddingTop: 16,
+            paddingTop: 10,
           }}>
             <a href="/login" style={{ color: T.sub, textDecoration: 'none', fontWeight: 500 }}>
               Use email & password instead

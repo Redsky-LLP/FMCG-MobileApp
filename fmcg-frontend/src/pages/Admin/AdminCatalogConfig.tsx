@@ -1,15 +1,15 @@
 // PATH: src/pages/Admin/AdminCatalogConfig.tsx
-// UPDATED: Added isMobile for responsive grid
+// UPDATED: Added Unit Size card, Packing Category (renamed from Priorities) with add/edit, and Incentives card
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Settings, Plus, Edit2, Trash2, X, Save,
-  Boxes, Ruler, ArrowLeft, RefreshCw, ArrowUp, ArrowDown,
-  TrendingUp, Layers,
+  Boxes, Ruler, ArrowLeft, RefreshCw,
+  TrendingUp, Layers, Package, Award, Scale,
 } from 'lucide-react';
-import { productGroupsApi, unitsApi, sizeGroupsApi } from '../../api/services';
-import type { ProductGroupDto, UnitDto, UnitPriorityDto, SizeGroupDto } from '../../types';
+import { productGroupsApi, unitsApi, sizeGroupsApi, incentivesApi } from '../../api/services';
+import type { ProductGroupDto, UnitDto, UnitPriorityDto, SizeGroupDto, ProductIncentiveDto } from '../../types';
 import { Spinner, Alert, ConfirmModal } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -420,7 +420,7 @@ function GroupModal({
 }
 
 // ── ────────────────────────────────────────────────────────────────────────────
-// ── Unit Modal (with UQC) ─────────────────────────────────────────────────────
+// ── Unit Modal (with UQC and Unit Size) ───────────────────────────────────────
 // ── ────────────────────────────────────────────────────────────────────────────
 
 function UnitModal({
@@ -433,19 +433,21 @@ function UnitModal({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { name: string; abbreviation: string; uqc: string }) => void;
+  onSave: (data: { name: string; abbreviation: string; uqc: string; unitSize?: number }) => void;
   editing: boolean;
-  initialData: { name: string; abbreviation: string; uqc: string };
+  initialData: { name: string; abbreviation: string; uqc: string; unitSize?: number };
   saving: boolean;
 }) {
   const [name, setName] = useState(initialData.name);
   const [abbreviation, setAbbreviation] = useState(initialData.abbreviation);
   const [uqc, setUqc] = useState(initialData.uqc);
+  const [unitSize, setUnitSize] = useState<number | undefined>(initialData.unitSize);
 
   useEffect(() => {
     setName(initialData.name);
     setAbbreviation(initialData.abbreviation);
     setUqc(initialData.uqc);
+    setUnitSize(initialData.unitSize);
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
@@ -456,6 +458,7 @@ function UnitModal({
       name: name.trim(),
       abbreviation: abbreviation.trim(),
       uqc: uqc.trim().toUpperCase(),
+      unitSize: unitSize,
     });
   };
 
@@ -562,6 +565,32 @@ function UnitModal({
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Unit Size (numeric)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={unitSize ?? ''}
+              onChange={e => setUnitSize(e.target.value ? parseFloat(e.target.value) : undefined)}
+              placeholder="e.g., 50, 25, 10"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
               UQC (Unit Quantity Code) <span style={{ fontSize: 11, color: D.sub }}>(optional)</span>
             </label>
             <input
@@ -633,13 +662,496 @@ function UnitModal({
 }
 
 // ── ────────────────────────────────────────────────────────────────────────────
+// ── Packing Category Modal ────────────────────────────────────────────────────
+// ── ────────────────────────────────────────────────────────────────────────────
+
+function PackingCategoryModal({
+  isOpen,
+  onClose,
+  onSave,
+  editing,
+  initialData,
+  existingCategories,
+  saving,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: { name: string; priority: number }) => void;
+  editing: boolean;
+  initialData: { id?: string | undefined; name: string; priority: number };
+  existingCategories: { id: string; name: string; priority: number }[];
+  saving: boolean;
+}) {
+  const [name, setName] = useState(initialData.name);
+  const [priority, setPriority] = useState<string>(initialData.priority ? String(initialData.priority) : '');
+  const [priorityError, setPriorityError] = useState('');
+
+  useEffect(() => {
+    setName(initialData.name);
+    setPriority(initialData.priority ? String(initialData.priority) : '');
+    setPriorityError('');
+  }, [initialData, isOpen]);
+
+  // Get used priorities (excluding current if editing)
+  const usedPriorities = existingCategories
+    .filter(c => !initialData.id || c.id !== initialData.id)
+    .map(c => c.priority);
+
+  const handlePriorityChange = (value: string) => {
+    setPriority(value);
+    if (value === '') {
+      setPriorityError('');
+      return;
+    }
+    const numValue = parseInt(value, 10);
+    if (isNaN(numValue) || numValue < 1) {
+      setPriorityError('Priority must be a positive number.');
+      return;
+    }
+    if (usedPriorities.includes(numValue)) {
+      setPriorityError(`Priority ${numValue} is already used by another category.`);
+    } else {
+      setPriorityError('');
+    }
+  };
+
+  // Get the numeric value for validation
+  const getNumericPriority = (): number | null => {
+    if (priority === '') return null;
+    const num = parseInt(priority, 10);
+    return isNaN(num) ? null : num;
+  };
+
+  if (!isOpen) return null;
+
+  const handleSubmit = () => {
+    if (!name.trim()) {
+      setPriorityError('Category name is required');
+      return;
+    }
+    const numPriority = getNumericPriority();
+    if (numPriority === null || numPriority < 1) {
+      setPriorityError('Please enter a valid priority number (1 or higher).');
+      return;
+    }
+    if (usedPriorities.includes(numPriority)) {
+      setPriorityError(`Priority ${numPriority} is already used. Choose a different number.`);
+      return;
+    }
+    onSave({ name: name.trim(), priority: numPriority });
+  };
+
+  const numPriority = getNumericPriority();
+  const isValid = numPriority !== null && numPriority >= 1 && !usedPriorities.includes(numPriority);
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: D.surface,
+          borderRadius: 16,
+          maxWidth: 480,
+          width: '100%',
+          border: `1px solid ${D.border}`,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: `1px solid ${D.border}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: 0 }}>
+            {editing ? 'Edit Packing Category' : 'Add Packing Category'}
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '4px',
+              borderRadius: 6,
+              border: 'none',
+              background: 'transparent',
+              color: D.sub,
+              cursor: 'pointer',
+            }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div style={{ padding: '20px' }}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Category Name *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g., Heavy, Medium, Light, Fragile"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+              autoFocus
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Priority (1 = highest)
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={priority}
+              onChange={e => handlePriorityChange(e.target.value)}
+              placeholder="Enter priority number"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${priorityError ? D.red : D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+            />
+            {priorityError && (
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: D.red }}>
+                ⚠️ {priorityError}
+              </p>
+            )}
+            {!priorityError && priority && numPriority !== null && usedPriorities.includes(numPriority) && (
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: D.amber }}>
+                ⚠️ Priority {numPriority} is already in use by another category.
+              </p>
+            )}
+            {!priorityError && priority && numPriority !== null && !usedPriorities.includes(numPriority) && (
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: D.green }}>
+                ✅ Available
+              </p>
+            )}
+            <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
+              💡 Used priorities: {usedPriorities.length > 0 
+                ? usedPriorities.sort((a,b) => a-b).join(', ')
+                : 'None yet'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '9px 20px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: 'transparent',
+                color: D.muted,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={saving || !name.trim() || !!priorityError || !isValid}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '9px 20px',
+                borderRadius: 8,
+                border: 'none',
+                background: (saving || !name.trim() || !!priorityError || !isValid)
+                  ? D.border
+                  : D.accent,
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: (saving || !name.trim() || !!priorityError || !isValid)
+                  ? 'not-allowed'
+                  : 'pointer',
+                fontFamily: 'inherit',
+                opacity: (saving || !name.trim() || !!priorityError || !isValid) ? 0.5 : 1,
+              }}
+            >
+              {saving ? <Spinner size={14} /> : <Save size={14} />}
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ────────────────────────────────────────────────────────────────────────────
+// ── Incentive Modal ────────────────────────────────────────────────────────────
+// ── ────────────────────────────────────────────────────────────────────────────
+
+function IncentiveModal({
+  isOpen,
+  onClose,
+  onSave,
+  editing,
+  initialData,
+  saving,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: { name: string; rate: number; type: 'percentage' | 'fixed' }) => void;
+  editing: boolean;
+  initialData: { name: string; rate: number; type: 'percentage' | 'fixed' };
+  saving: boolean;
+}) {
+  const [name, setName] = useState(initialData.name);
+  const [rate, setRate] = useState<string>(initialData.rate ? String(initialData.rate) : '');
+  const [type, setType] = useState<'percentage' | 'fixed'>(initialData.type);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    setName(initialData.name);
+    setRate(initialData.rate ? String(initialData.rate) : '');
+    setType(initialData.type);
+  }, [initialData, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = () => {
+    if (!name.trim()) {
+      setError('Incentive name is required');
+      return;
+    }
+    const numRate = parseFloat(rate);
+    if (isNaN(numRate) || numRate <= 0) {
+      setError('Please enter a valid rate greater than 0.');
+      return;
+    }
+    onSave({ name: name.trim(), rate: numRate, type });
+  };
+
+  useEffect(() => {
+    setError('');
+  }, [name, rate, type]);
+
+  const numRate = parseFloat(rate);
+  const isValid = name.trim() && !isNaN(numRate) && numRate > 0;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: D.surface,
+          borderRadius: 16,
+          maxWidth: 480,
+          width: '100%',
+          border: `1px solid ${D.border}`,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: `1px solid ${D.border}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: 0 }}>
+            {editing ? 'Edit Incentive' : 'Add Incentive'}
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '4px',
+              borderRadius: 6,
+              border: 'none',
+              background: 'transparent',
+              color: D.sub,
+              cursor: 'pointer',
+            }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div style={{ padding: '20px' }}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Incentive Name *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g., Bulk Order Bonus, New Customer Incentive"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+              autoFocus
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Rate
+            </label>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={rate}
+              onChange={e => setRate(e.target.value)}
+              placeholder="Enter rate (e.g., 10, 5.5)"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
+              Type
+            </label>
+            <select
+              value={type}
+              onChange={e => setType(e.target.value as 'percentage' | 'fixed')}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: D.bg,
+                color: D.text,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+                cursor: 'pointer',
+              }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+            >
+              <option value="percentage">Percentage (%)</option>
+              <option value="fixed">Fixed Amount (₹)</option>
+            </select>
+          </div>
+          {error && (
+            <p style={{ margin: '0 0 12px', fontSize: 12, color: D.red }}>
+              ⚠️ {error}
+            </p>
+          )}
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '9px 20px',
+                borderRadius: 8,
+                border: `1px solid ${D.border}`,
+                background: 'transparent',
+                color: D.muted,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={saving || !isValid}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '9px 20px',
+                borderRadius: 8,
+                border: 'none',
+                background: (saving || !isValid) ? D.border : '#8B5CF6',
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: (saving || !isValid) ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+                opacity: (saving || !isValid) ? 0.5 : 1,
+              }}
+            >
+              {saving ? <Spinner size={14} /> : <Save size={14} />}
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ────────────────────────────────────────────────────────────────────────────
 // ── Main Page ──────────────────────────────────────────────────────────────────
 // ── ────────────────────────────────────────────────────────────────────────────
 
 export function AdminCatalogConfig() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  const isMobile = useIsMobile(); // ── ADDED ──
+  const isMobile = useIsMobile();
 
   // State for Groups
   const [groups, setGroups] = useState<ProductGroupDto[]>([]);
@@ -649,32 +1161,43 @@ export function AdminCatalogConfig() {
   const [units, setUnits] = useState<UnitDto[]>([]);
   const [unitsLoading, setUnitsLoading] = useState(true);
 
-  // ── NEW: State for Size Groups ──
+  // ── State for Size Groups ──
   const [sizeGroups, setSizeGroups] = useState<SizeGroupDto[]>([]);
   const [sizeGroupsLoading, setSizeGroupsLoading] = useState(true);
 
-  // State for Priorities
-  const [priorities, setPriorities] = useState<UnitPriorityDto[]>([]);
+  // ── State for Packing Categories (replaces Priorities) ──
+  const [packingCategories, setPackingCategories] = useState<{ id: string; name: string; priority: number }[]>([]);
+  const [packingCategoriesLoading, setPackingCategoriesLoading] = useState(true);
+
+  // ── State for Incentives ──
+  const [incentives, setIncentives] = useState<ProductIncentiveDto[]>([]);
+  const [incentivesLoading, setIncentivesLoading] = useState(true);
 
   // Modal states
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [showSizeGroupModal, setShowSizeGroupModal] = useState(false);
+  const [showPackingCategoryModal, setShowPackingCategoryModal] = useState(false);
+  const [showIncentiveModal, setShowIncentiveModal] = useState(false);
+
   const [editingGroup, setEditingGroup] = useState<ProductGroupDto | null>(null);
   const [editingUnit, setEditingUnit] = useState<UnitDto | null>(null);
   const [editingSizeGroup, setEditingSizeGroup] = useState<SizeGroupDto | null>(null);
+  const [editingPackingCategory, setEditingPackingCategory] = useState<{ id: string; name: string; priority: number } | null>(null);
+  const [editingIncentive, setEditingIncentive] = useState<ProductIncentiveDto | null>(null);
 
   // Form states
   const [groupForm, setGroupForm] = useState({ name: '', nameMl: '' });
-  const [unitForm, setUnitForm] = useState({ name: '', abbreviation: '', uqc: '' });
+  const [unitForm, setUnitForm] = useState({ name: '', abbreviation: '', uqc: '', unitSize: undefined as number | undefined });
   const [sizeGroupForm, setSizeGroupForm] = useState({ name: '', nameMl: '', description: '' });
+  const [packingCategoryForm, setPackingCategoryForm] = useState<{ id?: string | undefined; name: string; priority: number }>({ id: undefined, name: '', priority: 0 });
+  const [incentiveForm, setIncentiveForm] = useState({ name: '', rate: 0, type: 'percentage' as 'percentage' | 'fixed' });
 
   // UI states
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'group' | 'unit' | 'sizeGroup'; id: string; name: string } | null>(null);
-  const [updatingPriority, setUpdatingPriority] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'group' | 'unit' | 'sizeGroup' | 'packingCategory' | 'incentive'; id: string; name: string } | null>(null);
 
   // ── Load Data ──
   async function loadGroups() {
@@ -701,7 +1224,6 @@ export function AdminCatalogConfig() {
     }
   }
 
-  // ── NEW: Load Size Groups ──
   async function loadSizeGroups() {
     setSizeGroupsLoading(true);
     try {
@@ -714,17 +1236,38 @@ export function AdminCatalogConfig() {
     }
   }
 
-  async function loadPriorities() {
+  async function loadPackingCategories() {
+    setPackingCategoriesLoading(true);
     try {
       const data = await unitsApi.getPriorities();
-      setPriorities(data);
-    } catch {
-      setPriorities([]);
+      // Transform to packing categories with names
+      const categories = data.map((u: UnitPriorityDto) => ({
+        id: u.id,
+        name: u.name,
+        priority: u.loadingPriority,
+      }));
+      setPackingCategories(categories);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load packing categories');
+    } finally {
+      setPackingCategoriesLoading(false);
+    }
+  }
+
+  async function loadIncentives() {
+    setIncentivesLoading(true);
+    try {
+      const data = await incentivesApi.getProductIncentives();
+      setIncentives(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load incentives');
+    } finally {
+      setIncentivesLoading(false);
     }
   }
 
   async function loadAll() {
-    await Promise.all([loadGroups(), loadUnits(), loadSizeGroups(), loadPriorities()]);
+    await Promise.all([loadGroups(), loadUnits(), loadSizeGroups(), loadPackingCategories(), loadIncentives()]);
   }
 
   useEffect(() => {
@@ -786,7 +1329,7 @@ export function AdminCatalogConfig() {
   // ── Unit Handlers ──
   function openAddUnit() {
     setEditingUnit(null);
-    setUnitForm({ name: '', abbreviation: '', uqc: '' });
+    setUnitForm({ name: '', abbreviation: '', uqc: '', unitSize: undefined });
     setShowUnitModal(true);
   }
 
@@ -796,11 +1339,12 @@ export function AdminCatalogConfig() {
       name: unit.name,
       abbreviation: unit.abbreviation || '',
       uqc: unit.uqc || '',
+      unitSize: (unit as any).unitSize,
     });
     setShowUnitModal(true);
   }
 
-  async function handleSaveUnit(data: { name: string; abbreviation: string; uqc: string }) {
+  async function handleSaveUnit(data: { name: string; abbreviation: string; uqc: string; unitSize?: number }) {
     if (!data.name.trim()) {
       setError('Unit name is required');
       return;
@@ -910,16 +1454,139 @@ export function AdminCatalogConfig() {
     }
   }
 
-  // ── Priority Handlers ──
+  // ── Packing Category Handlers ──
+  function openAddPackingCategory() {
+    setEditingPackingCategory(null);
+    const maxPriority = packingCategories.length > 0 ? Math.max(...packingCategories.map(c => c.priority)) : 0;
+    setPackingCategoryForm({ id: undefined, name: '', priority: 0 });
+    setShowPackingCategoryModal(true);
+  }
+
+  function openEditPackingCategory(category: { id: string; name: string; priority: number }) {
+    setEditingPackingCategory(category);
+    setPackingCategoryForm({ id: category.id, name: category.name, priority: category.priority });
+    setShowPackingCategoryModal(true);
+  }
+
+  async function handleSavePackingCategory(data: { name: string; priority: number }) {
+    if (!data.name.trim()) {
+      setError('Category name is required');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      if (editingPackingCategory) {
+        // Update priority via API
+        await unitsApi.updatePriority(editingPackingCategory.id, data.priority);
+        setSuccess('Packing category updated successfully!');
+      } else {
+        // Create new unit as a packing category
+        const result = await unitsApi.create(data.name);
+        if (result?.id) {
+          await unitsApi.updatePriority(result.id, data.priority);
+        }
+        setSuccess('Packing category created successfully!');
+      }
+      setShowPackingCategoryModal(false);
+      await loadPackingCategories();
+      await loadUnits();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save packing category');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeletePackingCategory(id: string) {
+    try {
+      await unitsApi.delete(id);
+      setSuccess('Packing category deleted successfully!');
+      await loadPackingCategories();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete packing category');
+    } finally {
+      setDeleteConfirm(null);
+    }
+  }
+
+  // ── Incentive Handlers ──
+  function openAddIncentive() {
+    setEditingIncentive(null);
+    setIncentiveForm({ name: '', rate: 0, type: 'percentage' });
+    setShowIncentiveModal(true);
+  }
+
+  function openEditIncentive(incentive: ProductIncentiveDto) {
+    setEditingIncentive(incentive);
+    setIncentiveForm({
+      name: incentive.productName || '',
+      rate: incentive.incentiveValue,
+      type: incentive.incentiveType === 2 ? 'percentage' : 'fixed',
+    });
+    setShowIncentiveModal(true);
+  }
+
+  async function handleSaveIncentive(data: { name: string; rate: number; type: 'percentage' | 'fixed' }) {
+    if (!data.name.trim() || data.rate <= 0) {
+      setError('Name and rate are required');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      const payload = {
+        productId: '00000000-0000-0000-0000-000000000000', // Placeholder - admin would select a product
+        incentiveValue: data.rate,
+        incentiveType: data.type === 'percentage' ? 2 : 1,
+        effectiveDate: new Date().toISOString().slice(0, 10),
+        description: data.name,
+      };
+
+      if (editingIncentive) {
+        await incentivesApi.updateProductIncentive(editingIncentive.id, payload);
+        setSuccess('Incentive updated successfully!');
+      } else {
+        await incentivesApi.createProductIncentive(payload);
+        setSuccess('Incentive created successfully!');
+      }
+      setShowIncentiveModal(false);
+      await loadIncentives();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save incentive');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteIncentive(id: string) {
+    try {
+      await incentivesApi.deleteProductIncentive(id);
+      setSuccess('Incentive deleted successfully!');
+      await loadIncentives();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete incentive');
+    } finally {
+      setDeleteConfirm(null);
+    }
+  }
+
+  // ── Priority Handler (for reordering) ──
   async function handleUpdatePriority(unitId: string, newPriority: number) {
-    setUpdatingPriority(unitId);
     try {
       await unitsApi.updatePriority(unitId, newPriority);
-      await loadPriorities();
-    } catch (err: unknown) {
-      setError('Failed to update priority');
-    } finally {
-      setUpdatingPriority(null);
+      await loadPackingCategories();
+      await loadUnits();
+      setSuccess('Priority updated!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update priority');
     }
   }
 
@@ -969,7 +1636,7 @@ export function AdminCatalogConfig() {
               Catalog Config
             </h1>
             <p style={{ color: D.muted, fontSize: 14, marginTop: 4, fontWeight: 500 }}>
-              Product Groups, Units &amp; Size Groups Management
+              Product Groups, Units, Size Groups, Packing Categories &amp; Incentives
             </p>
           </div>
           <button
@@ -995,10 +1662,10 @@ export function AdminCatalogConfig() {
         {error && <Alert variant="error">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
 
-        {/* ── Responsive Grid ── FIXED ── */}
+        {/* ── Responsive Grid ── */}
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr 1fr', 
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr 1fr 1fr', 
           gap: 16 
         }}>
 
@@ -1019,7 +1686,7 @@ export function AdminCatalogConfig() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Boxes size={16} style={{ color: D.accent }} />
                 <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
-                  Groups
+                  Item Groups
                 </h2>
                 <span style={{
                   fontSize: 11,
@@ -1200,6 +1867,11 @@ export function AdminCatalogConfig() {
                         {unit.abbreviation && (
                           <span style={{ color: D.sub }}>[{unit.abbreviation}]</span>
                         )}
+                        {(unit as any).unitSize !== undefined && (unit as any).unitSize !== null && (
+                          <span style={{ color: D.green, fontWeight: 600 }}>
+                            Size: {(unit as any).unitSize}
+                          </span>
+                        )}
                         {unit.uqc && (
                           <span style={{ color: D.accent, fontWeight: 700, background: `${D.accent}15`, padding: '1px 6px', borderRadius: 4 }}>
                             UQC: {unit.uqc}
@@ -1358,7 +2030,7 @@ export function AdminCatalogConfig() {
             </div>
           </div>
 
-          {/* ── Loading Priorities Card ── */}
+          {/* ── Packing Categories Card (renamed from Priorities) ── */}
           <div style={{
             background: D.surface,
             borderRadius: 16,
@@ -1370,37 +2042,189 @@ export function AdminCatalogConfig() {
               borderBottom: `1px solid ${D.border}`,
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
+              justifyContent: 'space-between',
             }}>
-              <TrendingUp size={16} style={{ color: D.accent }} />
-              <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
-                Priorities
-              </h2>
-              <span style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: D.muted,
-                background: D.bg,
-                padding: '1px 8px',
-                borderRadius: 12,
-              }}>
-                {priorities.length}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Package size={16} style={{ color: D.accent }} />
+                <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
+                  Packing Categories
+                </h2>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: D.muted,
+                  background: D.bg,
+                  padding: '1px 8px',
+                  borderRadius: 12,
+                }}>
+                  {packingCategories.length}
+                </span>
+              </div>
+              <button
+                onClick={openAddPackingCategory}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: D.accent,
+                  color: '#fff',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <Plus size={12} /> Add
+              </button>
             </div>
 
             <div style={{ padding: '10px 12px', maxHeight: 300, overflowY: 'auto' }}>
               <div style={{ fontSize: 10, color: D.muted, marginBottom: 8, padding: '6px 8px', background: D.bg, borderRadius: 6 }}>
-                <strong style={{ color: D.accent }}>1</strong> = Load FIRST ·
-                <strong style={{ color: D.accent }}> 99</strong> = Load LAST
+                <strong style={{ color: D.accent }}>1</strong> = Highest priority · 
+                <strong style={{ color: D.accent }}> 99</strong> = Lowest priority
               </div>
-              {priorities.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '16px 0', color: D.muted, fontSize: 12 }}>
-                  No units with priorities
+              {packingCategoriesLoading ? (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <Spinner size={20} />
+                </div>
+              ) : packingCategories.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px 0', color: D.muted, fontSize: 12 }}>
+                  No packing categories yet
                 </div>
               ) : (
-                priorities.map((unit) => (
+                packingCategories
+                  .sort((a, b) => a.priority - b.priority)
+                  .map((category) => (
+                    <div
+                      key={category.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 8px',
+                        marginBottom: 4,
+                        borderRadius: 8,
+                        background: D.bg,
+                        border: `1px solid ${D.border}`,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 6,
+                          flexShrink: 0,
+                          background: `${D.accent}15`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: 12,
+                          color: D.accent,
+                        }}>
+                          {category.priority}
+                        </div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: D.text }}>
+                          {category.name}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 2 }}>
+                        <button
+                          onClick={() => openEditPackingCategory(category)}
+                          style={{
+                            padding: '3px 6px',
+                            borderRadius: 4,
+                            border: 'none',
+                            background: 'transparent',
+                            color: D.sub,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <Edit2 size={12} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm({ type: 'packingCategory', id: category.id, name: category.name })}
+                          style={{
+                            padding: '3px 6px',
+                            borderRadius: 4,
+                            border: 'none',
+                            background: 'transparent',
+                            color: D.sub,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+
+          {/* ── Incentives Card ── */}
+          <div style={{
+            background: D.surface,
+            borderRadius: 16,
+            border: `1px solid ${D.border}`,
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '14px 16px',
+              borderBottom: `1px solid ${D.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Award size={16} style={{ color: '#8B5CF6' }} />
+                <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
+                  Incentives
+                </h2>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: D.muted,
+                  background: D.bg,
+                  padding: '1px 8px',
+                  borderRadius: 12,
+                }}>
+                  {incentives.length}
+                </span>
+              </div>
+              <button
+                onClick={openAddIncentive}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: '#8B5CF6',
+                  color: '#fff',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <Plus size={12} /> Add
+              </button>
+            </div>
+
+            <div style={{ padding: '10px 12px', maxHeight: 300, overflowY: 'auto' }}>
+              {incentivesLoading ? (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <Spinner size={20} />
+                </div>
+              ) : incentives.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px 0', color: D.muted, fontSize: 12 }}>
+                  No incentives yet
+                </div>
+              ) : (
+                incentives.map(incentive => (
                   <div
-                    key={unit.id}
+                    key={incentive.id}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -1412,58 +2236,45 @@ export function AdminCatalogConfig() {
                       border: `1px solid ${D.border}`,
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 6,
-                        flexShrink: 0,
-                        background: `${D.accent}15`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 800,
-                        fontSize: 12,
-                        color: D.accent,
-                      }}>
-                        {unit.loadingPriority}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, color: D.text, fontSize: 13 }}>
+                        {incentive.productName || 'Unnamed'}
                       </div>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: D.text }}>
-                          {unit.name}
-                        </div>
+                      <div style={{ display: 'flex', gap: 6, fontSize: 10, flexWrap: 'wrap' }}>
+                        <span style={{ color: '#8B5CF6', fontWeight: 600 }}>
+                          {incentive.incentiveType === 2 ? `${incentive.incentiveValue}%` : `₹${incentive.incentiveValue}`}
+                        </span>
+                        <span style={{ color: D.sub }}>
+                          {incentive.isActive ? 'Active' : 'Inactive'}
+                        </span>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 2 }}>
                       <button
-                        onClick={() => handleUpdatePriority(unit.id, Math.max(1, unit.loadingPriority - 1))}
-                        disabled={updatingPriority === unit.id || unit.loadingPriority <= 1}
+                        onClick={() => openEditIncentive(incentive)}
                         style={{
                           padding: '3px 6px',
                           borderRadius: 4,
                           border: 'none',
                           background: 'transparent',
                           color: D.sub,
-                          cursor: (updatingPriority === unit.id || unit.loadingPriority <= 1) ? 'not-allowed' : 'pointer',
-                          opacity: (updatingPriority === unit.id || unit.loadingPriority <= 1) ? 0.3 : 1,
+                          cursor: 'pointer',
                         }}
                       >
-                        <ArrowUp size={12} />
+                        <Edit2 size={12} />
                       </button>
                       <button
-                        onClick={() => handleUpdatePriority(unit.id, unit.loadingPriority + 1)}
-                        disabled={updatingPriority === unit.id}
+                        onClick={() => setDeleteConfirm({ type: 'incentive', id: incentive.id, name: incentive.productName || 'Incentive' })}
                         style={{
                           padding: '3px 6px',
                           borderRadius: 4,
                           border: 'none',
                           background: 'transparent',
                           color: D.sub,
-                          cursor: updatingPriority === unit.id ? 'not-allowed' : 'pointer',
-                          opacity: updatingPriority === unit.id ? 0.3 : 1,
+                          cursor: 'pointer',
                         }}
                       >
-                        <ArrowDown size={12} />
+                        <Trash2 size={12} />
                       </button>
                     </div>
                   </div>
@@ -1474,7 +2285,7 @@ export function AdminCatalogConfig() {
         </div>
       </div>
 
-      {/* ── Group Modal ── */}
+      {/* ── Modals ── */}
       <GroupModal
         isOpen={showGroupModal}
         onClose={() => setShowGroupModal(false)}
@@ -1484,7 +2295,6 @@ export function AdminCatalogConfig() {
         saving={loading}
       />
 
-      {/* ── Unit Modal ── */}
       <UnitModal
         isOpen={showUnitModal}
         onClose={() => setShowUnitModal(false)}
@@ -1494,7 +2304,6 @@ export function AdminCatalogConfig() {
         saving={loading}
       />
 
-      {/* ── Size Group Modal ── */}
       <SizeGroupModal
         isOpen={showSizeGroupModal}
         onClose={() => setShowSizeGroupModal(false)}
@@ -1504,10 +2313,29 @@ export function AdminCatalogConfig() {
         saving={loading}
       />
 
+      <PackingCategoryModal
+        isOpen={showPackingCategoryModal}
+        onClose={() => setShowPackingCategoryModal(false)}
+        onSave={handleSavePackingCategory}
+        editing={!!editingPackingCategory}
+        initialData={packingCategoryForm}
+        existingCategories={packingCategories}
+        saving={loading}
+      />
+
+      <IncentiveModal
+        isOpen={showIncentiveModal}
+        onClose={() => setShowIncentiveModal(false)}
+        onSave={handleSaveIncentive}
+        editing={!!editingIncentive}
+        initialData={incentiveForm}
+        saving={loading}
+      />
+
       {/* ── Delete Confirmation ── */}
       <ConfirmModal
         open={!!deleteConfirm}
-        title={`Delete ${deleteConfirm?.type === 'group' ? 'Group' : deleteConfirm?.type === 'unit' ? 'Unit' : 'Size Group'}`}
+        title={`Delete ${deleteConfirm?.type === 'group' ? 'Group' : deleteConfirm?.type === 'unit' ? 'Unit' : deleteConfirm?.type === 'sizeGroup' ? 'Size Group' : deleteConfirm?.type === 'packingCategory' ? 'Packing Category' : 'Incentive'}`}
         message={`Are you sure you want to delete "${deleteConfirm?.name}"? This action cannot be undone.`}
         confirmLabel="Delete"
         danger
@@ -1519,6 +2347,10 @@ export function AdminCatalogConfig() {
               handleDeleteUnit(deleteConfirm.id);
             } else if (deleteConfirm.type === 'sizeGroup') {
               handleDeleteSizeGroup(deleteConfirm.id);
+            } else if (deleteConfirm.type === 'packingCategory') {
+              handleDeletePackingCategory(deleteConfirm.id);
+            } else if (deleteConfirm.type === 'incentive') {
+              handleDeleteIncentive(deleteConfirm.id);
             }
           }
         }}

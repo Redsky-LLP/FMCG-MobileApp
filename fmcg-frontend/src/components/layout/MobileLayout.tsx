@@ -1,5 +1,5 @@
 // PATH: src/components/layout/MobileLayout.tsx
-// UPDATED: Dark theme to match Navbar.tsx and the rest of the app
+// COMPLETE FIXED VERSION - Clean mobile layout without duplicate headers
 
 import React, { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -22,6 +22,7 @@ import {
   User,
   Settings,
   ChevronRight,
+  CalendarDays,
 } from 'lucide-react';
 
 interface NavItem {
@@ -35,7 +36,6 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   Salesman: [
     { to: '/salesman/routes', label: 'My Routes', icon: MapPin, roles: ['Salesman'] },
     { to: '/salesman/orders', label: 'Orders', icon: ShoppingCart, roles: ['Salesman'] },
-    { to: '/salesman/incentives', label: 'Incentives', icon: TrendingUp, roles: ['Salesman'] },
   ],
   Warehouse: [
     { to: '/warehouse/loading', label: 'Loading', icon: Truck, roles: ['Warehouse'] },
@@ -45,33 +45,28 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   Accounts: [
     { to: '/accounts/settlement', label: 'Settlement', icon: Calculator, roles: ['Accounts'] },
     { to: '/accounts/reports', label: 'Reports', icon: FileText, roles: ['Accounts'] },
-    { to: '/accounts/settlement', label: 'Outstanding', icon: Users, roles: ['Accounts'] },
   ],
   Admin: [
     { to: '/admin/dashboard', label: 'Home', icon: LayoutDashboard, roles: ['Admin', 'SuperAdmin'] },
     { to: '/admin/routes', label: 'Routes', icon: MapPin, roles: ['Admin', 'SuperAdmin'] },
     { to: '/admin/orders', label: 'Orders', icon: ShoppingCart, roles: ['Admin', 'SuperAdmin'] },
-    { to: '/admin/settlement', label: 'Settle', icon: Calculator, roles: ['Admin', 'SuperAdmin'] },
   ],
   SuperAdmin: [
     { to: '/admin/dashboard', label: 'Home', icon: LayoutDashboard, roles: ['SuperAdmin'] },
     { to: '/admin/routes', label: 'Routes', icon: MapPin, roles: ['SuperAdmin'] },
     { to: '/admin/orders', label: 'Orders', icon: ShoppingCart, roles: ['SuperAdmin'] },
-    { to: '/admin/settlement', label: 'Settle', icon: Calculator, roles: ['SuperAdmin'] },
   ],
 };
 
-// Pages that have their OWN fixed bottom action bar — hide mobile top bar
 const FULL_SCREEN_PAGES = [
   '/order/',
   '/execute',
   '/review-orders',
 ];
 
-// Nav height constant
-export const MOBILE_NAV_HEIGHT = 70;
+export const MOBILE_NAV_HEIGHT = 58;
+const SAFE_TOP_INSET = 'env(safe-area-inset-top, 0px)';
 
-// ── Dark theme tokens (matching Navbar.tsx) ────────────────────────────────
 const D = {
   bg:         '#0a0e1a',
   surface:    '#141b2d',
@@ -84,7 +79,6 @@ const D = {
   navBg:      'rgba(10,14,26,0.92)',
 };
 
-// Role colors for avatar badge — dark theme variants (matching Navbar.tsx)
 const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
   SuperAdmin: { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24' },
   Admin:      { bg: 'rgba(96,165,250,0.15)', text: '#60a5fa' },
@@ -104,7 +98,6 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Inject CSS variable so pages can reference nav height
   useEffect(() => {
     document.documentElement.style.setProperty('--mobile-nav-h', `${MOBILE_NAV_HEIGHT}px`);
     return () => {
@@ -112,12 +105,10 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
     };
   }, []);
 
-  // Close drawer on route change
   useEffect(() => {
     setDrawerOpen(false);
   }, [location.pathname]);
 
-  // Prevent body scroll when drawer open
   useEffect(() => {
     document.body.style.overflow = drawerOpen ? 'hidden' : '';
     return () => {
@@ -134,17 +125,13 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
   const roleColor = ROLE_COLORS[role] || ROLE_COLORS.Admin;
 
   const isActive = (to: string) => {
-    // Any sub-page of a route (execute / order entry / review-orders / customers)
-    // belongs to the "My Routes" tab, not "Orders"
     if (to === '/salesman/routes' && location.pathname.includes('/salesman/routes')) {
       return true;
     }
-    // Handle dashboard routes
     if (to === '/admin/dashboard' && location.pathname === '/admin/dashboard') return true;
     if (to === '/accounts/settlement' && location.pathname.includes('/accounts/settlement')) return true;
     if (to === '/warehouse/loading' && location.pathname.includes('/warehouse/loading')) return true;
     if (to === '/warehouse/dispatch' && location.pathname.includes('/warehouse/dispatch')) return true;
-    // Exact match for all others
     return location.pathname === to;
   };
 
@@ -155,10 +142,8 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
     const path = location.pathname;
     if (path.includes('/salesman/routes') && path.includes('/order/')) return 'Order Entry';
     if (path.includes('/salesman/routes') && path.includes('/execute')) return 'Route Execution';
-    if (path.includes('/salesman/routes') && path.includes('/review')) return 'Review Orders';
     if (path.includes('/salesman/routes')) return 'My Routes';
     if (path.includes('/salesman/orders')) return 'My Orders';
-    if (path.includes('/salesman/incentives')) return 'My Incentives';
     if (path.includes('/warehouse/loading')) return 'Loading Sheet';
     if (path.includes('/warehouse/dispatch')) return 'Pack Orders';
     if (path.includes('/warehouse/dashboard')) return 'Dashboard';
@@ -196,54 +181,53 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         flexDirection: 'column',
         minHeight: '100vh',
         paddingBottom: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+        background: D.bg,
       }}
     >
-      {/* Top App Bar - hidden on full-screen pages */}
+      {/* ── Top App Bar - Minimal ── */}
       {!isFullScreen && (
         <div
           className="mobile-top-bar"
           style={{
-            position: 'sticky',
+            position: 'fixed',
             top: 0,
+            left: 0,
+            right: 0,
             zIndex: 40,
-            background: D.navBg,
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            borderBottom: `1px solid ${D.border}`,
-            padding: '12px 16px',
+            background: 'transparent',
+            padding: `max(2px, ${SAFE_TOP_INSET}) 10px 0px`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            height: `calc(32px + ${SAFE_TOP_INSET})`,
           }}
         >
-          {/* Hamburger Menu Button */}
           <button
             onClick={() => setDrawerOpen(true)}
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: 40,
-              height: 40,
-              borderRadius: 10,
+              width: 28,
+              height: 28,
+              borderRadius: 6,
               border: `1px solid ${D.border}`,
-              background: 'rgba(255,255,255,0.03)',
+              background: 'rgba(255,255,255,0.05)',
               cursor: 'pointer',
               color: D.muted,
               flexShrink: 0,
             }}
           >
-            <Menu size={20} />
+            <Menu size={15} />
           </button>
 
-          {/* Page Title */}
           <h1
             style={{
-              fontSize: '1.1rem',
-              fontWeight: 800,
+              fontSize: '0.8rem',
+              fontWeight: 600,
               color: D.text,
               margin: 0,
-              letterSpacing: '-0.03em',
+              letterSpacing: '-0.02em',
               textAlign: 'center',
               flex: 1,
             }}
@@ -251,17 +235,41 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             {getPageTitle()}
           </h1>
 
-          {/* Spacer for alignment */}
-          <div style={{ width: 40, flexShrink: 0 }} />
+          <div style={{ width: 28, flexShrink: 0 }} />
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="mobile-content" style={{ flex: 1 }}>
+      {/* ── Date status bar ── */}
+      {!isFullScreen && (
+        <div style={{
+          margin: `calc(32px + ${SAFE_TOP_INSET}) 8px 4px`,
+          padding: '3px 10px',
+          borderRadius: 6,
+          background: 'linear-gradient(135deg, #ea580c, #c2410c)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <CalendarDays size={11} color="rgba(255,255,255,0.85)" />
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>
+              {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+          </div>
+          <span style={{ fontSize: 8, fontWeight: 800, background: 'rgba(255,255,255,0.18)', color: '#fff', padding: '1px 6px', borderRadius: 12 }}>TODAY</span>
+        </div>
+      )}
+
+      {/* ── Main Content ── */}
+      <div className="mobile-content" style={{ 
+        flex: 1, 
+        paddingTop: !isFullScreen ? 0 : 0,
+        paddingBottom: 4,
+      }}>
         {children}
       </div>
 
-      {/* Bottom Navigation Bar */}
+      {/* ── Bottom Navigation Bar ── */}
       <div
         className="mobile-bottom-nav"
         style={{
@@ -276,16 +284,16 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           display: 'flex',
           justifyContent: 'space-around',
           alignItems: 'center',
-          padding: '8px 12px',
-          paddingBottom: `calc(8px + env(safe-area-inset-bottom, 0px))`,
+          padding: '2px 8px',
+          paddingBottom: `calc(2px + env(safe-area-inset-bottom, 0px))`,
           zIndex: 60,
           boxShadow: '0 -2px 20px rgba(0,0,0,0.4)',
+          height: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
         }}
       >
         {navItems.map((item, index) => {
           const Icon = item.icon;
           const active = isActive(item.to);
-          // Use unique key combining to and index to avoid duplicates
           const uniqueKey = `${item.to}-${index}`;
           return (
             <Link
@@ -295,20 +303,20 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 3,
-                padding: '4px 12px',
-                borderRadius: 10,
+                gap: 1,
+                padding: '2px 10px',
+                borderRadius: 6,
                 textDecoration: 'none',
                 color: active ? D.accent : D.muted,
                 background: active ? 'rgba(234,88,12,0.12)' : 'transparent',
                 transition: 'all 0.15s',
-                minWidth: 56,
-                minHeight: 44,
+                minWidth: 44,
+                minHeight: 36,
                 justifyContent: 'center',
               }}
             >
-              <Icon size={20} />
-              <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, letterSpacing: '-0.01em' }}>
+              <Icon size={17} strokeWidth={active ? 2.2 : 1.8} />
+              <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, letterSpacing: '-0.01em' }}>
                 {item.label}
               </span>
             </Link>
@@ -316,7 +324,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         })}
       </div>
 
-      {/* Drawer Overlay */}
+      {/* ── Drawer Overlay ── */}
       {drawerOpen && (
         <div
           onClick={() => setDrawerOpen(false)}
@@ -331,14 +339,14 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         />
       )}
 
-      {/* Slide-out Drawer Menu */}
+      {/* ── Slide-out Drawer Menu ── */}
       <div
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
           bottom: 0,
-          width: 280,
+          width: 260,
           background: D.surface,
           boxShadow: '4px 0 32px rgba(0,0,0,0.5)',
           zIndex: 210,
@@ -349,34 +357,34 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           willChange: 'transform',
         }}
       >
-        {/* Drawer Header with Close Button */}
+        {/* Drawer Header */}
         <div
           style={{
-            padding: '20px 16px 16px',
+            padding: '12px 14px 10px',
             borderBottom: `1px solid ${D.border}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div
               style={{
-                width: 36,
-                height: 36,
+                width: 28,
+                height: 28,
                 background: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
-                borderRadius: 10,
+                borderRadius: 6,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Package size={18} color="#fff" strokeWidth={2.2} />
+              <Package size={14} color="#fff" strokeWidth={2.2} />
             </div>
             <span
               style={{
                 fontWeight: 800,
-                fontSize: 16,
+                fontSize: 13,
                 color: D.text,
                 letterSpacing: '-0.03em',
               }}
@@ -387,9 +395,9 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           <button
             onClick={() => setDrawerOpen(false)}
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
+              width: 26,
+              height: 26,
+              borderRadius: 6,
               border: `1px solid ${D.border}`,
               background: 'rgba(255,255,255,0.03)',
               display: 'flex',
@@ -399,42 +407,42 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
               color: D.muted,
             }}
           >
-            <X size={16} />
+            <X size={13} />
           </button>
         </div>
 
         {/* User Profile Section */}
         <div
           style={{
-            padding: '16px',
-            margin: '12px 16px',
+            padding: '10px',
+            margin: '6px 10px',
             background: 'rgba(255,255,255,0.04)',
-            borderRadius: 12,
+            borderRadius: 8,
             border: `1px solid ${D.border}`,
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
+            gap: 8,
           }}
         >
           <div
             style={{
-              width: 48,
-              height: 48,
+              width: 36,
+              height: 36,
               borderRadius: '50%',
               background: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: '0 2px 10px rgba(234,88,12,0.25)',
+              boxShadow: '0 2px 8px rgba(234,88,12,0.25)',
             }}
           >
-            <span style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{initials}</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#fff' }}>{initials}</span>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: 700,
                 color: D.text,
                 letterSpacing: '-0.02em',
@@ -445,14 +453,14 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             >
               {user.name}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
               <span
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  padding: '2px 8px',
-                  borderRadius: 20,
-                  fontSize: 10,
+                  padding: '1px 6px',
+                  borderRadius: 12,
+                  fontSize: 8,
                   fontWeight: 700,
                   background: roleColor.bg,
                   color: roleColor.text,
@@ -470,17 +478,17 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '8px 12px',
+            padding: '4px 8px',
           }}
         >
           <div
             style={{
-              fontSize: 10,
+              fontSize: 8,
               fontWeight: 700,
               color: D.sub,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              padding: '8px 8px 4px',
+              padding: '4px 8px 2px',
             }}
           >
             Menu
@@ -498,13 +506,13 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 12,
-                  padding: '10px 12px',
-                  borderRadius: 10,
+                  gap: 8,
+                  padding: '6px 8px',
+                  borderRadius: 6,
                   textDecoration: 'none',
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: active ? 700 : 500,
-                  marginBottom: 2,
+                  marginBottom: 1,
                   color: active ? D.text : D.muted,
                   background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
                   border: `1px solid ${active ? 'rgba(234,88,12,0.20)' : 'transparent'}`,
@@ -513,9 +521,9 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
               >
                 <div
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
+                    width: 26,
+                    height: 26,
+                    borderRadius: 6,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -524,18 +532,18 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                     color: active ? D.accent : D.muted,
                   }}
                 >
-                  <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
+                  <Icon size={13} strokeWidth={active ? 2.2 : 1.8} />
                 </div>
                 <span style={{ flex: 1 }}>{item.label}</span>
                 {active && (
                   <div
                     style={{
-                      width: 6,
-                      height: 6,
+                      width: 4,
+                      height: 4,
                       borderRadius: '50%',
                       background: D.accent,
                       flexShrink: 0,
-                      boxShadow: `0 0 8px ${D.accentGlow}`,
+                      boxShadow: `0 0 6px ${D.accentGlow}`,
                     }}
                   />
                 )}
@@ -547,7 +555,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         {/* Footer with Sign Out */}
         <div
           style={{
-            padding: '16px',
+            padding: '10px',
             borderTop: `1px solid ${D.border}`,
             flexShrink: 0,
           }}
@@ -557,14 +565,14 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
-              padding: '10px 14px',
-              borderRadius: 10,
+              gap: 8,
+              padding: '6px 10px',
+              borderRadius: 6,
               border: '1px solid rgba(239,68,68,0.20)',
               background: 'rgba(239,68,68,0.10)',
               cursor: 'pointer',
               width: '100%',
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: 600,
               color: '#f87171',
               transition: 'all 0.15s',
@@ -579,16 +587,16 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           >
             <div
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
+                width: 26,
+                height: 26,
+                borderRadius: 6,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 background: 'rgba(239,68,68,0.15)',
               }}
             >
-              <LogOut size={15} />
+              <LogOut size={13} />
             </div>
             Sign Out
           </button>

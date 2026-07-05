@@ -1415,7 +1415,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.fsnrdpq3ue4"
+    "revision": "0.93s3vhd2dqo"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -13352,7 +13352,7 @@ export function AdminCatalogConfig() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Boxes size={16} style={{ color: D.accent }} />
                 <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
-                  Groups
+                  Item Groups
                 </h2>
                 <span style={{
                   fontSize: 11,

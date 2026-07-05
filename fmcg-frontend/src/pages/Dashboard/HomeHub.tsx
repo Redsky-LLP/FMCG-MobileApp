@@ -1,5 +1,6 @@
 // PATH: src/pages/Dashboard/HomeHub.tsx
-// UPDATED: Added isMobile for responsive grid
+// UPDATED: Removed Record Payment, Scan Product, Daily Settlement from Quick Actions
+//          Removed Analytics - View Insights from main page
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -179,26 +180,17 @@ const NAV_BLOCKS: NavBlock[] = [
   },
 ];
 
-// ── Small stat cards for Admin ─────────────────────────────────
-const STAT_CARDS: StatCard[] = [
-  {
-    id: 'analytics', label: 'Analytics',
-    value: 'View Insights', icon: BarChart3,
-    to: '/admin/analytics',
-    color: D.accent, bg: D.accentGlow, roles: ['Admin', 'SuperAdmin'],
-  },
-];
+// ── REMOVED: Analytics stat card ──
+// The "View Insights" card has been removed from the main page
 
-// ── Quick Actions ──────────────────────────────────────────────
+// ── Quick Actions ──
+// REMOVED: Record Payment, Scan Product, Daily Settlement
 const QUICK_ACTIONS: QuickAction[] = [
   { id: 'new-order', label: 'New Order', description: 'Create a fresh customer order', icon: ClipboardList, to: '/admin/orders', color: D.accent, roles: ['Admin', 'SuperAdmin', 'Salesman'] },
-  { id: 'record-payment', label: 'Record Payment', description: 'Log a collection or payment', icon: Banknote, to: '/admin/settlement', color: D.green, roles: ['Admin', 'SuperAdmin', 'Accounts'] },
-  { id: 'scan-sku', label: 'Scan Product', description: 'Scan barcode or search SKU', icon: ScanBarcode, to: '/admin/products', color: D.purple, roles: ['Admin', 'SuperAdmin', 'Warehouse'] },
   { id: 'add-customer', label: 'Add Customer', description: 'Register a new customer', icon: Users, to: '/admin/customers', color: D.amber, roles: ['Admin', 'SuperAdmin', 'Salesman'] },
   { id: 'view-routes', label: 'View Routes', description: 'Check today\'s route map', icon: Route, to: '/salesman/routes', color: D.accent, roles: ['Salesman'] },
   { id: 'start-route', label: 'Start Route', description: 'Begin executing a delivery route', icon: Zap, to: '/salesman/routes', color: '#06B6D4', roles: ['Salesman'] },
   { id: 'reports', label: 'View Reports', description: 'Open financial and sales reports', icon: FileText, to: '/admin/reports', color: D.green, roles: ['Admin', 'SuperAdmin', 'Accounts'] },
-  { id: 'settlement', label: 'Daily Settlement', description: 'Close and settle today\'s accounts', icon: Calculator, to: '/accounts/settlement', color: D.green, roles: ['Admin', 'SuperAdmin', 'Accounts'] },
   { id: 'users', label: 'Manage Users', description: 'Add or edit system users', icon: UserCog, to: '/admin/users', color: D.blue, roles: ['Admin', 'SuperAdmin'] },
 ];
 
@@ -227,7 +219,7 @@ function getDateString(): string {
 export function HomeHub() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  const isMobile = useIsMobile(); // ── ADDED ──
+  const isMobile = useIsMobile();
   const [fabOpen, setFabOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [liveStats, setLiveStats] = useState<{
@@ -281,7 +273,7 @@ export function HomeHub() {
   const isAdmin      = role === 'Admin' || role === 'SuperAdmin';
 
   const blocks       = NAV_BLOCKS.filter(b => b.roles.includes(role));
-  const statCards    = STAT_CARDS.filter(s => s.roles.includes(role));
+  // REMOVED: statCards filter for Analytics
   const quickActions = QUICK_ACTIONS.filter(a => a.roles.includes(role));
 
   // Filter blocks: main blocks (Route Hub, Orders, Customers)
@@ -397,7 +389,7 @@ export function HomeHub() {
           </div>
         </div>
 
-        {/* ── Main Nav Grid (Route Hub, Orders, Customers) ── FIXED ── */}
+        {/* ── Main Nav Grid (Route Hub, Orders, Customers) ── */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr' : mainBlocks.length >= 3 ? 'repeat(3,1fr)' : mainBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
@@ -411,7 +403,7 @@ export function HomeHub() {
           ))}
         </div>
 
-        {/* ── Admin Large Cards: Products, Users, Reports, Catalog ── FIXED ── */}
+        {/* ── Admin Large Cards: Products, Users, Reports, Catalog ── */}
         {isAdmin && largeBlocks.length > 0 && (
           <div style={{
             display: 'grid',
@@ -424,65 +416,6 @@ export function HomeHub() {
             {largeBlocks.map((block, idx) => (
               <NavBlockCard key={block.id} block={block} delay={idx * 0.05} fullWidth={false} isLarge={true} />
             ))}
-          </div>
-        )}
-
-        {/* ── Admin Stat Cards ───── */}
-        {isAdmin && statCards.length > 0 && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : `repeat(${statCards.length}, 1fr)`,
-            gap: 14,
-            marginBottom: 14,
-            opacity: mounted ? 1 : 0,
-            transition: 'all 0.42s 0.22s cubic-bezier(0.34,1.2,0.64,1)',
-          }}>
-            {statCards.map(card => {
-              const displayValue = card.id === 'collections' && liveStats.outstanding !== undefined
-                ? `₹${fmt(liveStats.outstanding)} Due`
-                : card.value;
-              return (
-              <Link key={card.id} to={card.to} style={{ textDecoration: 'none' }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '16px 20px',
-                  borderRadius: 14,
-                  background: D.surface,
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.borderColor = `${card.color}44`;
-                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-                    (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 24px rgba(0,0,0,0.3)`;
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)';
-                    (e.currentTarget as HTMLElement).style.boxShadow = 'none';
-                  }}
-                >
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                    background: `${card.color}18`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <card.icon size={18} style={{ color: card.color }} strokeWidth={1.8} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: `${card.color}99`, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                      {card.label}
-                    </div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: card.color, marginTop: 2 }}>
-                      {displayValue}
-                    </div>
-                  </div>
-                  <ChevronRight size={15} style={{ color: `${card.color}50`, flexShrink: 0 }} />
-                </div>
-              </Link>
-              );
-            })}
           </div>
         )}
 
@@ -584,7 +517,7 @@ export function HomeHub() {
         <Plus size={24} color="#fff" strokeWidth={2.5} />
       </button>
 
-      {/* ── Quick Action Modal ──────────────────────────────── */}
+      {/* ── Quick Action Modal ── */}
       {fabOpen && (
         <>
           <div onClick={() => setFabOpen(false)} style={{

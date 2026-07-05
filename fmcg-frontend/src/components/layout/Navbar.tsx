@@ -37,8 +37,6 @@ const NAV_ITEMS: NavItem[] = [
 
   // Salesman
   { to: '/salesman/routes',     label: 'My Routes',  icon: Route,        roles: ['Salesman'] },
-  { to: '/salesman/incentives', label: 'Incentives', icon: TrendingUp,   roles: ['Salesman'] },
-
   // Accounts
   { to: '/accounts/settlement', label: 'Settlement', icon: Calculator, roles: ['Accounts'] },
   { to: '/accounts/reports',    label: 'Reports',    icon: FileText,   roles: ['Accounts'] },
@@ -52,7 +50,7 @@ const NAV_ITEMS: NavItem[] = [
 const PRIMARY_SHORTCUTS: Record<string, string[]> = {
   Admin:      ['/admin/dashboard', '/admin/orders', '/admin/routes'],
   SuperAdmin: ['/admin/dashboard', '/admin/orders', '/admin/routes'],
-  Salesman:   ['/salesman/routes', '/salesman/incentives'],
+  Salesman:   ['/salesman/routes'],
   Accounts:   ['/accounts/settlement', '/accounts/reports'],
   Warehouse:  ['/warehouse/loading', '/warehouse/dashboard'],
 };

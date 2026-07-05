@@ -81,7 +81,6 @@ const SalesmanRoutes    = lazy(() => import('./pages/Salesman/SalesmanRoutes').t
 const SalesmanOrders    = lazy(() => import('./pages/Salesman/SalesmanOrders'));
 const OrderEntry = lazy(() => import('./pages/Salesman/OrderEntry/OrderEntry'));
 // ReviewOrdersPage removed — submit-all now happens directly on the execute page
-const SalesmanIncentives = lazy(() => import('./pages/Salesman/SalesmanIncentives'));
 const RouteExecution    = lazy(() => import('./pages/Salesman/RouteExecution'));
 const SalesmanCustomers = lazy(() => import('./pages/Salesman/SalesmanCustomers'));
 
@@ -258,7 +257,6 @@ export default function App() {
               <Route path="routes/:routeId/order/:customerId" element={<OrderEntry />} />
               {/* review-orders route removed — submit happens on execute page */}
               <Route path="routes/:routeId/customers" element={<SalesmanCustomers />} />
-              <Route path="incentives" element={<SalesmanIncentives />} />
             </Route>
 
             {/* ── Accounts ── */}
