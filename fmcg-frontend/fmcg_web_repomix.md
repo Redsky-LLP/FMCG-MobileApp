@@ -1415,7 +1415,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.0vp8ocbnkt"
+    "revision": "0.30drpt5ks5k"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -8621,29 +8621,23 @@ export function HeaderSearch({ onSearch, placeholder = "Search orders, customers
 ## File: src/components/layout/MobileLayout.tsx
 ````typescript
 // PATH: src/components/layout/MobileLayout.tsx
-// COMPLETE FIXED VERSION - Clean mobile layout without duplicate headers
+// COMPLETE FIX - Proper fixed header with content scrolling below
 
 import React, { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuthStore, getRoleHome } from '../../store/authStore';
+import { useAuthStore } from '../../store/authStore';
 
 import {
   MapPin,
   ShoppingCart,
-  TrendingUp,
   LayoutDashboard,
   Truck,
   FileText,
   Calculator,
-  Users,
   Package,
-  Home,
   LogOut,
   Menu,
   X,
-  User,
-  Settings,
-  ChevronRight,
   CalendarDays,
 } from 'lucide-react';
 
@@ -8662,7 +8656,6 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   Warehouse: [
     { to: '/warehouse/loading', label: 'Loading', icon: Truck, roles: ['Warehouse'] },
     { to: '/warehouse/dispatch', label: 'Dispatch', icon: Package, roles: ['Warehouse'] },
-    { to: '/warehouse/dashboard', label: 'Reports', icon: FileText, roles: ['Warehouse'] },
   ],
   Accounts: [
     { to: '/accounts/settlement', label: 'Settlement', icon: Calculator, roles: ['Accounts'] },
@@ -8680,14 +8673,10 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   ],
 };
 
-const FULL_SCREEN_PAGES = [
-  '/order/',
-  '/execute',
-  '/review-orders',
-];
-
-export const MOBILE_NAV_HEIGHT = 58;
-const SAFE_TOP_INSET = 'env(safe-area-inset-top, 0px)';
+export const MOBILE_NAV_HEIGHT = 52;
+export const MOBILE_HEADER_HEIGHT = 44;
+export const MOBILE_DATE_BAR_HEIGHT = 26;
+export const MOBILE_TOTAL_HEADER_HEIGHT = MOBILE_HEADER_HEIGHT + MOBILE_DATE_BAR_HEIGHT;
 
 const D = {
   bg:         '#0a0e1a',
@@ -8720,10 +8709,13 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Set CSS variables
   useEffect(() => {
     document.documentElement.style.setProperty('--mobile-nav-h', `${MOBILE_NAV_HEIGHT}px`);
+    document.documentElement.style.setProperty('--mobile-header-h', `${MOBILE_TOTAL_HEADER_HEIGHT}px`);
     return () => {
       document.documentElement.style.removeProperty('--mobile-nav-h');
+      document.documentElement.style.removeProperty('--mobile-header-h');
     };
   }, []);
 
@@ -8747,17 +8739,13 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
   const roleColor = ROLE_COLORS[role] || ROLE_COLORS.Admin;
 
   const isActive = (to: string) => {
-    if (to === '/salesman/routes' && location.pathname.includes('/salesman/routes')) {
-      return true;
-    }
+    if (to === '/salesman/routes' && location.pathname.includes('/salesman/routes')) return true;
     if (to === '/admin/dashboard' && location.pathname === '/admin/dashboard') return true;
     if (to === '/accounts/settlement' && location.pathname.includes('/accounts/settlement')) return true;
     if (to === '/warehouse/loading' && location.pathname.includes('/warehouse/loading')) return true;
     if (to === '/warehouse/dispatch' && location.pathname.includes('/warehouse/dispatch')) return true;
     return location.pathname === to;
   };
-
-  const isFullScreen = FULL_SCREEN_PAGES.some(p => location.pathname.includes(p));
 
   const getPageTitle = () => {
     if (title) return title;
@@ -8775,15 +8763,10 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
     if (path.includes('/admin/routes')) return 'Routes';
     if (path.includes('/admin/orders') && path.includes('/edit')) return 'Edit Order';
     if (path.includes('/admin/orders')) return 'Orders';
-    if (path.includes('/admin/settlement')) return 'Settlement';
     if (path.includes('/admin/products')) return 'Products';
     if (path.includes('/admin/customers')) return 'Customers';
     if (path.includes('/admin/users')) return 'Users';
     if (path.includes('/admin/reports')) return 'Reports';
-    if (path.includes('/admin/analytics')) return 'Analytics';
-    if (path.includes('/admin/incentives')) return 'Incentives';
-    if (path.includes('/admin/settings')) return 'Settings';
-    if (path.includes('/admin/assignments')) return 'Assignments';
     return 'FMCG Dist';
   };
 
@@ -8797,103 +8780,110 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
 
   return (
     <div
-      className="mobile-layout"
       style={{
         display: 'flex',
         flexDirection: 'column',
-        minHeight: '100vh',
-        paddingBottom: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+        height: '100vh',
+        maxHeight: '100vh',
+        overflow: 'hidden',
         background: D.bg,
       }}
     >
-      {/* ── Top App Bar - Minimal ── */}
-      {!isFullScreen && (
-        <div
-          className="mobile-top-bar"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 40,
-            background: 'transparent',
-            padding: `max(2px, ${SAFE_TOP_INSET}) 10px 0px`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            height: `calc(32px + ${SAFE_TOP_INSET})`,
-          }}
-        >
-          <button
-            onClick={() => setDrawerOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 28,
-              height: 28,
-              borderRadius: 6,
-              border: `1px solid ${D.border}`,
-              background: 'rgba(255,255,255,0.05)',
-              cursor: 'pointer',
-              color: D.muted,
-              flexShrink: 0,
-            }}
-          >
-            <Menu size={15} />
-          </button>
-
-          <h1
-            style={{
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              color: D.text,
-              margin: 0,
-              letterSpacing: '-0.02em',
-              textAlign: 'center',
-              flex: 1,
-            }}
-          >
-            {getPageTitle()}
-          </h1>
-
-          <div style={{ width: 28, flexShrink: 0 }} />
-        </div>
-      )}
-
-      {/* ── Date status bar ── */}
-      {!isFullScreen && (
-        <div style={{
-          margin: `calc(32px + ${SAFE_TOP_INSET}) 8px 4px`,
-          padding: '3px 10px',
-          borderRadius: 6,
-          background: 'linear-gradient(135deg, #ea580c, #c2410c)',
+      {/* ── FIXED HEADER ── */}
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 50,
+          background: D.bg,
+          borderBottom: `1px solid ${D.border}`,
+          height: MOBILE_HEADER_HEIGHT,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <CalendarDays size={11} color="rgba(255,255,255,0.85)" />
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>
-              {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-            </span>
-          </div>
-          <span style={{ fontSize: 8, fontWeight: 800, background: 'rgba(255,255,255,0.18)', color: '#fff', padding: '1px 6px', borderRadius: 12 }}>TODAY</span>
-        </div>
-      )}
+          padding: '0 10px',
+          flexShrink: 0,
+        }}
+      >
+        <button
+          onClick={() => setDrawerOpen(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 30,
+            height: 30,
+            borderRadius: 6,
+            border: `1px solid ${D.border}`,
+            background: 'rgba(255,255,255,0.05)',
+            cursor: 'pointer',
+            color: D.muted,
+            flexShrink: 0,
+          }}
+        >
+          <Menu size={17} />
+        </button>
 
-      {/* ── Main Content ── */}
-      <div className="mobile-content" style={{ 
-        flex: 1, 
-        paddingTop: !isFullScreen ? 0 : 0,
-        paddingBottom: 4,
-      }}>
+        <h1
+          style={{
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            color: D.text,
+            margin: 0,
+            letterSpacing: '-0.02em',
+            textAlign: 'center',
+            flex: 1,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            padding: '0 4px',
+          }}
+        >
+          {getPageTitle()}
+        </h1>
+
+        <div style={{ width: 30, flexShrink: 0 }} />
+      </div>
+
+      {/* ── DATE STATUS BAR ── */}
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 49,
+          background: 'linear-gradient(135deg, #ea580c, #c2410c)',
+          padding: '2px 10px',
+          height: MOBILE_DATE_BAR_HEIGHT,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <CalendarDays size={10} color="rgba(255,255,255,0.85)" />
+          <span style={{ fontSize: 9, fontWeight: 700, color: '#fff' }}>
+            {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+          </span>
+        </div>
+        <span style={{ fontSize: 7, fontWeight: 800, background: 'rgba(255,255,255,0.18)', color: '#fff', padding: '1px 6px', borderRadius: 10 }}>TODAY</span>
+      </div>
+
+      {/* ── SCROLLABLE CONTENT ── */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          padding: '8px 10px',
+          paddingBottom: `${MOBILE_NAV_HEIGHT + 8}px`,
+          WebkitOverflowScrolling: 'touch',
+          background: D.bg,
+        }}
+      >
         {children}
       </div>
 
-      {/* ── Bottom Navigation Bar ── */}
+      {/* ── FIXED BOTTOM NAV ── */}
       <div
-        className="mobile-bottom-nav"
         style={{
           position: 'fixed',
           bottom: 0,
@@ -8906,26 +8896,24 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           display: 'flex',
           justifyContent: 'space-around',
           alignItems: 'center',
-          padding: '2px 8px',
-          paddingBottom: `calc(2px + env(safe-area-inset-bottom, 0px))`,
+          height: MOBILE_NAV_HEIGHT,
           zIndex: 60,
-          boxShadow: '0 -2px 20px rgba(0,0,0,0.4)',
-          height: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+          padding: '0 4px',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
-        {navItems.map((item, index) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.to);
-          const uniqueKey = `${item.to}-${index}`;
           return (
             <Link
-              key={uniqueKey}
+              key={item.to}
               to={item.to}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 1,
+                gap: 0,
                 padding: '2px 10px',
                 borderRadius: 6,
                 textDecoration: 'none',
@@ -8937,8 +8925,8 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                 justifyContent: 'center',
               }}
             >
-              <Icon size={17} strokeWidth={active ? 2.2 : 1.8} />
-              <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, letterSpacing: '-0.01em' }}>
+              <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
+              <span style={{ fontSize: 8, fontWeight: active ? 700 : 500 }}>
                 {item.label}
               </span>
             </Link>
@@ -8946,7 +8934,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         })}
       </div>
 
-      {/* ── Drawer Overlay ── */}
+      {/* ── DRAWER ── */}
       {drawerOpen && (
         <div
           onClick={() => setDrawerOpen(false)}
@@ -8956,12 +8944,10 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             background: 'rgba(0,0,0,0.60)',
             backdropFilter: 'blur(4px)',
             zIndex: 200,
-            animation: 'fade-in 0.18s ease',
           }}
         />
       )}
 
-      {/* ── Slide-out Drawer Menu ── */}
       <div
         style={{
           position: 'fixed',
@@ -8982,7 +8968,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         {/* Drawer Header */}
         <div
           style={{
-            padding: '12px 14px 10px',
+            padding: '12px 14px',
             borderBottom: `1px solid ${D.border}`,
             display: 'flex',
             alignItems: 'center',
@@ -8994,23 +8980,16 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
               style={{
                 width: 28,
                 height: 28,
-                background: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
+                background: 'linear-gradient(135deg, #ea580c, #f97316)',
                 borderRadius: 6,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Package size={14} color="#fff" strokeWidth={2.2} />
+              <Package size={14} color="#fff" />
             </div>
-            <span
-              style={{
-                fontWeight: 800,
-                fontSize: 13,
-                color: D.text,
-                letterSpacing: '-0.03em',
-              }}
-            >
+            <span style={{ fontWeight: 800, fontSize: 13, color: D.text }}>
               FMCG<span style={{ color: D.accent }}>Dist</span>
             </span>
           </div>
@@ -9022,18 +9001,18 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
               borderRadius: 6,
               border: `1px solid ${D.border}`,
               background: 'rgba(255,255,255,0.03)',
+              cursor: 'pointer',
+              color: D.muted,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              cursor: 'pointer',
-              color: D.muted,
             }}
           >
             <X size={13} />
           </button>
         </div>
 
-        {/* User Profile Section */}
+        {/* User Profile */}
         <div
           style={{
             padding: '10px',
@@ -9048,15 +9027,14 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         >
           <div
             style={{
-              width: 36,
-              height: 36,
+              width: 34,
+              height: 34,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
+              background: 'linear-gradient(135deg, #ea580c, #f97316)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: '0 2px 8px rgba(234,88,12,0.25)',
             }}
           >
             <span style={{ fontSize: 12, fontWeight: 800, color: '#fff' }}>{initials}</span>
@@ -9067,7 +9045,6 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                 fontSize: 12,
                 fontWeight: 700,
                 color: D.text,
-                letterSpacing: '-0.02em',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -9075,18 +9052,16 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             >
               {user.name}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+            <div style={{ marginTop: 1 }}>
               <span
                 style={{
                   display: 'inline-flex',
-                  alignItems: 'center',
                   padding: '1px 6px',
-                  borderRadius: 12,
-                  fontSize: 8,
+                  borderRadius: 10,
+                  fontSize: 7,
                   fontWeight: 700,
                   background: roleColor.bg,
                   color: roleColor.text,
-                  letterSpacing: '0.02em',
                 }}
               >
                 {user.role}
@@ -9095,34 +9070,14 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           </div>
         </div>
 
-        {/* Navigation Items */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '4px 8px',
-          }}
-        >
-          <div
-            style={{
-              fontSize: 8,
-              fontWeight: 700,
-              color: D.sub,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              padding: '4px 8px 2px',
-            }}
-          >
-            Menu
-          </div>
-
-          {navItems.map((item, index) => {
+        {/* Nav Items */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '4px 8px' }}>
+          {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.to);
-            const uniqueKey = `drawer-${item.to}-${index}`;
             return (
               <Link
-                key={uniqueKey}
+                key={item.to}
                 to={item.to}
                 onClick={() => setDrawerOpen(false)}
                 style={{
@@ -9134,11 +9089,9 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                   textDecoration: 'none',
                   fontSize: 12,
                   fontWeight: active ? 700 : 500,
-                  marginBottom: 1,
                   color: active ? D.text : D.muted,
                   background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
                   border: `1px solid ${active ? 'rgba(234,88,12,0.20)' : 'transparent'}`,
-                  transition: 'all 0.12s',
                 }}
               >
                 <div
@@ -9149,12 +9102,11 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    flexShrink: 0,
                     background: active ? 'rgba(234,88,12,0.15)' : 'rgba(255,255,255,0.04)',
                     color: active ? D.accent : D.muted,
                   }}
                 >
-                  <Icon size={13} strokeWidth={active ? 2.2 : 1.8} />
+                  <Icon size={13} />
                 </div>
                 <span style={{ flex: 1 }}>{item.label}</span>
                 {active && (
@@ -9164,8 +9116,6 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
                       height: 4,
                       borderRadius: '50%',
                       background: D.accent,
-                      flexShrink: 0,
-                      boxShadow: `0 0 6px ${D.accentGlow}`,
                     }}
                   />
                 )}
@@ -9174,52 +9124,27 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           })}
         </div>
 
-        {/* Footer with Sign Out */}
-        <div
-          style={{
-            padding: '10px',
-            borderTop: `1px solid ${D.border}`,
-            flexShrink: 0,
-          }}
-        >
+        {/* Sign Out */}
+        <div style={{ padding: '8px 10px', borderTop: `1px solid ${D.border}` }}>
           <button
             onClick={handleLogout}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
+              gap: 6,
               padding: '6px 10px',
               borderRadius: 6,
               border: '1px solid rgba(239,68,68,0.20)',
               background: 'rgba(239,68,68,0.10)',
               cursor: 'pointer',
               width: '100%',
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: 600,
               color: '#f87171',
-              transition: 'all 0.15s',
               fontFamily: 'inherit',
             }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.18)';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.10)';
-            }}
           >
-            <div
-              style={{
-                width: 26,
-                height: 26,
-                borderRadius: 6,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'rgba(239,68,68,0.15)',
-              }}
-            >
-              <LogOut size={13} />
-            </div>
+            <LogOut size={13} />
             Sign Out
           </button>
         </div>
@@ -18062,93 +17987,61 @@ export function AdminOrders() {
   }, [closureStatus?.isClosed]);
 
   return (
-    <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 80 }}>
-
-      {/* ── Header ───────────────────────────────────────────────────────────── */}
+    <div style={{ background: D.bg, paddingBottom: 8 }}>
       <div style={{
-        position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 20,
-        background: D.bg,
+        padding: '4px 0 8px',
         borderBottom: `1px solid ${D.border}`,
-        padding: '16px 20px',
+        marginBottom: 8,
       }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          {/* ── Back Button ────────────────────────────────────────────────────── */}
-          <div style={{ marginBottom: 14 }}>
-            <Link 
-              to={user?.role === 'Admin' || user?.role === 'SuperAdmin' ? '/admin/dashboard' : '/'}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 16px',
-                borderRadius: 10,
-                background: D.surface,
-                border: `1px solid ${D.border}`,
-                color: D.muted,
-                fontSize: 13,
-                fontWeight: 600,
-                textDecoration: 'none',
-                transition: 'all 0.2s',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.color = D.text;
-                e.currentTarget.style.borderColor = D.accent;
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.color = D.muted;
-                e.currentTarget.style.borderColor = D.border;
-              }}
-            >
-              <ArrowLeft size={16} />
-              Back to Dashboard
-            </Link>
-          </div>
+        <Link 
+          to={user?.role === 'Admin' || user?.role === 'SuperAdmin' ? '/admin/dashboard' : '/'}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '4px 10px',
+            borderRadius: 6,
+            background: D.surface,
+            border: `1px solid ${D.border}`,
+            color: D.muted,
+            fontSize: 10,
+            fontWeight: 600,
+            textDecoration: 'none',
+            marginBottom: 6,
+          }}
+        >
+          <ArrowLeft size={12} /> Dashboard
+        </Link>
 
-          {/* Top row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{
-                width: 42, height: 42, borderRadius: 10,
-                background: D.accent,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: `0 4px 14px ${D.accentGlow}`,
-              }}>
-                <ShoppingCart size={20} color="#FFFFFF" />
-              </div>
-              <div>
-                <h1 style={{ fontSize: 20, fontWeight: 900, margin: 0, color: D.text, letterSpacing: '-0.02em' }}>
-                  Orders
-                </h1>
-                <p style={{ fontSize: 14, color: D.muted, margin: 0, fontWeight: 600 }}>
-                  {orders.length} order{orders.length !== 1 ? 's' : ''} · {currentDate}
-                </p>
-              </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: D.accent,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <ShoppingCart size={16} color="#FFFFFF" />
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={load}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '9px 16px', borderRadius: 9,
-                  border: `1px solid ${D.border}`,
-                  background: D.surface,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: D.muted,
-                  fontFamily: 'inherit',
-                  transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.text; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
-              >
-                <RefreshCw size={15} />
-                Refresh
-              </button>
+            <div>
+              <h1 style={{ fontSize: 14, fontWeight: 900, margin: 0, color: D.text }}>Orders</h1>
+              <p style={{ fontSize: 10, color: D.muted, margin: 0 }}>{orders.length} orders</p>
             </div>
           </div>
+          <button
+            onClick={load}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 3,
+              padding: '4px 10px', borderRadius: 6,
+              border: `1px solid ${D.border}`,
+              background: D.surface,
+              color: D.muted,
+              fontSize: 10, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            <RefreshCw size={12} /> Refresh
+          </button>
+        </div>
 
           {/* ── Status count boxes - NOW CLICKABLE FILTERS ── */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -18299,7 +18192,6 @@ export function AdminOrders() {
             )}
           </div>
         </div>
-      </div>
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 20px' }}>
         {error   && <Alert variant="error">{error}</Alert>}
@@ -26037,12 +25929,12 @@ const BADGE_STYLES: Record<string, { bg: string; color: string }> = {
   violet: { bg: 'rgba(167,139,250,0.15)', color: '#a78bfa' },
 };
 
-function getGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
-}
+// function getGreeting(): string {
+//   const h = new Date().getHours();
+//   if (h < 12) return 'Good morning';
+//   if (h < 17) return 'Good afternoon';
+//   return 'Good evening';
+// }
 
 function getDateString(): string {
   return new Date().toLocaleDateString('en-IN', {
@@ -26168,7 +26060,7 @@ export function HomeHub() {
             fontSize: 30, fontWeight: 900, color: D.text,
             letterSpacing: '-0.04em', margin: 0, lineHeight: 1.1,
           }}>
-            {getGreeting()}, {firstName} <span style={{ color: D.accent }}>✦</span>
+             {firstName} <span style={{ color: D.accent }}>✦</span>
           </h1>
           <p style={{ color: D.muted, fontSize: 14, marginTop: 6, marginBottom: 0, fontWeight: 400 }}>
             Here's your operations overview for today.
@@ -27728,7 +27620,7 @@ export { default } from './OrderEntry';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
-  ArrowLeft, Edit3, Lock, Plus, Save,
+  ArrowLeft, Edit3, Lock, Save,
   CalendarDays, Trash2, CheckCircle2, Clock,
   ChevronLeft, ChevronRight, Search, X, Package,
   AlertTriangle, Trash, Phone, MapPin,
@@ -28045,93 +27937,66 @@ export default function OrderEntry() {
   const orderStatus = existingOrder?.status;
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: D.bg, 
+    <div style={{
+      minHeight: '100vh',
+      background: D.bg,
       color: D.text,
       display: 'flex',
       flexDirection: 'column',
     }}>
-
-      {/* ── FIXED: Sticky header with no extra top space ── */}
-      <div style={{ 
-        position: 'sticky', 
-        top: isMobile ? `${MOBILE_NAV_HEIGHT}px` : 'var(--nav-h, 64px)', 
-        zIndex: 40, 
-        background: D.bg, 
+      <div style={{
+        background: D.bg,
         borderBottom: `1px solid ${D.border}`,
         flexShrink: 0,
+        padding: '4px 10px 8px',
       }}>
-
-        {/* Row 1: back + actions */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <button
             onClick={() => navigate(-1)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: D.card, border: `1px solid ${D.border}`, borderRadius: 9, padding: '7px 12px', color: D.muted, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(255,255,255,0.06)', border: `1px solid ${D.border}`, borderRadius: 6, padding: '3px 8px', color: D.muted, fontSize: 10, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={12} /> Back
           </button>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 3 }}>
             {previousOrders.length > 0 && canEdit && (
               <button
                 onClick={() => setShowPreviousModal(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#312e81', border: '1px solid #4338ca', borderRadius: 8, padding: '7px 11px', color: '#a5b4fc', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 2, background: '#312e81', border: '1px solid #4338ca', borderRadius: 6, padding: '3px 7px', color: '#a5b4fc', fontSize: 9, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
               >
-                <ChevronLeft size={13} /><ChevronRight size={13} /> Previous
+                <ChevronLeft size={10} /><ChevronRight size={10} /> Prev
               </button>
             )}
-
-            {/* ── Cancel Order button (always visible for Draft orders) ── */}
             {canCancel && (
               <button
                 onClick={() => setShowCancelConfirm(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.30)', borderRadius: 8, padding: '6px 12px', color: '#ef4444', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 6, padding: '3px 8px', color: '#ef4444', fontSize: 9, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
               >
-                <Trash size={14} /> Cancel Order
+                <Trash size={11} /> Cancel
               </button>
             )}
           </div>
         </div>
 
-        {/* Row 2: date bar */}
-        <div style={{ margin: '0 16px 6px', padding: '6px 14px', borderRadius: 9, background: 'linear-gradient(135deg,#1e3a8a,#2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <CalendarDays size={14} color="rgba(255,255,255,0.8)" />
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
-              {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-            </span>
+        <div style={{ marginTop: 4, padding: '6px 8px', borderRadius: 6, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)' }}>
+          <h1 style={{ margin: 0, fontSize: 14, fontWeight: 900, color: D.text }}>{customer?.nameEnglish}</h1>
+          {customer?.nameMalayalam && <p style={{ margin: '1px 0 0', fontSize: 10, color: D.muted }} lang="ml">{customer.nameMalayalam}</p>}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
+            {customer?.phoneNumber && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '1px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', fontSize: 9, fontWeight: 700, color: D.text }}>
+                <Phone size={9} color={D.accent} /> {customer.phoneNumber}
+              </span>
+            )}
+            {customer?.address && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '1px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', fontSize: 9, fontWeight: 700, color: D.text }}>
+                <MapPin size={9} color={D.accent} /> {customer.address}
+              </span>
+            )}
           </div>
-          <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: 'rgba(255,255,255,0.18)', padding: '2px 9px', borderRadius: 20 }}>TODAY</span>
-        </div>
-
-        {/* Row 3: customer info */}
-        <div style={{ padding: '0 16px 10px' }}>
-          <div style={{
-            padding: '12px 16px', borderRadius: 14,
-            background: 'rgba(59,130,246,0.10)', border: '1px solid rgba(59,130,246,0.30)',
-          }}>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: D.text, letterSpacing: '-0.02em' }}>{customer?.nameEnglish}</h1>
-            {customer?.nameMalayalam && <p style={{ margin: '2px 0 0', fontSize: 14, color: D.muted }} lang="ml">{customer.nameMalayalam}</p>}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
-              {customer?.phoneNumber && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', fontSize: 13, fontWeight: 700, color: D.text }}>
-                  <Phone size={14} color={D.accent} /> {customer.phoneNumber}
-                </span>
-              )}
-              {customer?.address && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', fontSize: 13, fontWeight: 700, color: D.text }}>
-                  <MapPin size={14} color={D.accent} /> {customer.address}
-                </span>
-              )}
-            </div>
-          </div>
-          {/* Status badge */}
-          <div style={{ marginTop: 6 }}>
-            {!existingOrder        && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#422006', border: '1px solid #92400e', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fb923c' }}><Edit3 size={11} /> New Order</span>}
-            {orderStatus === OrderStatus.Draft             && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#422006', border: '1px solid #92400e', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fb923c' }}><Edit3 size={11} /> Draft — Editable</span>}
-            {/* {orderStatus === OrderStatus.PendingApproval  && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#1e3a8a', border: '1px solid #2563eb', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#93c5fd' }}><Clock size={11} /> Pending Approval</span>} */}
-            {orderStatus === OrderStatus.Approved         && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#14532d', border: '1px solid #16a34a', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#86efac' }}><CheckCircle2 size={11} /> Approved</span>}
-            {orderStatus === OrderStatus.Closed           && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', background: '#0c4a6e', border: '1px solid #0284c7', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#7dd3fc' }}><Lock size={11} /> Closed — Read only</span>}
+          <div style={{ marginTop: 3 }}>
+            {!existingOrder && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '1px 6px', background: '#422006', border: '1px solid #92400e', borderRadius: 12, fontSize: 8, fontWeight: 700, color: '#fb923c' }}><Edit3 size={8} /> New</span>}
+            {orderStatus === OrderStatus.Draft && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '1px 6px', background: '#422006', border: '1px solid #92400e', borderRadius: 12, fontSize: 8, fontWeight: 700, color: '#fb923c' }}><Edit3 size={8} /> Draft</span>}
+            {orderStatus === OrderStatus.Approved && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '1px 6px', background: '#14532d', border: '1px solid #16a34a', borderRadius: 12, fontSize: 8, fontWeight: 700, color: '#86efac' }}><CheckCircle2 size={8} /> Approved</span>}
+            {orderStatus === OrderStatus.Closed && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '1px 6px', background: '#0c4a6e', border: '1px solid #0284c7', borderRadius: 12, fontSize: 8, fontWeight: 700, color: '#7dd3fc' }}><Lock size={8} /> Closed</span>}
           </div>
         </div>
       </div>
@@ -28256,23 +28121,63 @@ export default function OrderEntry() {
           </div>
         )}
 
-        {/* Add Products button */}
+        {/* ── ADD PRODUCTS - LARGE FLOATING PLUS BUTTON ── */}
         {canEdit && (
-          <div style={{ display: 'flex', justifyContent: 'center', margin: lines.length > 0 ? '10px 0 14px' : '0 0 14px' }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: lines.length > 0 ? '12px 0 16px' : '0 0 16px',
+          }}>
             <button
               onClick={() => setShowProducts(true)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '12px 28px', borderRadius: 28,
-                background: 'linear-gradient(135deg,#2563eb,#1d4ed8)',
-                border: 'none', color: '#fff', fontSize: 14, fontWeight: 800,
-                cursor: 'pointer', fontFamily: 'inherit',
-                boxShadow: '0 4px 16px rgba(37,99,235,0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                background: `linear-gradient(135deg, #2563eb, #1d4ed8)`,
+                border: 'none',
+                color: '#fff',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                boxShadow: '0 4px 20px rgba(37,99,235,0.45)',
                 touchAction: 'manipulation',
+                transition: 'all 0.2s ease',
+                fontSize: 36,
+                fontWeight: 300,
+                lineHeight: 1,
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 28px rgba(37,99,235,0.55)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(37,99,235,0.45)';
+              }}
+              onTouchStart={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(0.92)';
+              }}
+              onTouchEnd={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
               }}
             >
-              <Plus size={18} strokeWidth={2.5} /> Add Products
+              +
             </button>
+
+            <span style={{
+              marginTop: 6,
+              fontSize: 10,
+              fontWeight: 600,
+              color: '#94a3b8',
+              letterSpacing: '0.04em',
+            }}>
+              ADD ITEMS
+            </span>
           </div>
         )}
 
@@ -29404,71 +29309,58 @@ export default function RouteExecution() {
 
   return (
     <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: allDone ? 130 : 32 }}>
-
-      {/* Sticky header */}
-      <div style={{ position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 50, background: D.bg, borderBottom: `1px solid ${D.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px 10px' }}>
+      <div style={{ background: D.bg, borderBottom: `1px solid ${D.border}`, marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px 4px' }}>
           <button
             onClick={() => navigate('/salesman/routes')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, background: `${D.accent}22`, border: `1px solid ${D.accent}44`, color: D.accent, fontSize: 14, fontWeight: 700, cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 6, background: 'rgba(234,88,12,0.12)', border: `1px solid rgba(234,88,12,0.30)`, color: D.accent, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            <ArrowLeft size={18} /> Back
+            <ArrowLeft size={12} /> Back
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: D.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{execution.routeName}</div>
-            <div style={{ fontSize: 13, color: D.muted, fontWeight: 500, marginTop: 1 }}>{doneCount} of {total} done · {pendingCount} pending</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: D.text }}>{execution.routeName}</div>
+            <div style={{ fontSize: 10, color: D.muted }}>{doneCount} of {total} done · {pendingCount} pending</div>
             {nextCustomer && pendingCount > 0 && (
-              <div style={{ fontSize: 11, color: D.red, fontWeight: 600, marginTop: 2 }}>
-                → Next: <span style={{ fontWeight: 700 }}>{nextCustomer}</span>
+              <div style={{ fontSize: 9, color: D.red, fontWeight: 600 }}>
+                → Next: {nextCustomer}
               </div>
             )}
           </div>
         </div>
 
-        <div style={{ padding: '0 20px 10px' }}>
-          <div style={{ height: 6, background: D.border, borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{ width: `${progress}%`, height: '100%', borderRadius: 3, background: allDone ? D.green : `linear-gradient(90deg, ${D.accent}, ${D.accentH})`, transition: 'width 0.4s ease' }} />
+        <div style={{ padding: '0 10px 4px' }}>
+          <div style={{ height: 3, background: D.border, borderRadius: 1, overflow: 'hidden' }}>
+            <div style={{ width: `${progress}%`, height: '100%', background: allDone ? D.green : D.accent }} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: allDone ? D.green : D.accent }}>{progress}%</span>
-            <span style={{ fontSize: 12, color: D.sub, fontWeight: 600 }}>{allDone ? 'All done!' : `${pendingCount} remaining`}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: allDone ? D.green : D.accent }}>{progress}%</span>
+            <span style={{ fontSize: 9, color: D.sub }}>{allDone ? 'All done!' : `${pendingCount} remaining`}</span>
           </div>
         </div>
 
-        <div style={{ margin: '0 16px 12px', padding: '9px 14px', borderRadius: 10, background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: `0 2px 8px ${D.accentGlow}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <CalendarDays size={16} color="rgba(255,255,255,0.85)" />
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>
-              {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-            </span>
-          </div>
-          <span style={{ fontSize: 11, fontWeight: 800, background: 'rgba(255,255,255,0.18)', color: '#fff', padding: '3px 10px', borderRadius: 20 }}>TODAY</span>
-        </div>
-
-        <div style={{ padding: '0 16px 12px' }}>
-          <div style={{ position: 'relative', marginBottom: 8 }}>
-            <Search size={15} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: D.sub, pointerEvents: 'none' }} />
+        <div style={{ padding: '0 10px 6px' }}>
+          <div style={{ position: 'relative', marginBottom: 4 }}>
+            <Search size={11} style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', color: D.sub, pointerEvents: 'none' }} />
             <input
               type="text"
-              placeholder="Search shop name, phone, area, or stop number..."
+              placeholder="Search shop..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '9px 12px 9px 34px', border: `1px solid ${D.border}`, borderRadius: 10, fontSize: 14, color: D.text, background: D.surface, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+              style={{ width: '100%', padding: '3px 8px 3px 24px', border: `1px solid ${D.border}`, borderRadius: 6, fontSize: 10, color: D.text, background: D.surface, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
             />
             {search && (
-              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer', padding: 4 }}>
-                <XCircle size={15} />
+              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer', padding: 2 }}>
+                <XCircle size={12} />
               </button>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+          <div style={{ display: 'flex', gap: 3, overflowX: 'auto', paddingBottom: 1 }}>
             {FILTER_CHIPS.map(chip => (
               <button
                 key={chip.key}
                 onClick={() => setStatusFilter(chip.key)}
                 style={{
-                  padding: '5px 12px', borderRadius: 16, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                  padding: '1px 8px', borderRadius: 10, fontSize: 9, fontWeight: 700, whiteSpace: 'nowrap',
                   background: statusFilter === chip.key ? D.accent : D.surface,
                   color: statusFilter === chip.key ? '#fff' : D.muted,
                   border: `1px solid ${statusFilter === chip.key ? D.accent : D.border}`,
@@ -30415,46 +30307,41 @@ export default function SalesmanOrders() {
 
   return (
     <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 100 }}>
-
-      {/* ── Sticky header ───────────────────────────────── */}
-      <div style={{ position: 'sticky', top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)', zIndex: 20, background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})` }}>
-        <div style={{ padding: '12px 14px 10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <button
-                onClick={() => navigate('/salesman/routes')}
-                style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.20)', border: 'none', borderRadius: 8, padding: '6px 10px', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', touchAction: 'manipulation' }}
-              >
-                <ArrowLeft size={15} /> Routes
-              </button>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={load} style={{ background: 'rgba(255,255,255,0.20)', border: 'none', borderRadius: 8, padding: '7px 10px', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', touchAction: 'manipulation' }}>
-                <RefreshCw size={13} /> Refresh
+      <div style={{ background: D.bg, borderBottom: `1px solid ${D.border}`, marginBottom: 8 }}>
+        <div style={{ padding: '8px 10px 6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <button
+              onClick={() => navigate('/salesman/routes')}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.06)', border: `1px solid ${D.border}`, borderRadius: 6, padding: '4px 8px', color: D.muted, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              <ArrowLeft size={12} /> Routes
+            </button>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button onClick={load} style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${D.border}`, borderRadius: 6, padding: '4px 8px', color: D.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 600, fontFamily: 'inherit' }}>
+                <RefreshCw size={11} /> Refresh
               </button>
               {draftCount > 0 && (
                 <button
                   onClick={handleSubmitAll}
                   disabled={submittingAll}
-                  style={{ background: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', color: D.accent, cursor: submittingAll ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 800, fontFamily: 'inherit', touchAction: 'manipulation', opacity: submittingAll ? 0.6 : 1 }}
+                  style={{ background: '#fff', border: 'none', borderRadius: 6, padding: '4px 8px', color: D.accent, cursor: submittingAll ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 800, fontFamily: 'inherit', opacity: submittingAll ? 0.6 : 1 }}
                 >
-                  {submittingAll ? <Spinner size={13} /> : <Send size={13} />}
-                  Submit All ({draftCount})
+                  {submittingAll ? <Spinner size={10} /> : <Send size={10} />}
+                  Submit ({draftCount})
                 </button>
               )}
             </div>
           </div>
 
-          <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>
+          <h1 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: D.text }}>
             {route?.name ?? 'Route Orders'}
           </h1>
-          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>
-            {customers.length} customers · ₹{fmt(totalAmount)} total · {today}
+          <p style={{ margin: '2px 0 0', fontSize: 10, color: D.muted }}>
+            {customers.length} customers · ₹{fmt(totalAmount)} total
           </p>
         </div>
 
-        {/* Stats strip */}
-        <div style={{ display: 'flex', gap: 0, background: 'rgba(0,0,0,0.15)', overflowX: 'auto', padding: '0 14px 10px' }}>
+        <div style={{ display: 'flex', gap: 4, overflowX: 'auto', padding: '0 10px 6px' }}>
           {[
             { label: 'All', val: orders.length, active: statusFilter === 'all', onClick: () => setStatusFilter('all') },
             { label: 'Draft', val: draftCount, active: statusFilter === OrderStatus.Draft, onClick: () => setStatusFilter(OrderStatus.Draft) },
@@ -30462,37 +30349,31 @@ export default function SalesmanOrders() {
             { label: 'Approved', val: approvedCount, active: statusFilter === OrderStatus.Approved, onClick: () => setStatusFilter(OrderStatus.Approved) },
             { label: 'Closed', val: closedCount, active: statusFilter === OrderStatus.Closed, onClick: () => setStatusFilter(OrderStatus.Closed) },
           ].map(s => (
-            <button key={s.label} onClick={s.onClick} style={{ flexShrink: 0, background: s.active ? '#fff' : 'rgba(255,255,255,0.18)', border: 'none', borderRadius: 20, padding: '4px 12px', marginRight: 6, color: s.active ? D.accent : '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', touchAction: 'manipulation' }}>
+            <button key={s.label} onClick={s.onClick} style={{ flexShrink: 0, background: s.active ? 'rgba(234,88,12,0.15)' : 'rgba(255,255,255,0.04)', border: `1px solid ${s.active ? D.accent : D.border}`, borderRadius: 12, padding: '1px 8px', color: s.active ? D.accent : D.muted, fontSize: 8, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
               {s.label} {s.val}
             </button>
           ))}
         </div>
 
-        {/* Progress bar */}
         {customers.length > 0 && (
-          <div style={{ margin: '0 14px 10px' }}>
-            <div style={{ height: 4, background: 'rgba(255,255,255,0.25)', borderRadius: 2, overflow: 'hidden' }}>
-              <div style={{ width: `${(orders.length / customers.length) * 100}%`, height: '100%', background: '#fff', borderRadius: 2, transition: 'width 0.4s' }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Order Progress</span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: 700 }}>{orders.length} of {customers.length} customers</span>
+          <div style={{ margin: '0 10px 6px' }}>
+            <div style={{ height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 1, overflow: 'hidden' }}>
+              <div style={{ width: `${(orders.length / customers.length) * 100}%`, height: '100%', background: D.accent, borderRadius: 1 }} />
             </div>
           </div>
         )}
 
-        {/* Search */}
-        <div style={{ margin: '0 14px 12px', position: 'relative' }}>
-          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.6)', pointerEvents: 'none' }} />
+        <div style={{ margin: '0 10px 8px', position: 'relative' }}>
+          <Search size={11} style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', color: D.sub, pointerEvents: 'none' }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search customer or order..."
-            style={{ width: '100%', padding: '8px 34px 8px 32px', background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 8, fontSize: 13, color: '#fff', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '3px 8px 3px 24px', background: D.surface, border: `1px solid ${D.border}`, borderRadius: 6, fontSize: 10, color: D.text, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
           />
           {search && (
-            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 2, touchAction: 'manipulation' }}>
-              <X size={14} />
+            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer', padding: 2 }}>
+              <X size={12} />
             </button>
           )}
         </div>
@@ -30877,146 +30758,127 @@ export function SalesmanRoutes() {
 
   const completedCount = routes.filter(r => isEffectivelyCompleted(r)).length;
   const firstName = user?.name?.split(' ')[0] ?? 'Salesman';
-  const greeting  = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
+  // const greeting  = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
   const showRouteSearch = routes.length > 6; // most salesmen have a handful of routes; only show search once it's worth it
   const visibleRoutes = showRouteSearch && search.trim()
     ? routes.filter(r => r.routeName?.toLowerCase().includes(search.trim().toLowerCase()))
     : routes;
 
   return (
-    <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 80 }}>
-      {/* Header */}
+    <div style={{ background: D.bg }}>
       <div style={{
-        position: 'sticky',
-        top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)',
-        zIndex: 20,
-        background: D.bg,
+        padding: '6px 0 10px',
         borderBottom: `1px solid ${D.border}`,
-        padding: '16px 20px',
+        marginBottom: 10,
       }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-              <div style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-              }}>
-                {firstName.charAt(0).toUpperCase()}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <h1 style={{ fontSize: 18, fontWeight: 900, color: D.text, margin: 0, letterSpacing: '-0.02em' }}>
-                  {greeting}, {firstName} 👋
-                </h1>
-                <p style={{ fontSize: 13, color: D.muted, margin: '2px 0 0' }}>
-                  {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
-              </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+            }}>
+              {firstName.charAt(0).toUpperCase()}
             </div>
-            <button
-              onClick={load}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '8px 16px',
-                borderRadius: 10,
-                border: `1px solid ${D.border}`,
-                background: D.surface,
-                color: D.muted,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                transition: 'all 0.15s',
-                flexShrink: 0,
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.text; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
-            >
-              <RefreshCw size={14} /> Refresh
-            </button>
+            <div>
+              <h1 style={{ fontSize: 13, fontWeight: 800, color: D.text, margin: 0 }}>
+                           {firstName} 👋
+              </h1>
+              <p style={{ fontSize: 10, color: D.muted, margin: '1px 0 0' }}>
+                {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+              </p>
+            </div>
           </div>
+          <button
+            onClick={load}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 3,
+              padding: '4px 10px',
+              borderRadius: 6,
+              border: `1px solid ${D.border}`,
+              background: D.surface,
+              color: D.muted,
+              fontSize: 10,
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            <RefreshCw size={12} /> Refresh
+          </button>
+        </div>
 
-          {/* Route search — only shown once there are enough routes to need it */}
-          {showRouteSearch && (
-            <div style={{ position: 'relative', marginTop: 14 }}>
-              <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: D.sub }} />
-              <input
-                type="text"
-                placeholder="Search routes by name..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 36px 9px 36px',
-                  fontSize: 13,
-                  border: `1px solid ${D.border}`,
-                  borderRadius: 10,
-                  background: D.surface,
-                  color: D.text,
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                  transition: 'border-color 0.15s',
-                }}
-                onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-                onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer' }}
-                >
-                  <X size={15} />
-                </button>
-              )}
-            </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 3,
+            fontSize: 9, fontWeight: 600, padding: '2px 8px',
+            borderRadius: 12,
+            background: isDayClosed ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
+            border: `1px solid ${isDayClosed ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
+            color: isDayClosed ? D.green : D.amber,
+          }}>
+            {isDayClosed ? <CheckCircle2 size={9} /> : <Lock size={9} />}
+            {isDayClosed ? 'Day closed' : 'Day open'}
+          </span>
+
+          {completedCount > 0 && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 9, fontWeight: 600, padding: '2px 8px',
+              borderRadius: 12,
+              background: 'rgba(59,130,246,0.12)',
+              border: '1px solid rgba(59,130,246,0.25)',
+              color: '#3B82F6',
+            }}>
+              <CheckCircle2 size={9} /> {completedCount}/{routes.length} done
+            </span>
           )}
 
-          {/* Status chips — compact row instead of stacked full-width banners */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+          {activeRoute && (
             <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontSize: 12, fontWeight: 600, padding: '6px 14px',
-              borderRadius: 20,
-              background: isDayClosed ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
-              border: `1px solid ${isDayClosed ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
-              color: isDayClosed ? D.green : D.amber,
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 9, fontWeight: 600, padding: '2px 8px',
+              borderRadius: 12,
+              background: 'rgba(245,158,11,0.12)',
+              border: '1px solid rgba(245,158,11,0.25)',
+              color: D.amber,
             }}>
-              {isDayClosed ? <CheckCircle2 size={12} /> : <Lock size={12} />}
-              {isDayClosed ? 'Day closed — Delivery available' : 'Day not closed — Delivery disabled'}
+              <AlertTriangle size={9} /> Complete {activeRoute.routeName}
             </span>
+          )}
+        </div>
 
-            {completedCount > 0 && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                fontSize: 12, fontWeight: 600, padding: '6px 14px',
-                borderRadius: 20,
-                background: 'rgba(59,130,246,0.12)',
-                border: '1px solid rgba(59,130,246,0.25)',
-                color: '#3B82F6',
-              }}>
-                <CheckCircle2 size={12} /> {completedCount} of {routes.length} route{routes.length !== 1 ? 's' : ''} completed today
-              </span>
-            )}
-
-            {activeRoute && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                fontSize: 12, fontWeight: 600, padding: '6px 14px',
-                borderRadius: 20,
-                background: 'rgba(245,158,11,0.12)',
-                border: '1px solid rgba(245,158,11,0.25)',
-                color: D.amber,
-              }}>
-                <AlertTriangle size={12} /> Complete <strong style={{ color: D.text }}>{activeRoute.routeName}</strong> before starting another
-              </span>
+        {showRouteSearch && (
+          <div style={{ position: 'relative', marginTop: 8 }}>
+            <Search size={12} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: D.sub }} />
+            <input
+              type="text"
+              placeholder="Search routes..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '4px 28px 4px 28px',
+                fontSize: 11,
+                border: `1px solid ${D.border}`,
+                borderRadius: 6,
+                background: D.surface,
+                color: D.text,
+                outline: 'none',
+                fontFamily: 'inherit',
+              }}
+            />
+            {search && (
+              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer' }}>
+                <X size={12} />
+              </button>
             )}
           </div>
-        </div>
+        )}
       </div>
 
       {error && (

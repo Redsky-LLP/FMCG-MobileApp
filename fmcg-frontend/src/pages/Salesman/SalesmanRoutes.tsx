@@ -249,40 +249,40 @@ export function SalesmanRoutes() {
     } finally { setStarting(null); setActiveMode(null); }
   }
 
-  async function handleStartDelivery(routeId: string) {
-    if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
-      setError('Invalid route selected.'); return;
-    }
+  // async function handleStartDelivery(routeId: string) {
+  //   if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
+  //     setError('Invalid route selected.'); return;
+  //   }
 
-    if (isRouteAlreadyCompleted(routeId)) {
-      setError('This route is already completed for today.');
-      return;
-    }
+  //   if (isRouteAlreadyCompleted(routeId)) {
+  //     setError('This route is already completed for today.');
+  //     return;
+  //   }
 
-    if (!isDayClosed) {
-      setError("Cannot start delivery. Admin must close today's operations first.");
-      return;
-    }
-    setStarting(routeId); setActiveMode('delivery');
-    try {
-      const execution = await routesApi.getCurrentExecution(routeId).catch(() => null);
-      if (execution?.executionId && execution.status === 'InProgress') {
-        navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'delivery' } });
-        return;
-      }
-      await routesApi.startExecution(routeId);
-      navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'delivery' } });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to start delivery');
-      await load();
-    } finally { setStarting(null); setActiveMode(null); }
-  }
+  //   if (!isDayClosed) {
+  //     setError("Cannot start delivery. Admin must close today's operations first.");
+  //     return;
+  //   }
+  //   setStarting(routeId); setActiveMode('delivery');
+  //   try {
+  //     const execution = await routesApi.getCurrentExecution(routeId).catch(() => null);
+  //     if (execution?.executionId && execution.status === 'InProgress') {
+  //       navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'delivery' } });
+  //       return;
+  //     }
+  //     await routesApi.startExecution(routeId);
+  //     navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'delivery' } });
+  //   } catch (err: unknown) {
+  //     setError(err instanceof Error ? err.message : 'Failed to start delivery');
+  //     await load();
+  //   } finally { setStarting(null); setActiveMode(null); }
+  // }
 
   if (loading) return <PageLoader />;
 
   const completedCount = routes.filter(r => isEffectivelyCompleted(r)).length;
   const firstName = user?.name?.split(' ')[0] ?? 'Salesman';
-  const greeting  = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
+  // const greeting  = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
   const showRouteSearch = routes.length > 6; // most salesmen have a handful of routes; only show search once it's worth it
   const visibleRoutes = showRouteSearch && search.trim()
     ? routes.filter(r => r.routeName?.toLowerCase().includes(search.trim().toLowerCase()))
@@ -310,7 +310,7 @@ export function SalesmanRoutes() {
             </div>
             <div>
               <h1 style={{ fontSize: 13, fontWeight: 800, color: D.text, margin: 0 }}>
-                {greeting}, {firstName} 👋
+                  {firstName} 👋
               </h1>
               <p style={{ fontSize: 10, color: D.muted, margin: '1px 0 0' }}>
                 {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
@@ -468,7 +468,7 @@ export function SalesmanRoutes() {
                   onContinueOrderTaking={() => {
                     navigate(`/salesman/routes/${route.routeId}/execute`, { state: { mode: 'order-taking' } });
                   }}
-                  onStartDelivery={() => handleStartDelivery(route.routeId)}
+                  // onStartDelivery={() => handleStartDelivery(route.routeId)}
                   onViewCustomers={() => navigate(`/salesman/routes/${route.routeId}/customers`)}
                   onViewOrders={() => navigate(`/salesman/routes/${route.routeId}/orders`)}
                 />
@@ -484,7 +484,7 @@ export function SalesmanRoutes() {
 function RouteCard({
   route, isCompleted, isInProgress, isBlocked, isDayClosed,
   starting, activeMode,
-  onStartOrderTaking, onContinueOrderTaking, onStartDelivery,
+  onStartOrderTaking, onContinueOrderTaking, 
   onViewCustomers, onViewOrders,
 }: {
   route: EnrichedRoute;
@@ -496,7 +496,7 @@ function RouteCard({
   activeMode: 'order' | 'delivery' | null;
   onStartOrderTaking: () => void;
   onContinueOrderTaking: () => void;
-  onStartDelivery: () => void;
+  // onStartDelivery: () => void;
   onViewCustomers: () => void;
   onViewOrders: () => void;
 }) {
@@ -809,7 +809,7 @@ function RouteCard({
                 >
                   <ShoppingBag size={15} /> Take Orders
                 </button>
-                <button
+                {/* <button
                   onClick={onStartDelivery}
                   disabled={starting || isBlocked || !isDayClosed}
                   style={{
@@ -843,7 +843,7 @@ function RouteCard({
                   }}
                 >
                   <Truck size={15} /> Delivery
-                </button>
+                </button> */}
               </>
             )}
             <button
