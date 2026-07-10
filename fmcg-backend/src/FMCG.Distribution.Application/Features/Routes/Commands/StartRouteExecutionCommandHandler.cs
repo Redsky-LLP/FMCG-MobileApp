@@ -111,22 +111,22 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
         // which day it was started — same reasoning as above, an unclosed
         // execution from yesterday still counts as "active" today. This only
         // applies to THIS salesman's own other routes, not anyone else's.
-        var existingActiveExecution = await context.RouteExecutions
-            .Where(e => e.SalesmanId == request.SalesmanId
-                && e.RouteId != request.RouteId
-                && e.Status != ExecutionStatus.Completed
-                && e.Status != ExecutionStatus.Abandoned)
-            .OrderByDescending(e => e.ExecutionDate)
-            .FirstOrDefaultAsync(cancellationToken);
+        //var existingActiveExecution = await context.RouteExecutions
+        //    .Where(e => e.SalesmanId == request.SalesmanId
+        //        && e.RouteId != request.RouteId
+        //        && e.Status != ExecutionStatus.Completed
+        //        && e.Status != ExecutionStatus.Abandoned)
+        //    .OrderByDescending(e => e.ExecutionDate)
+        //    .FirstOrDefaultAsync(cancellationToken);
 
-        if (existingActiveExecution != null)
-        {
-            var activeRoute = await context.Routes
-                .FirstOrDefaultAsync(r => r.Id == existingActiveExecution.RouteId, cancellationToken);
-            return Result<StartRouteExecutionResponse>.Failure(
-                $"You already have an active route execution for '{activeRoute?.Name}'. " +
-                "Please complete that route before starting a new one.");
-        }
+        //if (existingActiveExecution != null)
+        //{
+        //    var activeRoute = await context.Routes
+        //        .FirstOrDefaultAsync(r => r.Id == existingActiveExecution.RouteId, cancellationToken);
+        //    return Result<StartRouteExecutionResponse>.Failure(
+        //        $"You already have an active route execution for '{activeRoute?.Name}'. " +
+        //        "Please complete that route before starting a new one.");
+        //}
 
         // Create new execution
         var execution = new RouteExecution

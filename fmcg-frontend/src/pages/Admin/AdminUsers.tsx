@@ -504,18 +504,18 @@ export function AdminUsers() {
   const [pinAvailability, setPinAvailability] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [pinConflictName, setPinConflictName] = useState('');
 
-  async function load() {
-    setLoading(true); setError('');
-    try {
-      const all = await usersApi.getAllWithInactive(
-        roleFilter === 'All' ? undefined : roleFilter
-      );
-      setUsers(all);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load users');
-    } finally { setLoading(false); }
-  }
-
+ async function load() {
+  setLoading(true); setError('');
+  try {
+    // ── CHANGE: Only get active users ──
+    const all = await usersApi.getAll(
+      roleFilter === 'All' ? undefined : roleFilter
+    );
+    setUsers(all);
+  } catch (err: unknown) {
+    setError(err instanceof Error ? err.message : 'Failed to load users');
+  } finally { setLoading(false); }
+}
   useEffect(() => { load(); }, [roleFilter]);
 
   async function handleToggleConfirm() {
