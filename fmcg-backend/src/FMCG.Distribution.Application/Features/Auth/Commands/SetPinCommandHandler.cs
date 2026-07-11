@@ -14,18 +14,16 @@ namespace FMCG.Distribution.Application.Features.Auth.Commands;
 public class SetPinCommandHandler(IApplicationDbContext context)
     : IRequestHandler<SetPinCommand, Result<bool>>
 {
-    private const int PinMinLength = 4;
-    private const int PinMaxLength = 6;
+    private const int PinLength = 6;
 
     public async Task<Result<bool>> Handle(SetPinCommand request, CancellationToken cancellationToken)
     {
         // Validate PIN format
         if (string.IsNullOrWhiteSpace(request.Pin)
-            || request.Pin.Length < PinMinLength
-            || request.Pin.Length > PinMaxLength
+            || request.Pin.Length != PinLength
             || !request.Pin.All(char.IsDigit))
         {
-            return Result<bool>.Failure($"PIN must be {PinMinLength}–{PinMaxLength} digits.");
+            return Result<bool>.Failure($"PIN must be exactly {PinLength} digits.");
         }
 
         var user = await context.Users
@@ -60,6 +58,7 @@ public class SetPinCommandHandler(IApplicationDbContext context)
         user.PinHash = BCrypt.Net.BCrypt.HashPassword(request.Pin);
         user.PinFailCount = 0;
         user.PinLockedUntil = null;
+        user.PinRequiresUpdate = false;
         user.UpdateTimestamp(request.UserId.ToString());
 
         await context.SaveChangesAsync(cancellationToken);

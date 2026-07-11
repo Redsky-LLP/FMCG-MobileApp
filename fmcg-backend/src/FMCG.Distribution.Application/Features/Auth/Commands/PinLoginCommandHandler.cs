@@ -92,6 +92,7 @@ public class PinLoginCommandHandler : IRequestHandler<PinLoginCommand, Result<Lo
             FullName = user.FullName,
             Role = user.Role.ToString(),
             SessionId = session.Id,
+            RequiresPinUpdate = user.PinRequiresUpdate,
         });
     }
 

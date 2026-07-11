@@ -267,7 +267,7 @@ export default function OrderEntry() {
         setSuccessMsg('Saved as draft!');
       }
       setExistingOrder(result);
-      setTimeout(() => setSuccessMsg(''), 3000);
+      // setTimeout(() => setSuccessMsg(''), 3000);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Save failed');
     } finally { setSaving(false); }

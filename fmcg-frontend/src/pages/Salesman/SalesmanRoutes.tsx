@@ -211,78 +211,63 @@ export function SalesmanRoutes() {
   const activeRoute = routes.find(r => isGenuinelyInProgress(r));
 
   async function handleStartOrderTaking(routeId: string) {
-    if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
-      setError('Invalid route selected.'); return;
-    }
-
-    if (isRouteAlreadyCompleted(routeId)) {
-      setError('This route is already completed for today.');
-      await load();
-      return;
-    }
-
-    setStarting(routeId); setActiveMode('order');
-    try {
-      const existing = await routesApi.getCurrentExecution(routeId).catch(() => null);
-
-      if (existing?.executionId && existing.status === 'Completed') {
-        setError('This route is already completed for today.');
-        await load();
-        return;
-      }
-
-      if (existing?.executionId && existing.status === 'InProgress') {
-        // Existing in-progress execution — navigate directly back into it.
-        // Don't block based on order states; the salesman may want to edit.
-        navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'order-taking' } });
-        return;
-      }
-
-      await routesApi.startOrderTaking(routeId);
-      navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'order-taking' } });
-    } catch (err: unknown) {
-      // If another salesman grabbed this route between page-load and tapping
-      // Start, the backend now returns a clear "already started by X" message —
-      // surface it as-is and refresh so the card flips to "Taken by X".
-      setError(err instanceof Error ? err.message : 'Failed to start order taking');
-      await load();
-    } finally { setStarting(null); setActiveMode(null); }
+  if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
+    setError('Invalid route selected.'); 
+    return;
   }
 
-  async function handleStartDelivery(routeId: string) {
-    if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
-      setError('Invalid route selected.'); return;
-    }
+  setStarting(routeId);
 
-    if (isRouteAlreadyCompleted(routeId)) {
-      setError('This route is already completed for today.');
-      return;
-    }
-
-    if (!isDayClosed) {
-      setError("Cannot start delivery. Admin must close today's operations first.");
-      return;
-    }
-    setStarting(routeId); setActiveMode('delivery');
-    try {
-      const execution = await routesApi.getCurrentExecution(routeId).catch(() => null);
-      if (execution?.executionId && execution.status === 'InProgress') {
-        navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'delivery' } });
-        return;
-      }
-      await routesApi.startExecution(routeId);
-      navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'delivery' } });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to start delivery');
-      await load();
-    } finally { setStarting(null); setActiveMode(null); }
+  // ── Try to start the execution ──
+  try {
+    await routesApi.startOrderTaking(routeId);
+  } catch (err) {
+    // Ignore error - execution might already exist
+    console.log('Starting execution failed, might already exist');
   }
+
+  // ── ALWAYS navigate to execution page ──
+  navigate(`/salesman/routes/${routeId}/execute`, { 
+    state: { mode: 'order-taking' } 
+  });
+
+  setStarting(null);
+}
+
+  // async function handleStartDelivery(routeId: string) {
+  //   if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
+  //     setError('Invalid route selected.'); return;
+  //   }
+
+  //   if (isRouteAlreadyCompleted(routeId)) {
+  //     setError('This route is already completed for today.');
+  //     return;
+  //   }
+
+  //   if (!isDayClosed) {
+  //     setError("Cannot start delivery. Admin must close today's operations first.");
+  //     return;
+  //   }
+  //   setStarting(routeId); setActiveMode('delivery');
+  //   try {
+  //     const execution = await routesApi.getCurrentExecution(routeId).catch(() => null);
+  //     if (execution?.executionId && execution.status === 'InProgress') {
+  //       navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'delivery' } });
+  //       return;
+  //     }
+  //     await routesApi.startExecution(routeId);
+  //     navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'delivery' } });
+  //   } catch (err: unknown) {
+  //     setError(err instanceof Error ? err.message : 'Failed to start delivery');
+  //     await load();
+  //   } finally { setStarting(null); setActiveMode(null); }
+  // }
 
   if (loading) return <PageLoader />;
 
   const completedCount = routes.filter(r => isEffectivelyCompleted(r)).length;
   const firstName = user?.name?.split(' ')[0] ?? 'Salesman';
-  const greeting  = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
+  // const greeting  = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
   const showRouteSearch = routes.length > 6; // most salesmen have a handful of routes; only show search once it's worth it
   const visibleRoutes = showRouteSearch && search.trim()
     ? routes.filter(r => r.routeName?.toLowerCase().includes(search.trim().toLowerCase()))
@@ -310,7 +295,7 @@ export function SalesmanRoutes() {
             </div>
             <div>
               <h1 style={{ fontSize: 13, fontWeight: 800, color: D.text, margin: 0 }}>
-                {greeting}, {firstName} 👋
+                  {firstName} 👋
               </h1>
               <p style={{ fontSize: 10, color: D.muted, margin: '1px 0 0' }}>
                 {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
@@ -453,14 +438,14 @@ export function SalesmanRoutes() {
             {visibleRoutes.map(route => {
               const completed   = isEffectivelyCompleted(route);
               const inProgress  = isGenuinelyInProgress(route);
-              const blocked = !!activeRoute && activeRoute.routeId !== route.routeId && !completed;
+              const blocked = false;
               return (
                 <RouteCard
                   key={route.routeId}
                   route={route}
                   isCompleted={completed}
                   isInProgress={inProgress}
-                  isBlocked={blocked}
+                  // isBlocked={false}
                   isDayClosed={isDayClosed}
                   starting={starting === route.routeId}
                   activeMode={activeMode}
@@ -468,7 +453,7 @@ export function SalesmanRoutes() {
                   onContinueOrderTaking={() => {
                     navigate(`/salesman/routes/${route.routeId}/execute`, { state: { mode: 'order-taking' } });
                   }}
-                  onStartDelivery={() => handleStartDelivery(route.routeId)}
+                  // onStartDelivery={() => handleStartDelivery(route.routeId)}
                   onViewCustomers={() => navigate(`/salesman/routes/${route.routeId}/customers`)}
                   onViewOrders={() => navigate(`/salesman/routes/${route.routeId}/orders`)}
                 />
@@ -482,21 +467,21 @@ export function SalesmanRoutes() {
 }
 
 function RouteCard({
-  route, isCompleted, isInProgress, isBlocked, isDayClosed,
+  route, isCompleted, isInProgress,isDayClosed,
   starting, activeMode,
-  onStartOrderTaking, onContinueOrderTaking, onStartDelivery,
+  onStartOrderTaking, onContinueOrderTaking, 
   onViewCustomers, onViewOrders,
 }: {
   route: EnrichedRoute;
   isCompleted: boolean;
   isInProgress: boolean;
-  isBlocked: boolean;
+  // isBlocked: boolean;
   isDayClosed: boolean;
   starting: boolean;
   activeMode: 'order' | 'delivery' | null;
   onStartOrderTaking: () => void;
   onContinueOrderTaking: () => void;
-  onStartDelivery: () => void;
+  // onStartDelivery: () => void;
   onViewCustomers: () => void;
   onViewOrders: () => void;
 }) {
@@ -665,9 +650,9 @@ function RouteCard({
     <div style={{
       background: D.surface,
       borderRadius: 14,
-      border: `1px solid ${isInProgress ? D.accent : isBlocked ? `${D.amber}44` : D.border}`,
+      border: `1px solid ${isInProgress ? D.accent : D.border}`,
       boxShadow: isInProgress ? `0 2px 12px ${D.accentGlow}` : 'none',
-      opacity: isBlocked ? 0.6 : 1,
+      opacity: 1,
       transition: 'all 0.15s',
     }}>
       <div style={{ padding: '16px 18px' }}>
@@ -713,7 +698,7 @@ function RouteCard({
                 <Users size={13} /> {route.customerCount ?? 0} customers
               </span>
             </div>
-            {isBlocked && (
+            {/* {isBlocked && (
               <div style={{
                 marginTop: 8,
                 display: 'flex', alignItems: 'center', gap: 6,
@@ -725,8 +710,8 @@ function RouteCard({
               }}>
                 <AlertTriangle size={12} /> Complete active route first
               </div>
-            )}
-            {!isDayClosed && !isBlocked && (
+            )} */}
+            {!isDayClosed && (
               <div style={{
                 marginTop: 6,
                 display: 'flex', alignItems: 'center', gap: 4,
@@ -775,41 +760,39 @@ function RouteCard({
             ) : (
               <>
                 <button
-                  onClick={onStartOrderTaking}
-                  disabled={starting || isBlocked}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '8px 16px',
-                    borderRadius: 10,
-                    border: 'none',
-                    background: starting && activeMode === 'order'
-                      ? D.border
-                      : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-                    color: '#fff',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: starting || isBlocked ? 'not-allowed' : 'pointer',
-                    fontFamily: 'inherit',
-                    boxShadow: starting || isBlocked ? 'none' : `0 4px 14px ${D.accentGlow}`,
-                    transition: 'all 0.15s',
-                    opacity: (starting || isBlocked) ? 0.5 : 1,
-                  }}
-                  onMouseEnter={e => {
-                    if (!starting && !isBlocked) {
-                      (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-                      (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${D.accentGlow}`;
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                    if (!starting && !isBlocked) {
-                      (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${D.accentGlow}`;
-                    }
-                  }}
-                >
-                  <ShoppingBag size={15} /> Take Orders
-                </button>
-                <button
+  onClick={onStartOrderTaking}
+  disabled={starting}
+  style={{
+    display: 'flex', alignItems: 'center', gap: 6,
+    padding: '8px 16px',
+    borderRadius: 10,
+    border: 'none',
+    background: starting ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: starting ? 'not-allowed' : 'pointer',
+    fontFamily: 'inherit',
+    boxShadow: starting ? 'none' : `0 4px 14px ${D.accentGlow}`,
+    transition: 'all 0.15s',
+    opacity: starting ? 0.5 : 1,
+  }}
+  onMouseEnter={e => {
+    if (!starting) {
+      (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+      (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${D.accentGlow}`;
+    }
+  }}
+  onMouseLeave={e => {
+    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+    if (!starting) {
+      (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${D.accentGlow}`;
+    }
+  }}
+>
+  <ShoppingBag size={15} /> Take Orders
+</button>
+                {/* <button
                   onClick={onStartDelivery}
                   disabled={starting || isBlocked || !isDayClosed}
                   style={{
@@ -843,7 +826,7 @@ function RouteCard({
                   }}
                 >
                   <Truck size={15} /> Delivery
-                </button>
+                </button> */}
               </>
             )}
             <button

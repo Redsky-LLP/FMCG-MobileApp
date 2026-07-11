@@ -445,8 +445,7 @@ export default function RouteExecution() {
               {[
                 { label: 'Total Shops',   val: s.totalCustomers, color: D.text, bg: D.surface2 },
                 { label: 'Orders Taken',  val: s.ordersPlaced,   color: D.green, bg: 'rgba(34,197,94,0.10)' },
-                { label: 'No Order',      val: s.noOrder,        color: D.amber, bg: 'rgba(245,158,11,0.10)' },
-                { label: 'Skipped',       val: s.skipped,        color: D.red, bg: 'rgba(239,68,68,0.10)' },
+                
               ].map(st => (
                 <div key={st.label} style={{ background: st.bg, borderRadius: 14, padding: '18px 16px', textAlign: 'center', border: `1px solid ${D.border}` }}>
                   <div style={{ fontSize: 28, fontWeight: 900, color: st.color }}>{st.val}</div>
@@ -503,8 +502,7 @@ export default function RouteExecution() {
     { key: 'All', label: `All (${total})` },
     { key: 'Pending', label: `Pending (${pendingCount})` },
     { key: 'OrderPlaced', label: `Done (${ordersCount})` },
-    { key: 'NoOrder', label: `No Order (${sorted.filter(v => v.visitStatus === 'NoOrder').length})` },
-    { key: 'Skipped', label: `Skipped (${sorted.filter(v => v.visitStatus === 'Skipped').length})` },
+  
   ];
 
   return (

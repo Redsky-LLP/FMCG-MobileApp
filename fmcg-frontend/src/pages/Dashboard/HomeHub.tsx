@@ -202,12 +202,12 @@ const BADGE_STYLES: Record<string, { bg: string; color: string }> = {
   violet: { bg: 'rgba(167,139,250,0.15)', color: '#a78bfa' },
 };
 
-function getGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
-}
+// function getGreeting(): string {
+//   const h = new Date().getHours();
+//   if (h < 12) return 'Good morning';
+//   if (h < 17) return 'Good afternoon';
+//   return 'Good evening';
+// }
 
 function getDateString(): string {
   return new Date().toLocaleDateString('en-IN', {
@@ -333,7 +333,7 @@ export function HomeHub() {
             fontSize: 30, fontWeight: 900, color: D.text,
             letterSpacing: '-0.04em', margin: 0, lineHeight: 1.1,
           }}>
-            {getGreeting()}, {firstName} <span style={{ color: D.accent }}>✦</span>
+             {firstName} <span style={{ color: D.accent }}>✦</span>
           </h1>
           <p style={{ color: D.muted, fontSize: 14, marginTop: 6, marginBottom: 0, fontWeight: 400 }}>
             Here's your operations overview for today.
