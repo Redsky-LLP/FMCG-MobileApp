@@ -16,5 +16,5 @@ namespace FMCG.Distribution.Application.Features.Auth.Commands;
 public class SetPinCommand : IRequest<Result<bool>>
 {
     public Guid UserId { get; set; }
-    public string Pin { get; set; } = string.Empty;       // 4–6 digits, validated here
+    public string Pin { get; set; } = string.Empty;       // exactly 6 digits, validated here
 }

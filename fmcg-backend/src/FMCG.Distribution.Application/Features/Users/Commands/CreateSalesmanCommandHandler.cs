@@ -41,11 +41,10 @@ public class CreateSalesmanCommandHandler : IRequestHandler<CreateSalesmanComman
 
         // ── Validate PIN ──
         if (string.IsNullOrWhiteSpace(request.Pin) ||
-            request.Pin.Length < 4 ||
-            request.Pin.Length > 6 ||
+            request.Pin.Length != 6 ||
             !request.Pin.All(char.IsDigit))
         {
-            return Result<CreateSalesmanResponse>.Failure("PIN must be 4-6 digits.");
+            return Result<CreateSalesmanResponse>.Failure("PIN must be exactly 6 digits.");
         }
 
         // ── Reject duplicate PINs ────────────────────────────────────────────
@@ -79,7 +78,8 @@ public class CreateSalesmanCommandHandler : IRequestHandler<CreateSalesmanComman
             IsActive = true,
             PinHash = BCrypt.Net.BCrypt.HashPassword(request.Pin),
             PinFailCount = 0,
-            PinLockedUntil = null
+            PinLockedUntil = null,
+            PinRequiresUpdate = false
         };
 
         await _context.Users.AddAsync(user, cancellationToken);

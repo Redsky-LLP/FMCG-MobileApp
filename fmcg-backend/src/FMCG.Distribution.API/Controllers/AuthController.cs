@@ -81,7 +81,7 @@ public class AuthController(IMediator mediator) : ControllerBase
     // POST /api/v1/auth/check-pin-availability
     // Admin/SuperAdmin only — this still relies on BCrypt.Verify under the
     // hood (PINs are never stored in reversible form), but exposing it
-    // without restriction would let anyone brute-force which 4–6 digit PINs
+    // without restriction would let anyone brute-force which 6-digit PINs
     // are in use, so only trusted admin callers can ask.
     [HttpPost("check-pin-availability")]
     [Authorize(Roles = "Admin,SuperAdmin")]

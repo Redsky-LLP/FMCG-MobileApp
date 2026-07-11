@@ -41,6 +41,7 @@ function getStoredAuth(): { token: string; role: string } | null {
 // ── Auth ────────────────────────────────────────────────────────────────────
 const LoginPage    = lazy(() => import('./pages/Auth/LoginPage').then(m => ({ default: m.LoginPage })));
 const PinLoginPage = lazy(() => import('./pages/Auth/PinLoginPage'));
+const UpdatePinPage = lazy(() => import('./pages/Auth/UpdatePinPage'));
 const RegisterPage = lazy(() => import('./pages/Auth/RegisterPage').then(m => ({ default: m.RegisterPage })));
 
 // ── Home Hub ───────────────────────────────────────────────────────────────
@@ -102,9 +103,13 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const stored = getStoredAuth();
   // Also check Zustand store in case it was set this session without page reload
   const zustandToken = useAuthStore(s => s.token);
+  const user = useAuthStore(s => s.user);
 
   if (!stored?.token && !zustandToken) {
     return <Navigate to="/pin-login" state={{ from: location }} replace />;
+  }
+  if (user?.requiresPinUpdate && location.pathname !== '/update-pin') {
+    return <Navigate to="/update-pin" replace />;
   }
   return <>{children}</>;
 }
@@ -203,6 +208,7 @@ export default function App() {
           {/* Public auth pages */}
           <Route path="/login"        element={<LoginPage />} />
           <Route path="/pin-login"    element={<PinLoginPage />} />
+          <Route path="/update-pin"   element={<UpdatePinPage />} />
           <Route path="/register"     element={<RegisterPage />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
