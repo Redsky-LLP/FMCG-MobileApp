@@ -164,6 +164,7 @@ src/pages/Admin/AdminUsers.tsx
 src/pages/Auth/LoginPage.tsx
 src/pages/Auth/PinLoginPage.tsx
 src/pages/Auth/RegisterPage.tsx
+src/pages/Auth/UpdatePinPage.tsx
 src/pages/Dashboard/HomeHub.tsx
 src/pages/Dashboard/MainHub.tsx
 src/pages/Landing/LandingPage_live.tsx
@@ -1421,7 +1422,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.vicqaasjq98"
+    "revision": "0.h9rqs0l31c8"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -7597,6 +7598,7 @@ function getStoredAuth(): { token: string; role: string } | null {
 // ── Auth ────────────────────────────────────────────────────────────────────
 const LoginPage    = lazy(() => import('./pages/Auth/LoginPage').then(m => ({ default: m.LoginPage })));
 const PinLoginPage = lazy(() => import('./pages/Auth/PinLoginPage'));
+const UpdatePinPage = lazy(() => import('./pages/Auth/UpdatePinPage'));
 const RegisterPage = lazy(() => import('./pages/Auth/RegisterPage').then(m => ({ default: m.RegisterPage })));
 
 // ── Home Hub ───────────────────────────────────────────────────────────────
@@ -7658,9 +7660,13 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const stored = getStoredAuth();
   // Also check Zustand store in case it was set this session without page reload
   const zustandToken = useAuthStore(s => s.token);
+  const user = useAuthStore(s => s.user);
 
   if (!stored?.token && !zustandToken) {
     return <Navigate to="/pin-login" state={{ from: location }} replace />;
+  }
+  if (user?.requiresPinUpdate && location.pathname !== '/update-pin') {
+    return <Navigate to="/update-pin" replace />;
   }
   return <>{children}</>;
 }
@@ -7759,6 +7765,7 @@ export default function App() {
           {/* Public auth pages */}
           <Route path="/login"        element={<LoginPage />} />
           <Route path="/pin-login"    element={<PinLoginPage />} />
+          <Route path="/update-pin"   element={<UpdatePinPage />} />
           <Route path="/register"     element={<RegisterPage />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
@@ -15111,7 +15118,7 @@ interface FormFieldsProps {
     name: string;
     nameMl: string;
     phone: string;
-    address: string;
+    // address: string;
     routeId: string;
     sequenceOrder: string;
   };
@@ -15216,14 +15223,14 @@ const FormFields = React.memo(({ form, setForm, routes, isEdit = false }: FormFi
           type="tel"
           value={form.phone}
           onChange={e => handleChange('phone', e.target.value)}
-          placeholder="+91 9876543210"
+          // placeholder="+91 9876543210"
           style={inputStyle}
           onFocus={e => { e.target.style.borderColor = D.accent; e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`; e.target.style.background = D.surface2; }}
           onBlur={e => { e.target.style.borderColor = D.border; e.target.style.boxShadow = 'none'; e.target.style.background = D.bg; }}
         />
       </div>
 
-      <div>
+      {/* <div>
         <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: D.muted, marginBottom: 6 }}>Address</label>
         <input
           type="text"
@@ -15234,7 +15241,7 @@ const FormFields = React.memo(({ form, setForm, routes, isEdit = false }: FormFi
           onFocus={e => { e.target.style.borderColor = D.accent; e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`; e.target.style.background = D.surface2; }}
           onBlur={e => { e.target.style.borderColor = D.border; e.target.style.boxShadow = 'none'; e.target.style.background = D.bg; }}
         />
-      </div>
+      </div> */}
     </div>
   );
 });
@@ -15262,7 +15269,7 @@ export function AdminCustomers() {
   const [reordering,  setReordering]  = useState(false);
   const addCardRef = useRef<HTMLDivElement>(null);
 
-  const emptyForm = { name: '', nameMl: '', phone: '', address: '', routeId: '', sequenceOrder: '1' };
+  const emptyForm = { name: '', nameMl: '', phone: '', routeId: '', sequenceOrder: '1' };
   const [addForm,  setAddForm]  = useState(emptyForm);
   const [editForm, setEditForm] = useState(emptyForm);
 
@@ -15297,7 +15304,7 @@ export function AdminCustomers() {
   function openEdit(c: CustomerDto) {
     setEditForm({
       name: c.nameEnglish, nameMl: c.nameMalayalam ?? '',
-      phone: c.phoneNumber ?? '', address: c.address ?? '',
+      phone: c.phoneNumber ?? '', 
       routeId: c.routeId,
       sequenceOrder: String(c.sequenceOrder > 0 ? c.sequenceOrder : nextSeq(c.routeId)),
     });
@@ -15327,7 +15334,7 @@ export function AdminCustomers() {
     try {
       await customersApi.create({
         nameEnglish: addForm.name, nameMalayalam: addForm.nameMl || undefined,
-        phoneNumber: addForm.phone || undefined, address: addForm.address || undefined,
+        phoneNumber: addForm.phone || undefined, 
         routeId: addForm.routeId,
       });
       setShowAdd(false); setAddForm(emptyForm); load();
@@ -15349,7 +15356,7 @@ export function AdminCustomers() {
         nameEnglish: editForm.name,
         nameMalayalam: editForm.nameMl || undefined,
         phoneNumber: editForm.phone || undefined,
-        address: editForm.address || undefined,
+        // address: editForm.address || undefined,
         routeId: editForm.routeId,
         isActive: editModal.isActive,
       };
@@ -18050,152 +18057,158 @@ export function AdminOrders() {
         </div>
 
           {/* ── Status count boxes - NOW CLICKABLE FILTERS ── */}
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {[
-              { label: 'Total', value: counts.total, color: D.text, filterValue: '' },
-              { label: 'Draft', value: counts.draft, color: D.amber, filterValue: 'Draft' },
-              { label: 'Closed', value: counts.closed, color: D.green, filterValue: 'Closed' },
-            ].map(c => {
-              const isActive = statusFilter === c.filterValue;
-              return (
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'stretch', justifyContent: 'space-between' }}>
+            {/* ── Left group: KPI cards (capped width so they don't stretch to fill the row) ── */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', flex: '1 1 340px' }}>
+              {[
+                { label: 'Total', value: counts.total, color: D.text, filterValue: '' },
+                { label: 'Draft', value: counts.draft, color: D.amber, filterValue: 'Draft' },
+                { label: 'Closed', value: counts.closed, color: D.green, filterValue: 'Closed' },
+              ].map(c => {
+                const isActive = statusFilter === c.filterValue;
+                return (
+                  <button
+                    key={c.label}
+                    onClick={() => setStatusFilterQuick(c.filterValue)}
+                    style={{
+                      flex: '1 1 140px', maxWidth: 220,
+                      padding: '10px 14px',
+                      borderRadius: 9,
+                      background: isActive ? `${c.color}20` : D.surface,
+                      border: isActive ? `1px solid ${c.color}66` : `1px solid ${D.border}`,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.15s',
+                      fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={e => {
+                      if (!isActive) {
+                        (e.currentTarget as HTMLElement).style.borderColor = `${c.color}44`;
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!isActive) {
+                        (e.currentTarget as HTMLElement).style.borderColor = D.border;
+                      }
+                    }}
+                  >
+                    <span style={{ fontSize: 12, color: D.sub, fontWeight: 600 }}>
+                      {c.label}
+                      {isActive && (
+                        <span style={{ marginLeft: 6, fontSize: 10, color: c.color }}>✓</span>
+                      )}
+                    </span>
+                    <span style={{ 
+                      fontSize: 22, fontWeight: 900, color: c.color, display: 'block' 
+                    }}>
+                      {c.value}
+                      {c.label === 'Closed' && closureStatus?.isClosed && c.value > 0 && (
+                        <span style={{ 
+                          fontSize: 10, fontWeight: 600, color: D.green, 
+                          marginLeft: 6, display: 'inline-block' 
+                        }}>
+                          ✓
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+
+              {/* ── Clear filter button ── */}
+              {statusFilter && (
                 <button
-                  key={c.label}
-                  onClick={() => setStatusFilterQuick(c.filterValue)}
+                  onClick={clearStatusFilter}
                   style={{
-                    flex: 1, minWidth: 100,
-                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '0 12px',
                     borderRadius: 9,
-                    background: isActive ? `${c.color}20` : D.surface,
-                    border: isActive ? `1px solid ${c.color}66` : `1px solid ${D.border}`,
+                    border: `1px solid ${D.border}`,
+                    background: D.surface,
+                    color: D.muted,
+                    fontSize: 12,
+                    fontWeight: 600,
                     cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.15s',
                     fontFamily: 'inherit',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.text; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
+                >
+                  <X size={12} /> Clear
+                </button>
+              )}
+            </div>
+
+            {/* ── Right group: Day-closure action, pinned to the row's end ── */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'stretch' }}>
+              {/* ── Day Closed status indicator ── */}
+              {closureStatus?.isClosed && closureStatus.closedAt && (
+                <div style={{
+                  minWidth: 170,
+                  padding: '10px 14px',
+                  borderRadius: 9,
+                  background: 'rgba(34,197,94,0.08)',
+                  border: `1px solid rgba(34,197,94,0.25)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                }}>
+                  <CheckCircle size={18} color={D.green} />
+                  <div>
+                    <span style={{ fontSize: 11, color: D.green, fontWeight: 700, display: 'block' }}>
+                      Day Closed ✓
+                    </span>
+                    <span style={{ fontSize: 10, color: D.muted }}>
+                      {new Date(closureStatus.closedAt).toLocaleDateString('en-IN', { 
+                        day: 'numeric', 
+                        month: 'short', 
+                        year: 'numeric' 
+                      })} · {new Date(closureStatus.closedAt).toLocaleTimeString('en-IN', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Close Day button (only when NOT closed) ── */}
+              {!closureStatus?.isClosed && (
+                <button
+                  onClick={() => { setShowCloseDayModal(true); setCloseDayError(''); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '10px 16px',
+                    borderRadius: 9,
+                    border: 'none',
+                    background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: '#fff',
+                    fontFamily: 'inherit',
+                    boxShadow: `0 4px 14px ${D.accentGlow}`,
+                    transition: 'all 0.15s',
                   }}
                   onMouseEnter={e => {
-                    if (!isActive) {
-                      (e.currentTarget as HTMLElement).style.borderColor = `${c.color}44`;
-                    }
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${D.accentGlow}`;
                   }}
                   onMouseLeave={e => {
-                    if (!isActive) {
-                      (e.currentTarget as HTMLElement).style.borderColor = D.border;
-                    }
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${D.accentGlow}`;
                   }}
                 >
-                  <span style={{ fontSize: 12, color: D.sub, fontWeight: 600 }}>
-                    {c.label}
-                    {isActive && (
-                      <span style={{ marginLeft: 6, fontSize: 10, color: c.color }}>✓</span>
-                    )}
-                  </span>
-                  <span style={{ 
-                    fontSize: 22, fontWeight: 900, color: c.color, display: 'block' 
-                  }}>
-                    {c.value}
-                    {c.label === 'Closed' && closureStatus?.isClosed && c.value > 0 && (
-                      <span style={{ 
-                        fontSize: 10, fontWeight: 600, color: D.green, 
-                        marginLeft: 6, display: 'inline-block' 
-                      }}>
-                        ✓
-                      </span>
-                    )}
-                  </span>
+                  <Lock size={15} />
+                  Close Day
                 </button>
-              );
-            })}
-
-            {/* ── Clear filter button ── */}
-            {statusFilter && (
-              <button
-                onClick={clearStatusFilter}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  padding: '0 12px',
-                  borderRadius: 9,
-                  border: `1px solid ${D.border}`,
-                  background: D.surface,
-                  color: D.muted,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.text; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
-              >
-                <X size={12} /> Clear
-              </button>
-            )}
-
-            {/* ── Day Closed status indicator ── */}
-            {closureStatus?.isClosed && closureStatus.closedAt && (
-              <div style={{
-                flex: 1, minWidth: 170,
-                padding: '10px 14px',
-                borderRadius: 9,
-                background: 'rgba(34,197,94,0.08)',
-                border: `1px solid rgba(34,197,94,0.25)`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-              }}>
-                <CheckCircle size={18} color={D.green} />
-                <div>
-                  <span style={{ fontSize: 11, color: D.green, fontWeight: 700, display: 'block' }}>
-                    Day Closed ✓
-                  </span>
-                  <span style={{ fontSize: 10, color: D.muted }}>
-                    {new Date(closureStatus.closedAt).toLocaleDateString('en-IN', { 
-                      day: 'numeric', 
-                      month: 'short', 
-                      year: 'numeric' 
-                    })} · {new Date(closureStatus.closedAt).toLocaleTimeString('en-IN', { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* ── Close Day button (only when NOT closed) ── */}
-            {!closureStatus?.isClosed && (
-              <button
-                onClick={() => { setShowCloseDayModal(true); setCloseDayError(''); }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '10px 16px',
-                  borderRadius: 9,
-                  border: 'none',
-                  background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: '#fff',
-                  fontFamily: 'inherit',
-                  boxShadow: `0 4px 14px ${D.accentGlow}`,
-                  transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${D.accentGlow}`;
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${D.accentGlow}`;
-                }}
-              >
-                <Lock size={15} />
-                Close Day
-              </button>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
@@ -18219,19 +18232,6 @@ export function AdminOrders() {
             >
               <option value="all">🌍 All Routes</option>
               {routes.map(r => <option key={r.id} value={r.id}>📍 {r.name}</option>)}
-            </select>
-
-            <select 
-              style={selectStyle} 
-              value={statusFilter} 
-              onChange={e => setStatusFilterQuick(e.target.value)}
-            >
-              <option value="">📋 All Statuses</option>
-              <option value="Draft">Draft</option>
-              <option value="PendingApproval">Pending Approval</option>
-              <option value="Approved">Approved</option>
-              <option value="Packed">Packed</option>
-              <option value="Closed">Closed</option>
             </select>
 
             <input
@@ -18288,11 +18288,6 @@ export function AdminOrders() {
                       const cfg = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG['Draft'];
                       const items = order.items ?? [];
                       const units = items.reduce((s, i) => s + i.quantity, 0);
-                      
-                      // ── FIXED: Use string comparison, NOT enum ──
-                      const isEditable = (statusKey === 'Draft' || 
-                                        statusKey === 'PendingApproval' || 
-                                        statusKey === 'Approved') && !order.isLocked;
                       
                       // ── FIXED: Also require !isLocked for Close button ──
                       const isClosable = (statusKey === 'Approved' || 
@@ -18431,15 +18426,6 @@ export function AdminOrders() {
                                   >
                                     {approving === String(order.id) ? <Spinner size={14} /> : <CheckCircle size={14} />}
                                     Approve
-                                  </button>
-                                )}
-
-                                {isEditable && (
-                                  <button 
-                                    onClick={() => handleEdit(String(order.id), String(order.customerId))}
-                                    style={actionBtn(D.surface, D.muted)}
-                                  >
-                                    <Edit2 size={14} /> Edit
                                   </button>
                                 )}
 
@@ -19068,7 +19054,7 @@ function ProductFormFields({
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div>
-          <label style={lbl}>Product Group <span style={{ color: D.red }}>*</span></label>
+          <label style={lbl}>Item Group <span style={{ color: D.red }}>*</span></label>
           <select value={form.productGroupId} onChange={e => setForm((p: any) => ({ ...p, productGroupId: e.target.value }))}
             style={{ ...inp, cursor: 'pointer' }} onFocus={onFoc} onBlur={onBlr}>
             <option value="">Select group</option>
@@ -19076,7 +19062,7 @@ function ProductFormFields({
           </select>
         </div>
         <div>
-          <label style={lbl}>Unit</label>
+          <label style={lbl}>Packing Category</label>
           <select value={form.unitId} onChange={e => setForm((p: any) => ({ ...p, unitId: e.target.value }))}
             style={{ ...inp, cursor: 'pointer' }} onFocus={onFoc} onBlur={onBlr}>
             <option value="">None</option>
@@ -19774,7 +19760,7 @@ import { Link } from 'react-router-dom';
 import { 
   FileText, Download, RefreshCw, Loader, CalendarDays, 
   ArrowLeft, Eye, X, CheckCircle, AlertCircle, Maximize2,
-  Smartphone
+  Smartphone, ShoppingCart
 } from 'lucide-react';
 import { reportsApi, routesApi, productGroupsApi, triggerPdfDownload } from '../../api/services';
 import type { RouteDto, ProductGroupDto } from '../../types';
@@ -20512,7 +20498,7 @@ export function AdminReports() {
         </div>
 
         {/* Header */}
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{
               width: 48, height: 48, borderRadius: 14,
@@ -20531,6 +20517,30 @@ export function AdminReports() {
               </p>
             </div>
           </div>
+
+          <Link
+            to="/admin/orders"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 18px',
+              borderRadius: 10,
+              background: D.accent,
+              border: '1px solid transparent',
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 700,
+              textDecoration: 'none',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = D.accentH; }}
+            onMouseLeave={e => { e.currentTarget.style.background = D.accent; }}
+          >
+            <ShoppingCart size={15} />
+            Go to Orders Panel
+          </Link>
         </div>
 
         {error && <Alert variant="error">{error}</Alert>}
@@ -20776,7 +20786,6 @@ export function AdminRoutes() {
 
   // Stats
   const activeCount   = routes.filter(r => r.isActive).length;
-  const assignedCount = routes.filter(r => r.assignedSalesmanName).length;
   const totalCustomers = routes.reduce((s, r) => s + (r.customerCount ?? 0), 0);
 
   if (loading) return (
@@ -20898,7 +20907,6 @@ export function AdminRoutes() {
           <div style={{ display: 'flex', gap: 10, marginTop: 22, flexWrap: 'wrap' }}>
             {[
               { icon: Activity, label: 'Active Routes',     value: activeCount,      color: D.green },
-              { icon: Users,    label: 'Assigned',           value: assignedCount,    color: '#3B82F6' },
               { icon: Users,    label: 'Total Customers',   value: totalCustomers,   color: D.amber },
             ].map(s => (
               <div key={s.label} style={{
@@ -23699,7 +23707,7 @@ function CreateSalesmanModal({ isOpen, onClose, onSuccess }: {
     const [pinConflictName, setPinConflictName] = useState('');
 
     useEffect(() => {
-        if (!isOpen || !/^\d{4,6}$/.test(form.pin)) {
+        if (!isOpen || !/^\d{6}$/.test(form.pin)) {
             setPinAvailability('idle');
             return;
         }
@@ -23727,8 +23735,8 @@ function CreateSalesmanModal({ isOpen, onClose, onSuccess }: {
             setError('Username and PIN are required.');
             return;
         }
-        if (form.pin.length < 4 || form.pin.length > 6 || !/^\d+$/.test(form.pin)) {
-            setError('PIN must be 4-6 digits.');
+        if (form.pin.length !== 6 || !/^\d+$/.test(form.pin)) {
+            setError('PIN must be exactly 6 digits.');
             return;
         }
         if (pinAvailability === 'taken') {
@@ -23818,7 +23826,7 @@ function CreateSalesmanModal({ isOpen, onClose, onSuccess }: {
 
                     <div>
                         <label className="block text-sm font-medium text-[#94a3b8] mb-1">
-                            PIN (4-6 digits) *
+                            PIN (6 digits) *
                         </label>
                         <div className="relative">
                             <input
@@ -23826,9 +23834,9 @@ function CreateSalesmanModal({ isOpen, onClose, onSuccess }: {
                                 inputMode="numeric"
                                 maxLength={6}
                                 className="w-full px-4 py-2 pr-10 border border-[#334155] rounded-lg focus:outline-none focus:border-[#ea580c] focus:ring-2 focus:ring-[#ea580c]/20 bg-[#0f172a] text-[#f1f5f9]"
-                                placeholder="e.g., 1234"
+                                placeholder="e.g., 123456"
                                 value={form.pin}
-                                onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, '') })}
+                                onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, '').slice(0, 6) })}
                             />
                             <button
                                 type="button"
@@ -23862,7 +23870,7 @@ function CreateSalesmanModal({ isOpen, onClose, onSuccess }: {
                         </button>
                         <button
                             type="submit"
-                            disabled={loading || !form.userName || !form.pin || pinAvailability === 'taken' || pinAvailability === 'checking'}
+                            disabled={loading || !form.userName || form.pin.length !== 6 || pinAvailability === 'taken' || pinAvailability === 'checking'}
                             className="flex-1 px-4 py-2 text-sm font-medium text-white bg-[#ea580c] rounded-lg hover:bg-[#c2410c] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                         >
                             {loading ? <Spinner size={16} /> : 'Create Salesman'}
@@ -24188,7 +24196,7 @@ export function AdminUsers() {
   }
 
   useEffect(() => {
-    if (!pinModal || !/^\d{4,6}$/.test(pinValue)) {
+    if (!pinModal || !/^\d{6}$/.test(pinValue)) {
       setPinAvailability('idle');
       return;
     }
@@ -24212,8 +24220,8 @@ export function AdminUsers() {
 
   async function handleSetPin() {
     if (!pinModal) return;
-    if (!/^\d{4,6}$/.test(pinValue)) {
-      setPinError('PIN must be 4–6 digits.');
+    if (!/^\d{6}$/.test(pinValue)) {
+      setPinError('PIN must be exactly 6 digits.');
       return;
     }
     if (pinAvailability === 'taken') {
@@ -24666,7 +24674,7 @@ export function AdminUsers() {
               </h3>
               <p style={{ fontSize: 13, color: D.muted, marginBottom: 16 }}>
                 Setting PIN for <strong style={{ color: D.text }}>{pinModal.fullName}</strong>.
-                They'll use this 4–6 digit PIN to log in from the PIN login screen.
+                They'll use this 6-digit PIN to log in from the PIN login screen.
               </p>
 
               {pinError && (
@@ -24681,7 +24689,7 @@ export function AdminUsers() {
               )}
 
               <label style={{ fontSize: 12, color: D.muted, display: 'block', marginBottom: 6 }}>
-                PIN (4–6 digits) *
+                PIN (6 digits) *
               </label>
               <div style={{ position: 'relative' }}>
                 <input
@@ -24689,9 +24697,9 @@ export function AdminUsers() {
                   type={showPinValue ? 'text' : 'password'}
                   inputMode="numeric"
                   maxLength={6}
-                  placeholder="e.g. 1234"
+                  placeholder="e.g. 123456"
                   value={pinValue}
-                  onChange={e => setPinValue(e.target.value.replace(/\D/g, ''))}
+                  onChange={e => setPinValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   autoFocus
                   onKeyDown={e => e.key === 'Enter' && handleSetPin()}
                   style={{
@@ -24740,20 +24748,20 @@ export function AdminUsers() {
                 <button
                   className="btn btn-primary"
                   onClick={handleSetPin}
-                  disabled={pinSaving || pinValue.length < 4 || pinAvailability === 'taken' || pinAvailability === 'checking'}
+                  disabled={pinSaving || pinValue.length !== 6 || pinAvailability === 'taken' || pinAvailability === 'checking'}
                   style={{
                     padding: '10px 20px',
                     borderRadius: 10,
                     border: 'none',
-                    background: pinSaving || pinValue.length < 4 || pinAvailability === 'taken' || pinAvailability === 'checking'
+                    background: pinSaving || pinValue.length !== 6 || pinAvailability === 'taken' || pinAvailability === 'checking'
                       ? D.border
                       : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
                     color: '#fff',
                     fontSize: 14,
                     fontWeight: 700,
-                    cursor: pinSaving || pinValue.length < 4 || pinAvailability === 'taken' || pinAvailability === 'checking' ? 'not-allowed' : 'pointer',
+                    cursor: pinSaving || pinValue.length !== 6 || pinAvailability === 'taken' || pinAvailability === 'checking' ? 'not-allowed' : 'pointer',
                     fontFamily: 'inherit',
-                    boxShadow: pinSaving || pinValue.length < 4 || pinAvailability === 'taken' || pinAvailability === 'checking'
+                    boxShadow: pinSaving || pinValue.length !== 6 || pinAvailability === 'taken' || pinAvailability === 'checking'
                       ? 'none'
                       : `0 4px 14px ${D.accentGlow}`,
                     transition: 'all 0.15s',
@@ -25172,7 +25180,7 @@ const KEYS = [
   { label: '9', sub: 'WXYZ' },
 ];
 
-const PIN_LENGTH = 4;
+const PIN_LENGTH = 6;
 
 export default function PinLoginPage() {
   const navigate  = useNavigate();
@@ -25196,7 +25204,7 @@ export default function PinLoginPage() {
   function backspace() { setPin(p => p.slice(0, -1)); }
 
   async function submit(finalPin: string) {
-    if (finalPin.length < 4) return;
+    if (finalPin.length < PIN_LENGTH) return;
     setError('');
     setLoading(true);
     try {
@@ -25209,9 +25217,14 @@ export default function PinLoginPage() {
         token:        res.token,
         refreshToken: res.refreshToken,
         sessionId:    res.sessionId,
+        requiresPinUpdate: res.requiresPinUpdate,
       };
       setUser(user);
-      navigate(getRoleHome(user.role));
+      if (res.requiresPinUpdate) {
+        navigate('/update-pin', { replace: true });
+      } else {
+        navigate(getRoleHome(user.role));
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Invalid PIN. Please try again.');
       setPin('');
@@ -25224,7 +25237,7 @@ export default function PinLoginPage() {
     if (pin.length >= PIN_LENGTH) return;
     const next = pin + digit;
     setPin(next);
-    if (next.length >= 4) submit(next);
+    if (next.length >= PIN_LENGTH) submit(next);
   }
 
   return (
@@ -25308,7 +25321,7 @@ export default function PinLoginPage() {
                 gap: 12,
                 padding: '6px 0',
               }}>
-                {Array.from({ length: 4 }).map((_, i) => (
+                {Array.from({ length: PIN_LENGTH }).map((_, i) => (
                   <div key={i} style={{
                     width: 14,
                     height: 14,
@@ -25342,7 +25355,7 @@ export default function PinLoginPage() {
 
             {!showPin && (
               <p style={{ color: T.sub, fontSize: 10, margin: 0 }}>
-                {pin.length < 4 ? `Enter ${4 - pin.length} more digit${4 - pin.length > 1 ? 's' : ''}` : 'PIN complete ✓'}
+                {pin.length < PIN_LENGTH ? `Enter ${PIN_LENGTH - pin.length} more digit${PIN_LENGTH - pin.length > 1 ? 's' : ''}` : 'PIN complete ✓'}
               </p>
             )}
           </div>
@@ -25729,6 +25742,348 @@ export function RegisterPage() {
 }
 ````
 
+## File: src/pages/Auth/UpdatePinPage.tsx
+````typescript
+// PATH: src/pages/Auth/UpdatePinPage.tsx
+// Forced PIN migration screen - shown once after a PIN login if the user's
+// PIN hasn't been confirmed as the new 6-digit format yet (RequiresPinUpdate).
+// Reuses the Eastern dark theme from PinLoginPage.
+
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Package, Delete, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { authApi } from '../../api/services';
+import { useAuthStore, getRoleHome } from '../../store/authStore';
+import { Spinner } from '../../components/ui';
+
+const T = {
+  bg:       '#0f172a',
+  surface:  '#1e293b',
+  border:   '#334155',
+  accent:   '#ea580c',
+  accentHov:'#c2410c',
+  text:     '#f1f5f9',
+  muted:    '#94a3b8',
+  sub:      '#64748b',
+  green:    '#16a34a',
+};
+
+const PIN_LENGTH = 6;
+
+function DigitBtn({
+  label, sub, onClick, disabled,
+}: {
+  label: string; sub?: string; onClick: () => void; disabled: boolean;
+}) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      onPointerDown={() => setPressed(true)}
+      onPointerUp={() => setPressed(false)}
+      onPointerLeave={() => setPressed(false)}
+      style={{
+        width: '100%',
+        paddingTop: 12,
+        paddingBottom: 12,
+        borderRadius: 10,
+        border: `1px solid ${pressed ? T.accent : T.border}`,
+        background: pressed ? T.accent : T.surface,
+        color: pressed ? '#fff' : T.text,
+        fontSize: 20,
+        fontWeight: 500,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        transition: 'background 0.08s, border-color 0.08s',
+        gap: 1,
+        fontFamily: 'inherit',
+        WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation',
+        minHeight: 44,
+      }}
+    >
+      <span>{label}</span>
+      {sub && <span style={{ fontSize: 8, color: pressed ? 'rgba(255,255,255,0.7)' : T.sub, letterSpacing: 1, fontWeight: 400 }}>{sub}</span>}
+    </button>
+  );
+}
+
+const KEYS = [
+  { label: '1', sub: '' },
+  { label: '2', sub: 'ABC' },
+  { label: '3', sub: 'DEF' },
+  { label: '4', sub: 'GHI' },
+  { label: '5', sub: 'JKL' },
+  { label: '6', sub: 'MNO' },
+  { label: '7', sub: 'PQRS' },
+  { label: '8', sub: 'TUV' },
+  { label: '9', sub: 'WXYZ' },
+];
+
+type Stage = 'enter' | 'confirm';
+
+export default function UpdatePinPage() {
+  const navigate = useNavigate();
+  const { user, setUser } = useAuthStore();
+
+  const [stage,   setStage]   = useState<Stage>('enter');
+  const [pin,     setPin]     = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [showPin, setShowPin] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState('');
+
+  const activePin = stage === 'enter' ? pin : confirmPin;
+
+  function backspace() {
+    if (stage === 'enter') setPin(p => p.slice(0, -1));
+    else setConfirmPin(p => p.slice(0, -1));
+  }
+
+  function reset() {
+    setStage('enter');
+    setPin('');
+    setConfirmPin('');
+    setError('');
+  }
+
+  async function handlePress(digit: string) {
+    if (activePin.length >= PIN_LENGTH) return;
+    const next = activePin + digit;
+
+    if (stage === 'enter') {
+      setPin(next);
+      if (next.length === PIN_LENGTH) {
+        setStage('confirm');
+      }
+      return;
+    }
+
+    setConfirmPin(next);
+    if (next.length === PIN_LENGTH) {
+      await trySubmit(pin, next);
+    }
+  }
+
+  async function trySubmit(newPin: string, confirmation: string) {
+    if (newPin !== confirmation) {
+      setError("PINs don't match. Try again.");
+      setStage('enter');
+      setPin('');
+      setConfirmPin('');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+    try {
+      await authApi.setPin(newPin);
+      if (user) setUser({ ...user, requiresPinUpdate: false });
+      navigate(user ? getRoleHome(user.role) : '/pin-login', { replace: true });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to update PIN. Please try again.');
+      reset();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      height: '100vh',
+      background: T.bg,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '12px 16px',
+      paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+      overflow: 'hidden',
+    }}>
+      <div style={{ width: '100%', maxWidth: 320 }}>
+
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <div style={{
+            width: 44,
+            height: 44,
+            background: T.accent,
+            borderRadius: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 8px',
+            boxShadow: '0 6px 20px rgba(234,88,12,0.30)',
+          }}>
+            <Package size={22} color="#fff" strokeWidth={2} />
+          </div>
+          <h1 style={{
+            fontSize: 18,
+            fontWeight: 700,
+            color: T.text,
+            margin: 0,
+            letterSpacing: '-0.02em',
+          }}>
+            FMCG<span style={{ color: T.accent }}>Dist</span>
+          </h1>
+          <p style={{
+            color: T.sub,
+            fontSize: 11,
+            marginTop: 2,
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 4,
+          }}>
+            <ShieldCheck size={12} />
+            {stage === 'enter' ? 'Set your new 6-digit PIN' : 'Confirm your new PIN'}
+          </p>
+        </div>
+
+        <div style={{
+          background: T.surface,
+          border: `1px solid ${T.border}`,
+          borderRadius: 16,
+          padding: '16px 16px 14px',
+        }}>
+          <div style={{
+            padding: '8px 10px',
+            borderRadius: 8,
+            marginBottom: 10,
+            background: 'rgba(234,88,12,0.10)',
+            border: '1px solid rgba(234,88,12,0.25)',
+            color: T.text,
+            fontSize: 12,
+            lineHeight: 1.4,
+          }}>
+            PINs are now 6 digits for extra security. Please set a new PIN to continue.
+          </div>
+
+          {error && (
+            <div style={{
+              padding: '6px 10px',
+              borderRadius: 8,
+              marginBottom: 10,
+              background: 'rgba(220,38,38,0.12)',
+              border: '1px solid rgba(220,38,38,0.30)',
+              color: '#fca5a5',
+              fontSize: 12,
+              fontWeight: 500,
+            }}>
+              {error}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <div style={{ position: 'relative', width: '100%' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: 10,
+                padding: '6px 0',
+              }}>
+                {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+                  <div key={i} style={{
+                    width: 14,
+                    height: 14,
+                    borderRadius: '50%',
+                    background: i < activePin.length ? T.accent : 'transparent',
+                    border: `2px solid ${i < activePin.length ? T.accent : T.border}`,
+                    transition: 'all 0.15s cubic-bezier(0.34,1.4,0.64,1)',
+                    transform: i < activePin.length ? 'scale(1.1)' : 'scale(1)',
+                    boxShadow: i < activePin.length ? '0 2px 6px rgba(234,88,12,0.35)' : 'none',
+                  }} />
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPin(!showPin)}
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: T.muted,
+                  cursor: 'pointer',
+                  padding: 2,
+                }}
+              >
+                {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+
+            {!showPin && (
+              <p style={{ color: T.sub, fontSize: 10, margin: 0 }}>
+                {activePin.length < PIN_LENGTH
+                  ? `Enter ${PIN_LENGTH - activePin.length} more digit${PIN_LENGTH - activePin.length > 1 ? 's' : ''}`
+                  : 'PIN complete ✓'}
+              </p>
+            )}
+          </div>
+
+          {loading ? (
+            <div style={{ padding: 16, textAlign: 'center' }}>
+              <Spinner size={32} />
+              <p style={{ color: T.sub, fontSize: 12, marginTop: 8 }}>Saving your new PIN...</p>
+            </div>
+          ) : (
+            <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginTop: 10 }}>
+              {KEYS.map(k => (
+                <DigitBtn key={k.label} label={k.label} sub={k.sub}
+                  onClick={() => handlePress(k.label)} disabled={loading} />
+              ))}
+              <div />
+              <DigitBtn label="0" onClick={() => handlePress('0')} disabled={loading} />
+              <button
+                onClick={backspace}
+                disabled={loading || activePin.length === 0}
+                style={{
+                  width: '100%',
+                  paddingTop: 12,
+                  paddingBottom: 12,
+                  borderRadius: 10,
+                  border: `1px solid ${T.border}`,
+                  background: T.surface,
+                  color: T.muted,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: activePin.length === 0 ? 'not-allowed' : 'pointer',
+                  opacity: activePin.length === 0 ? 0.35 : 1,
+                  transition: 'all 0.12s',
+                  touchAction: 'manipulation',
+                  fontFamily: 'inherit',
+                  minHeight: 44,
+                }}
+              >
+                <Delete size={18} />
+              </button>
+            </div>
+          )}
+
+          {stage === 'confirm' && !loading && (
+            <div style={{ marginTop: 12, textAlign: 'center' }}>
+              <button
+                onClick={reset}
+                style={{ background: 'none', border: 'none', color: T.sub, fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Start over
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+````
+
 ## File: src/pages/Dashboard/HomeHub.tsx
 ````typescript
 // PATH: src/pages/Dashboard/HomeHub.tsx
@@ -25837,13 +26192,6 @@ const NAV_BLOCKS: NavBlock[] = [
     icon: Route, to: '/admin/routes',
     badge: 'Live', badgeColor: 'green',
     accent: D.accent, accentText: D.accent, roles: ['Admin', 'SuperAdmin'],
-  },
-  {
-    id: 'orders', label: 'Orders Panel',
-    description: 'Create, track, and manage customer orders',
-    icon: ShoppingCart, to: '/admin/orders',
-    badge: '12 Pending', badgeColor: 'blue',
-    accent: D.blueBg, accentText: D.blue, roles: ['Admin', 'SuperAdmin'],
   },
   {
     id: 'customers', label: 'Customers Masters',
@@ -26009,16 +26357,15 @@ export function HomeHub() {
   // REMOVED: statCards filter for Analytics
   const quickActions = QUICK_ACTIONS.filter(a => a.roles.includes(role));
 
-  // Filter blocks: main blocks (Route Hub, Orders, Customers)
-  const mainBlocks   = isAdmin ? blocks.filter(b => ['admin-routes','orders','customers'].includes(b.id)) : blocks;
+  // Filter blocks: main blocks (Route Hub, Customers)
+  const mainBlocks   = isAdmin ? blocks.filter(b => ['admin-routes','customers'].includes(b.id)) : blocks;
   // Filter large blocks: Products, Users, Reports, Catalog
   const largeBlocks  = isAdmin ? blocks.filter(b => ['products','users','reports','catalog'].includes(b.id)) : [];
   // Everything else goes to more tools
-  const moreTools    = isAdmin ? blocks.filter(b => !['admin-routes','orders','customers','products','users','reports','catalog'].includes(b.id)) : [];
+  const moreTools    = isAdmin ? blocks.filter(b => !['admin-routes','customers','products','users','reports','catalog'].includes(b.id)) : [];
 
   function liveBadge(blockId: string): string | undefined {
     if (blockId === 'admin-routes') return liveStats.routesCount !== undefined ? `${liveStats.routesCount} Routes` : undefined;
-    if (blockId === 'orders')       return liveStats.pendingOrders !== undefined ? `${liveStats.pendingOrders} Pending` : undefined;
     if (blockId === 'customers')    return liveStats.customersCount !== undefined ? `${liveStats.customersCount} Active` : undefined;
     return undefined;
   }
@@ -26122,7 +26469,7 @@ export function HomeHub() {
           </div>
         </div>
 
-        {/* ── Main Nav Grid (Route Hub, Orders, Customers) ── */}
+        {/* ── Main Nav Grid (Route Hub, Customers) ── */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr' : mainBlocks.length >= 3 ? 'repeat(3,1fr)' : mainBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
@@ -32491,6 +32838,7 @@ export interface AuthUser {
   token:        string;
   refreshToken?: string;
   sessionId?:   string;
+  requiresPinUpdate?: boolean;
 }
 
 export interface UserDto {
@@ -32509,6 +32857,7 @@ export interface LoginResponse {
   fullName:     string;
   role:         string;
   sessionId:    string;
+  requiresPinUpdate?: boolean;
 }
 
 // ── API Envelope ──────────────────────────────────────────────────────────────
