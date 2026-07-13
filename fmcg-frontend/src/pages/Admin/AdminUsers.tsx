@@ -56,7 +56,7 @@ function CreateSalesmanModal({ isOpen, onClose, onSuccess }: {
     const [pinConflictName, setPinConflictName] = useState('');
 
     useEffect(() => {
-        if (!isOpen || !/^\d{4,6}$/.test(form.pin)) {
+        if (!isOpen || !/^\d{6}$/.test(form.pin)) {
             setPinAvailability('idle');
             return;
         }
@@ -84,8 +84,8 @@ function CreateSalesmanModal({ isOpen, onClose, onSuccess }: {
             setError('Username and PIN are required.');
             return;
         }
-        if (form.pin.length < 4 || form.pin.length > 6 || !/^\d+$/.test(form.pin)) {
-            setError('PIN must be 4-6 digits.');
+        if (form.pin.length !== 6 || !/^\d+$/.test(form.pin)) {
+            setError('PIN must be exactly 6 digits.');
             return;
         }
         if (pinAvailability === 'taken') {
@@ -175,7 +175,7 @@ function CreateSalesmanModal({ isOpen, onClose, onSuccess }: {
 
                     <div>
                         <label className="block text-sm font-medium text-[#94a3b8] mb-1">
-                            PIN (4-6 digits) *
+                            PIN (6 digits) *
                         </label>
                         <div className="relative">
                             <input
@@ -183,9 +183,9 @@ function CreateSalesmanModal({ isOpen, onClose, onSuccess }: {
                                 inputMode="numeric"
                                 maxLength={6}
                                 className="w-full px-4 py-2 pr-10 border border-[#334155] rounded-lg focus:outline-none focus:border-[#ea580c] focus:ring-2 focus:ring-[#ea580c]/20 bg-[#0f172a] text-[#f1f5f9]"
-                                placeholder="e.g., 1234"
+                                placeholder="e.g., 123456"
                                 value={form.pin}
-                                onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, '') })}
+                                onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, '').slice(0, 6) })}
                             />
                             <button
                                 type="button"
@@ -219,7 +219,7 @@ function CreateSalesmanModal({ isOpen, onClose, onSuccess }: {
                         </button>
                         <button
                             type="submit"
-                            disabled={loading || !form.userName || !form.pin || pinAvailability === 'taken' || pinAvailability === 'checking'}
+                            disabled={loading || !form.userName || form.pin.length !== 6 || pinAvailability === 'taken' || pinAvailability === 'checking'}
                             className="flex-1 px-4 py-2 text-sm font-medium text-white bg-[#ea580c] rounded-lg hover:bg-[#c2410c] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                         >
                             {loading ? <Spinner size={16} /> : 'Create Salesman'}
@@ -545,7 +545,7 @@ export function AdminUsers() {
   }
 
   useEffect(() => {
-    if (!pinModal || !/^\d{4,6}$/.test(pinValue)) {
+    if (!pinModal || !/^\d{6}$/.test(pinValue)) {
       setPinAvailability('idle');
       return;
     }
@@ -569,8 +569,8 @@ export function AdminUsers() {
 
   async function handleSetPin() {
     if (!pinModal) return;
-    if (!/^\d{4,6}$/.test(pinValue)) {
-      setPinError('PIN must be 4–6 digits.');
+    if (!/^\d{6}$/.test(pinValue)) {
+      setPinError('PIN must be exactly 6 digits.');
       return;
     }
     if (pinAvailability === 'taken') {
@@ -1023,7 +1023,7 @@ export function AdminUsers() {
               </h3>
               <p style={{ fontSize: 13, color: D.muted, marginBottom: 16 }}>
                 Setting PIN for <strong style={{ color: D.text }}>{pinModal.fullName}</strong>.
-                They'll use this 4–6 digit PIN to log in from the PIN login screen.
+                They'll use this 6-digit PIN to log in from the PIN login screen.
               </p>
 
               {pinError && (
@@ -1038,7 +1038,7 @@ export function AdminUsers() {
               )}
 
               <label style={{ fontSize: 12, color: D.muted, display: 'block', marginBottom: 6 }}>
-                PIN (4–6 digits) *
+                PIN (6 digits) *
               </label>
               <div style={{ position: 'relative' }}>
                 <input
@@ -1046,9 +1046,9 @@ export function AdminUsers() {
                   type={showPinValue ? 'text' : 'password'}
                   inputMode="numeric"
                   maxLength={6}
-                  placeholder="e.g. 1234"
+                  placeholder="e.g. 123456"
                   value={pinValue}
-                  onChange={e => setPinValue(e.target.value.replace(/\D/g, ''))}
+                  onChange={e => setPinValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   autoFocus
                   onKeyDown={e => e.key === 'Enter' && handleSetPin()}
                   style={{
@@ -1097,20 +1097,20 @@ export function AdminUsers() {
                 <button
                   className="btn btn-primary"
                   onClick={handleSetPin}
-                  disabled={pinSaving || pinValue.length < 4 || pinAvailability === 'taken' || pinAvailability === 'checking'}
+                  disabled={pinSaving || pinValue.length !== 6 || pinAvailability === 'taken' || pinAvailability === 'checking'}
                   style={{
                     padding: '10px 20px',
                     borderRadius: 10,
                     border: 'none',
-                    background: pinSaving || pinValue.length < 4 || pinAvailability === 'taken' || pinAvailability === 'checking'
+                    background: pinSaving || pinValue.length !== 6 || pinAvailability === 'taken' || pinAvailability === 'checking'
                       ? D.border
                       : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
                     color: '#fff',
                     fontSize: 14,
                     fontWeight: 700,
-                    cursor: pinSaving || pinValue.length < 4 || pinAvailability === 'taken' || pinAvailability === 'checking' ? 'not-allowed' : 'pointer',
+                    cursor: pinSaving || pinValue.length !== 6 || pinAvailability === 'taken' || pinAvailability === 'checking' ? 'not-allowed' : 'pointer',
                     fontFamily: 'inherit',
-                    boxShadow: pinSaving || pinValue.length < 4 || pinAvailability === 'taken' || pinAvailability === 'checking'
+                    boxShadow: pinSaving || pinValue.length !== 6 || pinAvailability === 'taken' || pinAvailability === 'checking'
                       ? 'none'
                       : `0 4px 14px ${D.accentGlow}`,
                     transition: 'all 0.15s',

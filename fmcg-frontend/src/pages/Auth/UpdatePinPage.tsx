@@ -1,16 +1,15 @@
-// PATH: src/pages/Auth/PinLoginPage.tsx
-// PIN-only login - Eastern-style dark theme
-// FIXED: Reduced padding/spacing to fit on one screen without scrolling
+// PATH: src/pages/Auth/UpdatePinPage.tsx
+// Forced PIN migration screen - shown once after a PIN login if the user's
+// PIN hasn't been confirmed as the new 6-digit format yet (RequiresPinUpdate).
+// Reuses the Eastern dark theme from PinLoginPage.
 
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Package, Delete, Eye, EyeOff } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Package, Delete, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { authApi } from '../../api/services';
 import { useAuthStore, getRoleHome } from '../../store/authStore';
-import type { UserRole, AuthUser } from '../../types';
 import { Spinner } from '../../components/ui';
 
-// ── Design tokens (Eastern dark) ─────────────────────────────
 const T = {
   bg:       '#0f172a',
   surface:  '#1e293b',
@@ -22,6 +21,8 @@ const T = {
   sub:      '#64748b',
   green:    '#16a34a',
 };
+
+const PIN_LENGTH = 6;
 
 function DigitBtn({
   label, sub, onClick, disabled,
@@ -77,64 +78,72 @@ const KEYS = [
   { label: '9', sub: 'WXYZ' },
 ];
 
-const PIN_LENGTH = 6;
+type Stage = 'enter' | 'confirm';
 
-export default function PinLoginPage() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
-  const { setUser } = useAuthStore();
+export default function UpdatePinPage() {
+  const navigate = useNavigate();
+  const { user, setUser } = useAuthStore();
 
+  const [stage,   setStage]   = useState<Stage>('enter');
   const [pin,     setPin]     = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
 
-  useEffect(() => {
-    const sessionExpired = location.state?.sessionExpired;
-    const sessionMessage = location.state?.message;
-    
-    if (sessionExpired && sessionMessage) {
-      setError(sessionMessage);
-    }
-  }, [location.state]);
+  const activePin = stage === 'enter' ? pin : confirmPin;
 
-  function backspace() { setPin(p => p.slice(0, -1)); }
+  function backspace() {
+    if (stage === 'enter') setPin(p => p.slice(0, -1));
+    else setConfirmPin(p => p.slice(0, -1));
+  }
 
-  async function submit(finalPin: string) {
-    if (finalPin.length < PIN_LENGTH) return;
+  function reset() {
+    setStage('enter');
+    setPin('');
+    setConfirmPin('');
     setError('');
-    setLoading(true);
-    try {
-      const res = await authApi.pinLogin(finalPin);
-      const user: AuthUser = {
-        id:           res.userId,
-        email:        res.email,
-        name:         res.fullName,
-        role:         res.role as UserRole,
-        token:        res.token,
-        refreshToken: res.refreshToken,
-        sessionId:    res.sessionId,
-        requiresPinUpdate: res.requiresPinUpdate,
-      };
-      setUser(user);
-      if (res.requiresPinUpdate) {
-        navigate('/update-pin', { replace: true });
-      } else {
-        navigate(getRoleHome(user.role));
+  }
+
+  async function handlePress(digit: string) {
+    if (activePin.length >= PIN_LENGTH) return;
+    const next = activePin + digit;
+
+    if (stage === 'enter') {
+      setPin(next);
+      if (next.length === PIN_LENGTH) {
+        setStage('confirm');
       }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Invalid PIN. Please try again.');
-      setPin('');
-    } finally {
-      setLoading(false);
+      return;
+    }
+
+    setConfirmPin(next);
+    if (next.length === PIN_LENGTH) {
+      await trySubmit(pin, next);
     }
   }
 
-  function handlePress(digit: string) {
-    if (pin.length >= PIN_LENGTH) return;
-    const next = pin + digit;
-    setPin(next);
-    if (next.length >= PIN_LENGTH) submit(next);
+  async function trySubmit(newPin: string, confirmation: string) {
+    if (newPin !== confirmation) {
+      setError("PINs don't match. Try again.");
+      setStage('enter');
+      setPin('');
+      setConfirmPin('');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+    try {
+      await authApi.setPin(newPin);
+      if (user) setUser({ ...user, requiresPinUpdate: false });
+      navigate(user ? getRoleHome(user.role) : '/pin-login', { replace: true });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to update PIN. Please try again.');
+      reset();
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -151,7 +160,6 @@ export default function PinLoginPage() {
     }}>
       <div style={{ width: '100%', maxWidth: 320 }}>
 
-        {/* ── Logo ── Smaller ── */}
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
           <div style={{
             width: 44,
@@ -180,20 +188,35 @@ export default function PinLoginPage() {
             fontSize: 11,
             marginTop: 2,
             fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 4,
           }}>
-            Enter your PIN to login
+            <ShieldCheck size={12} />
+            {stage === 'enter' ? 'Set your new 6-digit PIN' : 'Confirm your new PIN'}
           </p>
         </div>
 
-        {/* ── Card ── Smaller padding ── */}
         <div style={{
           background: T.surface,
           border: `1px solid ${T.border}`,
           borderRadius: 16,
           padding: '16px 16px 14px',
         }}>
+          <div style={{
+            padding: '8px 10px',
+            borderRadius: 8,
+            marginBottom: 10,
+            background: 'rgba(234,88,12,0.10)',
+            border: '1px solid rgba(234,88,12,0.25)',
+            color: T.text,
+            fontSize: 12,
+            lineHeight: 1.4,
+          }}>
+            PINs are now 6 digits for extra security. Please set a new PIN to continue.
+          </div>
 
-          {/* ── Error ── */}
           {error && (
             <div style={{
               padding: '6px 10px',
@@ -209,13 +232,12 @@ export default function PinLoginPage() {
             </div>
           )}
 
-          {/* ── PIN Display ── */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             <div style={{ position: 'relative', width: '100%' }}>
               <div style={{
                 display: 'flex',
                 justifyContent: 'center',
-                gap: 12,
+                gap: 10,
                 padding: '6px 0',
               }}>
                 {Array.from({ length: PIN_LENGTH }).map((_, i) => (
@@ -223,11 +245,11 @@ export default function PinLoginPage() {
                     width: 14,
                     height: 14,
                     borderRadius: '50%',
-                    background: i < pin.length ? T.accent : 'transparent',
-                    border: `2px solid ${i < pin.length ? T.accent : T.border}`,
+                    background: i < activePin.length ? T.accent : 'transparent',
+                    border: `2px solid ${i < activePin.length ? T.accent : T.border}`,
                     transition: 'all 0.15s cubic-bezier(0.34,1.4,0.64,1)',
-                    transform: i < pin.length ? 'scale(1.1)' : 'scale(1)',
-                    boxShadow: i < pin.length ? '0 2px 6px rgba(234,88,12,0.35)' : 'none',
+                    transform: i < activePin.length ? 'scale(1.1)' : 'scale(1)',
+                    boxShadow: i < activePin.length ? '0 2px 6px rgba(234,88,12,0.35)' : 'none',
                   }} />
                 ))}
               </div>
@@ -252,16 +274,17 @@ export default function PinLoginPage() {
 
             {!showPin && (
               <p style={{ color: T.sub, fontSize: 10, margin: 0 }}>
-                {pin.length < PIN_LENGTH ? `Enter ${PIN_LENGTH - pin.length} more digit${PIN_LENGTH - pin.length > 1 ? 's' : ''}` : 'PIN complete ✓'}
+                {activePin.length < PIN_LENGTH
+                  ? `Enter ${PIN_LENGTH - activePin.length} more digit${PIN_LENGTH - activePin.length > 1 ? 's' : ''}`
+                  : 'PIN complete ✓'}
               </p>
             )}
           </div>
 
-          {/* ── Number Pad ── Tighter spacing ── */}
           {loading ? (
             <div style={{ padding: 16, textAlign: 'center' }}>
               <Spinner size={32} />
-              <p style={{ color: T.sub, fontSize: 12, marginTop: 8 }}>Verifying PIN...</p>
+              <p style={{ color: T.sub, fontSize: 12, marginTop: 8 }}>Saving your new PIN...</p>
             </div>
           ) : (
             <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginTop: 10 }}>
@@ -273,7 +296,7 @@ export default function PinLoginPage() {
               <DigitBtn label="0" onClick={() => handlePress('0')} disabled={loading} />
               <button
                 onClick={backspace}
-                disabled={loading || pin.length === 0}
+                disabled={loading || activePin.length === 0}
                 style={{
                   width: '100%',
                   paddingTop: 12,
@@ -285,8 +308,8 @@ export default function PinLoginPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: pin.length === 0 ? 'not-allowed' : 'pointer',
-                  opacity: pin.length === 0 ? 0.35 : 1,
+                  cursor: activePin.length === 0 ? 'not-allowed' : 'pointer',
+                  opacity: activePin.length === 0 ? 0.35 : 1,
                   transition: 'all 0.12s',
                   touchAction: 'manipulation',
                   fontFamily: 'inherit',
@@ -298,23 +321,16 @@ export default function PinLoginPage() {
             </div>
           )}
 
-          {/* ── Footer links ── Tighter ── */}
-          <div style={{
-            marginTop: 12,
-            textAlign: 'center',
-            fontSize: 11,
-            color: T.sub,
-            borderTop: `1px solid ${T.border}`,
-            paddingTop: 10,
-          }}>
-            <a href="/login" style={{ color: T.sub, textDecoration: 'none', fontWeight: 500 }}>
-              Use email & password instead
-            </a>
-            {' · '}
-            <span style={{ color: T.muted }}>
-              💡 Contact admin if PIN is forgotten
-            </span>
-          </div>
+          {stage === 'confirm' && !loading && (
+            <div style={{ marginTop: 12, textAlign: 'center' }}>
+              <button
+                onClick={reset}
+                style={{ background: 'none', border: 'none', color: T.sub, fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Start over
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

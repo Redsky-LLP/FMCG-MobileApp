@@ -82,6 +82,7 @@ export interface AuthUser {
   token:        string;
   refreshToken?: string;
   sessionId?:   string;
+  requiresPinUpdate?: boolean;
 }
 
 export interface UserDto {
@@ -100,6 +101,7 @@ export interface LoginResponse {
   fullName:     string;
   role:         string;
   sessionId:    string;
+  requiresPinUpdate?: boolean;
 }
 
 // ── API Envelope ──────────────────────────────────────────────────────────────
