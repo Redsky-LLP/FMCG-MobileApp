@@ -82,7 +82,6 @@ export function AdminRoutes() {
 
   // Stats
   const activeCount   = routes.filter(r => r.isActive).length;
-  const assignedCount = routes.filter(r => r.assignedSalesmanName).length;
   const totalCustomers = routes.reduce((s, r) => s + (r.customerCount ?? 0), 0);
 
   if (loading) return (
@@ -204,7 +203,6 @@ export function AdminRoutes() {
           <div style={{ display: 'flex', gap: 10, marginTop: 22, flexWrap: 'wrap' }}>
             {[
               { icon: Activity, label: 'Active Routes',     value: activeCount,      color: D.green },
-              { icon: Users,    label: 'Assigned',           value: assignedCount,    color: '#3B82F6' },
               { icon: Users,    label: 'Total Customers',   value: totalCustomers,   color: D.amber },
             ].map(s => (
               <div key={s.label} style={{

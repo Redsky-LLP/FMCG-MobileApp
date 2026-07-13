@@ -106,13 +106,6 @@ const NAV_BLOCKS: NavBlock[] = [
     accent: D.accent, accentText: D.accent, roles: ['Admin', 'SuperAdmin'],
   },
   {
-    id: 'orders', label: 'Orders Panel',
-    description: 'Create, track, and manage customer orders',
-    icon: ShoppingCart, to: '/admin/orders',
-    badge: '12 Pending', badgeColor: 'blue',
-    accent: D.blueBg, accentText: D.blue, roles: ['Admin', 'SuperAdmin'],
-  },
-  {
     id: 'customers', label: 'Customers Masters',
     description: 'Browse and manage customer catalog',
     icon: Users, to: '/admin/customers',
@@ -276,16 +269,15 @@ export function HomeHub() {
   // REMOVED: statCards filter for Analytics
   const quickActions = QUICK_ACTIONS.filter(a => a.roles.includes(role));
 
-  // Filter blocks: main blocks (Route Hub, Orders, Customers)
-  const mainBlocks   = isAdmin ? blocks.filter(b => ['admin-routes','orders','customers'].includes(b.id)) : blocks;
+  // Filter blocks: main blocks (Route Hub, Customers)
+  const mainBlocks   = isAdmin ? blocks.filter(b => ['admin-routes','customers'].includes(b.id)) : blocks;
   // Filter large blocks: Products, Users, Reports, Catalog
   const largeBlocks  = isAdmin ? blocks.filter(b => ['products','users','reports','catalog'].includes(b.id)) : [];
   // Everything else goes to more tools
-  const moreTools    = isAdmin ? blocks.filter(b => !['admin-routes','orders','customers','products','users','reports','catalog'].includes(b.id)) : [];
+  const moreTools    = isAdmin ? blocks.filter(b => !['admin-routes','customers','products','users','reports','catalog'].includes(b.id)) : [];
 
   function liveBadge(blockId: string): string | undefined {
     if (blockId === 'admin-routes') return liveStats.routesCount !== undefined ? `${liveStats.routesCount} Routes` : undefined;
-    if (blockId === 'orders')       return liveStats.pendingOrders !== undefined ? `${liveStats.pendingOrders} Pending` : undefined;
     if (blockId === 'customers')    return liveStats.customersCount !== undefined ? `${liveStats.customersCount} Active` : undefined;
     return undefined;
   }
@@ -389,7 +381,7 @@ export function HomeHub() {
           </div>
         </div>
 
-        {/* ── Main Nav Grid (Route Hub, Orders, Customers) ── */}
+        {/* ── Main Nav Grid (Route Hub, Customers) ── */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr' : mainBlocks.length >= 3 ? 'repeat(3,1fr)' : mainBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
