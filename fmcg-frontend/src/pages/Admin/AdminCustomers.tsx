@@ -452,7 +452,7 @@ interface FormFieldsProps {
     name: string;
     nameMl: string;
     phone: string;
-    address: string;
+    // address: string;
     routeId: string;
     sequenceOrder: string;
   };
@@ -557,14 +557,14 @@ const FormFields = React.memo(({ form, setForm, routes, isEdit = false }: FormFi
           type="tel"
           value={form.phone}
           onChange={e => handleChange('phone', e.target.value)}
-          placeholder="+91 9876543210"
+          // placeholder="+91 9876543210"
           style={inputStyle}
           onFocus={e => { e.target.style.borderColor = D.accent; e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`; e.target.style.background = D.surface2; }}
           onBlur={e => { e.target.style.borderColor = D.border; e.target.style.boxShadow = 'none'; e.target.style.background = D.bg; }}
         />
       </div>
 
-      <div>
+      {/* <div>
         <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: D.muted, marginBottom: 6 }}>Address</label>
         <input
           type="text"
@@ -575,7 +575,7 @@ const FormFields = React.memo(({ form, setForm, routes, isEdit = false }: FormFi
           onFocus={e => { e.target.style.borderColor = D.accent; e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`; e.target.style.background = D.surface2; }}
           onBlur={e => { e.target.style.borderColor = D.border; e.target.style.boxShadow = 'none'; e.target.style.background = D.bg; }}
         />
-      </div>
+      </div> */}
     </div>
   );
 });
@@ -603,7 +603,7 @@ export function AdminCustomers() {
   const [reordering,  setReordering]  = useState(false);
   const addCardRef = useRef<HTMLDivElement>(null);
 
-  const emptyForm = { name: '', nameMl: '', phone: '', address: '', routeId: '', sequenceOrder: '1' };
+  const emptyForm = { name: '', nameMl: '', phone: '', routeId: '', sequenceOrder: '1' };
   const [addForm,  setAddForm]  = useState(emptyForm);
   const [editForm, setEditForm] = useState(emptyForm);
 
@@ -638,7 +638,7 @@ export function AdminCustomers() {
   function openEdit(c: CustomerDto) {
     setEditForm({
       name: c.nameEnglish, nameMl: c.nameMalayalam ?? '',
-      phone: c.phoneNumber ?? '', address: c.address ?? '',
+      phone: c.phoneNumber ?? '', 
       routeId: c.routeId,
       sequenceOrder: String(c.sequenceOrder > 0 ? c.sequenceOrder : nextSeq(c.routeId)),
     });
@@ -668,7 +668,7 @@ export function AdminCustomers() {
     try {
       await customersApi.create({
         nameEnglish: addForm.name, nameMalayalam: addForm.nameMl || undefined,
-        phoneNumber: addForm.phone || undefined, address: addForm.address || undefined,
+        phoneNumber: addForm.phone || undefined, 
         routeId: addForm.routeId,
       });
       setShowAdd(false); setAddForm(emptyForm); load();
@@ -690,7 +690,7 @@ export function AdminCustomers() {
         nameEnglish: editForm.name,
         nameMalayalam: editForm.nameMl || undefined,
         phoneNumber: editForm.phone || undefined,
-        address: editForm.address || undefined,
+        // address: editForm.address || undefined,
         routeId: editForm.routeId,
         isActive: editModal.isActive,
       };

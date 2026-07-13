@@ -280,7 +280,7 @@ function ProductFormFields({
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div>
-          <label style={lbl}>Product Group <span style={{ color: D.red }}>*</span></label>
+          <label style={lbl}>Item Group <span style={{ color: D.red }}>*</span></label>
           <select value={form.productGroupId} onChange={e => setForm((p: any) => ({ ...p, productGroupId: e.target.value }))}
             style={{ ...inp, cursor: 'pointer' }} onFocus={onFoc} onBlur={onBlr}>
             <option value="">Select group</option>
@@ -288,7 +288,7 @@ function ProductFormFields({
           </select>
         </div>
         <div>
-          <label style={lbl}>Unit</label>
+          <label style={lbl}>Packing Category</label>
           <select value={form.unitId} onChange={e => setForm((p: any) => ({ ...p, unitId: e.target.value }))}
             style={{ ...inp, cursor: 'pointer' }} onFocus={onFoc} onBlur={onBlr}>
             <option value="">None</option>
