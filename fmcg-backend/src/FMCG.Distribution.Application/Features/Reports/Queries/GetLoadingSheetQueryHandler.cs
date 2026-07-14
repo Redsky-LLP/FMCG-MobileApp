@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using FMCG.Distribution.Application.Common;
@@ -21,6 +22,9 @@ namespace FMCG.Distribution.Application.Features.Reports.Queries;
 public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
     : IRequestHandler<GetLoadingSheetQuery, Result<byte[]>>
 {
+    // Loading workers get a highlighted alert once a route's 50kg bag count reaches this.
+    private const int FiftyKgBagThreshold = 110;
+
     public async Task<Result<byte[]>> Handle(GetLoadingSheetQuery request, CancellationToken cancellationToken)
     {
         try
@@ -32,7 +36,8 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 .Include(o => o.Customer)
                 .Include(o => o.Route)
                 .Include(o => o.Items!)
-                    .ThenInclude(i => i.Product)
+                    .ThenInclude(i => i.Product!)
+                        .ThenInclude(p => p.SizeGroup)
                 .Include(o => o.Items!)
                     .ThenInclude(i => i.Unit)
                 .Where(o => !o.IsDeleted
@@ -73,8 +78,11 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
             {
                 var routeOrders = routeGroup.ToList();
 
-                // ── Build item summary for this route ──
+                // ── Build item summary for this route (kept for API back-compat; not shown in the new PDF layout) ──
                 var itemSummaryDict = new Dictionary<string, LoadingSheetItemSummaryDto>();
+
+                // ── Build size-group summary for this route (e.g. "50 KG - 250 Bags"), heaviest first ──
+                var sizeGroupSummaryDict = new Dictionary<string, LoadingSheetSizeGroupSummaryDto>();
 
                 foreach (var order in routeOrders)
                 {
@@ -105,10 +113,28 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                         }
 
                         existingSummary.TotalQuantity += item.Quantity;
+
+                        // ── Size-group rollup ──
+                        var sizeGroupName = item.Product.SizeGroup?.Name;
+                        if (!string.IsNullOrWhiteSpace(sizeGroupName))
+                        {
+                            if (!sizeGroupSummaryDict.TryGetValue(sizeGroupName, out var sgSummary))
+                            {
+                                sgSummary = new LoadingSheetSizeGroupSummaryDto
+                                {
+                                    SizeGroupName = sizeGroupName,
+                                    SortKey = ParseSizeGroupSortKey(sizeGroupName),
+                                    UnitTypeLabel = GetUnitTypeLabel(unitName),
+                                    TotalQuantity = 0
+                                };
+                                sizeGroupSummaryDict[sizeGroupName] = sgSummary;
+                            }
+                            sgSummary.TotalQuantity += item.Quantity;
+                        }
                     }
                 }
 
-                // ── Build customer stops ──
+                // ── Build customer stops (in admin-assigned delivery sequence) ──
                 var stops = new List<LoadingSheetStopDto>();
                 var routeTotalQty = 0m;
 
@@ -117,6 +143,9 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                     .ToList();
 
                 int stopNumber = 1;
+                var runningFiftyKgBags = 0;
+                var thresholdAlertAlreadyShown = false;
+
                 foreach (var order in orderedOrders)
                 {
                     if (order.Customer == null || order.Items == null) continue;
@@ -130,6 +159,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                             ProductNameMl = i.Product.NameMalayalam,
                             i.UnitId,
                             UnitSymbol = i.Unit?.Symbol ?? string.Empty,
+                            SizeGroupName = i.Product.SizeGroup?.Name,
                         })
                         .Select(g => new LoadingSheetItemDto
                         {
@@ -139,16 +169,29 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                             TotalQuantity = g.Sum(i => i.Quantity),
                             LoadingPriority = units.GetValueOrDefault(g.Key.UnitId, 99),
                             UnitTypeLabel = GetUnitTypeLabel(g.Key.UnitSymbol),
+                            SizeGroupName = g.Key.SizeGroupName,
+                            SizeGroupSortKey = ParseSizeGroupSortKey(g.Key.SizeGroupName),
                             QuantityBags = 0,
                             QuantityBoxes = 0,
                             QuantityTins = 0,
                         })
-                        .OrderBy(i => i.LoadingPriority)
+                        // ── Size Group Prioritization: heaviest size group first, then loading priority, then name ──
+                        .OrderBy(i => i.SizeGroupSortKey)
+                        .ThenBy(i => i.LoadingPriority)
                         .ThenBy(i => i.ProductName)
                         .ToList();
 
                     var stopTotal = groupedItems.Sum(i => i.TotalQuantity);
                     routeTotalQty += stopTotal;
+
+                    // ── 50kg bag threshold tracking ──
+                    var fiftyKgBagsThisStop = order.Items
+                        .Where(i => Is50KgSizeGroup(i.Product?.SizeGroup?.Name))
+                        .Sum(i => i.QuantityBags ?? (int)i.Quantity);
+                    runningFiftyKgBags += fiftyKgBagsThisStop;
+
+                    var crossesThresholdNow = !thresholdAlertAlreadyShown && runningFiftyKgBags >= FiftyKgBagThreshold;
+                    if (crossesThresholdNow) thresholdAlertAlreadyShown = true;
 
                     stops.Add(new LoadingSheetStopDto
                     {
@@ -161,7 +204,11 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                         IsLastDelivery = stopNumber == orderedOrders.Count,
                         VisitStatus = VisitStatus.OrderPlaced,
                         Items = groupedItems,
-                        StopTotalQuantity = stopTotal
+                        StopTotalQuantity = stopTotal,
+                        OrderNumber = order.OrderNumber,
+                        Remarks = string.IsNullOrWhiteSpace(order.Remarks) ? null : order.Remarks,
+                        ShowFiftyKgThresholdAlertAfter = crossesThresholdNow,
+                        RunningFiftyKgBagTotal = runningFiftyKgBags,
                     });
 
                     stopNumber++;
@@ -180,6 +227,10 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                     ItemSummary = itemSummaryDict.Values
                         .OrderBy(i => i.LoadingPriority)
                         .ThenBy(i => i.ProductName)
+                        .ToList(),
+                    SizeGroupSummary = sizeGroupSummaryDict.Values
+                        .OrderBy(sg => sg.SortKey)
+                        .ThenByDescending(sg => sg.TotalQuantity)
                         .ToList(),
                     Stops = stops
                 });
@@ -216,7 +267,24 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
         return "OTHER";
     }
 
-    // ── Clean, Simple PDF Generator ──
+    // ── Size Group Prioritization: parse leading number out of the group name ("50 KG" → 50) so
+    // heavier groups sort first. Groups with no parseable number sort last. ──
+    private static int ParseSizeGroupSortKey(string? sizeGroupName)
+    {
+        if (string.IsNullOrWhiteSpace(sizeGroupName)) return 999;
+        var match = Regex.Match(sizeGroupName, @"\d+");
+        if (match.Success && int.TryParse(match.Value, out var kg))
+        {
+            // Negative so ordering ascending by this key puts the heaviest (largest kg) first.
+            return -kg;
+        }
+        return 999;
+    }
+
+    private static bool Is50KgSizeGroup(string? sizeGroupName)
+        => sizeGroupName != null && Regex.IsMatch(sizeGroupName, @"\b50\s*kg\b", RegexOptions.IgnoreCase);
+
+    // ── PDF Generator: order/customer table format, matching the Billing Sheet's style ──
     private static byte[] GenerateSimpleLoadingSheetPdf(
         List<LoadingSheetRouteSummaryDto> routes,
         DateTime targetDate,
@@ -230,7 +298,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(0.5f, PdfUnit.Centimetre);
-                    page.DefaultTextStyle(x => x.FontSize(8).FontFamily("Arial"));
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Arial"));
 
                     // ── Header ──
                     page.Header()
@@ -240,25 +308,25 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                         {
                             row.RelativeItem().Column(col =>
                             {
-                                col.Item().Text("LOADING SHEET").FontSize(14).Bold();
-                                col.Item().Text($"Date: {targetDate:dd-MM-yyyy}");
+                                col.Item().Text("LOADING SHEET").FontSize(16).Bold();
+                                col.Item().Text($"Date: {targetDate:dd-MM-yyyy}").FontSize(10);
                                 if (isSingleRoute && routes.Count == 1)
                                 {
-                                    col.Item().Text($"Route: {routes[0].RouteName}").FontSize(10);
+                                    col.Item().Text($"Route: {routes[0].RouteName}").FontSize(11).Bold();
                                 }
                             });
                             row.RelativeItem().AlignRight().Column(col =>
                             {
-                                col.Item().Text($"Generated: {DateTime.UtcNow:dd-MM-yyyy HH:mm}");
+                                col.Item().Text($"Generated: {DateTime.UtcNow:dd-MM-yyyy HH:mm}").FontSize(9);
                                 if (isSingleRoute && routes.Count == 1)
                                 {
-                                    col.Item().Text($"Orders: {routes[0].TotalOrders} | Customers: {routes[0].TotalCustomers}");
+                                    col.Item().Text($"Orders: {routes[0].TotalOrders} | Customers: {routes[0].TotalCustomers}").FontSize(9);
                                 }
                                 else
                                 {
                                     var totalOrders = routes.Sum(r => r.TotalOrders);
                                     var totalStops = routes.Sum(r => r.TotalCustomers);
-                                    col.Item().Text($"Routes: {routes.Count} | Orders: {totalOrders} | Stops: {totalStops}");
+                                    col.Item().Text($"Routes: {routes.Count} | Orders: {totalOrders} | Stops: {totalStops}").FontSize(9);
                                 }
                             });
                         });
@@ -268,113 +336,106 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                     {
                         foreach (var route in routes)
                         {
-                            contentCol.Item().PaddingTop(8).Column(routeCol =>
+                            contentCol.Item().PaddingTop(10).Column(routeCol =>
                             {
                                 // ── Route Header ──
                                 routeCol.Item().Background(Colors.Grey.Lighten2)
                                     .Padding(6)
                                     .Row(r =>
                                     {
-                                        r.RelativeItem().Column(c =>
-                                        {
-                                            c.Item().Text($"{route.RouteName}").FontSize(12).Bold();
-                                            c.Item().Text($"Orders: {route.TotalOrders} | Customers: {route.TotalCustomers}");
-                                        });
-                                        r.RelativeItem().AlignRight().Column(c =>
-                                        {
-                                            c.Item().Text($"Total Qty: {route.GrandTotalQuantity:N0}").FontSize(11).Bold();
-                                        });
+                                        r.RelativeItem().Text($"{route.RouteName}").FontSize(13).Bold();
+                                        r.RelativeItem().AlignRight().Text($"Orders: {route.TotalOrders}  |  Customers: {route.TotalCustomers}").FontSize(10);
                                     });
 
-                                // ── Item Summary Table ──
-                                routeCol.Item().PaddingTop(6)
-                                    .Background(Colors.Grey.Lighten3)
-                                    .Padding(4)
-                                    .Column(summaryCol =>
+                                // ── Customer / Order table (Billing-Sheet style: #, Customer, Order#, Product, Qty) ──
+                                routeCol.Item().PaddingTop(6).Table(table =>
+                                {
+                                    table.ColumnsDefinition(columns =>
                                     {
-                                        summaryCol.Item().Text("📦 ITEMS").FontSize(9).Bold();
+                                        columns.ConstantColumn(28);   // #
+                                        columns.RelativeColumn(3);    // Customer
+                                        columns.RelativeColumn(2);    // Order #
+                                        columns.RelativeColumn(4);    // Product
+                                        columns.RelativeColumn(1.4f); // Qty
+                                    });
 
-                                        summaryCol.Item().PaddingTop(4).Table(table =>
+                                    table.Header(header =>
+                                    {
+                                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("#").Bold().FontSize(10);
+                                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("CUSTOMER").Bold().FontSize(10);
+                                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("ORDER #").Bold().FontSize(10);
+                                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("PRODUCT").Bold().FontSize(10);
+                                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).AlignRight().Text("QTY").Bold().FontSize(10);
+                                    });
+
+                                    foreach (var stop in route.Stops)
+                                    {
+                                        var firstRow = true;
+
+                                        if (stop.Items.Count == 0 && stop.Remarks == null)
                                         {
-                                            // Simple columns: Product, Unit, Total
-                                            table.ColumnsDefinition(columns =>
-                                            {
-                                                columns.RelativeColumn(4);
-                                                columns.RelativeColumn(2);
-                                                columns.RelativeColumn(2);
-                                            });
+                                            table.Cell().BorderBottom(0.5f).Padding(4).Text($"{stop.SequenceOrder}").Bold().FontSize(11);
+                                            table.Cell().BorderBottom(0.5f).Padding(4).Text(stop.CustomerName).Bold().FontSize(11);
+                                            table.Cell().BorderBottom(0.5f).Padding(4).Text(stop.OrderNumber ?? "").FontSize(10);
+                                            table.Cell().BorderBottom(0.5f).Padding(4).Text("—").FontSize(10);
+                                            table.Cell().BorderBottom(0.5f).Padding(4).AlignRight().Text("").FontSize(10);
+                                        }
 
-                                            table.Header(header =>
-                                            {
-                                                header.Cell().BorderBottom(0.5f).Padding(3).Text("PRODUCT").Bold();
-                                                header.Cell().BorderBottom(0.5f).Padding(3).Text("UNIT").Bold();
-                                                header.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text("QTY").Bold();
-                                            });
+                                        foreach (var item in stop.Items)
+                                        {
+                                            var borderBottom = (item == stop.Items.Last() && stop.Remarks == null) ? 0.5f : 0f;
 
-                                            foreach (var item in route.ItemSummary)
+                                            // # and Customer only printed once, on the first row of this stop
+                                            table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? $"{stop.SequenceOrder}" : "").Bold().FontSize(11);
+                                            table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? stop.CustomerName : "").Bold().FontSize(11);
+                                            table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? (stop.OrderNumber ?? "") : "").FontSize(10);
+                                            table.Cell().Padding(4).BorderBottom(borderBottom).Text($"{item.ProductName}{(string.IsNullOrEmpty(item.SizeGroupName) ? "" : $"  ({item.SizeGroupName})")}").FontSize(10);
+                                            table.Cell().Padding(4).BorderBottom(borderBottom).AlignRight().Text($"{item.TotalQuantity:N0} {item.UnitSymbol}").FontSize(10).Bold();
+
+                                            firstRow = false;
+                                        }
+
+                                        // ── Retail items / remarks row — highlighted so warehouse staff know to weigh manually ──
+                                        if (stop.Remarks != null)
+                                        {
+                                            table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? $"{stop.SequenceOrder}" : "").Bold().FontSize(11);
+                                            table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? stop.CustomerName : "").Bold().FontSize(11);
+                                            table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? (stop.OrderNumber ?? "") : "").FontSize(10);
+                                            table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text($"⚖ RETAIL / WEIGH: {stop.Remarks}").FontSize(10).Bold().FontColor(Colors.Orange.Darken2);
+                                            table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).AlignRight().Text("").FontSize(10);
+                                        }
+
+                                        // ── 50kg bag threshold alert, inserted right after the stop that crossed it ──
+                                        if (stop.ShowFiftyKgThresholdAlertAfter)
+                                        {
+                                            table.Cell().ColumnSpan(5).PaddingTop(8).PaddingBottom(4).Element(e => e);
+
+                                            table.Cell().ColumnSpan(5).Background(Colors.Red.Lighten3).Padding(6)
+                                                .Text($"⚠ ALERT: 50 KG BAGS HAVE REACHED {stop.RunningFiftyKgBagTotal} (THRESHOLD: {FiftyKgBagThreshold}+) — AFTER \"{stop.CustomerName}\" — VERIFY LOADING CAPACITY")
+                                                .Bold().FontSize(11).FontColor(Colors.Red.Darken2);
+
+                                            table.Cell().ColumnSpan(5).PaddingTop(4).PaddingBottom(2).Element(e => e);
+                                        }
+                                    }
+                                });
+
+                                // ── Size Group Summary (end of route) — helps loaders plan bag counts by weight ──
+                                if (route.SizeGroupSummary.Count > 0)
+                                {
+                                    routeCol.Item().PaddingTop(10)
+                                        .Background(Colors.Blue.Lighten5)
+                                        .Padding(8)
+                                        .Column(sgCol =>
+                                        {
+                                            sgCol.Item().Text("📦 SIZE GROUP SUMMARY").FontSize(11).Bold();
+                                            var i = 1;
+                                            foreach (var sg in route.SizeGroupSummary)
                                             {
-                                                table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName);
-                                                table.Cell().BorderBottom(0.5f).Padding(3).Text(item.UnitSymbol);
-                                                table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.TotalQuantity:N0}");
+                                                sgCol.Item().PaddingTop(2).Text($"{i}. {sg.SizeGroupName} — {sg.TotalQuantity:N0} {sg.UnitTypeLabel}").FontSize(11).Bold();
+                                                i++;
                                             }
-
-                                            // Route total
-                                            table.Cell().BorderTop(0.5f).Padding(3).Text("ROUTE TOTAL").Bold();
-                                            table.Cell().BorderTop(0.5f).Padding(3);
-                                            table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{route.GrandTotalQuantity:N0}").Bold();
                                         });
-                                    });
-
-                                // ── Customer Breakdown ──
-                                routeCol.Item().PaddingTop(8)
-                                    .Column(detailCol =>
-                                    {
-                                        detailCol.Item().Text("👤 CUSTOMERS").FontSize(9).Bold();
-
-                                        if (route.Stops.Count == 0)
-                                        {
-                                            detailCol.Item()
-                                                .PaddingTop(6)
-                                                .Padding(10)
-                                                .AlignCenter()
-                                                .Text("No customers with orders for this route.")
-                                                .FontSize(9)
-                                                .FontColor(Colors.Grey.Medium);
-                                        }
-                                        else
-                                        {
-                                            detailCol.Item().PaddingTop(4).Table(table =>
-                                            {
-                                                table.ColumnsDefinition(columns =>
-                                                {
-                                                    columns.RelativeColumn(1);
-                                                    columns.RelativeColumn(3);
-                                                    columns.RelativeColumn(4);
-                                                    columns.RelativeColumn(1);
-                                                });
-
-                                                table.Header(header =>
-                                                {
-                                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("#").Bold();
-                                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("CUSTOMER").Bold();
-                                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("ITEMS").Bold();
-                                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("QTY").Bold();
-                                                });
-
-                                                foreach (var stop in route.Stops)
-                                                {
-                                                    var itemNames = string.Join(", ", stop.Items.Select(i =>
-                                                        $"{i.ProductName} ({i.TotalQuantity:N0} {i.UnitSymbol})"
-                                                    ));
-
-                                                    table.Cell().BorderBottom(0.5f).Padding(3).Text($"#{stop.SequenceOrder}");
-                                                    table.Cell().BorderBottom(0.5f).Padding(3).Text(stop.CustomerName);
-                                                    table.Cell().BorderBottom(0.5f).Padding(3).Text(itemNames).FontSize(7);
-                                                    table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{stop.StopTotalQuantity:N0}");
-                                                }
-                                            });
-                                        }
-                                    });
+                                }
 
                                 if (route != routes.Last())
                                 {
