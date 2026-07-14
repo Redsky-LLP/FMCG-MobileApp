@@ -17,6 +17,10 @@ public class LoadingSheetItemDto
     public int? QuantityBags { get; set; }
     public int? QuantityBoxes { get; set; }
     public int? QuantityTins { get; set; }
+
+    // ── NEW: Size Group (e.g. "50 KG", "25 KG") for loading priority & summary ──
+    public string? SizeGroupName { get; set; }
+    public int SizeGroupSortKey { get; set; } = 999;    // lower = heavier = loaded/listed first
 }
 
 public class LoadingSheetStopDto
@@ -31,6 +35,22 @@ public class LoadingSheetStopDto
     public VisitStatus VisitStatus { get; set; }
     public List<LoadingSheetItemDto> Items { get; set; } = new();
     public decimal StopTotalQuantity { get; set; }
+
+    // ── NEW ──
+    public string? OrderNumber { get; set; }
+    public string? Remarks { get; set; }             // Retail items / free-text remarks from the salesman
+
+    // ── NEW: 50kg-bag threshold alert (set by handler once cumulative crosses the limit) ──
+    public bool ShowFiftyKgThresholdAlertAfter { get; set; }
+    public int RunningFiftyKgBagTotal { get; set; }
+}
+
+public class LoadingSheetSizeGroupSummaryDto
+{
+    public string SizeGroupName { get; set; } = string.Empty;
+    public int SortKey { get; set; } = 999;
+    public decimal TotalQuantity { get; set; }
+    public string UnitTypeLabel { get; set; } = string.Empty;   // "BAGS", "BOXES", etc.
 }
 
 public class LoadingSheetRouteGroupDto
@@ -88,6 +108,9 @@ public class LoadingSheetRouteSummaryDto
     // ── Item-wise summary for this route ──
     public List<LoadingSheetItemSummaryDto> ItemSummary { get; set; } = new();
 
+    // ── NEW: Size-group summary for this route (e.g. "50 KG - 250 Bags"), heaviest first ──
+    public List<LoadingSheetSizeGroupSummaryDto> SizeGroupSummary { get; set; } = new();
+
     // ── Customer-wise detailed breakdown ──
     public List<LoadingSheetStopDto> Stops { get; set; } = new();
 }
@@ -131,6 +154,8 @@ public class BillingSheetOrderDto
     public string CustomerName { get; set; } = string.Empty;
     public string? CustomerNameMalayalam { get; set; }
     public DateTime OrderDate { get; set; }
+    public int SequenceOrder { get; set; }        // NEW — admin-assigned customer visit order, used for numbering & sort
+    public string? Remarks { get; set; }          // NEW — retail items / free-text remarks from the salesman
     public List<BillingSheetItemDto> Items { get; set; } = [];
     public decimal OrderTotal { get; set; }
     public decimal OrderVariance { get; set; }

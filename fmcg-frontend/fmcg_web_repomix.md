@@ -1422,7 +1422,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.h9rqs0l31c8"
+    "revision": "0.b8dff83i46g"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -7109,7 +7109,10 @@ export const productsApi = {
       maxOrderQty: cmd.maxOrderQty,
       // ── NEW: Size Group ──
       sizeGroupId: cmd.sizeGroupId,
+      UnitSize: cmd.UnitSize,    // ← MUST be here
+      Incentive: cmd.Incentive,  // ← MUST be here
     };
+     console.log('🔵 services.ts payload:', payload);
     return post<{ id: string }>('/api/v1/products', payload);
   },
   update: (id: string, cmd: UpdateProductCommand) => {
@@ -7130,6 +7133,8 @@ export const productsApi = {
       maxOrderQty: cmd.maxOrderQty,
       // ── NEW: Size Group ──
       sizeGroupId: cmd.sizeGroupId,
+      UnitSize: cmd.UnitSize,    // ← ADD THIS
+      Incentive: cmd.Incentive,  // ← ADD THIS
     };
     return put<{ id: string }>(`/api/v1/products/${id}`, payload);
   },
@@ -12300,17 +12305,17 @@ export function AdminAnalytics() {
 ## File: src/pages/Admin/AdminCatalogConfig.tsx
 ````typescript
 // PATH: src/pages/Admin/AdminCatalogConfig.tsx
-// UPDATED: Added Unit Size card, Packing Category (renamed from Priorities) with add/edit, and Incentives card
+// UPDATED: Removed Units and Incentives cards
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Settings, Plus, Edit2, Trash2, X, Save,
-  Boxes, Ruler, ArrowLeft, RefreshCw,
-  TrendingUp, Layers, Package, Award, Scale,
+  Boxes, ArrowLeft, RefreshCw,
+  Layers, Package,
 } from 'lucide-react';
-import { productGroupsApi, unitsApi, sizeGroupsApi, incentivesApi } from '../../api/services';
-import type { ProductGroupDto, UnitDto, UnitPriorityDto, SizeGroupDto, ProductIncentiveDto } from '../../types';
+import { productGroupsApi, unitsApi, sizeGroupsApi } from '../../api/services';
+import type { ProductGroupDto, UnitDto, UnitPriorityDto, SizeGroupDto } from '../../types';
 import { Spinner, Alert, ConfirmModal } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -12721,248 +12726,6 @@ function GroupModal({
 }
 
 // ── ────────────────────────────────────────────────────────────────────────────
-// ── Unit Modal (with UQC and Unit Size) ───────────────────────────────────────
-// ── ────────────────────────────────────────────────────────────────────────────
-
-function UnitModal({
-  isOpen,
-  onClose,
-  onSave,
-  editing,
-  initialData,
-  saving,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (data: { name: string; abbreviation: string; uqc: string; unitSize?: number }) => void;
-  editing: boolean;
-  initialData: { name: string; abbreviation: string; uqc: string; unitSize?: number };
-  saving: boolean;
-}) {
-  const [name, setName] = useState(initialData.name);
-  const [abbreviation, setAbbreviation] = useState(initialData.abbreviation);
-  const [uqc, setUqc] = useState(initialData.uqc);
-  const [unitSize, setUnitSize] = useState<number | undefined>(initialData.unitSize);
-
-  useEffect(() => {
-    setName(initialData.name);
-    setAbbreviation(initialData.abbreviation);
-    setUqc(initialData.uqc);
-    setUnitSize(initialData.unitSize);
-  }, [initialData, isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = () => {
-    if (!name.trim()) return;
-    onSave({
-      name: name.trim(),
-      abbreviation: abbreviation.trim(),
-      uqc: uqc.trim().toUpperCase(),
-      unitSize: unitSize,
-    });
-  };
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.7)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          background: D.surface,
-          borderRadius: 16,
-          maxWidth: 480,
-          width: '100%',
-          border: `1px solid ${D.border}`,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div style={{
-          padding: '16px 20px',
-          borderBottom: `1px solid ${D.border}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: 0 }}>
-            {editing ? 'Edit Unit' : 'Add Unit'}
-          </h3>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '4px',
-              borderRadius: 6,
-              border: 'none',
-              background: 'transparent',
-              color: D.sub,
-              cursor: 'pointer',
-            }}
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <div style={{ padding: '20px' }}>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
-              Unit Name *
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="e.g., Kilogram, Box, Carton"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                color: D.text,
-                fontSize: 14,
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-              autoFocus
-            />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
-              Abbreviation
-            </label>
-            <input
-              type="text"
-              value={abbreviation}
-              onChange={e => setAbbreviation(e.target.value)}
-              placeholder="e.g., kg, bx, ctn"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                color: D.text,
-                fontSize: 14,
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-            />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
-              Unit Size (numeric)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={unitSize ?? ''}
-              onChange={e => setUnitSize(e.target.value ? parseFloat(e.target.value) : undefined)}
-              placeholder="e.g., 50, 25, 10"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                color: D.text,
-                fontSize: 14,
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-            />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
-              UQC (Unit Quantity Code) <span style={{ fontSize: 11, color: D.sub }}>(optional)</span>
-            </label>
-            <input
-              type="text"
-              value={uqc}
-              onChange={e => setUqc(e.target.value.toUpperCase())}
-              placeholder="e.g., BAG, BOX, CTN, PCS, KGS, LTR"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                color: D.text,
-                fontSize: 14,
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-            />
-            <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
-              Standard GST codes: BAG, BOX, CTN, PCS, KGS, LTR, MTR, SQF, etc.
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: '9px 20px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: 'transparent',
-                color: D.muted,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={saving || !name.trim()}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '9px 20px',
-                borderRadius: 8,
-                border: 'none',
-                background: D.green,
-                color: '#fff',
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: (saving || !name.trim()) ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit',
-                opacity: (saving || !name.trim()) ? 0.5 : 1,
-              }}
-            >
-              {saving ? <Spinner size={14} /> : <Save size={14} />}
-              Save
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── ────────────────────────────────────────────────────────────────────────────
 // ── Packing Category Modal ────────────────────────────────────────────────────
 // ── ────────────────────────────────────────────────────────────────────────────
 
@@ -13216,236 +12979,6 @@ function PackingCategoryModal({
 }
 
 // ── ────────────────────────────────────────────────────────────────────────────
-// ── Incentive Modal ────────────────────────────────────────────────────────────
-// ── ────────────────────────────────────────────────────────────────────────────
-
-function IncentiveModal({
-  isOpen,
-  onClose,
-  onSave,
-  editing,
-  initialData,
-  saving,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (data: { name: string; rate: number; type: 'percentage' | 'fixed' }) => void;
-  editing: boolean;
-  initialData: { name: string; rate: number; type: 'percentage' | 'fixed' };
-  saving: boolean;
-}) {
-  const [name, setName] = useState(initialData.name);
-  const [rate, setRate] = useState<string>(initialData.rate ? String(initialData.rate) : '');
-  const [type, setType] = useState<'percentage' | 'fixed'>(initialData.type);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    setName(initialData.name);
-    setRate(initialData.rate ? String(initialData.rate) : '');
-    setType(initialData.type);
-  }, [initialData, isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = () => {
-    if (!name.trim()) {
-      setError('Incentive name is required');
-      return;
-    }
-    const numRate = parseFloat(rate);
-    if (isNaN(numRate) || numRate <= 0) {
-      setError('Please enter a valid rate greater than 0.');
-      return;
-    }
-    onSave({ name: name.trim(), rate: numRate, type });
-  };
-
-  useEffect(() => {
-    setError('');
-  }, [name, rate, type]);
-
-  const numRate = parseFloat(rate);
-  const isValid = name.trim() && !isNaN(numRate) && numRate > 0;
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.7)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          background: D.surface,
-          borderRadius: 16,
-          maxWidth: 480,
-          width: '100%',
-          border: `1px solid ${D.border}`,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div style={{
-          padding: '16px 20px',
-          borderBottom: `1px solid ${D.border}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: 0 }}>
-            {editing ? 'Edit Incentive' : 'Add Incentive'}
-          </h3>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '4px',
-              borderRadius: 6,
-              border: 'none',
-              background: 'transparent',
-              color: D.sub,
-              cursor: 'pointer',
-            }}
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <div style={{ padding: '20px' }}>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
-              Incentive Name *
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="e.g., Bulk Order Bonus, New Customer Incentive"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                color: D.text,
-                fontSize: 14,
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-              autoFocus
-            />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
-              Rate
-            </label>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={rate}
-              onChange={e => setRate(e.target.value)}
-              placeholder="Enter rate (e.g., 10, 5.5)"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                color: D.text,
-                fontSize: 14,
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-            />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
-              Type
-            </label>
-            <select
-              value={type}
-              onChange={e => setType(e.target.value as 'percentage' | 'fixed')}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                color: D.text,
-                fontSize: 14,
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-                cursor: 'pointer',
-              }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-            >
-              <option value="percentage">Percentage (%)</option>
-              <option value="fixed">Fixed Amount (₹)</option>
-            </select>
-          </div>
-          {error && (
-            <p style={{ margin: '0 0 12px', fontSize: 12, color: D.red }}>
-              ⚠️ {error}
-            </p>
-          )}
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: '9px 20px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: 'transparent',
-                color: D.muted,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={saving || !isValid}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '9px 20px',
-                borderRadius: 8,
-                border: 'none',
-                background: (saving || !isValid) ? D.border : '#8B5CF6',
-                color: '#fff',
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: (saving || !isValid) ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit',
-                opacity: (saving || !isValid) ? 0.5 : 1,
-              }}
-            >
-              {saving ? <Spinner size={14} /> : <Save size={14} />}
-              Save
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── ────────────────────────────────────────────────────────────────────────────
 // ── Main Page ──────────────────────────────────────────────────────────────────
 // ── ────────────────────────────────────────────────────────────────────────────
 
@@ -13458,10 +12991,6 @@ export function AdminCatalogConfig() {
   const [groups, setGroups] = useState<ProductGroupDto[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(true);
 
-  // State for Units
-  const [units, setUnits] = useState<UnitDto[]>([]);
-  const [unitsLoading, setUnitsLoading] = useState(true);
-
   // ── State for Size Groups ──
   const [sizeGroups, setSizeGroups] = useState<SizeGroupDto[]>([]);
   const [sizeGroupsLoading, setSizeGroupsLoading] = useState(true);
@@ -13470,35 +12999,25 @@ export function AdminCatalogConfig() {
   const [packingCategories, setPackingCategories] = useState<{ id: string; name: string; priority: number }[]>([]);
   const [packingCategoriesLoading, setPackingCategoriesLoading] = useState(true);
 
-  // ── State for Incentives ──
-  const [incentives, setIncentives] = useState<ProductIncentiveDto[]>([]);
-  const [incentivesLoading, setIncentivesLoading] = useState(true);
-
   // Modal states
   const [showGroupModal, setShowGroupModal] = useState(false);
-  const [showUnitModal, setShowUnitModal] = useState(false);
   const [showSizeGroupModal, setShowSizeGroupModal] = useState(false);
   const [showPackingCategoryModal, setShowPackingCategoryModal] = useState(false);
-  const [showIncentiveModal, setShowIncentiveModal] = useState(false);
 
   const [editingGroup, setEditingGroup] = useState<ProductGroupDto | null>(null);
-  const [editingUnit, setEditingUnit] = useState<UnitDto | null>(null);
   const [editingSizeGroup, setEditingSizeGroup] = useState<SizeGroupDto | null>(null);
   const [editingPackingCategory, setEditingPackingCategory] = useState<{ id: string; name: string; priority: number } | null>(null);
-  const [editingIncentive, setEditingIncentive] = useState<ProductIncentiveDto | null>(null);
 
   // Form states
   const [groupForm, setGroupForm] = useState({ name: '', nameMl: '' });
-  const [unitForm, setUnitForm] = useState({ name: '', abbreviation: '', uqc: '', unitSize: undefined as number | undefined });
   const [sizeGroupForm, setSizeGroupForm] = useState({ name: '', nameMl: '', description: '' });
   const [packingCategoryForm, setPackingCategoryForm] = useState<{ id?: string | undefined; name: string; priority: number }>({ id: undefined, name: '', priority: 0 });
-  const [incentiveForm, setIncentiveForm] = useState({ name: '', rate: 0, type: 'percentage' as 'percentage' | 'fixed' });
 
   // UI states
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'group' | 'unit' | 'sizeGroup' | 'packingCategory' | 'incentive'; id: string; name: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'group' | 'sizeGroup' | 'packingCategory'; id: string; name: string } | null>(null);
 
   // ── Load Data ──
   async function loadGroups() {
@@ -13510,18 +13029,6 @@ export function AdminCatalogConfig() {
       setError(err.message || 'Failed to load groups');
     } finally {
       setGroupsLoading(false);
-    }
-  }
-
-  async function loadUnits() {
-    setUnitsLoading(true);
-    try {
-      const data = await unitsApi.getAll();
-      setUnits(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load units');
-    } finally {
-      setUnitsLoading(false);
     }
   }
 
@@ -13555,20 +13062,8 @@ export function AdminCatalogConfig() {
     }
   }
 
-  async function loadIncentives() {
-    setIncentivesLoading(true);
-    try {
-      const data = await incentivesApi.getProductIncentives();
-      setIncentives(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load incentives');
-    } finally {
-      setIncentivesLoading(false);
-    }
-  }
-
   async function loadAll() {
-    await Promise.all([loadGroups(), loadUnits(), loadSizeGroups(), loadPackingCategories(), loadIncentives()]);
+    await Promise.all([loadGroups(), loadSizeGroups(), loadPackingCategories()]);
   }
 
   useEffect(() => {
@@ -13622,69 +13117,6 @@ export function AdminCatalogConfig() {
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
       setError(err.message || 'Failed to delete group');
-    } finally {
-      setDeleteConfirm(null);
-    }
-  }
-
-  // ── Unit Handlers ──
-  function openAddUnit() {
-    setEditingUnit(null);
-    setUnitForm({ name: '', abbreviation: '', uqc: '', unitSize: undefined });
-    setShowUnitModal(true);
-  }
-
-  function openEditUnit(unit: UnitDto) {
-    setEditingUnit(unit);
-    setUnitForm({
-      name: unit.name,
-      abbreviation: unit.abbreviation || '',
-      uqc: unit.uqc || '',
-      unitSize: (unit as any).unitSize,
-    });
-    setShowUnitModal(true);
-  }
-
-  async function handleSaveUnit(data: { name: string; abbreviation: string; uqc: string; unitSize?: number }) {
-    if (!data.name.trim()) {
-      setError('Unit name is required');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    try {
-      if (editingUnit) {
-        await unitsApi.update(editingUnit.id, data.name, data.abbreviation || undefined);
-        if (data.uqc) {
-          await unitsApi.updateUQC(editingUnit.id, data.uqc);
-        }
-        setSuccess('Unit updated successfully!');
-      } else {
-        const result = await unitsApi.create(data.name, data.abbreviation || undefined);
-        if (data.uqc && result?.id) {
-          await unitsApi.updateUQC(result.id, data.uqc);
-        }
-        setSuccess('Unit created successfully!');
-      }
-      setShowUnitModal(false);
-      await loadUnits();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to save unit');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleDeleteUnit(id: string) {
-    try {
-      await unitsApi.delete(id);
-      setSuccess('Unit deleted successfully!');
-      await loadUnits();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete unit');
     } finally {
       setDeleteConfirm(null);
     }
@@ -13792,7 +13224,6 @@ export function AdminCatalogConfig() {
       }
       setShowPackingCategoryModal(false);
       await loadPackingCategories();
-      await loadUnits();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
       setError(err.message || 'Failed to save packing category');
@@ -13814,76 +13245,11 @@ export function AdminCatalogConfig() {
     }
   }
 
-  // ── Incentive Handlers ──
-  function openAddIncentive() {
-    setEditingIncentive(null);
-    setIncentiveForm({ name: '', rate: 0, type: 'percentage' });
-    setShowIncentiveModal(true);
-  }
-
-  function openEditIncentive(incentive: ProductIncentiveDto) {
-    setEditingIncentive(incentive);
-    setIncentiveForm({
-      name: incentive.productName || '',
-      rate: incentive.incentiveValue,
-      type: incentive.incentiveType === 2 ? 'percentage' : 'fixed',
-    });
-    setShowIncentiveModal(true);
-  }
-
-  async function handleSaveIncentive(data: { name: string; rate: number; type: 'percentage' | 'fixed' }) {
-    if (!data.name.trim() || data.rate <= 0) {
-      setError('Name and rate are required');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    try {
-      const payload = {
-        productId: '00000000-0000-0000-0000-000000000000', // Placeholder - admin would select a product
-        incentiveValue: data.rate,
-        incentiveType: data.type === 'percentage' ? 2 : 1,
-        effectiveDate: new Date().toISOString().slice(0, 10),
-        description: data.name,
-      };
-
-      if (editingIncentive) {
-        await incentivesApi.updateProductIncentive(editingIncentive.id, payload);
-        setSuccess('Incentive updated successfully!');
-      } else {
-        await incentivesApi.createProductIncentive(payload);
-        setSuccess('Incentive created successfully!');
-      }
-      setShowIncentiveModal(false);
-      await loadIncentives();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to save incentive');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleDeleteIncentive(id: string) {
-    try {
-      await incentivesApi.deleteProductIncentive(id);
-      setSuccess('Incentive deleted successfully!');
-      await loadIncentives();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete incentive');
-    } finally {
-      setDeleteConfirm(null);
-    }
-  }
-
   // ── Priority Handler (for reordering) ──
   async function handleUpdatePriority(unitId: string, newPriority: number) {
     try {
       await unitsApi.updatePriority(unitId, newPriority);
       await loadPackingCategories();
-      await loadUnits();
       setSuccess('Priority updated!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
@@ -13937,7 +13303,7 @@ export function AdminCatalogConfig() {
               Catalog Config
             </h1>
             <p style={{ color: D.muted, fontSize: 14, marginTop: 4, fontWeight: 500 }}>
-              Product Groups, Units, Size Groups, Packing Categories &amp; Incentives
+              Item Groups, Size Groups &amp; Packing Categories
             </p>
           </div>
           <button
@@ -13960,13 +13326,13 @@ export function AdminCatalogConfig() {
           </button>
         </div>
 
-        {error && <Alert variant="error">{error}</Alert>}
+        {/* {error && <Alert variant="error">{error}</Alert>} */}
         {success && <Alert variant="success">{success}</Alert>}
 
         {/* ── Responsive Grid ── */}
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr 1fr 1fr', 
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', 
           gap: 16 
         }}>
 
@@ -14069,133 +13435,6 @@ export function AdminCatalogConfig() {
                       </button>
                       <button
                         onClick={() => setDeleteConfirm({ type: 'group', id: group.id, name: group.name })}
-                        style={{
-                          padding: '3px 6px',
-                          borderRadius: 4,
-                          border: 'none',
-                          background: 'transparent',
-                          color: D.sub,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* ── Units Card ── */}
-          <div style={{
-            background: D.surface,
-            borderRadius: 16,
-            border: `1px solid ${D.border}`,
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '14px 16px',
-              borderBottom: `1px solid ${D.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Ruler size={16} style={{ color: D.green }} />
-                <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
-                  Units
-                </h2>
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: D.muted,
-                  background: D.bg,
-                  padding: '1px 8px',
-                  borderRadius: 12,
-                }}>
-                  {units.length}
-                </span>
-              </div>
-              <button
-                onClick={openAddUnit}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '4px 10px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: D.green,
-                  color: '#fff',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                <Plus size={12} /> Add
-              </button>
-            </div>
-
-            <div style={{ padding: '10px 12px', maxHeight: 300, overflowY: 'auto' }}>
-              {unitsLoading ? (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <Spinner size={20} />
-                </div>
-              ) : units.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '20px 0', color: D.muted, fontSize: 12 }}>
-                  No units yet
-                </div>
-              ) : (
-                units.map(unit => (
-                  <div
-                    key={unit.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '6px 8px',
-                      marginBottom: 4,
-                      borderRadius: 8,
-                      background: D.bg,
-                      border: `1px solid ${D.border}`,
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: D.text, fontSize: 13 }}>
-                        {unit.name}
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, fontSize: 10, flexWrap: 'wrap' }}>
-                        {unit.abbreviation && (
-                          <span style={{ color: D.sub }}>[{unit.abbreviation}]</span>
-                        )}
-                        {(unit as any).unitSize !== undefined && (unit as any).unitSize !== null && (
-                          <span style={{ color: D.green, fontWeight: 600 }}>
-                            Size: {(unit as any).unitSize}
-                          </span>
-                        )}
-                        {unit.uqc && (
-                          <span style={{ color: D.accent, fontWeight: 700, background: `${D.accent}15`, padding: '1px 6px', borderRadius: 4 }}>
-                            UQC: {unit.uqc}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 2 }}>
-                      <button
-                        onClick={() => openEditUnit(unit)}
-                        style={{
-                          padding: '3px 6px',
-                          borderRadius: 4,
-                          border: 'none',
-                          background: 'transparent',
-                          color: D.sub,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Edit2 size={12} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm({ type: 'unit', id: unit.id, name: unit.name })}
                         style={{
                           padding: '3px 6px',
                           borderRadius: 4,
@@ -14331,7 +13570,7 @@ export function AdminCatalogConfig() {
             </div>
           </div>
 
-          {/* ── Packing Categories Card (renamed from Priorities) ── */}
+          {/* ── Packing Categories Card ── */}
           <div style={{
             background: D.surface,
             borderRadius: 16,
@@ -14464,125 +13703,6 @@ export function AdminCatalogConfig() {
             </div>
           </div>
 
-          {/* ── Incentives Card ── */}
-          <div style={{
-            background: D.surface,
-            borderRadius: 16,
-            border: `1px solid ${D.border}`,
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '14px 16px',
-              borderBottom: `1px solid ${D.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Award size={16} style={{ color: '#8B5CF6' }} />
-                <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
-                  Incentives
-                </h2>
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: D.muted,
-                  background: D.bg,
-                  padding: '1px 8px',
-                  borderRadius: 12,
-                }}>
-                  {incentives.length}
-                </span>
-              </div>
-              <button
-                onClick={openAddIncentive}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '4px 10px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: '#8B5CF6',
-                  color: '#fff',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                <Plus size={12} /> Add
-              </button>
-            </div>
-
-            <div style={{ padding: '10px 12px', maxHeight: 300, overflowY: 'auto' }}>
-              {incentivesLoading ? (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <Spinner size={20} />
-                </div>
-              ) : incentives.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '20px 0', color: D.muted, fontSize: 12 }}>
-                  No incentives yet
-                </div>
-              ) : (
-                incentives.map(incentive => (
-                  <div
-                    key={incentive.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '6px 8px',
-                      marginBottom: 4,
-                      borderRadius: 8,
-                      background: D.bg,
-                      border: `1px solid ${D.border}`,
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: D.text, fontSize: 13 }}>
-                        {incentive.productName || 'Unnamed'}
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, fontSize: 10, flexWrap: 'wrap' }}>
-                        <span style={{ color: '#8B5CF6', fontWeight: 600 }}>
-                          {incentive.incentiveType === 2 ? `${incentive.incentiveValue}%` : `₹${incentive.incentiveValue}`}
-                        </span>
-                        <span style={{ color: D.sub }}>
-                          {incentive.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 2 }}>
-                      <button
-                        onClick={() => openEditIncentive(incentive)}
-                        style={{
-                          padding: '3px 6px',
-                          borderRadius: 4,
-                          border: 'none',
-                          background: 'transparent',
-                          color: D.sub,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Edit2 size={12} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm({ type: 'incentive', id: incentive.id, name: incentive.productName || 'Incentive' })}
-                        style={{
-                          padding: '3px 6px',
-                          borderRadius: 4,
-                          border: 'none',
-                          background: 'transparent',
-                          color: D.sub,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
         </div>
       </div>
 
@@ -14593,15 +13713,6 @@ export function AdminCatalogConfig() {
         onSave={handleSaveGroup}
         editing={!!editingGroup}
         initialData={groupForm}
-        saving={loading}
-      />
-
-      <UnitModal
-        isOpen={showUnitModal}
-        onClose={() => setShowUnitModal(false)}
-        onSave={handleSaveUnit}
-        editing={!!editingUnit}
-        initialData={unitForm}
         saving={loading}
       />
 
@@ -14624,19 +13735,10 @@ export function AdminCatalogConfig() {
         saving={loading}
       />
 
-      <IncentiveModal
-        isOpen={showIncentiveModal}
-        onClose={() => setShowIncentiveModal(false)}
-        onSave={handleSaveIncentive}
-        editing={!!editingIncentive}
-        initialData={incentiveForm}
-        saving={loading}
-      />
-
       {/* ── Delete Confirmation ── */}
       <ConfirmModal
         open={!!deleteConfirm}
-        title={`Delete ${deleteConfirm?.type === 'group' ? 'Group' : deleteConfirm?.type === 'unit' ? 'Unit' : deleteConfirm?.type === 'sizeGroup' ? 'Size Group' : deleteConfirm?.type === 'packingCategory' ? 'Packing Category' : 'Incentive'}`}
+        title={`Delete ${deleteConfirm?.type === 'group' ? 'Group' : deleteConfirm?.type === 'sizeGroup' ? 'Size Group' : 'Packing Category'}`}
         message={`Are you sure you want to delete "${deleteConfirm?.name}"? This action cannot be undone.`}
         confirmLabel="Delete"
         danger
@@ -14644,14 +13746,10 @@ export function AdminCatalogConfig() {
           if (deleteConfirm) {
             if (deleteConfirm.type === 'group') {
               handleDeleteGroup(deleteConfirm.id);
-            } else if (deleteConfirm.type === 'unit') {
-              handleDeleteUnit(deleteConfirm.id);
             } else if (deleteConfirm.type === 'sizeGroup') {
               handleDeleteSizeGroup(deleteConfirm.id);
             } else if (deleteConfirm.type === 'packingCategory') {
               handleDeletePackingCategory(deleteConfirm.id);
-            } else if (deleteConfirm.type === 'incentive') {
-              handleDeleteIncentive(deleteConfirm.id);
             }
           }
         }}
@@ -17707,17 +16805,10 @@ Sugar - 50 kg`}
 ## File: src/pages/Admin/AdminOrders.tsx
 ````typescript
 // PATH: src/pages/Admin/AdminOrders.tsx
-// FIXED: 
-//  - Status filter now correctly maps string names to numeric enum values
-//  - Status count boxes work as clickable filters
-//  - Removed duplicate "Day Closed" button
-//  - Date picker has white text on dark background
-//  - Day Closed indicator shows the date
-// UPDATED: Per-order "Closed [date] at [time]" line, shown once that specific
-// order has actually been locked by a Close Day run — distinct from the
-// order's own creation date/time, which never changes.
-// FIXED: Edit button now respects isLocked AND uses string comparison for status
-// FIXED: Close button also respects isLocked
+// FIXED: Layout matching the design in the screenshot
+// - Clean stats cards in a single row
+// - Close Day button properly positioned
+// - Removed Edit Order button from review modal
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -17759,15 +16850,6 @@ const STATUS_TO_NUMBER: Record<string, number> = {
   'Approved': 3,
   'Packed': 4,
   'Closed': 5,
-};
-
-// ── Reverse map for display ──────────────────────────────────────────────────
-const NUMBER_TO_STATUS: Record<number, string> = {
-  1: 'Draft',
-  2: 'PendingApproval',
-  3: 'Approved',
-  4: 'Packed',
-  5: 'Closed',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -17858,7 +16940,6 @@ export function AdminOrders() {
   async function load() {
     setLoading(true); setError('');
     try {
-      // ── FIXED: Convert status name to numeric enum value ──
       const statusNumber = statusFilter ? STATUS_TO_NUMBER[statusFilter] : undefined;
       
       let allOrders: OrderDto[] = [];
@@ -18000,217 +17081,173 @@ export function AdminOrders() {
   }, [closureStatus?.isClosed]);
 
   return (
-    <div style={{ background: D.bg, paddingBottom: 8 }}>
+    <div style={{ background: D.bg, minHeight: '100vh', paddingBottom: 8 }}>
+      {/* ── TOP HEADER ── */}
       <div style={{
-        padding: '4px 0 8px',
+        padding: '12px 20px 8px',
         borderBottom: `1px solid ${D.border}`,
-        marginBottom: 8,
+        background: D.bg,
       }}>
-        <Link 
-          to={user?.role === 'Admin' || user?.role === 'SuperAdmin' ? '/admin/dashboard' : '/'}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '4px 10px',
-            borderRadius: 6,
-            background: D.surface,
-            border: `1px solid ${D.border}`,
-            color: D.muted,
-            fontSize: 10,
-            fontWeight: 600,
-            textDecoration: 'none',
-            marginBottom: 6,
-          }}
-        >
-          <ArrowLeft size={12} /> Dashboard
-        </Link>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 8,
-              background: D.accent,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <ShoppingCart size={16} color="#FFFFFF" />
-            </div>
-            <div>
-              <h1 style={{ fontSize: 14, fontWeight: 900, margin: 0, color: D.text }}>Orders</h1>
-              <p style={{ fontSize: 10, color: D.muted, margin: 0 }}>{orders.length} orders</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Link 
+              to={user?.role === 'Admin' || user?.role === 'SuperAdmin' ? '/admin/dashboard' : '/'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                borderRadius: 8,
+                background: D.surface,
+                border: `1px solid ${D.border}`,
+                color: D.muted,
+                fontSize: 12,
+                fontWeight: 600,
+                textDecoration: 'none',
+              }}
+            >
+              <ArrowLeft size={14} /> Dashboard
+            </Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 8,
+                background: D.accent,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <ShoppingCart size={16} color="#FFFFFF" />
+              </div>
+              <div>
+                <h1 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: D.text }}>Orders</h1>
+                <p style={{ fontSize: 11, color: D.muted, margin: 0 }}>{orders.length} orders</p>
+              </div>
             </div>
           </div>
           <button
             onClick={load}
             style={{
-              display: 'flex', alignItems: 'center', gap: 3,
-              padding: '4px 10px', borderRadius: 6,
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '6px 12px', borderRadius: 8,
               border: `1px solid ${D.border}`,
               background: D.surface,
               color: D.muted,
-              fontSize: 10, fontWeight: 600,
+              fontSize: 12, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
-            <RefreshCw size={12} /> Refresh
+            <RefreshCw size={14} /> Refresh
           </button>
         </div>
 
-          {/* ── Status count boxes - NOW CLICKABLE FILTERS ── */}
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'stretch', justifyContent: 'space-between' }}>
-            {/* ── Left group: KPI cards (capped width so they don't stretch to fill the row) ── */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', flex: '1 1 340px' }}>
-              {[
-                { label: 'Total', value: counts.total, color: D.text, filterValue: '' },
-                { label: 'Draft', value: counts.draft, color: D.amber, filterValue: 'Draft' },
-                { label: 'Closed', value: counts.closed, color: D.green, filterValue: 'Closed' },
-              ].map(c => {
-                const isActive = statusFilter === c.filterValue;
-                return (
-                  <button
-                    key={c.label}
-                    onClick={() => setStatusFilterQuick(c.filterValue)}
-                    style={{
-                      flex: '1 1 140px', maxWidth: 220,
-                      padding: '10px 14px',
-                      borderRadius: 9,
-                      background: isActive ? `${c.color}20` : D.surface,
-                      border: isActive ? `1px solid ${c.color}66` : `1px solid ${D.border}`,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.15s',
-                      fontFamily: 'inherit',
-                    }}
-                    onMouseEnter={e => {
-                      if (!isActive) {
-                        (e.currentTarget as HTMLElement).style.borderColor = `${c.color}44`;
-                      }
-                    }}
-                    onMouseLeave={e => {
-                      if (!isActive) {
-                        (e.currentTarget as HTMLElement).style.borderColor = D.border;
-                      }
-                    }}
-                  >
-                    <span style={{ fontSize: 12, color: D.sub, fontWeight: 600 }}>
-                      {c.label}
-                      {isActive && (
-                        <span style={{ marginLeft: 6, fontSize: 10, color: c.color }}>✓</span>
-                      )}
-                    </span>
-                    <span style={{ 
-                      fontSize: 22, fontWeight: 900, color: c.color, display: 'block' 
-                    }}>
-                      {c.value}
-                      {c.label === 'Closed' && closureStatus?.isClosed && c.value > 0 && (
-                        <span style={{ 
-                          fontSize: 10, fontWeight: 600, color: D.green, 
-                          marginLeft: 6, display: 'inline-block' 
-                        }}>
-                          ✓
-                        </span>
-                      )}
-                    </span>
-                  </button>
-                );
-              })}
+        {/* ── STATS CARDS + CLOSE DAY ── */}
+        <div style={{ 
+          display: 'flex', 
+          gap: 12, 
+          marginTop: 12,
+          alignItems: 'stretch',
+          flexWrap: 'wrap'
+        }}>
+          {/* Stats cards */}
+          {[
+            { label: 'Total', value: counts.total, color: D.text, filterValue: '' },
+            { label: 'Draft', value: counts.draft, color: D.amber, filterValue: 'Draft' },
+            { label: 'Closed', value: counts.closed, color: D.green, filterValue: 'Closed' },
+          ].map(c => {
+            const isActive = statusFilter === c.filterValue;
+            return (
+              <button
+                key={c.label}
+                onClick={() => setStatusFilterQuick(c.filterValue)}
+                style={{
+                  flex: '0 0 auto',
+                  minWidth: 90,
+                  padding: '8px 16px',
+                  borderRadius: 10,
+                  background: isActive ? `${c.color}20` : D.surface,
+                  border: isActive ? `1px solid ${c.color}66` : `1px solid ${D.border}`,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.15s',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <span style={{ fontSize: 10, color: D.sub, fontWeight: 600, display: 'block' }}>
+                  {c.label}
+                  {isActive && <span style={{ marginLeft: 4, fontSize: 9 }}>✓</span>}
+                </span>
+                <span style={{ fontSize: 20, fontWeight: 900, color: c.color }}>
+                  {c.value}
+                </span>
+              </button>
+            );
+          })}
 
-              {/* ── Clear filter button ── */}
-              {statusFilter && (
-                <button
-                  onClick={clearStatusFilter}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    padding: '0 12px',
-                    borderRadius: 9,
-                    border: `1px solid ${D.border}`,
-                    background: D.surface,
-                    color: D.muted,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    transition: 'all 0.15s',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.text; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
-                >
-                  <X size={12} /> Clear
-                </button>
-              )}
+          {/* ── Spacer ── */}
+          <div style={{ flex: 1 }} />
+
+          {/* ── Close Day button ── */}
+          {!closureStatus?.isClosed && (
+            <button
+              onClick={() => { setShowCloseDayModal(true); setCloseDayError(''); }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 18px',
+                borderRadius: 10,
+                border: 'none',
+                background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 700,
+                color: '#fff',
+                fontFamily: 'inherit',
+                boxShadow: `0 2px 12px ${D.accentGlow}`,
+                transition: 'all 0.15s',
+                alignSelf: 'center',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 18px ${D.accentGlow}`;
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                (e.currentTarget as HTMLElement).style.boxShadow = `0 2px 12px ${D.accentGlow}`;
+              }}
+            >
+              <Lock size={15} />
+              Close Day
+            </button>
+          )}
+
+          {/* Day Closed status */}
+          {closureStatus?.isClosed && closureStatus.closedAt && (
+            <div style={{
+              padding: '8px 16px',
+              borderRadius: 10,
+              background: 'rgba(34,197,94,0.10)',
+              border: `1px solid rgba(34,197,94,0.25)`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              alignSelf: 'center',
+            }}>
+              <CheckCircle size={16} color={D.green} />
+              <div>
+                <span style={{ fontSize: 11, color: D.green, fontWeight: 700 }}>
+                  Day Closed ✓
+                </span>
+                <span style={{ fontSize: 10, color: D.muted, display: 'block' }}>
+                  {new Date(closureStatus.closedAt).toLocaleDateString('en-IN', { 
+                    day: 'numeric', month: 'short' 
+                  })} · {new Date(closureStatus.closedAt).toLocaleTimeString('en-IN', { 
+                    hour: '2-digit', minute: '2-digit' 
+                  })}
+                </span>
+              </div>
             </div>
-
-            {/* ── Right group: Day-closure action, pinned to the row's end ── */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'stretch' }}>
-              {/* ── Day Closed status indicator ── */}
-              {closureStatus?.isClosed && closureStatus.closedAt && (
-                <div style={{
-                  minWidth: 170,
-                  padding: '10px 14px',
-                  borderRadius: 9,
-                  background: 'rgba(34,197,94,0.08)',
-                  border: `1px solid rgba(34,197,94,0.25)`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                }}>
-                  <CheckCircle size={18} color={D.green} />
-                  <div>
-                    <span style={{ fontSize: 11, color: D.green, fontWeight: 700, display: 'block' }}>
-                      Day Closed ✓
-                    </span>
-                    <span style={{ fontSize: 10, color: D.muted }}>
-                      {new Date(closureStatus.closedAt).toLocaleDateString('en-IN', { 
-                        day: 'numeric', 
-                        month: 'short', 
-                        year: 'numeric' 
-                      })} · {new Date(closureStatus.closedAt).toLocaleTimeString('en-IN', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* ── Close Day button (only when NOT closed) ── */}
-              {!closureStatus?.isClosed && (
-                <button
-                  onClick={() => { setShowCloseDayModal(true); setCloseDayError(''); }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '10px 16px',
-                    borderRadius: 9,
-                    border: 'none',
-                    background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-                    cursor: 'pointer',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: '#fff',
-                    fontFamily: 'inherit',
-                    boxShadow: `0 4px 14px ${D.accentGlow}`,
-                    transition: 'all 0.15s',
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-                    (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${D.accentGlow}`;
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                    (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${D.accentGlow}`;
-                  }}
-                >
-                  <Lock size={15} />
-                  Close Day
-                </button>
-              )}
-            </div>
-          </div>
+          )}
         </div>
+      </div>
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 20px' }}>
         {error   && <Alert variant="error">{error}</Alert>}
@@ -18219,12 +17256,12 @@ export function AdminOrders() {
         {/* ── Filters ── */}
         <div style={{
           background: D.surface,
-          borderRadius: 14,
+          borderRadius: 12,
           border: `1px solid ${D.border}`,
-          padding: '12px 16px',
+          padding: '10px 14px',
           marginBottom: 16,
         }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             <select 
               style={selectStyle} 
               value={routeFilter} 
@@ -18241,7 +17278,7 @@ export function AdminOrders() {
               onChange={e => setDateFilter(e.target.value)}
             />
 
-            <div style={{ flex: 1, minWidth: 180, position: 'relative' }}>
+            <div style={{ flex: 1, minWidth: 160, position: 'relative' }}>
               <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: D.sub }} />
               <input
                 style={{ ...selectStyle, paddingLeft: 32, width: '100%' }}
@@ -18283,13 +17320,10 @@ export function AdminOrders() {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {dateOrders.map(order => {
-                      // ── FIXED: Use string comparison for status ──
                       const statusKey = String(order.status);
                       const cfg = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG['Draft'];
                       const items = order.items ?? [];
-                      const units = items.reduce((s, i) => s + i.quantity, 0);
                       
-                      // ── FIXED: Also require !isLocked for Close button ──
                       const isClosable = (statusKey === 'Approved' || 
                                         statusKey === 'Packed') && !order.isLocked;
                       
@@ -18299,11 +17333,9 @@ export function AdminOrders() {
                       return (
                         <div key={order.id} style={{
                           background: D.surface,
-                          borderRadius: 14,
+                          borderRadius: 12,
                           border: `1px solid ${isPending ? D.accent : D.border}`,
-                          boxShadow: isPending
-                            ? `0 2px 10px ${D.accentGlow}`
-                            : 'none',
+                          boxShadow: isPending ? `0 2px 10px ${D.accentGlow}` : 'none',
                           overflow: 'hidden',
                           transition: 'border-color 0.15s',
                         }}>
@@ -18313,26 +17345,26 @@ export function AdminOrders() {
                           )}
 
                           {/* Main row */}
-                          <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                          <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                             {/* Avatar */}
                             <div style={{
-                              width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                              width: 40, height: 40, borderRadius: 10, flexShrink: 0,
                               background: D.accent,
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}>
-                              <User size={18} style={{ color: '#FFFFFF' }} />
+                              <User size={16} style={{ color: '#FFFFFF' }} />
                             </div>
 
                             {/* Customer info */}
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                <span style={{ fontWeight: 800, fontSize: 16, color: D.text }}>{order.customerName}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                <span style={{ fontWeight: 700, fontSize: 15, color: D.text }}>{order.customerName}</span>
 
                                 {/* Status badge */}
                                 <span style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                                  padding: '4px 10px', borderRadius: 6,
-                                  fontSize: 12, fontWeight: 700,
+                                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                                  padding: '2px 8px', borderRadius: 12,
+                                  fontSize: 10, fontWeight: 700,
                                   background: cfg.bg,
                                   color: cfg.color,
                                   border: `1px solid ${cfg.color}33`,
@@ -18340,43 +17372,37 @@ export function AdminOrders() {
                                   {getStatusLabel(order.status)}
                                 </span>
 
-                                {/* Locked indicator — separate from status, since a Draft/PendingApproval/
-                                    Approved order can also be locked by Close Day sweeping it up */}
                                 {order.isLocked && (
                                   <span style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                                    padding: '4px 10px', borderRadius: 6,
-                                    fontSize: 11, fontWeight: 700,
+                                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                                    padding: '2px 8px', borderRadius: 12,
+                                    fontSize: 9, fontWeight: 700,
                                     background: 'rgba(148,163,184,0.12)',
                                     color: D.sub,
                                     border: `1px solid ${D.border}`,
                                   }}>
-                                    <Lock size={10} /> Locked
+                                    <Lock size={9} /> Locked
                                   </span>
                                 )}
 
                                 {routeFilter === 'all' && order.routeName && (
                                   <span style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                                    padding: '3px 8px', borderRadius: 5,
+                                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                                    padding: '2px 6px', borderRadius: 4,
                                     background: D.bg,
-                                    fontSize: 12, color: D.sub, fontWeight: 600,
-                                    border: `1px solid ${D.border}`,
+                                    fontSize: 10, color: D.sub, fontWeight: 600,
                                   }}>
-                                    <Globe size={11} />{order.routeName}
+                                    <Globe size={10} />{order.routeName}
                                   </span>
                                 )}
                               </div>
-                              <div style={{ fontSize: 13, color: D.sub, marginTop: 4, fontFamily: 'monospace' }}>
+                              <div style={{ fontSize: 12, color: D.sub, marginTop: 2, fontFamily: 'monospace' }}>
                                 #{String(order.id).slice(0, 8)} · {fmtDate(order.orderDate)} at {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                               </div>
 
-                              {/* Closed-at line — only appears once THIS order has actually been
-                                  swept up by a Close Day run. Stays separate from the line above,
-                                  which always shows the order's real creation date/time. */}
                               {order.closedAt && (
-                                <div style={{ fontSize: 12, color: D.sub, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <Lock size={11} />
+                                <div style={{ fontSize: 11, color: D.sub, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Lock size={10} />
                                   Closed {new Date(order.closedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} at{' '}
                                   {new Date(order.closedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                                 </div>
@@ -18384,23 +17410,23 @@ export function AdminOrders() {
 
                               {/* Items preview */}
                               {items.length > 0 && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                                  {items.slice(0, 4).map((item, i) => (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                                  {items.slice(0, 3).map((item, i) => (
                                     <span key={i} style={{
-                                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                                      fontSize: 12, padding: '3px 9px', borderRadius: 5,
+                                      display: 'inline-flex', alignItems: 'center', gap: 3,
+                                      fontSize: 11, padding: '2px 8px', borderRadius: 4,
                                       background: D.bg,
                                       border: `1px solid ${D.border}`,
                                       color: D.muted,
                                       fontWeight: 600,
                                     }}>
-                                      <Package size={11} color={D.sub} />
-                                      {item.productName} <span style={{ color: D.text, fontWeight: 800 }}>×{item.quantity}</span>
+                                      <Package size={10} color={D.sub} />
+                                      {item.productName} <span style={{ color: D.text, fontWeight: 700 }}>×{item.quantity}</span>
                                     </span>
                                   ))}
-                                  {items.length > 4 && (
-                                    <span style={{ fontSize: 12, color: D.muted, fontWeight: 700, padding: '3px 4px' }}>
-                                      +{items.length - 4} more
+                                  {items.length > 3 && (
+                                    <span style={{ fontSize: 11, color: D.muted, fontWeight: 600, padding: '2px 4px' }}>
+                                      +{items.length - 3} more
                                     </span>
                                   )}
                                 </div>
@@ -18408,77 +17434,75 @@ export function AdminOrders() {
                             </div>
 
                             {/* Actions */}
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
-                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                              <button 
+                                onClick={() => handleReview(String(order.id))} 
+                                disabled={loadingReview}
+                                style={actionBtn(D.surface, D.muted)}
+                              >
+                                <Eye size={13} /> Review
+                              </button>
+
+                              {isPending && (
                                 <button 
-                                  onClick={() => handleReview(String(order.id))} 
-                                  disabled={loadingReview}
-                                  style={actionBtn(D.surface, D.muted)}
+                                  onClick={() => handleApprove(String(order.id))} 
+                                  disabled={approving === String(order.id)}
+                                  style={actionBtn(D.accent, '#FFFFFF', true)}
                                 >
-                                  <Eye size={14} /> Review
+                                  {approving === String(order.id) ? <Spinner size={13} /> : <CheckCircle size={13} />}
+                                  Approve
                                 </button>
+                              )}
 
-                                {isPending && (
-                                  <button 
-                                    onClick={() => handleApprove(String(order.id))} 
-                                    disabled={approving === String(order.id)}
-                                    style={actionBtn(D.accent, '#FFFFFF', true)}
-                                  >
-                                    {approving === String(order.id) ? <Spinner size={14} /> : <CheckCircle size={14} />}
-                                    Approve
-                                  </button>
-                                )}
-
-                                {isClosable && (
-                                  <button 
-                                    onClick={() => handleClose(String(order.id))} 
-                                    disabled={closing === String(order.id)}
-                                    style={actionBtn(D.green, '#FFFFFF', true)}
-                                  >
-                                    {closing === String(order.id) ? <Spinner size={14} /> : <CheckCircle size={14} />}
-                                    Close
-                                  </button>
-                                )}
-                              </div>
+                              {isClosable && (
+                                <button 
+                                  onClick={() => handleClose(String(order.id))} 
+                                  disabled={closing === String(order.id)}
+                                  style={actionBtn(D.green, '#FFFFFF', true)}
+                                >
+                                  {closing === String(order.id) ? <Spinner size={13} /> : <CheckCircle size={13} />}
+                                  Close
+                                </button>
+                              )}
                             </div>
                           </div>
 
                           {/* Previous orders toggle */}
                           <div style={{
                             borderTop: `1px solid ${D.border}`,
-                            padding: '8px 18px',
+                            padding: '6px 16px',
                             background: D.bg,
                           }}>
                             <button
                               onClick={() => loadPreviousOrders(String(order.customerId), String(order.id))}
                               style={{
-                                display: 'flex', alignItems: 'center', gap: 6,
-                                fontSize: 13, color: D.accent, fontWeight: 600,
+                                display: 'flex', alignItems: 'center', gap: 5,
+                                fontSize: 12, color: D.accent, fontWeight: 600,
                                 background: 'none', border: 'none', cursor: 'pointer',
-                                fontFamily: 'inherit', padding: 0,
+                                fontFamily: 'inherit', padding: '4px 0',
                               }}
                             >
-                              {loadingHistory[String(order.id)] ? <Spinner size={11} /> : <Clock size={11} />}
+                              {loadingHistory[String(order.id)] ? <Spinner size={10} /> : <Clock size={11} />}
                               {isExpanded ? 'Hide previous orders' : 'Show previous orders (last 3)'}
                             </button>
 
                             {isExpanded && previousOrders[String(order.id)] && (
-                              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
                                 {previousOrders[String(order.id)].length === 0 ? (
-                                  <p style={{ fontSize: 13, color: D.sub, fontStyle: 'italic', margin: 0 }}>No previous orders</p>
+                                  <p style={{ fontSize: 12, color: D.sub, fontStyle: 'italic', margin: 0 }}>No previous orders</p>
                                 ) : (
                                   previousOrders[String(order.id)].map((prev, idx) => (
                                     <div key={idx} style={{
                                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                      padding: '8px 12px', borderRadius: 8,
+                                      padding: '6px 10px', borderRadius: 6,
                                       background: D.surface,
                                       border: `1px solid ${D.border}`,
                                     }}>
                                       <div>
-                                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: D.muted }}>
+                                        <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: D.muted }}>
                                           {idx === 0 ? '📋 Most recent' : `${idx + 1} orders ago`}
                                         </p>
-                                        <p style={{ margin: '2px 0 0', fontSize: 13, color: D.sub }}>
+                                        <p style={{ margin: '1px 0 0', fontSize: 11, color: D.sub }}>
                                           {fmtDate(prev.orderDate)} · {prev.itemCount} items
                                         </p>
                                       </div>
@@ -18498,7 +17522,7 @@ export function AdminOrders() {
         )}
       </div>
 
-      {/* ── Review Modal ────────────────────────────────────────────────────── */}
+      {/* ── Review Modal ── */}
       {showModal && reviewOrder && (
         <div
           onClick={() => setShowModal(false)}
@@ -18506,45 +17530,44 @@ export function AdminOrders() {
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: D.surface, borderRadius: 20, width: '100%', maxWidth: 500, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: `1px solid ${D.border}`, boxShadow: `0 24px 64px rgba(0,0,0,0.5)` }}
+            style={{ background: D.surface, borderRadius: 16, width: '100%', maxWidth: 480, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: `1px solid ${D.border}`, boxShadow: `0 24px 64px rgba(0,0,0,0.5)` }}
           >
             {/* Modal header */}
-            <div style={{ padding: '18px 20px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: `${D.accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Eye size={16} color={D.accent} />
+            <div style={{ padding: '14px 18px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: `${D.accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Eye size={14} color={D.accent} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: D.text }}>Review Order</h3>
-                  <p style={{ margin: 0, fontSize: 13, color: D.sub }}>#{String(reviewOrder.id).slice(0, 8)}</p>
+                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: D.text }}>Review Order</h3>
+                  <p style={{ margin: 0, fontSize: 12, color: D.sub }}>#{String(reviewOrder.id).slice(0, 8)}</p>
                 </div>
               </div>
-              <button onClick={() => setShowModal(false)} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <X size={14} color={D.muted} />
+              <button onClick={() => setShowModal(false)} style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${D.border}`, background: D.bg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={13} color={D.muted} />
               </button>
             </div>
 
             {/* Modal body */}
-            <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
+            <div style={{ padding: '14px 18px', overflowY: 'auto', flex: 1 }}>
               <div style={{
-                padding: '12px 14px', borderRadius: 12,
+                padding: '10px 12px', borderRadius: 10,
                 background: D.bg,
                 border: `1px solid ${D.border}`,
-                marginBottom: 14,
+                marginBottom: 12,
               }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: D.text }}>{reviewOrder.customerName}</div>
-                <div style={{ fontSize: 13, color: D.sub, marginTop: 3 }}>{fmtDate(reviewOrder.orderDate)}</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: D.text }}>{reviewOrder.customerName}</div>
+                <div style={{ fontSize: 12, color: D.sub, marginTop: 2 }}>{fmtDate(reviewOrder.orderDate)}</div>
                 {reviewOrder.closedAt && (
-                  <div style={{ fontSize: 12, color: D.sub, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Lock size={11} />
-                    Closed {fmtDate(reviewOrder.closedAt)}
+                  <div style={{ fontSize: 11, color: D.sub, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Lock size={10} /> Closed {fmtDate(reviewOrder.closedAt)}
                   </div>
                 )}
-                <div style={{ marginTop: 8 }}>
+                <div style={{ marginTop: 6 }}>
                   <span style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                    padding: '3px 10px', borderRadius: 6,
-                    fontSize: 12, fontWeight: 700,
+                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                    padding: '2px 8px', borderRadius: 12,
+                    fontSize: 10, fontWeight: 700,
                     background: D.bg,
                     color: D.muted,
                     border: `1px solid ${D.border}`,
@@ -18554,21 +17577,21 @@ export function AdminOrders() {
                 </div>
               </div>
 
-              <h4 style={{ fontSize: 13, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>
+              <h4 style={{ fontSize: 12, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 6px' }}>
                 Items ({reviewOrder.items?.length ?? 0})
               </h4>
               {reviewOrder.items && reviewOrder.items.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 240, overflowY: 'auto', marginBottom: 14 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto', marginBottom: 12 }}>
                   {reviewOrder.items.map((item, idx) => (
                     <div key={idx} style={{
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '10px 12px', borderRadius: 10,
+                      padding: '8px 10px', borderRadius: 8,
                       background: D.bg,
                       border: `1px solid ${D.border}`,
                     }}>
                       <div>
-                        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: D.text }}>{item.productName}</p>
-                        <p style={{ margin: '2px 0 0', fontSize: 13, color: D.sub }}>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: D.text }}>{item.productName}</p>
+                        <p style={{ margin: '1px 0 0', fontSize: 12, color: D.sub }}>
                           {item.quantity} {item.unitSymbol || 'unit'} × {fmt(item.sellingPrice)}
                         </p>
                       </div>
@@ -18576,68 +17599,54 @@ export function AdminOrders() {
                   ))}
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', padding: '24px 0', marginBottom: 14 }}>
-                  <List size={28} style={{ color: D.border, marginBottom: 6 }} />
-                  <p style={{ fontSize: 14, color: D.sub, margin: 0 }}>No items — click Edit to add products</p>
+                <div style={{ textAlign: 'center', padding: '20px 0', marginBottom: 12 }}>
+                  <List size={24} style={{ color: D.border, marginBottom: 4 }} />
+                  <p style={{ fontSize: 13, color: D.sub, margin: 0 }}>No items</p>
                 </div>
               )}
 
-              <div style={{ borderTop: `1px solid ${D.border}`, paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+              <div style={{ borderTop: `1px solid ${D.border}`, paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                   <span style={{ color: D.sub }}>Items</span>
                   <span style={{ fontWeight: 600, color: D.text }}>{reviewOrder.items?.length ?? 0}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                   <span style={{ color: D.sub }}>Units</span>
                   <span style={{ fontWeight: 600, color: D.text }}>{reviewOrder.totalQuantity ?? 0}</span>
                 </div>
               </div>
 
               {reviewOrder.remarks && (
-                <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: 'rgba(245,158,11,0.10)', border: `1px solid rgba(245,158,11,0.25)` }}>
-                  <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: D.amber }}>📝 Remarks</p>
-                  <p style={{ margin: 0, fontSize: 13, color: D.muted }}>{reviewOrder.remarks}</p>
+                <div style={{ marginTop: 10, padding: '8px 10px', borderRadius: 8, background: 'rgba(245,158,11,0.08)', border: `1px solid rgba(245,158,11,0.20)` }}>
+                  <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 700, color: D.amber }}>📝 Remarks</p>
+                  <p style={{ margin: 0, fontSize: 12, color: D.muted }}>{reviewOrder.remarks}</p>
                 </div>
               )}
             </div>
 
-            {/* ── Modal footer actions ── */}
-            <div style={{ padding: '14px 20px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            {/* ── Modal footer - NO Edit button ── */}
+            <div style={{ padding: '12px 18px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               {reviewOrder.status === OrderStatus.PendingApproval && (
                 <button
                   onClick={() => handleApprove(String(reviewOrder.id))}
                   disabled={approving === String(reviewOrder.id)}
-                  style={{ ...actionBtn(D.accent, '#FFFFFF', true), padding: '9px 16px', fontSize: 13, borderRadius: 9 }}
+                  style={{ ...actionBtn(D.accent, '#FFFFFF', true), padding: '8px 14px', fontSize: 12, borderRadius: 8 }}
                 >
-                  {approving === String(reviewOrder.id) ? <Spinner size={14} /> : <CheckCircle size={14} />}
-                  Approve Order
+                  {approving === String(reviewOrder.id) ? <Spinner size={13} /> : <CheckCircle size={13} />}
+                  Approve
                 </button>
               )}
               
-              {/* ── FIXED: Edit button uses string comparison and !isLocked ── */}
-              {(() => {
-                const modalStatusKey = String(reviewOrder.status);
-                return (modalStatusKey === 'Draft' || modalStatusKey === 'PendingApproval' || modalStatusKey === 'Approved') && !reviewOrder.isLocked ? (
-                  <button
-                    onClick={() => handleEdit(String(reviewOrder.id), String(reviewOrder.customerId))}
-                    style={{ ...actionBtn(D.surface, D.muted), padding: '9px 16px', fontSize: 13, borderRadius: 9 }}
-                  >
-                    <Edit2 size={14} /> Edit Order
-                  </button>
-                ) : null;
-              })()}
-              
-              {/* ── FIXED: Close button uses string comparison and !isLocked ── */}
               {(() => {
                 const modalStatusKey = String(reviewOrder.status);
                 return (modalStatusKey === 'Approved' || modalStatusKey === 'Packed') && !reviewOrder.isLocked ? (
                   <button
                     onClick={() => handleClose(String(reviewOrder.id))}
                     disabled={closing === String(reviewOrder.id)}
-                    style={{ ...actionBtn(D.green, '#FFFFFF', true), padding: '9px 16px', fontSize: 13, borderRadius: 9 }}
+                    style={{ ...actionBtn(D.green, '#FFFFFF', true), padding: '8px 14px', fontSize: 12, borderRadius: 8 }}
                   >
-                    {closing === String(reviewOrder.id) ? <Spinner size={14} /> : <CheckCircle size={14} />}
-                    Close Order
+                    {closing === String(reviewOrder.id) ? <Spinner size={13} /> : <CheckCircle size={13} />}
+                    Close
                   </button>
                 ) : null;
               })()}
@@ -18654,64 +17663,63 @@ export function AdminOrders() {
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: D.surface, borderRadius: 16, padding: 24, width: '100%', maxWidth: 420, border: `1px solid ${D.border}`, boxShadow: `0 20px 60px rgba(0,0,0,0.5)` }}
+            style={{ background: D.surface, borderRadius: 14, padding: 20, width: '100%', maxWidth: 400, border: `1px solid ${D.border}`, boxShadow: `0 20px 60px rgba(0,0,0,0.5)` }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: D.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Lock size={18} color="#fff" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: D.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Lock size={16} color="#fff" />
               </div>
-              <h3 style={{ fontSize: 18, fontWeight: 900, color: D.text, margin: 0 }}>Close Day?</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 900, color: D.text, margin: 0 }}>Close Day?</h3>
             </div>
 
-            <p style={{ fontSize: 14, color: D.muted, lineHeight: 1.6, fontWeight: 500, margin: '0 0 16px' }}>
-              This locks every submitted order for <strong style={{ color: D.text }}>{today}</strong>, creates the settlement record,
-              and closes every open route — they'll be fresh and startable again immediately.
+            <p style={{ fontSize: 13, color: D.muted, lineHeight: 1.5, fontWeight: 500, margin: '0 0 12px' }}>
+              This locks every submitted order for <strong style={{ color: D.text }}>{today}</strong>.
               This action cannot be undone.
             </p>
 
-            <label style={{ fontSize: 13, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 6 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>
               Notes (optional)
             </label>
             <textarea
               value={closeDayNotes}
               onChange={e => setCloseDayNotes(e.target.value)}
-              placeholder="e.g. Any remarks for today's closure"
-              rows={3}
+              placeholder="Remarks for today's closure"
+              rows={2}
               style={{
                 width: '100%',
-                padding: '10px 12px',
-                borderRadius: 9,
+                padding: '8px 10px',
+                borderRadius: 8,
                 border: `1px solid ${D.border}`,
                 background: D.bg,
-                fontSize: 14,
+                fontSize: 13,
                 color: D.text,
                 fontFamily: 'inherit',
                 resize: 'vertical',
-                marginBottom: 14,
+                marginBottom: 12,
                 boxSizing: 'border-box',
                 outline: 'none',
               }}
             />
 
             {closeDayError && (
-              <div style={{ marginBottom: 14 }}>
+              <div style={{ marginBottom: 12 }}>
                 <Alert variant="error">{closeDayError}</Alert>
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
               <button
                 onClick={() => setShowCloseDayModal(false)}
                 disabled={closingDay}
                 style={{
                   flex: 1,
-                  padding: '11px',
-                  borderRadius: 9,
+                  padding: '10px',
+                  borderRadius: 8,
                   border: `1px solid ${D.border}`,
                   background: D.bg,
                   color: D.muted,
                   fontWeight: 700,
-                  fontSize: 14,
+                  fontSize: 13,
                   cursor: closingDay ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',
                 }}
@@ -18723,23 +17731,23 @@ export function AdminOrders() {
                 disabled={closingDay}
                 style={{
                   flex: 1,
-                  padding: '11px',
-                  borderRadius: 9,
+                  padding: '10px',
+                  borderRadius: 8,
                   border: 'none',
                   background: closingDay ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
                   color: '#fff',
                   fontWeight: 700,
-                  fontSize: 14,
+                  fontSize: 13,
                   cursor: closingDay ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 8,
-                  boxShadow: closingDay ? 'none' : `0 4px 14px ${D.accentGlow}`,
+                  gap: 6,
+                  boxShadow: closingDay ? 'none' : `0 2px 12px ${D.accentGlow}`,
                 }}
               >
-                {closingDay ? <Spinner size={15} /> : <Lock size={15} />}
+                {closingDay ? <Spinner size={14} /> : <Lock size={14} />}
                 {closingDay ? 'Closing...' : 'Close Day'}
               </button>
             </div>
@@ -18755,15 +17763,15 @@ function actionBtn(bg: string, color: string, strong = false): React.CSSProperti
   return {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 5,
-    padding: '8px 14px',
-    borderRadius: 7,
-    border: `1px solid ${bg === D.accent ? 'transparent' : D.border}`,
+    gap: 4,
+    padding: '6px 12px',
+    borderRadius: 6,
+    border: `1px solid ${bg === D.accent || bg === D.green ? 'transparent' : D.border}`,
     background: bg,
     color: color,
     cursor: 'pointer',
     fontFamily: 'inherit',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: strong ? 800 : 700,
     transition: 'all 0.12s',
   };
@@ -18985,7 +17993,7 @@ function ProductCard({
 function ProductFormFields({
   form, setForm, groups, units, sizeGroups, autoFocus, isEdit = false,
 }: {
-  form: { name: string; nameMl: string; productGroupId: string; unitId: string; basePrice: string; itemCode: string; sizeGroupId: string };
+  form: { name: string; nameMl: string; productGroupId: string; unitId: string; basePrice: string; itemCode: string; sizeGroupId: string, unitSize: string;  incentive: string;   };
   setForm: React.Dispatch<React.SetStateAction<any>>;
   groups: ProductGroupDto[];
   units: UnitDto[];
@@ -19040,100 +18048,135 @@ function ProductFormFields({
   const autoGeneratedCode = isValidPrice ? generateItemCode(currentPrefix, currentPrice) : '';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div>
-        <label style={lbl}>Product Name <span style={{ color: D.red }}>*</span></label>
-        <input value={form.name} onChange={e => setForm((p: any) => ({ ...p, name: e.target.value }))}
-          placeholder="Name in English" style={inp} onFocus={onFoc} onBlur={onBlr} autoFocus={autoFocus} />
-      </div>
-      <div>
-        <label style={lbl}>Malayalam Name <span style={{ fontSize: 10, color: D.sub }}>(optional)</span></label>
-        <input value={form.nameMl} onChange={e => setForm((p: any) => ({ ...p, nameMl: e.target.value }))}
-          placeholder="മലയാളം" lang="ml" style={inp} onFocus={onFoc} onBlur={onBlr} />
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div>
-          <label style={lbl}>Item Group <span style={{ color: D.red }}>*</span></label>
-          <select value={form.productGroupId} onChange={e => setForm((p: any) => ({ ...p, productGroupId: e.target.value }))}
-            style={{ ...inp, cursor: 'pointer' }} onFocus={onFoc} onBlur={onBlr}>
-            <option value="">Select group</option>
-            {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label style={lbl}>Packing Category</label>
-          <select value={form.unitId} onChange={e => setForm((p: any) => ({ ...p, unitId: e.target.value }))}
-            style={{ ...inp, cursor: 'pointer' }} onFocus={onFoc} onBlur={onBlr}>
-            <option value="">None</option>
-            {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
-        </div>
-      </div>
-
-      {/* ── NEW: Size Group field ── */}
-      <div>
-        <label style={lbl}>Size Group</label>
-        <select 
-          value={form.sizeGroupId} 
-          onChange={e => setForm((p: any) => ({ ...p, sizeGroupId: e.target.value }))}
-          style={{ ...inp, cursor: 'pointer' }} 
-          onFocus={onFoc} onBlur={onBlr}
-        >
-          <option value="">Select size group</option>
-          {sizeGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-        </select>
-      </div>
-
-      {/* ── Base Price field (FIRST) ── */}
-      <div>
-        <label style={lbl}>Base Price (₹) <span style={{ color: D.red }}>*</span></label>
-        <input 
-          type="number" 
-          step="0.01" 
-          min="0"
-          value={form.basePrice} 
-          onChange={handlePriceChange}
-          placeholder="Enter base price" 
-          style={{ ...inp, fontSize: 18, fontWeight: 700, color: D.accent }}
-          onFocus={onFoc} onBlur={onBlr} 
-        />
-        {autoGeneratedCode && (
-          <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
-            Item code will be: <strong style={{ color: D.accent }}>{autoGeneratedCode}</strong>
-          </p>
-        )}
-      </div>
-
-      {/* ── Item Code field (SECOND - auto-generated) ── */}
-      <div style={{ padding: '16px', borderRadius: 12, background: `${D.accent}10`, border: `1px solid ${D.accent}33` }}>
-        <label style={{ ...lbl, color: D.accent }}>Item Code <span style={{ color: D.red }}>*</span></label>
-        <input 
-          value={form.itemCode} 
-          onChange={handleItemCodeChange}
-          placeholder="Auto-generated from price" 
-          style={{ ...inp, fontSize: 18, fontWeight: 800, color: D.accent, background: D.surface2, border: `1px solid ${D.accent}33` }}
-          onFocus={onFoc} onBlur={onBlr} 
-        />
-        <p style={{ margin: '8px 0 0', fontSize: 11, color: D.sub }}>
-          Format: <strong>code-price</strong> — the number after the last dash is the price. "1000-90" → price ₹90.
-        </p>
-        {(() => {
-          const parsed = parsePriceFromItemCode(form.itemCode);
-          if (!form.itemCode) return null;
-          return parsed !== null ? (
-            <p style={{ margin: '8px 0 0', fontSize: 12, color: D.accent, fontWeight: 600 }}>
-              Salesman will see: <strong>{form.itemCode}</strong> · price ₹{parsed}
-            </p>
-          ) : (
-            <p style={{ margin: '8px 0 0', fontSize: 12, color: D.red, fontWeight: 600 }}>
-              ⚠ No price found — add a dash and the price at the end, e.g. "{form.itemCode}-90".
-            </p>
-          );
-        })()}
-      </div>
+    
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    {/* 1. Product Name */}
+    <div>
+      <label style={lbl}>Product Name <span style={{ color: D.red }}>*</span></label>
+      <input value={form.name} onChange={e => setForm((p: any) => ({ ...p, name: e.target.value }))}
+        placeholder="Name in English" style={inp} onFocus={onFoc} onBlur={onBlr} autoFocus={autoFocus} />
     </div>
-  );
+
+    {/* 2. Malayalam Name */}
+    <div>
+      <label style={lbl}>Malayalam Name <span style={{ fontSize: 10, color: D.sub }}>(optional)</span></label>
+      <input value={form.nameMl} onChange={e => setForm((p: any) => ({ ...p, nameMl: e.target.value }))}
+        placeholder="മലയാളം" lang="ml" style={inp} onFocus={onFoc} onBlur={onBlr} />
+    </div>
+
+    {/* 3. Base Price */}
+    <div>
+      <label style={lbl}>Base Price (₹) <span style={{ color: D.red }}>*</span></label>
+      <input 
+        type="number" 
+        step="0.01" 
+        min="0"
+        value={form.basePrice} 
+        onChange={handlePriceChange}
+        placeholder="Enter base price" 
+        style={{ ...inp, fontSize: 18, fontWeight: 700, color: D.accent }}
+        onFocus={onFoc} onBlur={onBlr} 
+      />
+      {autoGeneratedCode && (
+        <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
+          Item code will be: <strong style={{ color: D.accent }}>{autoGeneratedCode}</strong>
+        </p>
+      )}
+    </div>
+
+    {/* 4. Item Group */}
+    <div>
+      <label style={lbl}>Item Group <span style={{ color: D.red }}>*</span></label>
+      <select value={form.productGroupId} onChange={e => setForm((p: any) => ({ ...p, productGroupId: e.target.value }))}
+        style={{ ...inp, cursor: 'pointer' }} onFocus={onFoc} onBlur={onBlr}>
+        <option value="">Select group</option>
+        {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+      </select>
+    </div>
+
+    {/* 5. Size Group */}
+    <div>
+      <label style={lbl}>Size Group</label>
+      <select 
+        value={form.sizeGroupId} 
+        onChange={e => setForm((p: any) => ({ ...p, sizeGroupId: e.target.value }))}
+        style={{ ...inp, cursor: 'pointer' }} 
+        onFocus={onFoc} onBlur={onBlr}
+      >
+        <option value="">Select size group</option>
+        {sizeGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+      </select>
+    </div>
+
+    {/* 6. Unit Size */}
+    <div>
+      <label style={lbl}>Unit Size</label>
+      <input
+        type="number"
+        step="0.01"
+        min="0"
+        value={form.unitSize}
+        onChange={e => setForm((p: any) => ({ ...p, unitSize: e.target.value }))}
+        placeholder="Enter unit size (e.g., 50, 100)"
+        style={inp}
+        onFocus={onFoc} onBlur={onBlr}
+      />
+    </div>
+
+    {/* 7. Packing Category */}
+    <div>
+      <label style={lbl}>Packing Category</label>
+      <select value={form.unitId} onChange={e => setForm((p: any) => ({ ...p, unitId: e.target.value }))}
+        style={{ ...inp, cursor: 'pointer' }} onFocus={onFoc} onBlur={onBlr}>
+        <option value="">Select packing category</option>
+        {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+      </select>
+    </div>
+
+    {/* 8. Incentive */}
+    <div>
+      <label style={lbl}>Incentive <span style={{ fontSize: 10, color: D.sub }}>(optional)</span></label>
+      <input
+        type="number"
+        step="0.01"
+        min="0"
+        value={form.incentive}
+        onChange={e => setForm((p: any) => ({ ...p, incentive: e.target.value }))}
+        placeholder="Enter incentive amount (e.g., 5, 10.50)"
+        style={inp}
+        onFocus={onFoc} onBlur={onBlr}
+      />
+    </div>
+
+    {/* ── Item Code field (auto-generated, at the bottom) ── */}
+    <div style={{ padding: '16px', borderRadius: 12, background: `${D.accent}10`, border: `1px solid ${D.accent}33` }}>
+      <label style={{ ...lbl, color: D.accent }}>Item Code <span style={{ color: D.red }}>*</span></label>
+      <input 
+        value={form.itemCode} 
+        onChange={handleItemCodeChange}
+        placeholder="Auto-generated from price" 
+        style={{ ...inp, fontSize: 18, fontWeight: 800, color: D.accent, background: D.surface2, border: `1px solid ${D.accent}33` }}
+        onFocus={onFoc} onBlur={onBlr} 
+      />
+      <p style={{ margin: '8px 0 0', fontSize: 11, color: D.sub }}>
+        Format: <strong>code-price</strong> — the number after the last dash is the price. "1000-90" → price ₹90.
+      </p>
+      {(() => {
+        const parsed = parsePriceFromItemCode(form.itemCode);
+        if (!form.itemCode) return null;
+        return parsed !== null ? (
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: D.accent, fontWeight: 600 }}>
+            Salesman will see: <strong>{form.itemCode}</strong> · price ₹{parsed}
+          </p>
+        ) : (
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: D.red, fontWeight: 600 }}>
+            ⚠ No price found — add a dash and the price at the end, e.g. "{form.itemCode}-90".
+          </p>
+        );
+      })()}
+    </div>
+  </div>
+);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -19177,6 +18220,8 @@ export function AdminProducts() {
     basePrice: '', 
     itemCode: DEFAULT_ITEM_CODE_PREFIX,
     sizeGroupId: '',  // ── NEW ──
+    unitSize: '',  // ── NEW ──
+    incentive: '',  // ── NEW ──
   };
   const [addForm, setAddForm] = useState(emptyForm);
   const [editForm, setEditForm] = useState(emptyForm);
@@ -19211,7 +18256,16 @@ export function AdminProducts() {
   }, [showAdd]);
 
   function openEdit(p: ProductDto) {
+      console.log('🔵 ===== OPEN EDIT =====');
+  console.log('🔵 Full product object:', p);
+  console.log('🔵 UnitSize from product:', (p as any).UnitSize);
+  console.log('🔵 Incentive from product:', (p as any).Incentive);
+  console.log('🔵 Product keys:', Object.keys(p));
     const prefix = p.itemCode ? extractItemCodePrefix(p.itemCode) : DEFAULT_ITEM_CODE_PREFIX;
+    const unitSizeValue = (p as any).unitSize ?? "";
+    const incentiveValue = (p as any).incentive ?? "";
+      console.log('🔵 unitSizeValue:', unitSizeValue);
+  console.log('🔵 incentiveValue:', incentiveValue);
     setEditForm({
       name: p.nameEnglish,
       nameMl: p.nameMalayalam ?? '',
@@ -19220,6 +18274,8 @@ export function AdminProducts() {
       basePrice: p.basePrice.toString(),
       itemCode: p.itemCode ?? generateItemCode(prefix, p.basePrice),
       sizeGroupId: p.sizeGroupId ?? '',  // ── NEW ──
+      unitSize: unitSizeValue ? String(unitSizeValue) : '',
+      incentive: incentiveValue ? String(incentiveValue) : '',
     });
     setEditModal(p);
   }
@@ -19237,6 +18293,10 @@ export function AdminProducts() {
   }
 
   async function handleAdd() {
+     console.log('🔵 unitSize value:', addForm.unitSize);
+  console.log('🔵 incentive value:', addForm.incentive);
+  console.log('🔵 Type of unitSize:', typeof addForm.unitSize);
+  console.log('🔵 Full addForm:', addForm);
     if (!addForm.name.trim() || !addForm.productGroupId) {
       setError('Fill all required fields.');
       return;
@@ -19258,7 +18318,14 @@ export function AdminProducts() {
     
     setSaving(true);
     setError('');
+    
     try {
+      console.log('🔵 Payload being sent:', {
+  nameEnglish: addForm.name,
+  productGroupId: addForm.productGroupId,
+  UnitSize: addForm.unitSize ? parseFloat(addForm.unitSize) : 0,
+  Incentive: addForm.incentive ? parseFloat(addForm.incentive) : 0,
+});
       await productsApi.create({
         nameEnglish: addForm.name,
         nameMalayalam: addForm.nameMl || undefined,
@@ -19267,6 +18334,8 @@ export function AdminProducts() {
         basePrice: parsedPrice,
         itemCode: finalItemCode,
         sizeGroupId: addForm.sizeGroupId || undefined,  // ── NEW ──
+        UnitSize: addForm.unitSize ? parseFloat(addForm.unitSize) : 0,    // ← NEW
+        Incentive: addForm.incentive ? parseFloat(addForm.incentive) : 0,  // ← NEW
       });
       setShowAdd(false);
       setAddForm(emptyForm);
@@ -19308,6 +18377,8 @@ export function AdminProducts() {
         basePrice: parsedPrice,
         itemCode: finalItemCode,
         sizeGroupId: editForm.sizeGroupId || undefined,  // ── NEW ──
+        UnitSize: editForm.unitSize ? parseFloat(editForm.unitSize) : 0,    // ← NEW
+        Incentive: editForm.incentive ? parseFloat(editForm.incentive) : 0,  // ← NEW
       });
       setEditModal(null);
       loadAll();
@@ -19525,35 +18596,219 @@ export function AdminProducts() {
         )}
 
         {/* Product grid */}
-        {filtered.length === 0 ? (
-          <div style={{
-            textAlign: 'center', padding: '60px 20px',
-            background: D.surface, borderRadius: 14,
-            border: `1px solid ${D.border}`,
-          }}>
-            <Package size={48} color={D.border} style={{ marginBottom: 12 }} />
-            <div style={{ fontSize: 16, fontWeight: 800, color: D.text, marginBottom: 6 }}>
-              {products.length === 0 ? 'No products yet' : 'No products match your filters'}
-            </div>
-            <div style={{ fontSize: 13, color: D.sub }}>
-              {products.length === 0 ? 'Click "+ Add Product" to register your first item.' : 'Try clearing your filters.'}
-            </div>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-            {filtered.map(p => (
-              <ProductCard
-                key={p.id}
-                product={p}
-                onEdit={() => openEdit(p)}
-                onPrice={() => openPrice(p)}
-                onHistory={() => openHistory(p)}
-                onDelete={() => setConfirm(p.id)}
-                onUnitPrices={() => setUnitPriceModal(p)}
-              />
-            ))}
-          </div>
-        )}
+       {/* Product Table */}
+{filtered.length === 0 ? (
+  <div style={{
+    textAlign: 'center', padding: '60px 20px',
+    background: D.surface, borderRadius: 14,
+    border: `1px solid ${D.border}`,
+  }}>
+    <Package size={48} color={D.border} style={{ marginBottom: 12 }} />
+    <div style={{ fontSize: 16, fontWeight: 800, color: D.text, marginBottom: 6 }}>
+      {products.length === 0 ? 'No products yet' : 'No products match your filters'}
+    </div>
+    <div style={{ fontSize: 13, color: D.sub }}>
+      {products.length === 0 ? 'Click "+ Add Product" to register your first item.' : 'Try clearing your filters.'}
+    </div>
+  </div>
+) : (
+  <div style={{
+    background: D.surface,
+    borderRadius: 14,
+    border: `1px solid ${D.border}`,
+    overflow: 'hidden',
+  }}>
+    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <table style={{
+        width: '100%',
+        minWidth: 900,
+        borderCollapse: 'collapse',
+        fontSize: 13,
+        background: D.surface,
+      }}>
+        <thead>
+          <tr>
+            <th style={{
+              background: D.bg,
+              color: D.muted,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              padding: '12px 16px',
+              borderBottom: `1px solid ${D.border}`,
+              textAlign: 'left',
+              whiteSpace: 'nowrap',
+            }}>Product Name</th>
+            <th style={{
+              background: D.bg,
+              color: D.muted,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              padding: '12px 16px',
+              borderBottom: `1px solid ${D.border}`,
+              textAlign: 'left',
+              whiteSpace: 'nowrap',
+            }}>Malayalam Name</th>
+            <th style={{
+              background: D.bg,
+              color: D.muted,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              padding: '12px 16px',
+              borderBottom: `1px solid ${D.border}`,
+              textAlign: 'right',
+              whiteSpace: 'nowrap',
+            }}>Base Price</th>
+            <th style={{
+              background: D.bg,
+              color: D.muted,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              padding: '12px 16px',
+              borderBottom: `1px solid ${D.border}`,
+              textAlign: 'left',
+              whiteSpace: 'nowrap',
+            }}>Item Group</th>
+            <th style={{
+              background: D.bg,
+              color: D.muted,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              padding: '12px 16px',
+              borderBottom: `1px solid ${D.border}`,
+              textAlign: 'right',
+              whiteSpace: 'nowrap',
+            }}>Unit Size</th>
+            <th style={{
+              background: D.bg,
+              color: D.muted,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              padding: '12px 16px',
+              borderBottom: `1px solid ${D.border}`,
+              textAlign: 'left',
+              whiteSpace: 'nowrap',
+            }}>Packing Category</th>
+            <th style={{
+              background: D.bg,
+              color: D.muted,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              padding: '12px 16px',
+              borderBottom: `1px solid ${D.border}`,
+              textAlign: 'right',
+              whiteSpace: 'nowrap',
+            }}>Incentive</th>
+            <th style={{
+              background: D.bg,
+              color: D.muted,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              padding: '12px 16px',
+              borderBottom: `1px solid ${D.border}`,
+              textAlign: 'center',
+              whiteSpace: 'nowrap',
+            }}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map(p => (
+            <tr
+              key={p.id}
+              style={{
+                borderBottom: `1px solid ${D.border}`,
+                transition: 'background 0.12s',
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+            >
+              <td style={{ padding: '12px 16px', fontWeight: 600, color: D.text }}>
+                {p.nameEnglish}
+              </td>
+              <td style={{ padding: '12px 16px', color: D.sub }}>
+                {p.nameMalayalam || '—'}
+              </td>
+              <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: D.accent }}>
+                ₹{fmt(p.basePrice)}
+              </td>
+              <td style={{ padding: '12px 16px', color: D.muted }}>
+                {p.productGroupName || '—'}
+              </td>
+              <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
+                {(p as any).unitSize || '—'}
+              </td>
+              <td style={{ padding: '12px 16px', color: D.muted }}>
+                {p.productUnitName || '—'}
+              </td>
+              <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
+                {(p as any).incentive ? `₹${(p as any).incentive}` : '—'}
+              </td>
+              <td style={{ padding: '8px 16px', textAlign: 'center' }}>
+                <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => openEdit(p)}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      border: `1px solid ${D.border}`,
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      transition: 'all 0.12s',
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.accent; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
+                    title="Edit"
+                  >
+                    <Edit2 size={12} />
+                  </button>
+                  <button
+                    onClick={() => setConfirm(p.id)}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      border: `1px solid ${D.border}`,
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      transition: 'all 0.12s',
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.red; (e.currentTarget as HTMLElement).style.color = D.red; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
+                    title="Delete"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
 
         {/* ── Unit Price Manager Modal ──────────────────────────────────────── */}
         {unitPriceModal && (
@@ -33003,6 +32258,8 @@ export interface ProductDto {
 
     // ── NEW: UQC (Unit Quantity Code) ──
     uqc?: string;
+    unitSize?: number;    // ← NEW
+    incentive?: number;   // ← NEW
 }
 
 export interface ProductDetailDto extends ProductDto {
@@ -33098,6 +32355,8 @@ export interface CreateProductCommand {
   maxOrderQty?:   number;
   // ── NEW: Size Group ──
   sizeGroupId?:   string;
+  UnitSize?: number;    // ← ADD
+  Incentive?: number;   // ← ADD
 }
 
 export interface UpdateProductCommand extends CreateProductCommand {
