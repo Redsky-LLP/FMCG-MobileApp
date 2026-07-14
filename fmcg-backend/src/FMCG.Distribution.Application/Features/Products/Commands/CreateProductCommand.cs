@@ -19,6 +19,9 @@ public class CreateProductCommand : IRequest<Result<CreateProductResponse>>
     public decimal? MaxOrderQty { get; set; }
     // ── NEW: Size Group ──
     public Guid? SizeGroupId { get; set; }
+    // ── NEW FIELDS ──
+    public decimal? UnitSize { get; set; }    // ← ADD THIS
+    public decimal? Incentive { get; set; }   // ← ADD THIS
 }
 
 public class CreateProductResponse
@@ -33,4 +36,6 @@ public class CreateProductResponse
     public string? ItemCode { get; set; }
     // ── NEW: Size Group ──
     public Guid? SizeGroupId { get; set; }
+    public decimal? UnitSize { get; set; }
+    public decimal? Incentive { get; set; }
 }

@@ -11,6 +11,16 @@ public class CreateProductCommandHandler(IApplicationDbContext context)
 {
     public async Task<Result<CreateProductResponse>> Handle(CreateProductCommand request, CancellationToken cancellationToken)
     {
+        // ── ADD THIS DEBUG ──
+        // ── DEBUG: Log the raw request properties ──
+        Console.WriteLine($"🔵 RAW - UnitSize: {request.UnitSize}");
+        Console.WriteLine($"🔵 RAW - Incentive: {request.Incentive}");
+
+        Console.WriteLine("=========================================");
+        Console.WriteLine($"🔵 UnitSize received: {request.UnitSize}");
+        Console.WriteLine($"🔵 Incentive received: {request.Incentive}");
+        Console.WriteLine($"🔵 Name: {request.NameEnglish}");
+        Console.WriteLine("=========================================");
         if (string.IsNullOrWhiteSpace(request.ItemCode))
         {
             return Result<CreateProductResponse>.Failure("Item Code is required.");
@@ -56,11 +66,14 @@ public class CreateProductCommandHandler(IApplicationDbContext context)
             ClosingStock = request.ClosingStock ?? 0,
             MinOrderQty = request.MinOrderQty,
             MaxOrderQty = request.MaxOrderQty,
+            UnitSize = request.UnitSize,    // ← ADD THIS
+            Incentive = request.Incentive,  // ← ADD THIS
             // ── NEW: Size Group ──
             SizeGroupId = request.SizeGroupId,
             IsActive = true
         };
-
+        Console.WriteLine($"🔵 Product.UnitSize: {product.UnitSize}");
+        Console.WriteLine($"🔵 Product.Incentive: {product.Incentive}");
         await context.Products.AddAsync(product, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 

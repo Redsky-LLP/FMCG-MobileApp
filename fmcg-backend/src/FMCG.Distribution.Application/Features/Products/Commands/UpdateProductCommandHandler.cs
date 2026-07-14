@@ -67,6 +67,8 @@ public class UpdateProductCommandHandler(IApplicationDbContext context)
         if (request.ClosingStock.HasValue) product.ClosingStock = request.ClosingStock.Value;
         product.MinOrderQty = request.MinOrderQty;
         product.MaxOrderQty = request.MaxOrderQty;
+        product.UnitSize = request.UnitSize;    // ← ADD THIS
+        product.Incentive = request.Incentive;  // ← ADD THIS
         // ── NEW: Size Group ──
         product.SizeGroupId = request.SizeGroupId;
         product.UpdateTimestamp("system");

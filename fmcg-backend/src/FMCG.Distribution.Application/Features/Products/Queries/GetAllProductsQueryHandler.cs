@@ -53,7 +53,9 @@ public class GetAllProductsQueryHandler(IApplicationDbContext context)
                 SizeGroupId = p.SizeGroupId,
                 SizeGroupName = p.SizeGroup != null ? p.SizeGroup.Name : null,
                 // ── NEW: UQC ──
-                UQC = p.DefaultUnit != null ? p.DefaultUnit.UQC : null
+                UQC = p.DefaultUnit != null ? p.DefaultUnit.UQC : null,
+                UnitSize = p.UnitSize,
+                Incentive = p.Incentive,
             })
             .ToListAsync(cancellationToken);
 

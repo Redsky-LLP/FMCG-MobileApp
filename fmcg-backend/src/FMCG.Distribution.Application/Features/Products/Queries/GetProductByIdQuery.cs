@@ -31,4 +31,6 @@ public class ProductDetailDto
     public decimal ClosingStock { get; set; }
     public decimal? MinOrderQty { get; set; }
     public decimal? MaxOrderQty { get; set; }
+    public decimal? UnitSize { get; set; }    // ← MUST exist
+    public decimal? Incentive { get; set; }   // ← MUST exist
 }

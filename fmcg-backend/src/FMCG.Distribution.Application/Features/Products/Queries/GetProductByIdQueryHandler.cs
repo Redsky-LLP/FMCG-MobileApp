@@ -40,7 +40,9 @@ public class GetProductByIdQueryHandler(IApplicationDbContext context)
             Supplier = product.Supplier,
             ClosingStock = product.ClosingStock,
             MinOrderQty = product.MinOrderQty,
-            MaxOrderQty = product.MaxOrderQty
+            MaxOrderQty = product.MaxOrderQty,
+            UnitSize = product.UnitSize,      // ← ADD THIS
+            Incentive = product.Incentive,    // ← ADD THIS
         };
 
         return Result<ProductDetailDto>.Success(dto);

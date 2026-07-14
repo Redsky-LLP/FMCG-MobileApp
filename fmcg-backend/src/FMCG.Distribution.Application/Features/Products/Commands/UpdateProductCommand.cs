@@ -19,6 +19,8 @@ public class UpdateProductCommand : IRequest<Result<UpdateProductResponse>>
     public decimal? ClosingStock { get; set; }
     public decimal? MinOrderQty { get; set; }
     public decimal? MaxOrderQty { get; set; }
+    public decimal? UnitSize { get; set; }    // ← ADD THIS
+    public decimal? Incentive { get; set; }   // ← ADD THIS
     // ── NEW: Size Group ──
     public Guid? SizeGroupId { get; set; }
 }
@@ -35,4 +37,6 @@ public class UpdateProductResponse
     public string? ItemCode { get; set; }
     // ── NEW: Size Group ──
     public Guid? SizeGroupId { get; set; }
+    public decimal? UnitSize { get; set; }    // ← ADD THIS
+    public decimal? Incentive { get; set; }   // ← ADD THIS
 }

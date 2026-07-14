@@ -29,6 +29,10 @@ public class Product : BaseEntity
     public decimal ClosingStock { get; set; }
     public decimal? MinOrderQty { get; set; }
     public decimal? MaxOrderQty { get; set; }
+    // ── NEW FIELDS ──
+    public decimal? UnitSize { get; set; }    // ← ADD THIS
+    public decimal? Incentive { get; set; }   // ← ADD THIS
+
 
     public bool IsActive { get; set; } = true;
 

@@ -224,7 +224,10 @@ export const productsApi = {
       maxOrderQty: cmd.maxOrderQty,
       // ── NEW: Size Group ──
       sizeGroupId: cmd.sizeGroupId,
+      UnitSize: cmd.UnitSize,    // ← MUST be here
+      Incentive: cmd.Incentive,  // ← MUST be here
     };
+     console.log('🔵 services.ts payload:', payload);
     return post<{ id: string }>('/api/v1/products', payload);
   },
   update: (id: string, cmd: UpdateProductCommand) => {
@@ -245,6 +248,8 @@ export const productsApi = {
       maxOrderQty: cmd.maxOrderQty,
       // ── NEW: Size Group ──
       sizeGroupId: cmd.sizeGroupId,
+      UnitSize: cmd.UnitSize,    // ← ADD THIS
+      Incentive: cmd.Incentive,  // ← ADD THIS
     };
     return put<{ id: string }>(`/api/v1/products/${id}`, payload);
   },

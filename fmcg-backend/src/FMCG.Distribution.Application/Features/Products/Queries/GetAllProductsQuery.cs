@@ -32,6 +32,11 @@ public class ProductDto
     public decimal? MinOrderQty { get; set; }
     public decimal? MaxOrderQty { get; set; }
 
+    // ── NEW FIELDS ──
+    public decimal? UnitSize { get; set; }
+    public decimal? Incentive { get; set; }
+
+
     // ── NEW: Size Group ──
     public Guid? SizeGroupId { get; set; }
     public string? SizeGroupName { get; set; }

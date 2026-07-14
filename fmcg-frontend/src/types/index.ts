@@ -247,6 +247,8 @@ export interface ProductDto {
 
     // ── NEW: UQC (Unit Quantity Code) ──
     uqc?: string;
+    unitSize?: number;    // ← NEW
+    incentive?: number;   // ← NEW
 }
 
 export interface ProductDetailDto extends ProductDto {
@@ -342,6 +344,8 @@ export interface CreateProductCommand {
   maxOrderQty?:   number;
   // ── NEW: Size Group ──
   sizeGroupId?:   string;
+  UnitSize?: number;    // ← ADD
+  Incentive?: number;   // ← ADD
 }
 
 export interface UpdateProductCommand extends CreateProductCommand {

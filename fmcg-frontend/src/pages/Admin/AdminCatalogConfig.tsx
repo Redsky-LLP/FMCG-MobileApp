@@ -1,15 +1,15 @@
 // PATH: src/pages/Admin/AdminCatalogConfig.tsx
-// UPDATED: Added Unit Size card, Packing Category (renamed from Priorities) with add/edit, and Incentives card
+// UPDATED: Removed Units and Incentives cards
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Settings, Plus, Edit2, Trash2, X, Save,
-  Boxes, Ruler, ArrowLeft, RefreshCw,
-  TrendingUp, Layers, Package, Award, Scale,
+  Boxes, ArrowLeft, RefreshCw,
+  Layers, Package,
 } from 'lucide-react';
-import { productGroupsApi, unitsApi, sizeGroupsApi, incentivesApi } from '../../api/services';
-import type { ProductGroupDto, UnitDto, UnitPriorityDto, SizeGroupDto, ProductIncentiveDto } from '../../types';
+import { productGroupsApi, unitsApi, sizeGroupsApi } from '../../api/services';
+import type { ProductGroupDto, UnitDto, UnitPriorityDto, SizeGroupDto } from '../../types';
 import { Spinner, Alert, ConfirmModal } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -420,248 +420,6 @@ function GroupModal({
 }
 
 // ── ────────────────────────────────────────────────────────────────────────────
-// ── Unit Modal (with UQC and Unit Size) ───────────────────────────────────────
-// ── ────────────────────────────────────────────────────────────────────────────
-
-function UnitModal({
-  isOpen,
-  onClose,
-  onSave,
-  editing,
-  initialData,
-  saving,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (data: { name: string; abbreviation: string; uqc: string; unitSize?: number }) => void;
-  editing: boolean;
-  initialData: { name: string; abbreviation: string; uqc: string; unitSize?: number };
-  saving: boolean;
-}) {
-  const [name, setName] = useState(initialData.name);
-  const [abbreviation, setAbbreviation] = useState(initialData.abbreviation);
-  const [uqc, setUqc] = useState(initialData.uqc);
-  const [unitSize, setUnitSize] = useState<number | undefined>(initialData.unitSize);
-
-  useEffect(() => {
-    setName(initialData.name);
-    setAbbreviation(initialData.abbreviation);
-    setUqc(initialData.uqc);
-    setUnitSize(initialData.unitSize);
-  }, [initialData, isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = () => {
-    if (!name.trim()) return;
-    onSave({
-      name: name.trim(),
-      abbreviation: abbreviation.trim(),
-      uqc: uqc.trim().toUpperCase(),
-      unitSize: unitSize,
-    });
-  };
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.7)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          background: D.surface,
-          borderRadius: 16,
-          maxWidth: 480,
-          width: '100%',
-          border: `1px solid ${D.border}`,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div style={{
-          padding: '16px 20px',
-          borderBottom: `1px solid ${D.border}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: 0 }}>
-            {editing ? 'Edit Unit' : 'Add Unit'}
-          </h3>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '4px',
-              borderRadius: 6,
-              border: 'none',
-              background: 'transparent',
-              color: D.sub,
-              cursor: 'pointer',
-            }}
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <div style={{ padding: '20px' }}>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
-              Unit Name *
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="e.g., Kilogram, Box, Carton"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                color: D.text,
-                fontSize: 14,
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-              autoFocus
-            />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
-              Abbreviation
-            </label>
-            <input
-              type="text"
-              value={abbreviation}
-              onChange={e => setAbbreviation(e.target.value)}
-              placeholder="e.g., kg, bx, ctn"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                color: D.text,
-                fontSize: 14,
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-            />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
-              Unit Size (numeric)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={unitSize ?? ''}
-              onChange={e => setUnitSize(e.target.value ? parseFloat(e.target.value) : undefined)}
-              placeholder="e.g., 50, 25, 10"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                color: D.text,
-                fontSize: 14,
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-            />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
-              UQC (Unit Quantity Code) <span style={{ fontSize: 11, color: D.sub }}>(optional)</span>
-            </label>
-            <input
-              type="text"
-              value={uqc}
-              onChange={e => setUqc(e.target.value.toUpperCase())}
-              placeholder="e.g., BAG, BOX, CTN, PCS, KGS, LTR"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                color: D.text,
-                fontSize: 14,
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-            />
-            <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
-              Standard GST codes: BAG, BOX, CTN, PCS, KGS, LTR, MTR, SQF, etc.
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: '9px 20px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: 'transparent',
-                color: D.muted,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={saving || !name.trim()}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '9px 20px',
-                borderRadius: 8,
-                border: 'none',
-                background: D.green,
-                color: '#fff',
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: (saving || !name.trim()) ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit',
-                opacity: (saving || !name.trim()) ? 0.5 : 1,
-              }}
-            >
-              {saving ? <Spinner size={14} /> : <Save size={14} />}
-              Save
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── ────────────────────────────────────────────────────────────────────────────
 // ── Packing Category Modal ────────────────────────────────────────────────────
 // ── ────────────────────────────────────────────────────────────────────────────
 
@@ -915,236 +673,6 @@ function PackingCategoryModal({
 }
 
 // ── ────────────────────────────────────────────────────────────────────────────
-// ── Incentive Modal ────────────────────────────────────────────────────────────
-// ── ────────────────────────────────────────────────────────────────────────────
-
-function IncentiveModal({
-  isOpen,
-  onClose,
-  onSave,
-  editing,
-  initialData,
-  saving,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (data: { name: string; rate: number; type: 'percentage' | 'fixed' }) => void;
-  editing: boolean;
-  initialData: { name: string; rate: number; type: 'percentage' | 'fixed' };
-  saving: boolean;
-}) {
-  const [name, setName] = useState(initialData.name);
-  const [rate, setRate] = useState<string>(initialData.rate ? String(initialData.rate) : '');
-  const [type, setType] = useState<'percentage' | 'fixed'>(initialData.type);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    setName(initialData.name);
-    setRate(initialData.rate ? String(initialData.rate) : '');
-    setType(initialData.type);
-  }, [initialData, isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = () => {
-    if (!name.trim()) {
-      setError('Incentive name is required');
-      return;
-    }
-    const numRate = parseFloat(rate);
-    if (isNaN(numRate) || numRate <= 0) {
-      setError('Please enter a valid rate greater than 0.');
-      return;
-    }
-    onSave({ name: name.trim(), rate: numRate, type });
-  };
-
-  useEffect(() => {
-    setError('');
-  }, [name, rate, type]);
-
-  const numRate = parseFloat(rate);
-  const isValid = name.trim() && !isNaN(numRate) && numRate > 0;
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.7)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          background: D.surface,
-          borderRadius: 16,
-          maxWidth: 480,
-          width: '100%',
-          border: `1px solid ${D.border}`,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div style={{
-          padding: '16px 20px',
-          borderBottom: `1px solid ${D.border}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: 0 }}>
-            {editing ? 'Edit Incentive' : 'Add Incentive'}
-          </h3>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '4px',
-              borderRadius: 6,
-              border: 'none',
-              background: 'transparent',
-              color: D.sub,
-              cursor: 'pointer',
-            }}
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <div style={{ padding: '20px' }}>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
-              Incentive Name *
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="e.g., Bulk Order Bonus, New Customer Incentive"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                color: D.text,
-                fontSize: 14,
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-              autoFocus
-            />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
-              Rate
-            </label>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={rate}
-              onChange={e => setRate(e.target.value)}
-              placeholder="Enter rate (e.g., 10, 5.5)"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                color: D.text,
-                fontSize: 14,
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-            />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: D.text, display: 'block', marginBottom: 6 }}>
-              Type
-            </label>
-            <select
-              value={type}
-              onChange={e => setType(e.target.value as 'percentage' | 'fixed')}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                color: D.text,
-                fontSize: 14,
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-                cursor: 'pointer',
-              }}
-              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.accent}
-              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
-            >
-              <option value="percentage">Percentage (%)</option>
-              <option value="fixed">Fixed Amount (₹)</option>
-            </select>
-          </div>
-          {error && (
-            <p style={{ margin: '0 0 12px', fontSize: 12, color: D.red }}>
-              ⚠️ {error}
-            </p>
-          )}
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: '9px 20px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: 'transparent',
-                color: D.muted,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={saving || !isValid}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '9px 20px',
-                borderRadius: 8,
-                border: 'none',
-                background: (saving || !isValid) ? D.border : '#8B5CF6',
-                color: '#fff',
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: (saving || !isValid) ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit',
-                opacity: (saving || !isValid) ? 0.5 : 1,
-              }}
-            >
-              {saving ? <Spinner size={14} /> : <Save size={14} />}
-              Save
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── ────────────────────────────────────────────────────────────────────────────
 // ── Main Page ──────────────────────────────────────────────────────────────────
 // ── ────────────────────────────────────────────────────────────────────────────
 
@@ -1157,10 +685,6 @@ export function AdminCatalogConfig() {
   const [groups, setGroups] = useState<ProductGroupDto[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(true);
 
-  // State for Units
-  const [units, setUnits] = useState<UnitDto[]>([]);
-  const [unitsLoading, setUnitsLoading] = useState(true);
-
   // ── State for Size Groups ──
   const [sizeGroups, setSizeGroups] = useState<SizeGroupDto[]>([]);
   const [sizeGroupsLoading, setSizeGroupsLoading] = useState(true);
@@ -1169,35 +693,25 @@ export function AdminCatalogConfig() {
   const [packingCategories, setPackingCategories] = useState<{ id: string; name: string; priority: number }[]>([]);
   const [packingCategoriesLoading, setPackingCategoriesLoading] = useState(true);
 
-  // ── State for Incentives ──
-  const [incentives, setIncentives] = useState<ProductIncentiveDto[]>([]);
-  const [incentivesLoading, setIncentivesLoading] = useState(true);
-
   // Modal states
   const [showGroupModal, setShowGroupModal] = useState(false);
-  const [showUnitModal, setShowUnitModal] = useState(false);
   const [showSizeGroupModal, setShowSizeGroupModal] = useState(false);
   const [showPackingCategoryModal, setShowPackingCategoryModal] = useState(false);
-  const [showIncentiveModal, setShowIncentiveModal] = useState(false);
 
   const [editingGroup, setEditingGroup] = useState<ProductGroupDto | null>(null);
-  const [editingUnit, setEditingUnit] = useState<UnitDto | null>(null);
   const [editingSizeGroup, setEditingSizeGroup] = useState<SizeGroupDto | null>(null);
   const [editingPackingCategory, setEditingPackingCategory] = useState<{ id: string; name: string; priority: number } | null>(null);
-  const [editingIncentive, setEditingIncentive] = useState<ProductIncentiveDto | null>(null);
 
   // Form states
   const [groupForm, setGroupForm] = useState({ name: '', nameMl: '' });
-  const [unitForm, setUnitForm] = useState({ name: '', abbreviation: '', uqc: '', unitSize: undefined as number | undefined });
   const [sizeGroupForm, setSizeGroupForm] = useState({ name: '', nameMl: '', description: '' });
   const [packingCategoryForm, setPackingCategoryForm] = useState<{ id?: string | undefined; name: string; priority: number }>({ id: undefined, name: '', priority: 0 });
-  const [incentiveForm, setIncentiveForm] = useState({ name: '', rate: 0, type: 'percentage' as 'percentage' | 'fixed' });
 
   // UI states
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'group' | 'unit' | 'sizeGroup' | 'packingCategory' | 'incentive'; id: string; name: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'group' | 'sizeGroup' | 'packingCategory'; id: string; name: string } | null>(null);
 
   // ── Load Data ──
   async function loadGroups() {
@@ -1209,18 +723,6 @@ export function AdminCatalogConfig() {
       setError(err.message || 'Failed to load groups');
     } finally {
       setGroupsLoading(false);
-    }
-  }
-
-  async function loadUnits() {
-    setUnitsLoading(true);
-    try {
-      const data = await unitsApi.getAll();
-      setUnits(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load units');
-    } finally {
-      setUnitsLoading(false);
     }
   }
 
@@ -1254,20 +756,8 @@ export function AdminCatalogConfig() {
     }
   }
 
-  async function loadIncentives() {
-    setIncentivesLoading(true);
-    try {
-      const data = await incentivesApi.getProductIncentives();
-      setIncentives(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load incentives');
-    } finally {
-      setIncentivesLoading(false);
-    }
-  }
-
   async function loadAll() {
-    await Promise.all([loadGroups(), loadUnits(), loadSizeGroups(), loadPackingCategories(), loadIncentives()]);
+    await Promise.all([loadGroups(), loadSizeGroups(), loadPackingCategories()]);
   }
 
   useEffect(() => {
@@ -1321,69 +811,6 @@ export function AdminCatalogConfig() {
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
       setError(err.message || 'Failed to delete group');
-    } finally {
-      setDeleteConfirm(null);
-    }
-  }
-
-  // ── Unit Handlers ──
-  function openAddUnit() {
-    setEditingUnit(null);
-    setUnitForm({ name: '', abbreviation: '', uqc: '', unitSize: undefined });
-    setShowUnitModal(true);
-  }
-
-  function openEditUnit(unit: UnitDto) {
-    setEditingUnit(unit);
-    setUnitForm({
-      name: unit.name,
-      abbreviation: unit.abbreviation || '',
-      uqc: unit.uqc || '',
-      unitSize: (unit as any).unitSize,
-    });
-    setShowUnitModal(true);
-  }
-
-  async function handleSaveUnit(data: { name: string; abbreviation: string; uqc: string; unitSize?: number }) {
-    if (!data.name.trim()) {
-      setError('Unit name is required');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    try {
-      if (editingUnit) {
-        await unitsApi.update(editingUnit.id, data.name, data.abbreviation || undefined);
-        if (data.uqc) {
-          await unitsApi.updateUQC(editingUnit.id, data.uqc);
-        }
-        setSuccess('Unit updated successfully!');
-      } else {
-        const result = await unitsApi.create(data.name, data.abbreviation || undefined);
-        if (data.uqc && result?.id) {
-          await unitsApi.updateUQC(result.id, data.uqc);
-        }
-        setSuccess('Unit created successfully!');
-      }
-      setShowUnitModal(false);
-      await loadUnits();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to save unit');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleDeleteUnit(id: string) {
-    try {
-      await unitsApi.delete(id);
-      setSuccess('Unit deleted successfully!');
-      await loadUnits();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete unit');
     } finally {
       setDeleteConfirm(null);
     }
@@ -1491,7 +918,6 @@ export function AdminCatalogConfig() {
       }
       setShowPackingCategoryModal(false);
       await loadPackingCategories();
-      await loadUnits();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
       setError(err.message || 'Failed to save packing category');
@@ -1513,76 +939,11 @@ export function AdminCatalogConfig() {
     }
   }
 
-  // ── Incentive Handlers ──
-  function openAddIncentive() {
-    setEditingIncentive(null);
-    setIncentiveForm({ name: '', rate: 0, type: 'percentage' });
-    setShowIncentiveModal(true);
-  }
-
-  function openEditIncentive(incentive: ProductIncentiveDto) {
-    setEditingIncentive(incentive);
-    setIncentiveForm({
-      name: incentive.productName || '',
-      rate: incentive.incentiveValue,
-      type: incentive.incentiveType === 2 ? 'percentage' : 'fixed',
-    });
-    setShowIncentiveModal(true);
-  }
-
-  async function handleSaveIncentive(data: { name: string; rate: number; type: 'percentage' | 'fixed' }) {
-    if (!data.name.trim() || data.rate <= 0) {
-      setError('Name and rate are required');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    try {
-      const payload = {
-        productId: '00000000-0000-0000-0000-000000000000', // Placeholder - admin would select a product
-        incentiveValue: data.rate,
-        incentiveType: data.type === 'percentage' ? 2 : 1,
-        effectiveDate: new Date().toISOString().slice(0, 10),
-        description: data.name,
-      };
-
-      if (editingIncentive) {
-        await incentivesApi.updateProductIncentive(editingIncentive.id, payload);
-        setSuccess('Incentive updated successfully!');
-      } else {
-        await incentivesApi.createProductIncentive(payload);
-        setSuccess('Incentive created successfully!');
-      }
-      setShowIncentiveModal(false);
-      await loadIncentives();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to save incentive');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleDeleteIncentive(id: string) {
-    try {
-      await incentivesApi.deleteProductIncentive(id);
-      setSuccess('Incentive deleted successfully!');
-      await loadIncentives();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete incentive');
-    } finally {
-      setDeleteConfirm(null);
-    }
-  }
-
   // ── Priority Handler (for reordering) ──
   async function handleUpdatePriority(unitId: string, newPriority: number) {
     try {
       await unitsApi.updatePriority(unitId, newPriority);
       await loadPackingCategories();
-      await loadUnits();
       setSuccess('Priority updated!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
@@ -1636,7 +997,7 @@ export function AdminCatalogConfig() {
               Catalog Config
             </h1>
             <p style={{ color: D.muted, fontSize: 14, marginTop: 4, fontWeight: 500 }}>
-              Product Groups, Units, Size Groups, Packing Categories &amp; Incentives
+              Item Groups, Size Groups &amp; Packing Categories
             </p>
           </div>
           <button
@@ -1659,13 +1020,13 @@ export function AdminCatalogConfig() {
           </button>
         </div>
 
-        {error && <Alert variant="error">{error}</Alert>}
+        {/* {error && <Alert variant="error">{error}</Alert>} */}
         {success && <Alert variant="success">{success}</Alert>}
 
         {/* ── Responsive Grid ── */}
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr 1fr 1fr', 
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', 
           gap: 16 
         }}>
 
@@ -1768,133 +1129,6 @@ export function AdminCatalogConfig() {
                       </button>
                       <button
                         onClick={() => setDeleteConfirm({ type: 'group', id: group.id, name: group.name })}
-                        style={{
-                          padding: '3px 6px',
-                          borderRadius: 4,
-                          border: 'none',
-                          background: 'transparent',
-                          color: D.sub,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* ── Units Card ── */}
-          <div style={{
-            background: D.surface,
-            borderRadius: 16,
-            border: `1px solid ${D.border}`,
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '14px 16px',
-              borderBottom: `1px solid ${D.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Ruler size={16} style={{ color: D.green }} />
-                <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
-                  Units
-                </h2>
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: D.muted,
-                  background: D.bg,
-                  padding: '1px 8px',
-                  borderRadius: 12,
-                }}>
-                  {units.length}
-                </span>
-              </div>
-              <button
-                onClick={openAddUnit}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '4px 10px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: D.green,
-                  color: '#fff',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                <Plus size={12} /> Add
-              </button>
-            </div>
-
-            <div style={{ padding: '10px 12px', maxHeight: 300, overflowY: 'auto' }}>
-              {unitsLoading ? (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <Spinner size={20} />
-                </div>
-              ) : units.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '20px 0', color: D.muted, fontSize: 12 }}>
-                  No units yet
-                </div>
-              ) : (
-                units.map(unit => (
-                  <div
-                    key={unit.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '6px 8px',
-                      marginBottom: 4,
-                      borderRadius: 8,
-                      background: D.bg,
-                      border: `1px solid ${D.border}`,
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: D.text, fontSize: 13 }}>
-                        {unit.name}
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, fontSize: 10, flexWrap: 'wrap' }}>
-                        {unit.abbreviation && (
-                          <span style={{ color: D.sub }}>[{unit.abbreviation}]</span>
-                        )}
-                        {(unit as any).unitSize !== undefined && (unit as any).unitSize !== null && (
-                          <span style={{ color: D.green, fontWeight: 600 }}>
-                            Size: {(unit as any).unitSize}
-                          </span>
-                        )}
-                        {unit.uqc && (
-                          <span style={{ color: D.accent, fontWeight: 700, background: `${D.accent}15`, padding: '1px 6px', borderRadius: 4 }}>
-                            UQC: {unit.uqc}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 2 }}>
-                      <button
-                        onClick={() => openEditUnit(unit)}
-                        style={{
-                          padding: '3px 6px',
-                          borderRadius: 4,
-                          border: 'none',
-                          background: 'transparent',
-                          color: D.sub,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Edit2 size={12} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm({ type: 'unit', id: unit.id, name: unit.name })}
                         style={{
                           padding: '3px 6px',
                           borderRadius: 4,
@@ -2030,7 +1264,7 @@ export function AdminCatalogConfig() {
             </div>
           </div>
 
-          {/* ── Packing Categories Card (renamed from Priorities) ── */}
+          {/* ── Packing Categories Card ── */}
           <div style={{
             background: D.surface,
             borderRadius: 16,
@@ -2163,125 +1397,6 @@ export function AdminCatalogConfig() {
             </div>
           </div>
 
-          {/* ── Incentives Card ── */}
-          <div style={{
-            background: D.surface,
-            borderRadius: 16,
-            border: `1px solid ${D.border}`,
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '14px 16px',
-              borderBottom: `1px solid ${D.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Award size={16} style={{ color: '#8B5CF6' }} />
-                <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
-                  Incentives
-                </h2>
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: D.muted,
-                  background: D.bg,
-                  padding: '1px 8px',
-                  borderRadius: 12,
-                }}>
-                  {incentives.length}
-                </span>
-              </div>
-              <button
-                onClick={openAddIncentive}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '4px 10px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: '#8B5CF6',
-                  color: '#fff',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                <Plus size={12} /> Add
-              </button>
-            </div>
-
-            <div style={{ padding: '10px 12px', maxHeight: 300, overflowY: 'auto' }}>
-              {incentivesLoading ? (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <Spinner size={20} />
-                </div>
-              ) : incentives.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '20px 0', color: D.muted, fontSize: 12 }}>
-                  No incentives yet
-                </div>
-              ) : (
-                incentives.map(incentive => (
-                  <div
-                    key={incentive.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '6px 8px',
-                      marginBottom: 4,
-                      borderRadius: 8,
-                      background: D.bg,
-                      border: `1px solid ${D.border}`,
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: D.text, fontSize: 13 }}>
-                        {incentive.productName || 'Unnamed'}
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, fontSize: 10, flexWrap: 'wrap' }}>
-                        <span style={{ color: '#8B5CF6', fontWeight: 600 }}>
-                          {incentive.incentiveType === 2 ? `${incentive.incentiveValue}%` : `₹${incentive.incentiveValue}`}
-                        </span>
-                        <span style={{ color: D.sub }}>
-                          {incentive.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 2 }}>
-                      <button
-                        onClick={() => openEditIncentive(incentive)}
-                        style={{
-                          padding: '3px 6px',
-                          borderRadius: 4,
-                          border: 'none',
-                          background: 'transparent',
-                          color: D.sub,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Edit2 size={12} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm({ type: 'incentive', id: incentive.id, name: incentive.productName || 'Incentive' })}
-                        style={{
-                          padding: '3px 6px',
-                          borderRadius: 4,
-                          border: 'none',
-                          background: 'transparent',
-                          color: D.sub,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
         </div>
       </div>
 
@@ -2292,15 +1407,6 @@ export function AdminCatalogConfig() {
         onSave={handleSaveGroup}
         editing={!!editingGroup}
         initialData={groupForm}
-        saving={loading}
-      />
-
-      <UnitModal
-        isOpen={showUnitModal}
-        onClose={() => setShowUnitModal(false)}
-        onSave={handleSaveUnit}
-        editing={!!editingUnit}
-        initialData={unitForm}
         saving={loading}
       />
 
@@ -2323,19 +1429,10 @@ export function AdminCatalogConfig() {
         saving={loading}
       />
 
-      <IncentiveModal
-        isOpen={showIncentiveModal}
-        onClose={() => setShowIncentiveModal(false)}
-        onSave={handleSaveIncentive}
-        editing={!!editingIncentive}
-        initialData={incentiveForm}
-        saving={loading}
-      />
-
       {/* ── Delete Confirmation ── */}
       <ConfirmModal
         open={!!deleteConfirm}
-        title={`Delete ${deleteConfirm?.type === 'group' ? 'Group' : deleteConfirm?.type === 'unit' ? 'Unit' : deleteConfirm?.type === 'sizeGroup' ? 'Size Group' : deleteConfirm?.type === 'packingCategory' ? 'Packing Category' : 'Incentive'}`}
+        title={`Delete ${deleteConfirm?.type === 'group' ? 'Group' : deleteConfirm?.type === 'sizeGroup' ? 'Size Group' : 'Packing Category'}`}
         message={`Are you sure you want to delete "${deleteConfirm?.name}"? This action cannot be undone.`}
         confirmLabel="Delete"
         danger
@@ -2343,14 +1440,10 @@ export function AdminCatalogConfig() {
           if (deleteConfirm) {
             if (deleteConfirm.type === 'group') {
               handleDeleteGroup(deleteConfirm.id);
-            } else if (deleteConfirm.type === 'unit') {
-              handleDeleteUnit(deleteConfirm.id);
             } else if (deleteConfirm.type === 'sizeGroup') {
               handleDeleteSizeGroup(deleteConfirm.id);
             } else if (deleteConfirm.type === 'packingCategory') {
               handleDeletePackingCategory(deleteConfirm.id);
-            } else if (deleteConfirm.type === 'incentive') {
-              handleDeleteIncentive(deleteConfirm.id);
             }
           }
         }}
