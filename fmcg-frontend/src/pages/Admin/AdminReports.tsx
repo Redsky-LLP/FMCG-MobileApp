@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import { 
   FileText, Download, RefreshCw, Loader, CalendarDays, 
   ArrowLeft, Eye, X, CheckCircle, AlertCircle, Maximize2,
-  Smartphone
+  Smartphone, ShoppingCart
 } from 'lucide-react';
 import { reportsApi, routesApi, productGroupsApi, triggerPdfDownload } from '../../api/services';
 import type { RouteDto, ProductGroupDto } from '../../types';
@@ -744,7 +744,7 @@ export function AdminReports() {
         </div>
 
         {/* Header */}
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{
               width: 48, height: 48, borderRadius: 14,
@@ -763,6 +763,30 @@ export function AdminReports() {
               </p>
             </div>
           </div>
+
+          <Link
+            to="/admin/orders"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 18px',
+              borderRadius: 10,
+              background: D.accent,
+              border: '1px solid transparent',
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 700,
+              textDecoration: 'none',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = D.accentH; }}
+            onMouseLeave={e => { e.currentTarget.style.background = D.accent; }}
+          >
+            <ShoppingCart size={15} />
+            Go to Orders Panel
+          </Link>
         </div>
 
         {error && <Alert variant="error">{error}</Alert>}
