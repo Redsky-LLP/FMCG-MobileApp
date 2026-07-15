@@ -109,7 +109,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
             {
                 page.Size(PageSizes.A4);
                 page.Margin(0.5f, PdfUnit.Centimetre);
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Arial"));
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Times New Roman"));
 
                 // Header
                 page.Header()
@@ -151,11 +151,11 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                 table.ColumnsDefinition(columns =>
                                 {
                                     columns.ConstantColumn(28);   // #
-                                    columns.RelativeColumn(3);    // Customer
-                                    columns.RelativeColumn(2);    // Order #
-                                    columns.RelativeColumn(4);    // Product
-                                    columns.RelativeColumn(1.2f); // Qty
-                                    columns.RelativeColumn(1.4f); // Price
+                                    columns.RelativeColumn(2.6f); // Customer
+                                    columns.RelativeColumn(2.6f); // Order #
+                                    columns.RelativeColumn(3.4f); // Product
+                                    columns.RelativeColumn(1.1f); // Qty
+                                    columns.RelativeColumn(1.3f); // Price
                                 });
 
                                 table.Header(header =>
@@ -177,7 +177,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                     {
                                         table.Cell().BorderBottom(0.5f).Padding(4).Text($"{rowNum}").Bold().FontSize(11);
                                         table.Cell().BorderBottom(0.5f).Padding(4).Text(order.CustomerName).Bold().FontSize(11);
-                                        table.Cell().BorderBottom(0.5f).Padding(4).Text(order.OrderNumber).FontSize(10);
+                                        table.Cell().BorderBottom(0.5f).Padding(4).Text(order.OrderNumber).FontSize(9);
                                         table.Cell().BorderBottom(0.5f).Padding(4).Text("—").FontSize(10);
                                         table.Cell().BorderBottom(0.5f).Padding(4).AlignRight().Text("").FontSize(10);
                                         table.Cell().BorderBottom(0.5f).Padding(4).AlignRight().Text("").FontSize(10);
@@ -189,7 +189,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
 
                                         table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? $"{rowNum}" : "").Bold().FontSize(11);
                                         table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? order.CustomerName : "").Bold().FontSize(11);
-                                        table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? order.OrderNumber : "").FontSize(10);
+                                        table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? order.OrderNumber : "").FontSize(9);
                                         table.Cell().Padding(4).BorderBottom(borderBottom).Text(item.ProductName).FontSize(10);
                                         table.Cell().Padding(4).BorderBottom(borderBottom).AlignRight().Text($"{item.Quantity:N0} {item.UnitSymbol}").FontSize(10).Bold();
                                         table.Cell().Padding(4).BorderBottom(borderBottom).AlignRight().Text($"{item.SellingPrice:N2}").FontSize(10);
@@ -202,7 +202,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                     {
                                         table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? $"{rowNum}" : "").Bold().FontSize(11);
                                         table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? order.CustomerName : "").Bold().FontSize(11);
-                                        table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? order.OrderNumber : "").FontSize(10);
+                                        table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? order.OrderNumber : "").FontSize(9);
                                         table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text($"⚖ RETAIL: {order.Remarks}").FontSize(10).Bold().FontColor(Colors.Orange.Darken2);
                                         table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).AlignRight().Text("").FontSize(10);
                                         table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).AlignRight().Text("").FontSize(10);

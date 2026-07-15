@@ -144,7 +144,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
 
                 int stopNumber = 1;
                 var runningFiftyKgBags = 0;
-                var thresholdAlertAlreadyShown = false;
+                var announcedMilestoneCount = 0;
 
                 foreach (var order in orderedOrders)
                 {
@@ -190,8 +190,14 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                         .Sum(i => i.QuantityBags ?? (int)i.Quantity);
                     runningFiftyKgBags += fiftyKgBagsThisStop;
 
-                    var crossesThresholdNow = !thresholdAlertAlreadyShown && runningFiftyKgBags >= FiftyKgBagThreshold;
-                    if (crossesThresholdNow) thresholdAlertAlreadyShown = true;
+                    // ── Repeats every time cumulative bags cross another multiple of the threshold ──
+                    var currentMilestoneCount = runningFiftyKgBags / FiftyKgBagThreshold;
+                    var crossedMilestones = new List<int>();
+                    for (var m = announcedMilestoneCount + 1; m <= currentMilestoneCount; m++)
+                    {
+                        crossedMilestones.Add(m * FiftyKgBagThreshold);
+                    }
+                    announcedMilestoneCount = Math.Max(announcedMilestoneCount, currentMilestoneCount);
 
                     stops.Add(new LoadingSheetStopDto
                     {
@@ -207,7 +213,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                         StopTotalQuantity = stopTotal,
                         OrderNumber = order.OrderNumber,
                         Remarks = string.IsNullOrWhiteSpace(order.Remarks) ? null : order.Remarks,
-                        ShowFiftyKgThresholdAlertAfter = crossesThresholdNow,
+                        FiftyKgThresholdMilestonesCrossed = crossedMilestones,
                         RunningFiftyKgBagTotal = runningFiftyKgBags,
                     });
 
@@ -298,7 +304,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(0.5f, PdfUnit.Centimetre);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Arial"));
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Times New Roman"));
 
                     // ── Header ──
                     page.Header()
@@ -353,9 +359,9 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                     table.ColumnsDefinition(columns =>
                                     {
                                         columns.ConstantColumn(28);   // #
-                                        columns.RelativeColumn(3);    // Customer
-                                        columns.RelativeColumn(2);    // Order #
-                                        columns.RelativeColumn(4);    // Product
+                                        columns.RelativeColumn(2.8f); // Customer
+                                        columns.RelativeColumn(2.6f); // Order #
+                                        columns.RelativeColumn(3.6f); // Product
                                         columns.RelativeColumn(1.4f); // Qty
                                     });
 
@@ -376,7 +382,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                         {
                                             table.Cell().BorderBottom(0.5f).Padding(4).Text($"{stop.SequenceOrder}").Bold().FontSize(11);
                                             table.Cell().BorderBottom(0.5f).Padding(4).Text(stop.CustomerName).Bold().FontSize(11);
-                                            table.Cell().BorderBottom(0.5f).Padding(4).Text(stop.OrderNumber ?? "").FontSize(10);
+                                            table.Cell().BorderBottom(0.5f).Padding(4).Text(stop.OrderNumber ?? "").FontSize(9);
                                             table.Cell().BorderBottom(0.5f).Padding(4).Text("—").FontSize(10);
                                             table.Cell().BorderBottom(0.5f).Padding(4).AlignRight().Text("").FontSize(10);
                                         }
@@ -388,7 +394,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                             // # and Customer only printed once, on the first row of this stop
                                             table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? $"{stop.SequenceOrder}" : "").Bold().FontSize(11);
                                             table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? stop.CustomerName : "").Bold().FontSize(11);
-                                            table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? (stop.OrderNumber ?? "") : "").FontSize(10);
+                                            table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? (stop.OrderNumber ?? "") : "").FontSize(9);
                                             table.Cell().Padding(4).BorderBottom(borderBottom).Text($"{item.ProductName}{(string.IsNullOrEmpty(item.SizeGroupName) ? "" : $"  ({item.SizeGroupName})")}").FontSize(10);
                                             table.Cell().Padding(4).BorderBottom(borderBottom).AlignRight().Text($"{item.TotalQuantity:N0} {item.UnitSymbol}").FontSize(10).Bold();
 
@@ -400,18 +406,19 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                         {
                                             table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? $"{stop.SequenceOrder}" : "").Bold().FontSize(11);
                                             table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? stop.CustomerName : "").Bold().FontSize(11);
-                                            table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? (stop.OrderNumber ?? "") : "").FontSize(10);
+                                            table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? (stop.OrderNumber ?? "") : "").FontSize(9);
                                             table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text($"⚖ RETAIL / WEIGH: {stop.Remarks}").FontSize(10).Bold().FontColor(Colors.Orange.Darken2);
                                             table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).AlignRight().Text("").FontSize(10);
                                         }
 
-                                        // ── 50kg bag threshold alert, inserted right after the stop that crossed it ──
-                                        if (stop.ShowFiftyKgThresholdAlertAfter)
+                                        // ── 50kg bag threshold alert(s), inserted right after the stop that crossed them ──
+                                        // Repeats every time cumulative bags cross another multiple (110, 220, 330...).
+                                        foreach (var milestone in stop.FiftyKgThresholdMilestonesCrossed)
                                         {
                                             table.Cell().ColumnSpan(5).PaddingTop(8).PaddingBottom(4).Element(e => e);
 
                                             table.Cell().ColumnSpan(5).Background(Colors.Red.Lighten3).Padding(6)
-                                                .Text($"⚠ ALERT: 50 KG BAGS HAVE REACHED {stop.RunningFiftyKgBagTotal} (THRESHOLD: {FiftyKgBagThreshold}+) — AFTER \"{stop.CustomerName}\" — VERIFY LOADING CAPACITY")
+                                                .Text($"⚠ ALERT: 50 KG BAGS HAVE REACHED {milestone}+ (RUNNING TOTAL: {stop.RunningFiftyKgBagTotal}) — AFTER \"{stop.CustomerName}\" — VERIFY LOADING CAPACITY")
                                                 .Bold().FontSize(11).FontColor(Colors.Red.Darken2);
 
                                             table.Cell().ColumnSpan(5).PaddingTop(4).PaddingBottom(2).Element(e => e);
@@ -478,7 +485,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(0.5f, PdfUnit.Centimetre);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Arial"));
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Times New Roman"));
 
                     page.Header()
                         .BorderBottom(0.5f)

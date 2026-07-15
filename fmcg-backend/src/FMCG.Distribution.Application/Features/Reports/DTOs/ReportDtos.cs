@@ -40,8 +40,11 @@ public class LoadingSheetStopDto
     public string? OrderNumber { get; set; }
     public string? Remarks { get; set; }             // Retail items / free-text remarks from the salesman
 
-    // ── NEW: 50kg-bag threshold alert (set by handler once cumulative crosses the limit) ──
-    public bool ShowFiftyKgThresholdAlertAfter { get; set; }
+    // ── NEW: 50kg-bag threshold alerts — repeats every time cumulative bags cross
+    // another multiple of the threshold (110, 220, 330, 440...). Normally holds at
+    // most one value, but can hold more than one if a single stop's bags jump past
+    // more than one multiple at once. Empty if no milestone crossed at this stop. ──
+    public List<int> FiftyKgThresholdMilestonesCrossed { get; set; } = new();
     public int RunningFiftyKgBagTotal { get; set; }
 }
 

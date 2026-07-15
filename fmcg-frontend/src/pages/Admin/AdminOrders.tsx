@@ -320,7 +320,8 @@ export function AdminOrders() {
             onClick={load}
             style={{
               display: 'flex', alignItems: 'center', gap: 4,
-              padding: '6px 12px', borderRadius: 8,
+              padding: '6px 12px',
+              borderRadius: 8,
               border: `1px solid ${D.border}`,
               background: D.surface,
               color: D.muted,
@@ -810,10 +811,53 @@ export function AdminOrders() {
                 </div>
               </div>
 
+              {/* ── Updated Remarks Section with Numbered Items ── */}
               {reviewOrder.remarks && (
-                <div style={{ marginTop: 10, padding: '8px 10px', borderRadius: 8, background: 'rgba(245,158,11,0.08)', border: `1px solid rgba(245,158,11,0.20)` }}>
-                  <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 700, color: D.amber }}>📝 Remarks</p>
-                  <p style={{ margin: 0, fontSize: 12, color: D.muted }}>{reviewOrder.remarks}</p>
+                <div style={{ 
+                  marginTop: 10, 
+                  padding: '8px 10px', 
+                  borderRadius: 8, 
+                  background: 'rgba(245,158,11,0.08)', 
+                  border: `1px solid rgba(245,158,11,0.20)` 
+                }}>
+                  <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: D.amber }}>📝 Retail Items</p>
+                  <div style={{ 
+                    fontSize: 12, 
+                    color: D.muted,
+                    lineHeight: 1.6,
+                    fontFamily: 'monospace',
+                  }}>
+                    {reviewOrder.remarks
+                      .split(/\n|,/)
+                      .map((item: string) => item.trim())
+                      .filter((item: string) => item.length > 0)
+                      .map((item: string, idx: number, arr: string[]) => (
+                        <div 
+                          key={idx}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 8,
+                            padding: '2px 0',
+                            borderBottom: idx < arr.length - 1 
+                              ? `1px solid rgba(245,158,11,0.10)` 
+                              : 'none',
+                          }}
+                        >
+                          <span style={{ 
+                            fontWeight: 700, 
+                            color: D.amber,
+                            minWidth: 24,
+                            flexShrink: 0,
+                          }}>
+                            {idx + 1}.
+                          </span>
+                          <span style={{ color: D.text, fontWeight: 500 }}>
+                            {item}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
                 </div>
               )}
             </div>
