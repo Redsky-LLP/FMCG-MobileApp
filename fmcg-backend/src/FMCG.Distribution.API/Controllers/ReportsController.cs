@@ -149,28 +149,26 @@ public class ReportsController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("incentive-report")]
-    public async Task<IActionResult> GetIncentiveReport(
+public async Task<IActionResult> GetIncentiveReport(
     [FromQuery] string? fromDate,
     [FromQuery] string? toDate)
+{
+    var query = new GetIncentiveReportQuery
     {
-        Console.WriteLine($"🔵 CONTROLLER - fromDate: {fromDate}");
-        Console.WriteLine($"🔵 CONTROLLER - toDate: {toDate}");
+        FromDate = fromDate != null ? DateTime.Parse(fromDate) : null,
+        ToDate = toDate != null ? DateTime.Parse(toDate) : null
+    };
 
-        var query = new GetIncentiveReportQuery
-        {
-            FromDate = fromDate != null ? DateTime.Parse(fromDate) : null,
-            ToDate = toDate != null ? DateTime.Parse(toDate) : null
-        };
+    // ── FIX: Change _mediator to mediator ──
+    var result = await mediator.Send(query);  // ✅ Use 'mediator' not '_mediator'
 
-        var result = await mediator.Send(query);
-
-        if (!result.IsSuccess)
-        {
-            return BadRequest(new { error = result.Error });
-        }
-
-        return File(result.Data!, "application/pdf", $"IncentiveReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
+    if (!result.IsSuccess)
+    {
+        return BadRequest(new { error = result.Error });
     }
+
+    return File(result.Data!, "application/pdf", $"IncentiveReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
+}
     // ─────────────────────────────────────────────────────────────────────────
     // GET /api/v1/reports/daily-summary
     // Roles: Admin, SuperAdmin, Accounts
