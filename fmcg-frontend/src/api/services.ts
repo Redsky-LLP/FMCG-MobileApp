@@ -1,5 +1,5 @@
 // PATH: src/api/services.ts
-// UPDATED: Added sizeGroupsApi, uqc update in unitsApi, and related types
+// UPDATED: Added sizeGroupsApi, uqc update in unitsApi, reopenRoute in settlementApi, and related types
 
 import apiClient from './client';
 import type {
@@ -30,6 +30,8 @@ import type {
   SizeGroupDto,
   // ── NEW: Enhanced Unit ──
   EnhancedProductUnitDto,
+  // ── NEW: Reopen Route Result ──
+  ReopenRouteResultDto,
 } from '../types/index';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -346,10 +348,19 @@ export const settlementApi = {
     const data = await get<OutstandingSummaryDto>('/api/v1/settlement/outstanding');
     return data.customers ?? [];
   },
-  getStatus: (date?: string) =>
-    get<DailyClosureStatusDto>('/api/v1/settlement/status', date ? { date } : undefined),
-  closeDay: (closureDate: string, notes?: string) =>
-    post<DailyClosureResultDto>('/api/v1/settlement/close-day', { closureDate, notes }),
+  getStatus: (date?: string, routeId?: string) =>
+    get<DailyClosureStatusDto>('/api/v1/settlement/status', {
+      ...(date ? { date } : {}),
+      ...(routeId ? { routeId } : {}),
+    }),
+ 
+  closeDay: (closureDate: string, routeId: string, notes?: string) =>
+    post<DailyClosureResultDto>('/api/v1/settlement/close-day', { closureDate, routeId, notes }),
+
+  // ── NEW: Reopen a closed route ──
+  reopenRoute: (closureDate: string, routeId: string) =>
+    post<ReopenRouteResultDto>('/api/v1/settlement/reopen-route', { closureDate, routeId }),
+
   recordPayment: (body: {
     customerId: number | string; amount: number; paymentDate: string; note?: string;
     paymentReference?: string; paymentMode?: string; remarks?: string;

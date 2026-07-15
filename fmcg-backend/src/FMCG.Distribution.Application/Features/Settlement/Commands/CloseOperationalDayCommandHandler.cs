@@ -1,4 +1,5 @@
-﻿using FMCG.Distribution.Application.Common;
+﻿// PATH: src/FMCG.Distribution.Application/Features/Settlement/Commands/CloseOperationalDayCommandHandler.cs
+using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
 using FMCG.Distribution.Application.Features.Settlement.DTOs;
 using MediatR;
@@ -13,12 +14,13 @@ public class CloseOperationalDayCommandHandler(ISettlementService settlementServ
         var result = await settlementService.CloseOperationalDayAsync(
             request.AdminId,
             request.ClosureDate,
+            request.RouteId,
             request.Notes,
             cancellationToken);
 
         if (!result.Success)
         {
-            return Result<DailyClosureResultDto>.Failure(result.Message ?? "Failed to close operational day.");
+            return Result<DailyClosureResultDto>.Failure(result.Message ?? "Failed to close route.");
         }
 
         return Result<DailyClosureResultDto>.Success(result, result.Message);

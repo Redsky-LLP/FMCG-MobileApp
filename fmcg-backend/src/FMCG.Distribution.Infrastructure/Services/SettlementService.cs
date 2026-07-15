@@ -1,10 +1,11 @@
 ﻿using FMCG.Distribution.Application.Common.Interfaces;
+using FMCG.Distribution.Application.Features.Reports.Queries;
+using FMCG.Distribution.Application.Features.Settlement.Commands;
 using FMCG.Distribution.Application.Features.Settlement.DTOs;
 using FMCG.Distribution.Domain.Entities;
 using FMCG.Distribution.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using FMCG.Distribution.Application.Features.Reports.Queries;
 
 namespace FMCG.Distribution.Infrastructure.Services;
 
@@ -85,20 +86,24 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         // them, which can be indefinitely. Drafts are already excluded from
         // the settlement totals below (CalculateExpectedCashAsync filters
         // them out), so they have zero effect on the closure's accuracy.
-        // Requiring zero drafts to ever close the day would mean the day can
-        // never close as long as a single never-actioned draft exists
-        // anywhere in the system — which defeats the point of Close Day.
 
-        // Check if day is already closed
+        // ── "already closed" is checked per ROUTE + date. ──
+        // ── BUG FIX: was missing `c.IsActive` — after a route is reopened,
+        // its old closure record is deactivated (IsActive = false) but not
+        // deleted. Without this check, trying to close the route again after
+        // a reopen would incorrectly say "already closed" forever. ──
         var existingClosure = await context.DailyClosures
-            .FirstOrDefaultAsync(c => !c.IsDeleted && c.ClosureDate.Date == targetDate.Date, cancellationToken);
+            .FirstOrDefaultAsync(c => !c.IsDeleted
+                && c.IsActive
+                && c.ClosureDate.Date == targetDate.Date
+                && c.RouteId == routeId, cancellationToken);
 
         if (existingClosure != null)
         {
-            errors.Add($"Day {targetDate:yyyy-MM-dd} is already closed.");
+            errors.Add($"This route is already closed for {targetDate:yyyy-MM-dd}.");
         }
 
-        // Calculate settlement summary
+        // Calculate settlement summary (already route-scoped)
         var summary = await CalculateExpectedCashAsync(routeId, targetDate, cancellationToken);
 
         return new ClosureValidationDto
@@ -147,20 +152,20 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         };
     }
 
-    public async Task<DailyClosureResultDto> CloseOperationalDayAsync(Guid closedByUserId, DateTime closureDate, string? notes, CancellationToken cancellationToken = default)
+    public async Task<DailyClosureResultDto> CloseOperationalDayAsync(Guid closedByUserId, DateTime closureDate, Guid routeId, string? notes, CancellationToken cancellationToken = default)
     {
         // ── DEBUG LOGGING ──
-        Console.WriteLine($"[CloseDay] ========================================");
-        Console.WriteLine($"[CloseDay] Closing for date: {closureDate}");
-        Console.WriteLine($"[CloseDay] ClosedByUserId: {closedByUserId}");
-        Console.WriteLine($"[CloseDay] ========================================");
+        Console.WriteLine($"[CloseRoute] ========================================");
+        Console.WriteLine($"[CloseRoute] Closing route {routeId} for date: {closureDate}");
+        Console.WriteLine($"[CloseRoute] ClosedByUserId: {closedByUserId}");
+        Console.WriteLine($"[CloseRoute] ========================================");
 
-        // Validate before closing
-        var validation = await ValidateSettlementBeforeClosureAsync(null, closureDate, cancellationToken);
+        // ── CHANGED: validate for THIS route only ──
+        var validation = await ValidateSettlementBeforeClosureAsync(routeId, closureDate, cancellationToken);
 
         if (!validation.IsValid)
         {
-            Console.WriteLine($"[CloseDay] Validation failed: {string.Join("; ", validation.ValidationErrors)}");
+            Console.WriteLine($"[CloseRoute] Validation failed: {string.Join("; ", validation.ValidationErrors)}");
             return new DailyClosureResultDto
             {
                 Success = false,
@@ -168,48 +173,57 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
             };
         }
 
-        // ── FIX 1: Compare only DATE part, not full timestamp ──
-        // This ensures orders created TODAY and closed TODAY are also locked.
+        var route = await context.Routes
+            .FirstOrDefaultAsync(r => r.Id == routeId && !r.IsDeleted, cancellationToken);
+
+        if (route == null)
+        {
+            Console.WriteLine($"[CloseRoute] Route {routeId} not found.");
+            return new DailyClosureResultDto
+            {
+                Success = false,
+                Message = "Route not found."
+            };
+        }
+
+        // ── CHANGED: only lock orders belonging to THIS route ──
         var ordersToLock = await context.Orders
             .Include(o => o.Items)
             .Where(o => !o.IsDeleted
                 && !o.IsLocked
-                && o.OrderDate.Date <= closureDate.Date)  // ← FIXED: Compare only Date!
+                && o.RouteId == routeId
+                && o.OrderDate.Date <= closureDate.Date)
             .ToListAsync(cancellationToken);
 
-        Console.WriteLine($"[CloseDay] Found {ordersToLock.Count} orders to lock");
+        Console.WriteLine($"[CloseRoute] Found {ordersToLock.Count} orders to lock for route {route.Name}");
         foreach (var order in ordersToLock)
         {
             Console.WriteLine($"  - Order {order.OrderNumber}: Status={order.Status}, OrderDate={order.OrderDate}, IsLocked={order.IsLocked}");
         }
 
-        if (ordersToLock.Count == 0)
-        {
-            Console.WriteLine($"[CloseDay] ⚠️ WARNING: No orders found to lock!");
-        }
-
         var draftCountAsOfClosure = ordersToLock.Count(o => o.Status == OrderStatus.Draft);
 
-        // ── FIX 2: Lock each order AND change status from Draft to Closed ──
+        // ── Lock each order AND change status from Draft to Closed ──
         var closureTimestamp = DateTime.UtcNow;
         foreach (var order in ordersToLock)
         {
             order.IsLocked = true;
             order.ClosedAt = closureTimestamp;
+            order.ClosedByRouteClosure = true;
 
-            // ── NEW: Change Draft status to Closed ──
             if (order.Status == OrderStatus.Draft)
             {
                 order.Status = OrderStatus.Closed;
+                order.ClosedByRouteClosure = true;   // ← marks this flip as reversible by Reopen
             }
 
             order.UpdateTimestamp(closedByUserId.ToString());
         }
 
-        Console.WriteLine($"[CloseDay] Locked {ordersToLock.Count} orders at {closureTimestamp}");
-        Console.WriteLine($"[CloseDay] Changed {draftCountAsOfClosure} orders from Draft to Closed");
+        Console.WriteLine($"[CloseRoute] Locked {ordersToLock.Count} orders at {closureTimestamp}");
+        Console.WriteLine($"[CloseRoute] Changed {draftCountAsOfClosure} orders from Draft to Closed");
 
-        // Create daily closure record
+        // Create the closure record — now tagged to this route
         var summary = validation.SettlementSummary!;
         var closure = new DailyClosure
         {
@@ -221,15 +235,18 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
             TotalOutstanding = summary.TotalOutstanding,
             ExpectedCash = summary.ExpectedCash,
             IsActive = true,
-            Notes = notes
+            Notes = notes,
+            RouteId = routeId,
+            RouteName = route.Name,
         };
 
         await context.DailyClosures.AddAsync(closure, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 
-        Console.WriteLine($"[CloseDay] DailyClosure record saved with ID: {closure.Id}");
+        Console.WriteLine($"[CloseRoute] DailyClosure record saved with ID: {closure.Id}");
 
-        // ── Also close every open route execution ──
+        // ── Close only THIS route's open execution — it becomes fresh again,
+        // other routes (e.g. Mavelikkara) are untouched ──
         int closedRouteCount = 0;
         try
         {
@@ -237,59 +254,60 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
                 new FMCG.Distribution.Application.Features.Routes.Commands.CloseDayCommand
                 {
                     AdminUserId = closedByUserId,
+                    RouteId = routeId,
                 },
                 cancellationToken);
 
             if (closeDayResult.IsSuccess && closeDayResult.Data != null)
             {
                 closedRouteCount = closeDayResult.Data.ClosedRouteCount;
-                Console.WriteLine($"[CloseDay] Closed {closedRouteCount} route executions");
+                Console.WriteLine($"[CloseRoute] Closed {closedRouteCount} execution(s) for this route");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[CloseDay] Error closing routes: {ex.Message}");
+            Console.WriteLine($"[CloseRoute] Error closing route execution: {ex.Message}");
         }
 
-        // ── Auto-generate reports post-closure ──
+        // ── Auto-generate reports post-closure, scoped to this route ──
         string? loadingUrl = null;
         string? billingUrl = null;
 
         try
         {
             var loadingResult = await mediator.Send(
-                new GetLoadingSheetQuery { Date = closureDate },
+                new GetLoadingSheetQuery { Date = closureDate, RouteId = routeId },
                 cancellationToken);
 
             if (loadingResult.IsSuccess && loadingResult.Data != null)
             {
-                loadingUrl = $"/api/v1/reports/loading-sheet?date={closureDate:yyyy-MM-dd}";
+                loadingUrl = $"/api/v1/reports/loading-sheet?date={closureDate:yyyy-MM-dd}&routeId={routeId}";
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[CloseDay] Error generating loading sheet: {ex.Message}");
+            Console.WriteLine($"[CloseRoute] Error generating loading sheet: {ex.Message}");
         }
 
         try
         {
             var billingResult = await mediator.Send(
-                new GetBillingSheetQuery { Date = closureDate },
+                new GetBillingSheetQuery { Date = closureDate, RouteId = routeId },
                 cancellationToken);
 
             if (billingResult.IsSuccess && billingResult.Data != null)
             {
-                billingUrl = $"/api/v1/reports/billing-sheet?date={closureDate:yyyy-MM-dd}";
+                billingUrl = $"/api/v1/reports/billing-sheet?date={closureDate:yyyy-MM-dd}&routeId={routeId}";
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[CloseDay] Error generating billing sheet: {ex.Message}");
+            Console.WriteLine($"[CloseRoute] Error generating billing sheet: {ex.Message}");
         }
 
-        Console.WriteLine($"[CloseDay] ========================================");
-        Console.WriteLine($"[CloseDay] CloseDay completed successfully!");
-        Console.WriteLine($"[CloseDay] ========================================");
+        Console.WriteLine($"[CloseRoute] ========================================");
+        Console.WriteLine($"[CloseRoute] {route.Name} closed successfully!");
+        Console.WriteLine($"[CloseRoute] ========================================");
 
         return new DailyClosureResultDto
         {
@@ -300,20 +318,143 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
             TotalOutstanding = closure.TotalOutstanding,
             ExpectedCash = closure.ExpectedCash,
             Success = true,
-            Message = BuildClosureMessage(closure.ExpectedCash, closedRouteCount, draftCountAsOfClosure),
+            Message = BuildClosureMessage(route.Name, closure.ExpectedCash, closedRouteCount, draftCountAsOfClosure),
             LoadingSheetUrl = loadingUrl,
             BillingSheetUrl = billingUrl,
             ClosedRouteCount = closedRouteCount,
         };
     }
 
-    private static string BuildClosureMessage(decimal expectedCash, int closedRouteCount, int draftCount)
+    // ── CHANGED: takes routeName so the message reads "Chengannur closed..."
+    // instead of the old generic "Operational day closed..." ──
+    private static string BuildClosureMessage(string routeName, decimal expectedCash, int closedRouteCount, int draftCount)
     {
-        var parts = new List<string> { $"Operational day closed successfully. Expected cash: {expectedCash:C}." };
+        var parts = new List<string> { $"{routeName} closed successfully. Expected cash: {expectedCash:C}." };
         if (closedRouteCount > 0)
-            parts.Add($"{closedRouteCount} route(s) closed and ready fresh tomorrow.");
+            parts.Add($"{routeName} is now fresh and available again for new orders.");
         if (draftCount > 0)
-            parts.Add($"Note: {draftCount} draft order(s) were never submitted and are now locked along with everything else — review them manually if needed.");
+            parts.Add($"Note: {draftCount} draft order(s) on this route were never submitted and are now locked along with everything else — review them manually if needed.");
         return string.Join(" ", parts);
+    }
+
+    // ── NEW: Reopen Route Method ──────────────────────────────────────────────
+
+    public async Task<ReopenRouteResultDto> ReopenRouteAsync(Guid adminUserId, DateTime closureDate, Guid routeId, CancellationToken cancellationToken = default)
+    {
+        Console.WriteLine($"[ReopenRoute] ========================================");
+        Console.WriteLine($"[ReopenRoute] Reopening route {routeId} for date: {closureDate}");
+        Console.WriteLine($"[ReopenRoute] Requested by: {adminUserId}");
+        Console.WriteLine($"[ReopenRoute] ========================================");
+
+        var route = await context.Routes
+            .FirstOrDefaultAsync(r => r.Id == routeId && !r.IsDeleted, cancellationToken);
+
+        if (route == null)
+        {
+            return new ReopenRouteResultDto { Success = false, Message = "Route not found." };
+        }
+
+        // Must have an active closure for this route+date — this is what
+        // "already closed for THIS route" means (per-route uniqueness, same
+        // check ValidateSettlementBeforeClosureAsync relies on).
+        var closure = await context.DailyClosures
+            .FirstOrDefaultAsync(c => !c.IsDeleted && c.IsActive
+                && c.ClosureDate.Date == closureDate.Date
+                && c.RouteId == routeId, cancellationToken);
+
+        if (closure == null)
+        {
+            return new ReopenRouteResultDto
+            {
+                Success = false,
+                Message = $"{route.Name} isn't closed for {closureDate:yyyy-MM-dd} — nothing to reopen."
+            };
+        }
+
+        // ── GUARD 1: block if the route has already been restarted ──
+        // If a new InProgress execution exists, the salesman is already mid-way
+        // through a fresh cycle; reopening the old closure now would collide
+        // with it and corrupt state.
+        var hasActiveExecution = await context.RouteExecutions
+            .AnyAsync(e => !e.IsDeleted && e.RouteId == routeId && e.Status == ExecutionStatus.InProgress, cancellationToken);
+
+        if (hasActiveExecution)
+        {
+            Console.WriteLine($"[ReopenRoute] Blocked: {route.Name} already has a new execution in progress.");
+            return new ReopenRouteResultDto
+            {
+                Success = false,
+                Message = $"{route.Name} has already started a new cycle since it was closed — it can't be reopened. Ask the salesman to close that new cycle first if this was a mistake."
+            };
+        }
+
+        // The orders this closure locked — same filter used to lock them.
+        var ordersToUnlock = await context.Orders
+            .Where(o => !o.IsDeleted
+                && o.IsLocked
+                && o.RouteId == routeId
+                && o.OrderDate.Date <= closureDate.Date)
+            .ToListAsync(cancellationToken);
+
+        // ── GUARD 2: block if warehouse already started packing ──
+        var alreadyPacking = ordersToUnlock.Any(o => o.PackingStatus != PackingStatus.Pending);
+        if (alreadyPacking)
+        {
+            Console.WriteLine($"[ReopenRoute] Blocked: warehouse has already started packing for {route.Name}.");
+            return new ReopenRouteResultDto
+            {
+                Success = false,
+                Message = $"Warehouse has already started packing orders for {route.Name} — reopening now would desync the loading sheet from what's physically happening. Coordinate with warehouse before undoing this closure."
+            };
+        }
+
+        // ── Unlock orders, revert the ones this closure flipped to Closed ──
+        foreach (var order in ordersToUnlock)
+        {
+            order.IsLocked = false;
+            order.ClosedAt = null;
+
+            if (order.ClosedByRouteClosure)
+            {
+                order.Status = OrderStatus.Draft;
+                order.ClosedByRouteClosure = false;
+            }
+
+            order.UpdateTimestamp(adminUserId.ToString());
+        }
+        Console.WriteLine($"[ReopenRoute] Unlocked {ordersToUnlock.Count} orders for {route.Name}");
+
+        // ── Reopen the execution(s) this closure completed ──
+        var executionsToReopen = await context.RouteExecutions
+            .Where(e => !e.IsDeleted
+                && e.RouteId == routeId
+                && e.Status == ExecutionStatus.Completed
+                && e.ExecutionDate.Date == closureDate.Date)
+            .ToListAsync(cancellationToken);
+
+        foreach (var execution in executionsToReopen)
+        {
+            execution.Reopen();
+        }
+        Console.WriteLine($"[ReopenRoute] Reopened {executionsToReopen.Count} execution(s) for {route.Name}");
+
+        // ── Deactivate the closure record — route now shows as open again ──
+        closure.IsActive = false;
+        closure.Notes = string.IsNullOrWhiteSpace(closure.Notes)
+            ? $"Reopened by admin on {DateTime.UtcNow:yyyy-MM-dd HH:mm}"
+            : $"{closure.Notes}\n[Reopened by admin on {DateTime.UtcNow:yyyy-MM-dd HH:mm}]";
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        Console.WriteLine($"[ReopenRoute] {route.Name} reopened successfully!");
+        Console.WriteLine($"[ReopenRoute] ========================================");
+
+        return new ReopenRouteResultDto
+        {
+            Success = true,
+            Message = $"{route.Name} reopened. Orders are unlocked and the route is back in progress.",
+            OrdersUnlocked = ordersToUnlock.Count,
+            ExecutionsReopened = executionsToReopen.Count,
+        };
     }
 }

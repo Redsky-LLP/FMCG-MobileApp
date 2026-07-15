@@ -17,9 +17,12 @@ public class CloseDayCommandHandler(IApplicationDbContext context)
 {
     public async Task<Result<CloseDayResponse>> Handle(CloseDayCommand request, CancellationToken cancellationToken)
     {
+        // ── CHANGED: only THIS route's open execution(s), not every route ──
         var openExecutions = await context.RouteExecutions
             .Include(e => e.Route)
-            .Where(e => e.Status == ExecutionStatus.InProgress && !e.IsDeleted)
+            .Where(e => e.Status == ExecutionStatus.InProgress
+                && e.RouteId == request.RouteId
+                && !e.IsDeleted)
             .ToListAsync(cancellationToken);
 
         if (openExecutions.Count == 0)
@@ -28,7 +31,7 @@ public class CloseDayCommandHandler(IApplicationDbContext context)
             {
                 ClosedRouteCount = 0,
                 ClosedRouteNames = [],
-            }, "No open routes to close.");
+            }, "No open execution for this route to close.");
         }
 
         var names = new List<string>();
@@ -36,7 +39,7 @@ public class CloseDayCommandHandler(IApplicationDbContext context)
         {
             // Domain method only checks Status == InProgress — it does NOT
             // require all stops visited, which is exactly what we want here:
-            // admin closing the day is a hard cutoff, not a completion check.
+            // admin closing the route is a hard cutoff, not a completion check.
             execution.Complete();
             names.Add(execution.Route?.Name ?? "Unknown route");
         }
@@ -47,6 +50,6 @@ public class CloseDayCommandHandler(IApplicationDbContext context)
         {
             ClosedRouteCount = openExecutions.Count,
             ClosedRouteNames = names,
-        }, $"Closed {openExecutions.Count} route(s). They'll be fresh and available again.");
+        }, $"{names.FirstOrDefault() ?? "Route"} closed. It'll be fresh and available again for new orders.");
     }
 }

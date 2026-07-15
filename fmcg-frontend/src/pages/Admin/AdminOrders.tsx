@@ -1,8 +1,13 @@
 // PATH: src/pages/Admin/AdminOrders.tsx
-// FIXED: Layout matching the design in the screenshot
-// - Clean stats cards in a single row
-// - Close Day button properly positioned
-// - Removed Edit Order button from review modal
+// FIXED: Per-route closure instead of global close day
+// - Admin selects a route from dropdown → Close [Route Name] button appears
+// - Only the selected route's orders are locked
+// - Other routes remain InProgress and can still take orders
+// - Reopen Route undoes a closure
+// - UPDATED: Close/Reopen now toggle which one is the highlighted action —
+//   route open → bright "Close Route" button; route closed → quiet closed-at
+//   text + bright amber "Reopen Route" button. State flips instantly on
+//   success instead of waiting on a refetch round-trip.
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -10,7 +15,7 @@ import {
   ShoppingCart, RefreshCw, CheckCircle, Search,
   Package, Eye, Edit2, Clock, X,
   User, Globe, Lock, AlertTriangle, List, CalendarDays,
-  ArrowLeft,
+  ArrowLeft, RotateCcw,
 } from 'lucide-react';
 import { ordersApi, routesApi, settlementApi } from '../../api/services';
 import type { OrderDto, RouteDto, OrderDetailDto, CustomerOrderHistoryDto } from '../../types';
@@ -34,6 +39,8 @@ const D = {
   green:    '#22c55e',
   red:      '#ef4444',
   amber:    '#f59e0b',
+  amberH:   '#d97706',
+  amberGlow: 'rgba(245,158,11,0.35)',
   card:     '#1e293b',
 };
 
@@ -114,12 +121,17 @@ export function AdminOrders() {
   const [reviewOrder,    setReviewOrder]    = useState<OrderDetailDto | null>(null);
   const [showModal,      setShowModal]      = useState(false);
   const [loadingReview,  setLoadingReview]  = useState(false);
-  const [showCloseDayModal, setShowCloseDayModal] = useState(false);
+
+  // ── Per-route close state ────────────────────────────────────────────────
+  const [closingRouteId, setClosingRouteId] = useState<string | null>(null);
   const [closingDay,     setClosingDay]     = useState(false);
   const [closeDayError,  setCloseDayError]  = useState('');
   const [closeDayNotes,  setCloseDayNotes]  = useState('');
   const [closureStatus,  setClosureStatus]  = useState<{ isClosed: boolean; closedAt?: string } | null>(null);
-  const [currentDate,    setCurrentDate]    = useState('');
+
+  // ── Reopen Route state ──────────────────────────────────────────────────────
+  const [reopeningRouteId, setReopeningRouteId] = useState<string | null>(null);
+  const [reopening,        setReopening]        = useState(false);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -135,7 +147,7 @@ export function AdminOrders() {
     setLoading(true); setError('');
     try {
       const statusNumber = statusFilter ? STATUS_TO_NUMBER[statusFilter] : undefined;
-      
+
       let allOrders: OrderDto[] = [];
       if (!routeFilter || routeFilter === 'all') {
         const results = await Promise.all(
@@ -150,8 +162,12 @@ export function AdminOrders() {
       setOrders(filtered);
 
       try {
-        const status = await settlementApi.getStatus();
-        setClosureStatus(status);
+        if (routeFilter && routeFilter !== 'all') {
+          const status = await settlementApi.getStatus(dateFilter || today, routeFilter);
+          setClosureStatus(status);
+        } else {
+          setClosureStatus(null);
+        }
       } catch {
         // Ignore
       }
@@ -196,23 +212,50 @@ export function AdminOrders() {
     finally { setClosing(null); }
   }
 
-  async function handleCloseDay() {
+  async function handleCloseRoute(routeId: string) {
+    const route = routes.find(r => String(r.id) === routeId);
     setClosingDay(true); setCloseDayError('');
     try {
-      const result = await settlementApi.closeDay(today, closeDayNotes || undefined);
-      setShowCloseDayModal(false);
+      const result = await settlementApi.closeDay(dateFilter || today, routeId, closeDayNotes || undefined);
+      setClosingRouteId(null);
       setCloseDayNotes('');
-      setSuccess(`✅ Day closed successfully! ${result.ordersLocked} orders locked. Revenue: ${fmt(result.totalRevenue)}`);
-      
-      const status = await settlementApi.getStatus();
+      setSuccess(`✅ ${route?.name ?? 'Route'} closed! ${result.message ?? ''}`);
+
+      // ── Flip the UI to "closed" immediately — don't wait on the
+      // getStatus() round-trip below to know which button to show ──
+      setClosureStatus({ isClosed: true, closedAt: new Date().toISOString() });
+
+      // Then reconcile with the server's actual record (exact timestamp etc)
+      const status = await settlementApi.getStatus(dateFilter || today, routeId);
       setClosureStatus(status);
-      
+
       await load();
       setTimeout(() => setSuccess(''), 5000);
     } catch (err: unknown) {
-      setCloseDayError(err instanceof Error ? err.message : 'Failed to close the day');
+      setCloseDayError(err instanceof Error ? err.message : `Failed to close ${route?.name ?? 'the route'}`);
     } finally {
       setClosingDay(false);
+    }
+  }
+
+  async function handleReopenRoute(routeId: string) {
+    const route = routes.find(r => String(r.id) === routeId);
+    setReopening(true); setCloseDayError('');
+    try {
+      const result = await settlementApi.reopenRoute(dateFilter || today, routeId);
+      setReopeningRouteId(null);
+      setSuccess(`↩️ ${route?.name ?? 'Route'} reopened. ${result.ordersUnlocked} order(s) unlocked.`);
+
+      // ── Flip the UI back to "open" immediately — this is what makes
+      // "Close Route" reappear right away instead of a beat later ──
+      setClosureStatus({ isClosed: false });
+
+      await load();
+      setTimeout(() => setSuccess(''), 5000);
+    } catch (err: unknown) {
+      setCloseDayError(err instanceof Error ? err.message : `Failed to reopen ${route?.name ?? 'the route'}`);
+    } finally {
+      setReopening(false);
     }
   }
 
@@ -274,6 +317,11 @@ export function AdminOrders() {
     }
   }, [closureStatus?.isClosed]);
 
+  // ── Current date state ──
+  const [currentDate, setCurrentDate] = useState('');
+
+  const selectedRouteName = routes.find(r => String(r.id) === routeFilter)?.name ?? 'Route';
+
   return (
     <div style={{ background: D.bg, minHeight: '100vh', paddingBottom: 8 }}>
       {/* ── TOP HEADER ── */}
@@ -284,7 +332,7 @@ export function AdminOrders() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Link 
+            <Link
               to={user?.role === 'Admin' || user?.role === 'SuperAdmin' ? '/admin/dashboard' : '/'}
               style={{
                 display: 'flex',
@@ -333,10 +381,10 @@ export function AdminOrders() {
           </button>
         </div>
 
-        {/* ── STATS CARDS + CLOSE DAY ── */}
-        <div style={{ 
-          display: 'flex', 
-          gap: 12, 
+        {/* ── STATS CARDS + CLOSE / REOPEN ROUTE ── */}
+        <div style={{
+          display: 'flex',
+          gap: 12,
           marginTop: 12,
           alignItems: 'stretch',
           flexWrap: 'wrap'
@@ -379,67 +427,92 @@ export function AdminOrders() {
           {/* ── Spacer ── */}
           <div style={{ flex: 1 }} />
 
-          {/* ── Close Day button ── */}
-          {!closureStatus?.isClosed && (
-            <button
-              onClick={() => { setShowCloseDayModal(true); setCloseDayError(''); }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '8px 18px',
-                borderRadius: 10,
-                border: 'none',
-                background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 700,
-                color: '#fff',
-                fontFamily: 'inherit',
-                boxShadow: `0 2px 12px ${D.accentGlow}`,
-                transition: 'all 0.15s',
-                alignSelf: 'center',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-                (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 18px ${D.accentGlow}`;
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                (e.currentTarget as HTMLElement).style.boxShadow = `0 2px 12px ${D.accentGlow}`;
-              }}
-            >
-              <Lock size={15} />
-              Close Day
-            </button>
-          )}
-
-          {/* Day Closed status */}
-          {closureStatus?.isClosed && closureStatus.closedAt && (
-            <div style={{
-              padding: '8px 16px',
-              borderRadius: 10,
-              background: 'rgba(34,197,94,0.10)',
-              border: `1px solid rgba(34,197,94,0.25)`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              alignSelf: 'center',
-            }}>
-              <CheckCircle size={16} color={D.green} />
-              <div>
-                <span style={{ fontSize: 11, color: D.green, fontWeight: 700 }}>
-                  Day Closed ✓
-                </span>
-                <span style={{ fontSize: 10, color: D.muted, display: 'block' }}>
-                  {new Date(closureStatus.closedAt).toLocaleDateString('en-IN', { 
-                    day: 'numeric', month: 'short' 
-                  })} · {new Date(closureStatus.closedAt).toLocaleTimeString('en-IN', { 
-                    hour: '2-digit', minute: '2-digit' 
-                  })}
-                </span>
-              </div>
+          {/* ── Close / Reopen toggle — scoped to the currently selected route ──
+              Whichever action is actually available is the bright, primary
+              button. The other state is either hidden or shown as quiet text. ── */}
+          {routeFilter && routeFilter !== 'all' ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {!closureStatus?.isClosed ? (
+                // ── OPEN: "Close Route" is the highlighted action ──
+                <button
+                  onClick={() => { setClosingRouteId(routeFilter); setCloseDayError(''); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 18px',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: '#fff',
+                    fontFamily: 'inherit',
+                    boxShadow: `0 2px 12px ${D.accentGlow}`,
+                    transition: 'all 0.15s',
+                    alignSelf: 'center',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 18px ${D.accentGlow}`;
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = `0 2px 12px ${D.accentGlow}`;
+                  }}
+                >
+                  <Lock size={15} />
+                  Close {selectedRouteName}
+                </button>
+              ) : (
+                // ── CLOSED: "Reopen Route" is the highlighted action ──
+                <>
+                  <span style={{ fontSize: 12, color: D.sub, fontWeight: 600, alignSelf: 'center' }}>
+                    {selectedRouteName} closed at{' '}
+                    {closureStatus.closedAt
+                      ? new Date(closureStatus.closedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+                      : ''}
+                  </span>
+                  <button
+                    onClick={() => { setReopeningRouteId(routeFilter); setCloseDayError(''); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '8px 18px',
+                      borderRadius: 10,
+                      border: 'none',
+                      background: `linear-gradient(135deg, ${D.amber}, ${D.amberH})`,
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: '#fff',
+                      fontFamily: 'inherit',
+                      boxShadow: `0 2px 12px ${D.amberGlow}`,
+                      transition: 'all 0.15s',
+                      alignSelf: 'center',
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                      (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 18px ${D.amberGlow}`;
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                      (e.currentTarget as HTMLElement).style.boxShadow = `0 2px 12px ${D.amberGlow}`;
+                    }}
+                  >
+                    <RotateCcw size={15} />
+                    Reopen Route
+                  </button>
+                </>
+              )}
             </div>
+          ) : (
+            // ── "All Routes" selected — no single close action anymore ──
+            <span style={{ fontSize: 12, color: D.sub, alignSelf: 'center', fontStyle: 'italic' }}>
+              Select a route above to close or reopen it
+            </span>
           )}
         </div>
       </div>
@@ -457,9 +530,9 @@ export function AdminOrders() {
           marginBottom: 16,
         }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-            <select 
-              style={selectStyle} 
-              value={routeFilter} 
+            <select
+              style={selectStyle}
+              value={routeFilter}
               onChange={e => setRouteFilter(e.target.value)}
             >
               <option value="all">🌍 All Routes</option>
@@ -467,9 +540,9 @@ export function AdminOrders() {
             </select>
 
             <input
-              type="date" 
+              type="date"
               style={dateInputStyle}
-              value={dateFilter} 
+              value={dateFilter}
               onChange={e => setDateFilter(e.target.value)}
             />
 
@@ -477,13 +550,13 @@ export function AdminOrders() {
               <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: D.sub }} />
               <input
                 style={{ ...selectStyle, paddingLeft: 32, width: '100%' }}
-                value={search} 
+                value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search customer..."
               />
               {search && (
-                <button 
-                  onClick={() => setSearch('')} 
+                <button
+                  onClick={() => setSearch('')}
                   style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: D.sub, display: 'flex' }}
                 >
                   <X size={14} />
@@ -518,10 +591,10 @@ export function AdminOrders() {
                       const statusKey = String(order.status);
                       const cfg = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG['Draft'];
                       const items = order.items ?? [];
-                      
-                      const isClosable = (statusKey === 'Approved' || 
+
+                      const isClosable = (statusKey === 'Approved' ||
                                         statusKey === 'Packed') && !order.isLocked;
-                      
+
                       const isPending = statusKey === 'PendingApproval';
                       const isExpanded = expandedOrder === String(order.id);
 
@@ -630,8 +703,8 @@ export function AdminOrders() {
 
                             {/* Actions */}
                             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                              <button 
-                                onClick={() => handleReview(String(order.id))} 
+                              <button
+                                onClick={() => handleReview(String(order.id))}
                                 disabled={loadingReview}
                                 style={actionBtn(D.surface, D.muted)}
                               >
@@ -639,8 +712,8 @@ export function AdminOrders() {
                               </button>
 
                               {isPending && (
-                                <button 
-                                  onClick={() => handleApprove(String(order.id))} 
+                                <button
+                                  onClick={() => handleApprove(String(order.id))}
                                   disabled={approving === String(order.id)}
                                   style={actionBtn(D.accent, '#FFFFFF', true)}
                                 >
@@ -650,8 +723,8 @@ export function AdminOrders() {
                               )}
 
                               {isClosable && (
-                                <button 
-                                  onClick={() => handleClose(String(order.id))} 
+                                <button
+                                  onClick={() => handleClose(String(order.id))}
                                   disabled={closing === String(order.id)}
                                   style={actionBtn(D.green, '#FFFFFF', true)}
                                 >
@@ -811,18 +884,17 @@ export function AdminOrders() {
                 </div>
               </div>
 
-              {/* ── Updated Remarks Section with Numbered Items ── */}
               {reviewOrder.remarks && (
-                <div style={{ 
-                  marginTop: 10, 
-                  padding: '8px 10px', 
-                  borderRadius: 8, 
-                  background: 'rgba(245,158,11,0.08)', 
-                  border: `1px solid rgba(245,158,11,0.20)` 
+                <div style={{
+                  marginTop: 10,
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  background: 'rgba(245,158,11,0.08)',
+                  border: `1px solid rgba(245,158,11,0.20)`
                 }}>
                   <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: D.amber }}>📝 Retail Items</p>
-                  <div style={{ 
-                    fontSize: 12, 
+                  <div style={{
+                    fontSize: 12,
                     color: D.muted,
                     lineHeight: 1.6,
                     fontFamily: 'monospace',
@@ -832,20 +904,20 @@ export function AdminOrders() {
                       .map((item: string) => item.trim())
                       .filter((item: string) => item.length > 0)
                       .map((item: string, idx: number, arr: string[]) => (
-                        <div 
+                        <div
                           key={idx}
                           style={{
                             display: 'flex',
                             alignItems: 'flex-start',
                             gap: 8,
                             padding: '2px 0',
-                            borderBottom: idx < arr.length - 1 
-                              ? `1px solid rgba(245,158,11,0.10)` 
+                            borderBottom: idx < arr.length - 1
+                              ? `1px solid rgba(245,158,11,0.10)`
                               : 'none',
                           }}
                         >
-                          <span style={{ 
-                            fontWeight: 700, 
+                          <span style={{
+                            fontWeight: 700,
                             color: D.amber,
                             minWidth: 24,
                             flexShrink: 0,
@@ -874,7 +946,7 @@ export function AdminOrders() {
                   Approve
                 </button>
               )}
-              
+
               {(() => {
                 const modalStatusKey = String(reviewOrder.status);
                 return (modalStatusKey === 'Approved' || modalStatusKey === 'Packed') && !reviewOrder.isLocked ? (
@@ -893,10 +965,10 @@ export function AdminOrders() {
         </div>
       )}
 
-      {/* ── Close Day confirmation modal ── */}
-      {showCloseDayModal && (
+      {/* ── Close Route confirmation modal ── */}
+      {closingRouteId && (
         <div
-          onClick={() => !closingDay && setShowCloseDayModal(false)}
+          onClick={() => !closingDay && setClosingRouteId(null)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.70)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
         >
           <div
@@ -907,11 +979,16 @@ export function AdminOrders() {
               <div style={{ width: 36, height: 36, borderRadius: 8, background: D.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Lock size={16} color="#fff" />
               </div>
-              <h3 style={{ fontSize: 16, fontWeight: 900, color: D.text, margin: 0 }}>Close Day?</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 900, color: D.text, margin: 0 }}>
+                Close {routes.find(r => String(r.id) === closingRouteId)?.name ?? 'Route'}?
+              </h3>
             </div>
 
             <p style={{ fontSize: 13, color: D.muted, lineHeight: 1.5, fontWeight: 500, margin: '0 0 12px' }}>
-              This locks every submitted order for <strong style={{ color: D.text }}>{today}</strong>.
+              This locks every submitted order for{' '}
+              <strong style={{ color: D.text }}>{routes.find(r => String(r.id) === closingRouteId)?.name}</strong>{' '}
+              on <strong style={{ color: D.text }}>{dateFilter || today}</strong> and generates its loading sheet.
+              Only this route is affected — other routes keep taking orders normally.
               This action cannot be undone.
             </p>
 
@@ -921,21 +998,13 @@ export function AdminOrders() {
             <textarea
               value={closeDayNotes}
               onChange={e => setCloseDayNotes(e.target.value)}
-              placeholder="Remarks for today's closure"
+              placeholder="Remarks for this route's closure"
               rows={2}
               style={{
-                width: '100%',
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                fontSize: 13,
-                color: D.text,
-                fontFamily: 'inherit',
-                resize: 'vertical',
-                marginBottom: 12,
-                boxSizing: 'border-box',
-                outline: 'none',
+                width: '100%', padding: '8px 10px', borderRadius: 8,
+                border: `1px solid ${D.border}`, background: D.bg, fontSize: 13,
+                color: D.text, fontFamily: 'inherit', resize: 'vertical',
+                marginBottom: 12, boxSizing: 'border-box', outline: 'none',
               }}
             />
 
@@ -947,46 +1016,93 @@ export function AdminOrders() {
 
             <div style={{ display: 'flex', gap: 8 }}>
               <button
-                onClick={() => setShowCloseDayModal(false)}
+                onClick={() => setClosingRouteId(null)}
                 disabled={closingDay}
                 style={{
-                  flex: 1,
-                  padding: '10px',
-                  borderRadius: 8,
-                  border: `1px solid ${D.border}`,
-                  background: D.bg,
-                  color: D.muted,
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: closingDay ? 'not-allowed' : 'pointer',
-                  fontFamily: 'inherit',
+                  flex: 1, padding: '10px', borderRadius: 8, border: `1px solid ${D.border}`,
+                  background: D.bg, color: D.muted, fontWeight: 700, fontSize: 13,
+                  cursor: closingDay ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
                 }}
               >
                 Cancel
               </button>
               <button
-                onClick={handleCloseDay}
+                onClick={() => handleCloseRoute(closingRouteId)}
                 disabled={closingDay}
                 style={{
-                  flex: 1,
-                  padding: '10px',
-                  borderRadius: 8,
-                  border: 'none',
+                  flex: 1, padding: '10px', borderRadius: 8, border: 'none',
                   background: closingDay ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-                  color: '#fff',
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: closingDay ? 'not-allowed' : 'pointer',
-                  fontFamily: 'inherit',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
+                  color: '#fff', fontWeight: 700, fontSize: 13,
+                  cursor: closingDay ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   boxShadow: closingDay ? 'none' : `0 2px 12px ${D.accentGlow}`,
                 }}
               >
                 {closingDay ? <Spinner size={14} /> : <Lock size={14} />}
-                {closingDay ? 'Closing...' : 'Close Day'}
+                {closingDay ? 'Closing…' : 'Close Route'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reopen Route confirmation modal ── */}
+      {reopeningRouteId && (
+        <div
+          onClick={() => !reopening && setReopeningRouteId(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.70)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: D.surface, borderRadius: 14, padding: 20, width: '100%', maxWidth: 400, border: `1px solid ${D.border}`, boxShadow: `0 20px 60px rgba(0,0,0,0.5)` }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: D.amber, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <RotateCcw size={16} color="#fff" />
+              </div>
+              <h3 style={{ fontSize: 16, fontWeight: 900, color: D.text, margin: 0 }}>
+                Reopen {routes.find(r => String(r.id) === reopeningRouteId)?.name ?? 'Route'}?
+              </h3>
+            </div>
+
+            <p style={{ fontSize: 13, color: D.muted, lineHeight: 1.5, fontWeight: 500, margin: '0 0 16px' }}>
+              This unlocks orders for this route and puts it back in progress, as if it was never closed.
+              It'll be blocked automatically if the salesman already started a new cycle, or if warehouse
+              has already started packing.
+            </p>
+
+            {closeDayError && (
+              <div style={{ marginBottom: 12 }}>
+                <Alert variant="error">{closeDayError}</Alert>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setReopeningRouteId(null)}
+                disabled={reopening}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: 8, border: `1px solid ${D.border}`,
+                  background: D.bg, color: D.muted, fontWeight: 700, fontSize: 13,
+                  cursor: reopening ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleReopenRoute(reopeningRouteId)}
+                disabled={reopening}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: 8, border: 'none',
+                  background: reopening ? D.border : `linear-gradient(135deg, ${D.amber}, ${D.amberH})`,
+                  color: '#fff', fontWeight: 700, fontSize: 13,
+                  cursor: reopening ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  boxShadow: reopening ? 'none' : `0 2px 12px ${D.amberGlow}`,
+                }}
+              >
+                {reopening ? <Spinner size={14} /> : <RotateCcw size={14} />}
+                {reopening ? 'Reopening…' : 'Reopen Route'}
               </button>
             </div>
           </div>

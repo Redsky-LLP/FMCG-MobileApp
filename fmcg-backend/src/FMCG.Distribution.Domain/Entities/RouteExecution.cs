@@ -1,5 +1,5 @@
 ﻿// PATH: src/FMCG.Distribution.Domain/Entities/RouteExecution.cs
-// ADD ExecutionType property
+// ADD ExecutionType property and Reopen() method
 
 using FMCG.Distribution.Domain.Common;
 using FMCG.Distribution.Domain.Enums;
@@ -15,16 +15,17 @@ public class RouteExecution : BaseEntity
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
 
-    // ── NEW: Distinguish between Order Taking and Delivery ────────────────────
+    // ── Distinguish between Order Taking and Delivery ────────────────────
     public ExecutionType ExecutionType { get; set; } = ExecutionType.Delivery;
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────
 
     // Navigation properties
     public virtual Route? Route { get; set; }
     public virtual User? Salesman { get; set; }
     public virtual ICollection<CustomerVisit>? Visits { get; set; }
 
-    // Business methods
+    // ── Business methods ─────────────────────────────────────────────────
+
     public void Start()
     {
         if (Status != ExecutionStatus.Draft)
@@ -42,6 +43,16 @@ public class RouteExecution : BaseEntity
 
         Status = ExecutionStatus.Completed;
         CompletedAt = DateTime.UtcNow;
+        UpdateTimestamp(SalesmanId.ToString());
+    }
+
+    public void Reopen()
+    {
+        if (Status != ExecutionStatus.Completed)
+            throw new InvalidOperationException($"Cannot reopen execution in '{Status}' status.");
+
+        Status = ExecutionStatus.InProgress;
+        CompletedAt = null;
         UpdateTimestamp(SalesmanId.ToString());
     }
 

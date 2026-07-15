@@ -40,7 +40,7 @@ public class SettlementController(IMediator mediator, IApplicationDbContext cont
     [HttpPost("close-day")]
     [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<Result<DailyClosureResultDto>>> CloseOperationalDay(
-        [FromBody] CloseOperationalDayRequest request)
+       [FromBody] CloseOperationalDayRequest request)
     {
         var userId = GetCurrentUserId();
         if (userId == Guid.Empty)
@@ -48,10 +48,49 @@ public class SettlementController(IMediator mediator, IApplicationDbContext cont
             return BadRequest(Result<DailyClosureResultDto>.Failure("User not authenticated."));
         }
 
+        if (request.RouteId == Guid.Empty)
+        {
+            return BadRequest(Result<DailyClosureResultDto>.Failure("routeId is required — choose which route to close."));
+        }
+
         var command = new CloseOperationalDayCommand
         {
             ClosureDate = request.ClosureDate,
+            RouteId = request.RouteId,
             Notes = request.Notes,
+            AdminId = userId
+        };
+
+        var result = await mediator.Send(command);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // POST /api/v1/settlement/reopen-route
+    // Undoes a route closure — unlocks its orders, reopens its execution(s),
+    // deactivates the closure record. Blocked if the route already started a
+    // new cycle, or if warehouse has already begun packing.
+    // ─────────────────────────────────────────────────────────────────────────
+    [HttpPost("reopen-route")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<Result<ReopenRouteResultDto>>> ReopenRoute(
+        [FromBody] ReopenRouteRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == Guid.Empty)
+        {
+            return BadRequest(Result<ReopenRouteResultDto>.Failure("User not authenticated."));
+        }
+
+        if (request.RouteId == Guid.Empty)
+        {
+            return BadRequest(Result<ReopenRouteResultDto>.Failure("routeId is required."));
+        }
+
+        var command = new ReopenRouteCommand
+        {
+            ClosureDate = request.ClosureDate,
+            RouteId = request.RouteId,
             AdminId = userId
         };
 
@@ -120,13 +159,14 @@ public class SettlementController(IMediator mediator, IApplicationDbContext cont
 
     // ─────────────────────────────────────────────────────────────────────────
     // GET /api/v1/settlement/status
-    // ─────────────────────────────────────────────────────────────────────────
-    // Salesman can view closure status to know if delivery can start
+    // Salesman can view closure status to know if delivery can start.
+    // Accepts an optional routeId so status can be checked per-route.
     // ─────────────────────────────────────────────────────────────────────────
     [HttpGet("status")]
     [Authorize(Roles = "Admin,SuperAdmin,Accounts,Salesman")]
     public async Task<ActionResult<Result<DailyClosureStatusDto>>> GetClosureStatus(
-        [FromQuery] DateTime? date)
+        [FromQuery] DateTime? date,
+        [FromQuery] Guid? routeId)
     {
         var targetDate = date ?? DateTime.UtcNow.Date;
         var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
@@ -135,9 +175,14 @@ public class SettlementController(IMediator mediator, IApplicationDbContext cont
         // For salesman, only return status for today
         if (userRole == "Salesman" && date == null)
         {
-            // Return just the closure status without sensitive financial details
+            // ── BUG FIX: was missing `c.IsActive` — a reopened route's old,
+            // deactivated closure record still matched here (only IsDeleted
+            // was checked), so salesman would keep seeing "Day closed" even
+            // after admin reopened it. ──
             var closure = await context.DailyClosures
-                .FirstOrDefaultAsync(c => !c.IsDeleted && c.ClosureDate.Date == targetDate);
+                .Where(c => !c.IsDeleted && c.IsActive && c.ClosureDate.Date == targetDate)
+                .Where(c => routeId == null || c.RouteId == routeId)
+                .FirstOrDefaultAsync();
 
             var result = new DailyClosureStatusDto
             {
@@ -151,7 +196,8 @@ public class SettlementController(IMediator mediator, IApplicationDbContext cont
 
         var query = new GetDailyClosureStatusQuery
         {
-            Date = date
+            Date = date,
+            RouteId = routeId
         };
 
         var fullResult = await mediator.Send(query);
@@ -195,7 +241,14 @@ public class SettlementController(IMediator mediator, IApplicationDbContext cont
 public class CloseOperationalDayRequest
 {
     public DateTime ClosureDate { get; set; }
+    public Guid RouteId { get; set; }
     public string? Notes { get; set; }
+}
+
+public class ReopenRouteRequest
+{
+    public DateTime ClosureDate { get; set; }
+    public Guid RouteId { get; set; }
 }
 
 public class RecordPaymentRequest

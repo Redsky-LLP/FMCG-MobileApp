@@ -1,5 +1,6 @@
 // PATH: src/pages/Admin/AdminDashboard.tsx
 // COMPLETE REWRITE - Dark theme with orange accent, uniform card sizes, sorted by priority, sticky note for password reminder
+// REMOVED: Global Close Day functionality - now routes to /admin/orders for per-route closure
 
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -12,9 +13,9 @@ import {
   Search, X, StickyNote, Edit3,
 } from 'lucide-react';
 import { analyticsApi, settlementApi } from '../../api/services';
-import type { DashboardKpisDto, DailyClosureStatusDto, DailyClosureResultDto } from '../../types';
+import type { DashboardKpisDto, DailyClosureStatusDto } from '../../types';
 import { fmt, fmtNum } from '../../types';
-import { PageLoader, Spinner, Alert, ConfirmModal } from '../../components/ui';
+import { PageLoader, Spinner, Alert } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
@@ -167,12 +168,8 @@ export function AdminDashboard() {
   const [kpis, setKpis] = useState<DashboardKpisDto | null>(null);
   const [closure, setClosure] = useState<DailyClosureStatusDto | null>(null);
   const [loading, setLoading] = useState(true);
-  const [closing, setClosing] = useState(false);
-  const [confirmClose, setConfirmClose] = useState(false);
-  const [closeNotes, setCloseNotes] = useState('');
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
-  const [closureResult, setClosureResult] = useState<DailyClosureResultDto | null>(null);
   const [showStickyNote, setShowStickyNote] = useState(true);
 
   // Sticky note state - for admin password reminder
@@ -204,22 +201,6 @@ export function AdminDashboard() {
   }
 
   useEffect(() => { load(); }, []);
-
-  async function handleCloseDay() {
-    setClosing(true);
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const res = await settlementApi.closeDay(today, closeNotes || undefined);
-      setClosureResult(res);
-      setMsg(`Day closed successfully. ${res.ordersLocked} orders locked. Revenue: ${fmt(res.totalRevenue)}`);
-      setConfirmClose(false);
-      load();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to close day');
-    } finally {
-      setClosing(false);
-    }
-  }
 
   if (loading) return <PageLoader />;
 
@@ -341,9 +322,37 @@ export function AdminDashboard() {
             <span style={{ fontSize: 12, fontWeight: 600, color: D.muted }}>{new Date().toLocaleDateString('en-IN', { weekday: 'short' })} — Let's get it done!</span>
           </div>
 
+          {/* ── Close Route button - navigates to Orders page ── */}
           {!closure?.isClosed && (
-            <button onClick={() => setConfirmClose(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, border: 'none', background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', boxShadow: `0 4px 14px ${D.accentGlow}`, marginLeft: 'auto' }}>
-              <Lock size={14} /> Close Day
+            <button
+              onClick={() => navigate('/admin/orders')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 16px',
+                borderRadius: 10,
+                border: 'none',
+                background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                color: '#fff',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                boxShadow: `0 4px 14px ${D.accentGlow}`,
+                marginLeft: 'auto',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${D.accentGlow}`;
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${D.accentGlow}`;
+              }}
+            >
+              <Lock size={14} /> Close a Route
             </button>
           )}
         </div>
@@ -391,19 +400,6 @@ export function AdminDashboard() {
           </div>
         )}
       </div>
-
-      {/* ── Close Day Modal ─────────────────────────────────────────────────── */}
-      {confirmClose && (
-        <ConfirmModal
-          open={confirmClose}
-          title="Close Operational Day"
-          message="This will lock all submitted orders for today. This action cannot be undone."
-          confirmLabel={closing ? 'Closing…' : 'Close Day'}
-          danger
-          onConfirm={handleCloseDay}
-          onCancel={() => setConfirmClose(false)}
-        />
-      )}
     </div>
   );
 }

@@ -21,6 +21,7 @@ public class Order : BaseEntity
     public string? ModifiedBy { get; set; }
     public DateTime? ModifiedAt { get; set; }
     public bool IsLocked { get; set; } = false;
+    public bool ClosedByRouteClosure { get; set; } = false;
 
     // ── Warehouse packing ─────────────────────────────────────────────────────
     public PackingStatus PackingStatus { get; set; } = PackingStatus.Pending;

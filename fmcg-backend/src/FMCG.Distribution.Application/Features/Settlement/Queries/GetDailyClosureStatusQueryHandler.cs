@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿// PATH: src/FMCG.Distribution.Application/Features/Settlement/Queries/GetDailyClosureStatusQueryHandler.cs
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
@@ -13,9 +14,15 @@ public class GetDailyClosureStatusQueryHandler(IApplicationDbContext context)
     {
         var targetDate = request.Date ?? DateTime.UtcNow.Date;
 
+        // ── BUG FIX: was missing `c.IsActive` — after ReopenRouteAsync sets
+        // IsActive = false on the old closure, this query still matched it
+        // (only IsDeleted was checked), so the route looked permanently
+        // closed even after a successful reopen. ──
         var closure = await context.DailyClosures
             .Include(c => c.ClosedByUser)
-            .FirstOrDefaultAsync(c => !c.IsDeleted && c.ClosureDate.Date == targetDate.Date, cancellationToken);
+            .Where(c => !c.IsDeleted && c.IsActive && c.ClosureDate.Date == targetDate.Date)
+            .Where(c => request.RouteId == null || c.RouteId == request.RouteId)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (closure == null)
         {

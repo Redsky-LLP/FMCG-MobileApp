@@ -1,5 +1,5 @@
 // PATH: src/types/index.ts
-// UPDATED: Added SizeGroupDto, UQC fields, and related product/unit types
+// UPDATED: Added SizeGroupDto, UQC fields, ReopenRouteResultDto, and related product/unit types
 
 // ── Route Execution (Salesman daily flow) ─────────────────────────────────────
 export type VisitStatus = 'Pending' | 'OrderPlaced' | 'Skipped' | 'NoOrder';
@@ -571,6 +571,14 @@ export interface DailyClosureResultDto {
   ordersLocked:  number;
   totalRevenue:  number;
   message:       string;
+}
+
+// ── NEW: Reopen Route Result ──────────────────────────────────────────────────
+export interface ReopenRouteResultDto {
+  success: boolean;
+  message?: string;
+  ordersUnlocked: number;
+  executionsReopened: number;
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
