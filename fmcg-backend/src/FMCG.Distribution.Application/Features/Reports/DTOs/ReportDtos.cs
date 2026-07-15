@@ -222,6 +222,8 @@ public class ProductSummaryItemDto
     public string? ProductNameMalayalam { get; set; }
     public string ProductGroupName { get; set; } = string.Empty;
     public string UnitSymbol { get; set; } = string.Empty;
+    public string? PackingCategory { get; set; }    // ← ADD THIS
+    public string? SizeGroup { get; set; }          // ← ADD THIS
     public decimal TotalQuantity { get; set; }
     public decimal TotalSales { get; set; }
     public decimal TotalVariance { get; set; }
@@ -266,4 +268,27 @@ public class DailySummaryReportDataDto
     public int TotalRoutes { get; set; }
     public bool IsDayClosed { get; set; }
     public DateTime? ClosedAt { get; set; }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+// Incentive Report DTOs
+// ─────────────────────────────────────────────────────────────────────────────
+
+public class IncentiveReportItemDto
+{
+    public Guid SalesmanId { get; set; }
+    public string SalesmanName { get; set; } = string.Empty;
+    public int TotalOrders { get; set; }
+    public decimal TotalSales { get; set; }
+    public decimal TotalIncentive { get; set; }
+}
+
+public class IncentiveReportDataDto
+{
+    public DateTime FromDate { get; set; }
+    public DateTime ToDate { get; set; }
+    public DateTime GeneratedAt { get; set; }
+    public List<IncentiveReportItemDto> Salesmen { get; set; } = new();
+    public decimal GrandTotalIncentive { get; set; }
+    public decimal GrandTotalSales { get; set; }
+    public int TotalSalesmen { get; set; }
 }

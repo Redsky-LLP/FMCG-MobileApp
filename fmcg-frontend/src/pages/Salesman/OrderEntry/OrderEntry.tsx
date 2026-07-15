@@ -248,30 +248,54 @@ export default function OrderEntry() {
   ...(remarks ? { remarks } : {}),
 });
   const handleSave = async () => {
-    if (!canEdit) { setError('Cannot edit this order.'); return; }
-    if (lines.length === 0 && !remarks.trim()) { setError('Add at least one product or retail remark.'); return; }
-    const incomplete = lines.find(l => !l.qty || !l.sellingPrice);
-    if (incomplete) {
-      setError(`Enter quantity and price for "${incomplete.product.nameEnglish}" before saving.`);
-      return;
+  if (!canEdit) { 
+    setError('Cannot edit this order.'); 
+    return; 
+  }
+  
+  if (lines.length === 0 && !remarks.trim()) { 
+    setError('Add at least one product or retail remark.'); 
+    return; 
+  }
+  
+  const incomplete = lines.find(l => !l.qty || !l.sellingPrice);
+  if (incomplete) {
+    setError(`Enter quantity and price for "${incomplete.product.nameEnglish}" before saving.`);
+    return;
+  }
+  
+  setSaving(true); 
+  setError(''); 
+  setSuccessMsg('');
+  
+  try {
+    let result;
+    const payload = buildPayload();
+    
+    if (existingOrder) {
+      result = await ordersApi.update(existingOrder.id, { id: existingOrder.id, ...payload });
+      setSuccessMsg('Order updated!');
+    } else {
+      result = await ordersApi.create(payload);
+      setSuccessMsg('Saved as draft!');
     }
-    setSaving(true); setError(''); setSuccessMsg('');
-    try {
-      let result;
-      const payload = buildPayload();
-      if (existingOrder) {
-        result = await ordersApi.update(existingOrder.id, { id: existingOrder.id, ...payload });
-        setSuccessMsg('Order updated!');
-      } else {
-        result = await ordersApi.create(payload);
-        setSuccessMsg('Saved as draft!');
-      }
-      setExistingOrder(result);
-      // setTimeout(() => setSuccessMsg(''), 3000);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Save failed');
-    } finally { setSaving(false); }
-  };
+    
+    setExistingOrder(result);
+    
+    // ── SCROLL TO TOP (Multiple methods to ensure it works) ──
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    
+  } catch (e: unknown) {
+    setError(e instanceof Error ? e.message : 'Save failed');
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  } finally { 
+    setSaving(false); 
+  }
+};
 
   // ── FIX: Cancel/Delete Order — redirect back to Route Execution ──
   const handleCancelOrder = async () => {

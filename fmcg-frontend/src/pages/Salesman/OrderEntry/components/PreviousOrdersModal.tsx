@@ -79,9 +79,9 @@ export function PreviousOrdersModal({ isOpen, onClose, previousOrders, onUseOrde
           ))}
         </div>
         
-        <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-3 rounded-b-2xl text-center text-xs text-slate-400">
+        {/* <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-3 rounded-b-2xl text-center text-xs text-slate-400">
           Click "Use This Order" to load items into current bill
-        </div>
+        </div> */}
       </div>
     </>
   );

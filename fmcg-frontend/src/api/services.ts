@@ -406,6 +406,17 @@ export const reportsApi = {
     });
     return res.data as Blob;
   },
+  // ── Incentive Report ──
+downloadIncentiveReport: async (fromDate?: string, toDate?: string) => {
+  const params: Record<string, string> = {};
+  if (fromDate) params.fromDate = fromDate;
+  if (toDate) params.toDate = toDate;
+  const res = await apiClient.get('/api/v1/reports/incentive-report', {
+    params,
+    responseType: 'blob',
+  });
+  return res.data as Blob;
+},
   dailySummary: async (date: string) => {
     const res = await apiClient.get('/api/v1/reports/daily-summary', {
       params: { date },

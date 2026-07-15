@@ -32,7 +32,11 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
         // Query order items with product details
         var orderItemsQuery = context.OrderItems
             .Include(i => i.Product!)
-                .ThenInclude(p => p!.ProductGroup)
+        .ThenInclude(p => p!.ProductGroup)
+    .Include(i => i.Product!)
+        .ThenInclude(p => p!.DefaultUnit)    // ← ADD THIS for Packing Category
+    .Include(i => i.Product!)
+        .ThenInclude(p => p!.SizeGroup)      // ← ADD THIS for Size Group
             .Include(i => i.Unit)
             .Where(i => orderIds.Contains(i.OrderId) && !i.IsDeleted);
 
@@ -50,7 +54,10 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
 
         // Group by product
         var productSummaries = orderItems
-            .GroupBy(i => new { i.ProductId, i.Product!.NameEnglish, i.Product.NameMalayalam, i.Product!.ProductGroup!.Name, i.Unit!.Symbol })
+            .GroupBy(i => new { i.ProductId, i.Product!.NameEnglish, i.Product.NameMalayalam, i.Product!.ProductGroup!.Name, i.Unit!.Symbol,
+                PackingCategory = i.Product.DefaultUnit != null ? i.Product.DefaultUnit.Name : "—",
+                SizeGroup = i.Product.SizeGroup != null ? i.Product.SizeGroup.Name : "—"
+            })
             .Select(g => new ProductSummaryItemDto
             {
                 ProductId = g.Key.ProductId,
@@ -58,6 +65,8 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
                 ProductNameMalayalam = g.Key.NameMalayalam,
                 ProductGroupName = g.Key.Name,
                 UnitSymbol = g.Key.Symbol,
+                PackingCategory = g.Key.PackingCategory,    // ← ADD THIS
+                SizeGroup = g.Key.SizeGroup,                // ← ADD THIS
                 TotalQuantity = g.Sum(i => i.Quantity),
                 TotalSales = g.Sum(i => i.SellingPrice * i.Quantity),
                 TotalVariance = g.Sum(i => (i.SellingPrice - i.BasePriceAtTime) * i.Quantity),
@@ -116,7 +125,7 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
                     {
                         row.RelativeItem().Column(col =>
                         {
-                            col.Item().Text("PRODUCT SUMMARY REPORT").FontSize(14).Bold();
+                            col.Item().Text("SUMMARY REPORT").FontSize(14).Bold();
                             col.Item().Text($"Period: {data.FromDate:dd-MM-yyyy} to {data.ToDate:dd-MM-yyyy}");
                         });
                         row.RelativeItem().AlignRight().Column(col =>
@@ -130,31 +139,31 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
                 page.Content().Column(col =>
                 {
                     // Summary statistics
-                    col.Item().PaddingTop(8).PaddingBottom(8).Row(summaryRow =>
-                    {
-                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
-                        {
-                            c.Item().Text("TOTAL SALES").FontSize(7).FontColor(Colors.Grey.Medium);
-                            c.Item().Text($"{data.OverallSales:N2}").FontSize(12).Bold();
-                        });
-                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
-                        {
-                            c.Item().Text("TOTAL VARIANCE").FontSize(7).FontColor(Colors.Grey.Medium);
-                            c.Item().Text($"{data.OverallVariance:N2}").FontSize(12).Bold()
-                                .FontColor(data.OverallVariance >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
-                        });
-                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
-                        {
-                            c.Item().Text("MARGIN %").FontSize(7).FontColor(Colors.Grey.Medium);
-                            c.Item().Text($"{data.OverallMarginPercentage:N2}%").FontSize(12).Bold()
-                                .FontColor(data.OverallMarginPercentage >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
-                        });
-                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
-                        {
-                            c.Item().Text("PRODUCTS").FontSize(7).FontColor(Colors.Grey.Medium);
-                            c.Item().Text($"{data.TotalProductCount}").FontSize(12).Bold();
-                        });
-                    });
+                    //col.Item().PaddingTop(8).PaddingBottom(8).Row(summaryRow =>
+                    //{
+                    //    summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
+                    //    {
+                    //        c.Item().Text("TOTAL SALES").FontSize(7).FontColor(Colors.Grey.Medium);
+                    //        c.Item().Text($"{data.OverallSales:N2}").FontSize(12).Bold();
+                    //    });
+                    //    summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
+                    //    {
+                    //        c.Item().Text("TOTAL VARIANCE").FontSize(7).FontColor(Colors.Grey.Medium);
+                    //        c.Item().Text($"{data.OverallVariance:N2}").FontSize(12).Bold()
+                    //            .FontColor(data.OverallVariance >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
+                    //    });
+                    //    summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
+                    //    {
+                    //        c.Item().Text("MARGIN %").FontSize(7).FontColor(Colors.Grey.Medium);
+                    //        c.Item().Text($"{data.OverallMarginPercentage:N2}%").FontSize(12).Bold()
+                    //            .FontColor(data.OverallMarginPercentage >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
+                    //    });
+                    //    summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
+                    //    {
+                    //        c.Item().Text("PRODUCTS").FontSize(7).FontColor(Colors.Grey.Medium);
+                    //        c.Item().Text($"{data.TotalProductCount}").FontSize(12).Bold();
+                    //    });
+                    //});
 
                     // Products table
                     col.Item().Table(table =>
@@ -162,26 +171,30 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
                         table.ColumnsDefinition(columns =>
                         {
                             columns.RelativeColumn(3);  // Product Name
-                            columns.RelativeColumn(1);  // Group
-                            columns.RelativeColumn(1);  // Unit
-                            columns.RelativeColumn(1);  // Qty
-                            columns.RelativeColumn(1);  // Orders
-                            columns.RelativeColumn(2);  // Sales
-                            columns.RelativeColumn(2);  // Variance
-                            columns.RelativeColumn(1);  // Margin %
+                            columns.RelativeColumn(1);  // Packing Category  ← NEW
+                            columns.RelativeColumn(1);  // Size Group        ← NEW
+                            //columns.RelativeColumn(1);  // Group
+                            //columns.RelativeColumn(1);  // Unit
+                            //columns.RelativeColumn(1);  // Qty
+                            //columns.RelativeColumn(1);  // Orders
+                            //columns.RelativeColumn(2);  // Sales
+                            //columns.RelativeColumn(2);  // Variance
+                            //columns.RelativeColumn(1);  // Margin %
                         });
 
                         // Table header
                         table.Header(header =>
                         {
                             header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("PRODUCT").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("GROUP").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("UNIT").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("QTY").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("ORDERS").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("SALES").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("VARIANCE").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("MARGIN %").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("PACKING Category").Bold();      // ← NEW
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("SIZE GROUP").Bold();   // ← NEW
+                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("GROUP").Bold();
+                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("UNIT").Bold();
+                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("QTY").Bold();
+                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("ORDERS").Bold();
+                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("SALES").Bold();
+                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("VARIANCE").Bold();
+                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("MARGIN %").Bold();
                         });
 
                         // Table rows
@@ -189,28 +202,30 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
                         {
                             var marginColor = product.MarginPercentage >= 0 ? Colors.Green.Medium : Colors.Red.Medium;
                             table.Cell().BorderBottom(0.5f).Padding(3).Text(product.ProductName);
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(product.ProductGroupName);
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(product.UnitSymbol);
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.TotalQuantity:N0}");
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.OrderCount}");
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.TotalSales:N2}");
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.TotalVariance:N2}")
-                                .FontColor(product.TotalVariance >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.MarginPercentage:N2}%")
-                                .FontColor(marginColor);
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(product.PackingCategory ?? "—");    // ← NEW
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(product.SizeGroup ?? "—");          // ← NEW
+                            //table.Cell().BorderBottom(0.5f).Padding(3).Text(product.ProductGroupName);
+                            //table.Cell().BorderBottom(0.5f).Padding(3).Text(product.UnitSymbol);
+                            //table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.TotalQuantity:N0}");
+                            //table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.OrderCount}");
+                            //table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.TotalSales:N2}");
+                            //table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.TotalVariance:N2}")
+                            //    .FontColor(product.TotalVariance >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
+                            //table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.MarginPercentage:N2}%")
+                            //    .FontColor(marginColor);
                         }
 
                         // Total row
-                        table.Cell().BorderTop(0.5f).Padding(3).Text("TOTAL").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Products.Sum(p => p.TotalQuantity):N0}").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Products.Sum(p => p.OrderCount)}").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.OverallSales:N2}").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.OverallVariance:N2}").Bold()
-                            .FontColor(data.OverallVariance >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.OverallMarginPercentage:N2}%").Bold()
-                            .FontColor(data.OverallMarginPercentage >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
+                        //table.Cell().BorderTop(0.5f).Padding(3).Text("TOTAL").Bold();
+                        //table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
+                        //table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
+                        //table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Products.Sum(p => p.TotalQuantity):N0}").Bold();
+                        //table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Products.Sum(p => p.OrderCount)}").Bold();
+                        //table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.OverallSales:N2}").Bold();
+                        //table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.OverallVariance:N2}").Bold()
+                        //    .FontColor(data.OverallVariance >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
+                        //table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.OverallMarginPercentage:N2}%").Bold()
+                        //    .FontColor(data.OverallMarginPercentage >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
                     });
                 });
 

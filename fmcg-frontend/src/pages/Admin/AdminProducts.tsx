@@ -469,7 +469,11 @@ export function AdminProducts() {
   useEffect(() => {
     if (showAdd) {
       setAddForm({ ...emptyForm, productGroupId: groups[0]?.id ?? '' });
-      setTimeout(() => addCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+       setTimeout(() => {
+      const firstInput = addCardRef.current?.querySelector('input');
+      if (firstInput) firstInput.focus();
+    }, 50);
+  
     }
   }, [showAdd]);
 
