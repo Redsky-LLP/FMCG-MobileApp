@@ -148,6 +148,29 @@ public class ReportsController(IMediator mediator) : ControllerBase
         return File(result.Data!, "application/pdf", fileName);
     }
 
+    [HttpGet("incentive-report")]
+    public async Task<IActionResult> GetIncentiveReport(
+    [FromQuery] string? fromDate,
+    [FromQuery] string? toDate)
+    {
+        Console.WriteLine($"🔵 CONTROLLER - fromDate: {fromDate}");
+        Console.WriteLine($"🔵 CONTROLLER - toDate: {toDate}");
+
+        var query = new GetIncentiveReportQuery
+        {
+            FromDate = fromDate != null ? DateTime.Parse(fromDate) : null,
+            ToDate = toDate != null ? DateTime.Parse(toDate) : null
+        };
+
+        var result = await mediator.Send(query);
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error });
+        }
+
+        return File(result.Data!, "application/pdf", $"IncentiveReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
+    }
     // ─────────────────────────────────────────────────────────────────────────
     // GET /api/v1/reports/daily-summary
     // Roles: Admin, SuperAdmin, Accounts

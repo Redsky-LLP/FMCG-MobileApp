@@ -447,9 +447,11 @@ export function AdminReports() {
   const [loadDate,   setLoadDate]   = useState(today);
   const [billRoute,  setBillRoute]  = useState('');
   const [billDate,   setBillDate]   = useState(today);
-  const [routeRptRoute, setRouteRptRoute] = useState('');
-  const [routeFrom, setRouteFrom]  = useState(thirtyDaysAgo);
-  const [routeTo,   setRouteTo]    = useState(today);
+  // const [routeRptRoute, setRouteRptRoute] = useState('');
+  // const [routeFrom, setRouteFrom]  = useState(thirtyDaysAgo);
+  // const [routeTo,   setRouteTo]    = useState(today);
+  const [incentiveFrom, setIncentiveFrom] = useState(thirtyDaysAgo);
+  const [incentiveTo, setIncentiveTo] = useState(today);
   const [prodGroup, setProdGroup]   = useState('');
   const [prodFrom,  setProdFrom]    = useState(thirtyDaysAgo);
   const [prodTo,    setProdTo]      = useState(today);
@@ -588,92 +590,125 @@ export function AdminReports() {
         previewReport('billing', `Billing Sheet - ${billDate} (${routeName})`, fn, downloadFn);
       },
     },
+    // {
+    //   key: 'routeSummary',
+    //   title: 'Route Summary Report',
+    //   desc: 'Route-wise performance summary for a date range',
+    //   icon: '📊',
+    //   color: '#3B82F6',
+    //   roles: 'Admin',
+    //   filters: (
+    //     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+    //       <select 
+    //         className="input" 
+    //         value={routeRptRoute} 
+    //         onChange={(e) => setRouteRptRoute(e.target.value)} 
+    //         style={selectStyle(isMobile)}
+    //       >
+    //         <option value="">🌍 All Routes</option>
+    //         {routes.map((r) => <option key={r.id} value={r.id}>📍 {r.name}</option>)}
+    //       </select>
+    //       <input 
+    //         className="input" 
+    //         type="date" 
+    //         value={routeFrom} 
+    //         onChange={(e) => setRouteFrom(e.target.value)} 
+    //         style={dateInputStyle(isMobile)}
+    //       />
+    //       <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
+    //       <input 
+    //         className="input" 
+    //         type="date" 
+    //         value={routeTo} 
+    //         onChange={(e) => setRouteTo(e.target.value)} 
+    //         style={dateInputStyle(isMobile)}
+    //       />
+    //     </div>
+    //   ),
+    //   onDownload: () => download('routeSummary', () => reportsApi.downloadRouteSummary(routeRptRoute || undefined, routeFrom, routeTo), `RouteSummary_${routeFrom}_${routeTo}.pdf`),
+    //   onPreview: () => {
+    //     const fn = () => reportsApi.downloadRouteSummary(routeRptRoute || undefined, routeFrom, routeTo);
+    //     const downloadFn = () => download('routeSummary', fn, `RouteSummary_${routeFrom}_${routeTo}.pdf`);
+    //     const routeName = routeRptRoute ? routes.find(r => r.id === routeRptRoute)?.name : 'All Routes';
+    //     previewReport('routeSummary', `Route Summary - ${routeFrom} to ${routeTo} (${routeName})`, fn, downloadFn);
+    //   },
+    // },
     {
-      key: 'routeSummary',
-      title: 'Route Summary Report',
-      desc: 'Route-wise performance summary for a date range',
-      icon: '📊',
-      color: '#3B82F6',
-      roles: 'Admin',
-      filters: (
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <select 
-            className="input" 
-            value={routeRptRoute} 
-            onChange={(e) => setRouteRptRoute(e.target.value)} 
-            style={selectStyle(isMobile)}
-          >
-            <option value="">🌍 All Routes</option>
-            {routes.map((r) => <option key={r.id} value={r.id}>📍 {r.name}</option>)}
-          </select>
-          <input 
-            className="input" 
-            type="date" 
-            value={routeFrom} 
-            onChange={(e) => setRouteFrom(e.target.value)} 
-            style={dateInputStyle(isMobile)}
-          />
-          <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
-          <input 
-            className="input" 
-            type="date" 
-            value={routeTo} 
-            onChange={(e) => setRouteTo(e.target.value)} 
-            style={dateInputStyle(isMobile)}
-          />
-        </div>
-      ),
-      onDownload: () => download('routeSummary', () => reportsApi.downloadRouteSummary(routeRptRoute || undefined, routeFrom, routeTo), `RouteSummary_${routeFrom}_${routeTo}.pdf`),
-      onPreview: () => {
-        const fn = () => reportsApi.downloadRouteSummary(routeRptRoute || undefined, routeFrom, routeTo);
-        const downloadFn = () => download('routeSummary', fn, `RouteSummary_${routeFrom}_${routeTo}.pdf`);
-        const routeName = routeRptRoute ? routes.find(r => r.id === routeRptRoute)?.name : 'All Routes';
-        previewReport('routeSummary', `Route Summary - ${routeFrom} to ${routeTo} (${routeName})`, fn, downloadFn);
-      },
-    },
-    {
-      key: 'productSummary',
-      title: 'Product Summary Report',
-      desc: 'SKU-level movement and revenue analysis',
-      icon: '📦',
-      color: '#8B5CF6',
-      roles: 'Admin',
-      filters: (
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <select 
-            className="input" 
-            value={prodGroup} 
-            onChange={(e) => setProdGroup(e.target.value)} 
-            style={selectStyle(isMobile)}
-          >
-            <option value="">📦 All Groups</option>
-            {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-          </select>
-          <input 
-            className="input" 
-            type="date" 
-            value={prodFrom} 
-            onChange={(e) => setProdFrom(e.target.value)} 
-            style={dateInputStyle(isMobile)}
-          />
-          <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
-          <input 
-            className="input" 
-            type="date" 
-            value={prodTo} 
-            onChange={(e) => setProdTo(e.target.value)} 
-            style={dateInputStyle(isMobile)}
-          />
-        </div>
-      ),
-      onDownload: () => download('productSummary', () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo), `ProductSummary_${prodFrom}_${prodTo}.pdf`),
-      onPreview: () => {
-        const fn = () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo);
-        const downloadFn = () => download('productSummary', fn, `ProductSummary_${prodFrom}_${prodTo}.pdf`);
-        const groupName = prodGroup ? groups.find(g => g.id === prodGroup)?.name : 'All Groups';
-        previewReport('productSummary', `Product Summary - ${prodFrom} to ${prodTo} (${groupName})`, fn, downloadFn);
-      },
-    },
+  key: 'summaryReport',
+  title: 'Summary Report',  // ← CHANGED
+  desc: 'Product-wise summary with packing category & size group',
+  icon: '📊',
+  color: '#8B5CF6',
+  roles: 'Admin',
+  filters: (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      <select 
+        className="input" 
+        value={prodGroup} 
+        onChange={(e) => setProdGroup(e.target.value)} 
+        style={selectStyle(isMobile)}
+      >
+        <option value="">📦 All Groups</option>
+        {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+      </select>
+      <input 
+        className="input" 
+        type="date" 
+        value={prodFrom} 
+        onChange={(e) => setProdFrom(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+      <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
+      <input 
+        className="input" 
+        type="date" 
+        value={prodTo} 
+        onChange={(e) => setProdTo(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+    </div>
+  ),
+  onDownload: () => download('summaryReport', () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo), `SummaryReport_${prodFrom}_${prodTo}.pdf`),
+  onPreview: () => {
+    const fn = () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo);
+    const downloadFn = () => download('summaryReport', fn, `SummaryReport_${prodFrom}_${prodTo}.pdf`);
+    const groupName = prodGroup ? groups.find(g => g.id === prodGroup)?.name : 'All Groups';
+    previewReport('summaryReport', `Summary Report - ${prodFrom} to ${prodTo} (${groupName})`, fn, downloadFn);
+  },
+},
+{
+  key: 'incentive',
+  title: 'Incentive Report',
+  desc: 'Salesman-wise incentive earnings from product incentives',
+  icon: '🎯',
+  color: '#8B5CF6',
+  roles: 'Admin',
+  filters: (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+      <input 
+        className="input" 
+        type="date" 
+        value={incentiveFrom} 
+        onChange={(e) => setIncentiveFrom(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+      <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
+      <input 
+        className="input" 
+        type="date" 
+        value={incentiveTo} 
+        onChange={(e) => setIncentiveTo(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+    </div>
+  ),
+  onDownload: () => download('incentive', () => reportsApi.downloadIncentiveReport(incentiveFrom, incentiveTo), `IncentiveReport_${incentiveFrom}.pdf`),
+  onPreview: () => {
+    const fn = () => reportsApi.downloadIncentiveReport(incentiveFrom, incentiveTo);
+    const downloadFn = () => download('incentive', fn, `IncentiveReport_${incentiveFrom}.pdf`);
+    previewReport('incentive', `Incentive Report - ${incentiveFrom} to ${incentiveTo}`, fn, downloadFn);
+  },
+},
     {
       key: 'daily',
       title: 'Daily Summary Report',
