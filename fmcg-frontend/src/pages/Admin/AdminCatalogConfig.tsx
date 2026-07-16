@@ -1024,7 +1024,7 @@ export function AdminCatalogConfig() {
               Catalog Config
             </h1>
             <p style={{ color: D.muted, fontSize: 14, marginTop: 4, fontWeight: 500 }}>
-              Item Groups, Size Groups &amp; Packing Categories
+              Item Groups, Size Groups
             </p>
           </div>
           <button
@@ -1053,10 +1053,9 @@ export function AdminCatalogConfig() {
         {/* ── Responsive Grid ── */}
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', 
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr ', 
           gap: 16 
         }}>
-
           {/* ── Groups Card ── */}
           <div style={{
             background: D.surface,
@@ -1291,138 +1290,7 @@ export function AdminCatalogConfig() {
             </div>
           </div>
 
-          {/* ── Packing Categories Card ── */}
-          <div style={{
-            background: D.surface,
-            borderRadius: 16,
-            border: `1px solid ${D.border}`,
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '14px 16px',
-              borderBottom: `1px solid ${D.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Package size={16} style={{ color: D.accent }} />
-                <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
-                  Packing Categories
-                </h2>
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: D.muted,
-                  background: D.bg,
-                  padding: '1px 8px',
-                  borderRadius: 12,
-                }}>
-                  {packingCategories.length}
-                </span>
-              </div>
-              <button
-                onClick={openAddPackingCategory}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '4px 10px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: D.accent,
-                  color: '#fff',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                <Plus size={12} /> Add
-              </button>
-            </div>
-
-            <div style={{ padding: '10px 12px', maxHeight: 300, overflowY: 'auto' }}>
-              <div style={{ fontSize: 10, color: D.muted, marginBottom: 8, padding: '6px 8px', background: D.bg, borderRadius: 6 }}>
-                <strong style={{ color: D.accent }}>1</strong> = Highest priority · 
-                <strong style={{ color: D.accent }}> 99</strong> = Lowest priority
-              </div>
-              {packingCategoriesLoading ? (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <Spinner size={20} />
-                </div>
-              ) : packingCategories.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '20px 0', color: D.muted, fontSize: 12 }}>
-                  No packing categories yet
-                </div>
-              ) : (
-                packingCategories
-                  .sort((a, b) => a.priority - b.priority)
-                  .map((category) => (
-                    <div
-                      key={category.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '6px 8px',
-                        marginBottom: 4,
-                        borderRadius: 8,
-                        background: D.bg,
-                        border: `1px solid ${D.border}`,
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 6,
-                          flexShrink: 0,
-                          background: `${D.accent}15`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 800,
-                          fontSize: 12,
-                          color: D.accent,
-                        }}>
-                          {category.priority}
-                        </div>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: D.text }}>
-                          {category.name}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 2 }}>
-                        <button
-                          onClick={() => openEditPackingCategory(category)}
-                          style={{
-                            padding: '3px 6px',
-                            borderRadius: 4,
-                            border: 'none',
-                            background: 'transparent',
-                            color: D.sub,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <Edit2 size={12} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm({ type: 'packingCategory', id: category.id, name: category.name })}
-                          style={{
-                            padding: '3px 6px',
-                            borderRadius: 4,
-                            border: 'none',
-                            background: 'transparent',
-                            color: D.sub,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-              )}
-            </div>
-          </div>
+         
 
         </div>
       </div>
@@ -1446,7 +1314,7 @@ export function AdminCatalogConfig() {
         saving={loading}
       />
 
-      <PackingCategoryModal
+      {/* <PackingCategoryModal
         isOpen={showPackingCategoryModal}
         onClose={() => setShowPackingCategoryModal(false)}
         onSave={handleSavePackingCategory}
@@ -1454,7 +1322,7 @@ export function AdminCatalogConfig() {
         initialData={packingCategoryForm}
         existingCategories={packingCategories}
         saving={loading}
-      />
+      /> */}
 
       {/* ── Delete Confirmation ── */}
       <ConfirmModal

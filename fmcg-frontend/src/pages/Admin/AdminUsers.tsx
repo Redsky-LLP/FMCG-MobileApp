@@ -35,12 +35,11 @@ const ROLE_BADGE: Record<string, 'primary' | 'blue' | 'green' | 'muted' | 'amber
   SuperAdmin: 'primary',
   Admin:      'primary',
   Salesman:   'green',
-  Accounts:   'blue',
-  Warehouse:  'blue',
+ 
 };
 
-type RoleFilter = 'All' | 'Salesman' | 'Admin' | 'Accounts' | 'Warehouse';
-const ROLE_FILTERS: RoleFilter[] = ['All', 'Salesman', 'Admin', 'Accounts', 'Warehouse'];
+type RoleFilter = 'All' | 'Salesman' | 'Admin' ;
+const ROLE_FILTERS: RoleFilter[] = ['All', 'Salesman', 'Admin'];
 
 // ─── Create Salesman Modal ──────────────────────────────────────────────
 function CreateSalesmanModal({ isOpen, onClose, onSuccess }: {
