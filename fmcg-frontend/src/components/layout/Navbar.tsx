@@ -23,17 +23,12 @@ const NAV_ITEMS: NavItem[] = [
   // Admin / SuperAdmin
   { to: '/admin/dashboard',   label: 'Dashboard',        icon: Home,         roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/routes',      label: 'Routes',           icon: Route,        roles: ['Admin', 'SuperAdmin'] },
-  { to: '/admin/assignments', label: 'Temp Assignments', icon: CalendarDays, roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/customers',   label: 'Customers',        icon: Users,        roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/products',    label: 'Products',         icon: Package,      roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/orders',      label: 'Orders',           icon: ShoppingCart, roles: ['Admin', 'SuperAdmin'] },
-  { to: '/admin/settlement',  label: 'Settlement',       icon: Calculator,   roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/reports',     label: 'Reports',          icon: FileText,     roles: ['Admin', 'SuperAdmin'] },
-  { to: '/admin/analytics',   label: 'Analytics',        icon: BarChart3,    roles: ['Admin', 'SuperAdmin'] },
-  { to: '/admin/incentives',  label: 'Incentives',       icon: Gift,         roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/users',        label: 'Users',            icon: UserCog,      roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/session-log',  label: 'Session Log',      icon: Clock,        roles: ['Admin', 'SuperAdmin'] },
-  { to: '/admin/settings',    label: 'Settings',         icon: Settings,     roles: ['Admin', 'SuperAdmin'] },
 
   // Salesman
   { to: '/salesman/routes',     label: 'My Routes',  icon: Route,        roles: ['Salesman'] },

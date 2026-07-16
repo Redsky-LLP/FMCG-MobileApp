@@ -1,14 +1,18 @@
-﻿using MediatR;
+﻿// PATH: src/FMCG.Distribution.Application/Features/Reports/Queries/GetBillingSheetQueryHandler.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using FMCG.Distribution.Application.Common;
+using FMCG.Distribution.Application.Common.Interfaces;
+using FMCG.Distribution.Application.Features.Reports.DTOs;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using FMCG.Distribution.Application.Common;
-using FMCG.Distribution.Application.Common.Interfaces;
-using FMCG.Distribution.Application.Features.Reports.DTOs;
-using FMCG.Distribution.Domain.Enums;
-
-// Alias to resolve ambiguity between QuestPDF.Unit and MediatR.Unit
 using PdfUnit = QuestPDF.Infrastructure.Unit;
 
 namespace FMCG.Distribution.Application.Features.Reports.Queries;
@@ -50,7 +54,6 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
             {
                 RouteId = g.Key.RouteId,
                 RouteName = g.Key.Name,
-                // ── Shops shown in the sequence order the admin assigned to customers ──
                 Orders = g
                     .OrderBy(o => o.Customer?.SequenceOrder ?? 0)
                     .Select(o => new BillingSheetOrderDto
@@ -99,8 +102,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
         return Result<byte[]>.Success(pdfBytes);
     }
 
-    // ── PDF Generator: same table style as the Loading Sheet (#, Customer, Order#, Product, Qty),
-    // with a Price column added — no Units, line/route/grand totals, or variance. ──
+    // ── PDF Generator: matching the Loading Sheet style with 3 columns (Product, Qty, Price) ──
     private static byte[] GenerateBillingSheetPdf(BillingSheetDataDto data)
     {
         return Document.Create(container =>
@@ -115,102 +117,122 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                 page.Header()
                     .BorderBottom(0.5f)
                     .PaddingBottom(5)
-                    .Row(row =>
+                    .Column(col =>
                     {
-                        row.RelativeItem().Column(col =>
-                        {
-                            col.Item().Text("BILLING SHEET").FontSize(16).Bold();
-                            col.Item().Text($"Date: {data.ReportDate:dd-MM-yyyy}").FontSize(10);
-                        });
-                        row.RelativeItem().AlignRight().Column(col =>
-                        {
-                            col.Item().Text($"Generated: {data.GeneratedAt:dd-MM-yyyy HH:mm}").FontSize(9);
-                            col.Item().Text($"Orders: {data.TotalOrders} | Routes: {data.TotalRoutes}").FontSize(9);
-                        });
+                        col.Item().Text("BILLING SHEET").FontSize(16).Bold();
+                        col.Item().Text($"Date: {data.ReportDate:dd-MM-yyyy}").FontSize(10);
                     });
 
                 // Content
-                page.Content().Column(col =>
+                page.Content().Column(contentCol =>
                 {
                     foreach (var route in data.Routes)
                     {
-                        col.Item().PaddingTop(10).Column(routeCol =>
+                        contentCol.Item().PaddingTop(10).Column(routeCol =>
                         {
-                            // Route header
+                            // Route header - centered like loading sheet
                             routeCol.Item().Background(Colors.Grey.Lighten2)
                                 .Padding(6)
-                                .Row(r =>
-                                {
-                                    r.RelativeItem().Text($"{route.RouteName}").FontSize(13).Bold();
-                                    r.RelativeItem().AlignRight().Text($"Orders: {route.Orders.Count}").FontSize(10);
-                                });
+                                .AlignCenter()
+                                .Text($"{route.RouteName}").FontSize(14).Bold();
 
-                            // ── Customer / Order table (#, Customer, Order#, Product, Qty, Price) ──
-                            routeCol.Item().PaddingTop(6).Table(table =>
+                            // ── One block per customer stop ──
+                            foreach (var order in route.Orders)
                             {
-                                table.ColumnsDefinition(columns =>
+                                routeCol.Item().PaddingTop(8).ShowEntire().Column(stopCol =>
                                 {
-                                    columns.ConstantColumn(28);   // #
-                                    columns.RelativeColumn(2.6f); // Customer
-                                    columns.RelativeColumn(2.6f); // Order #
-                                    columns.RelativeColumn(3.4f); // Product
-                                    columns.RelativeColumn(1.1f); // Qty
-                                    columns.RelativeColumn(1.3f); // Price
-                                });
+                                    // Customer header with number and name centered
+                                    stopCol.Item().Background(Colors.Grey.Lighten3)
+                                        .Padding(4)
+                                        .Row(r =>
+                                        {
+                                            r.ConstantItem(30).AlignLeft().Text($"{order.SequenceOrder + 1}.").FontSize(12).Bold();
+                                            r.RelativeItem().AlignCenter().Text(order.CustomerName).FontSize(16).Bold();
+                                            r.ConstantItem(30);
+                                        });
 
-                                table.Header(header =>
-                                {
-                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("#").Bold().FontSize(10);
-                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("CUSTOMER").Bold().FontSize(10);
-                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("ORDER #").Bold().FontSize(10);
-                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("PRODUCT").Bold().FontSize(10);
-                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).AlignRight().Text("QTY").Bold().FontSize(10);
-                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).AlignRight().Text("PRICE").Bold().FontSize(10);
-                                });
-
-                                var rowNum = 1;
-                                foreach (var order in route.Orders)
-                                {
-                                    var firstRow = true;
-
-                                    if (order.Items.Count == 0 && order.Remarks == null)
+                                    if (order.Items.Count > 0)
                                     {
-                                        table.Cell().BorderBottom(0.5f).Padding(4).Text($"{rowNum}").Bold().FontSize(11);
-                                        table.Cell().BorderBottom(0.5f).Padding(4).Text(order.CustomerName).Bold().FontSize(11);
-                                        table.Cell().BorderBottom(0.5f).Padding(4).Text(order.OrderNumber).FontSize(9);
-                                        table.Cell().BorderBottom(0.5f).Padding(4).Text("—").FontSize(10);
-                                        table.Cell().BorderBottom(0.5f).Padding(4).AlignRight().Text("").FontSize(10);
-                                        table.Cell().BorderBottom(0.5f).Padding(4).AlignRight().Text("").FontSize(10);
+                                        stopCol.Item().PaddingLeft(15).PaddingRight(15).PaddingTop(4).Table(table =>
+                                        {
+                                            // Three columns: Product (40%), Qty (20%), Price (40%)
+                                            table.ColumnsDefinition(columns =>
+                                            {
+                                                columns.RelativeColumn(4);  // Product takes 40%
+                                                columns.RelativeColumn(2);  // Qty takes 20%
+                                                columns.RelativeColumn(4);  // Price takes 40%
+                                            });
+
+                                            table.Header(header =>
+                                            {
+                                                header.Cell().BorderBottom(1)
+                                                    .PaddingVertical(3)
+                                                    .PaddingLeft(5)
+                                                    .Text("PRODUCT")
+                                                    .Bold()
+                                                    .FontSize(9);
+
+                                                header.Cell().BorderBottom(1)
+                                                    .PaddingVertical(3)
+                                                    .AlignCenter()
+                                                    .Text("QTY")
+                                                    .Bold()
+                                                    .FontSize(9);
+
+                                                header.Cell().BorderBottom(1)
+                                                    .PaddingVertical(3)
+                                                    .PaddingRight(5)
+                                                    .AlignRight()
+                                                    .Text("PRICE")
+                                                    .Bold()
+                                                    .FontSize(9);
+                                            });
+
+                                            foreach (var item in order.Items)
+                                            {
+                                                // Product name - left aligned
+                                                table.Cell().BorderBottom(0.5f)
+                                                    .PaddingVertical(2)
+                                                    .PaddingLeft(5)
+                                                    .Text(item.ProductName)
+                                                    .FontSize(10);
+
+                                                // Quantity - centered
+                                                table.Cell().BorderBottom(0.5f)
+                                                    .PaddingVertical(2)
+                                                    .AlignCenter()
+                                                    .Text($"{item.Quantity:N0} {item.UnitSymbol}")
+                                                    .FontSize(10)
+                                                    .Bold();
+
+                                                // Price - right aligned
+                                                table.Cell().BorderBottom(0.5f)
+                                                    .PaddingVertical(2)
+                                                    .PaddingRight(5)
+                                                    .AlignRight()
+                                                    .Text($"₹{item.SellingPrice:N2}")
+                                                    .FontSize(10);
+                                            }
+                                        });
+                                    }
+                                    else if (order.Remarks == null)
+                                    {
+                                        stopCol.Item().PaddingLeft(20).Padding(3).Text("—").FontSize(10);
                                     }
 
-                                    foreach (var item in order.Items)
-                                    {
-                                        var borderBottom = (item == order.Items.Last() && order.Remarks == null) ? 0.5f : 0f;
-
-                                        table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? $"{rowNum}" : "").Bold().FontSize(11);
-                                        table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? order.CustomerName : "").Bold().FontSize(11);
-                                        table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? order.OrderNumber : "").FontSize(9);
-                                        table.Cell().Padding(4).BorderBottom(borderBottom).Text(item.ProductName).FontSize(10);
-                                        table.Cell().Padding(4).BorderBottom(borderBottom).AlignRight().Text($"{item.Quantity:N0} {item.UnitSymbol}").FontSize(10).Bold();
-                                        table.Cell().Padding(4).BorderBottom(borderBottom).AlignRight().Text($"{item.SellingPrice:N2}").FontSize(10);
-
-                                        firstRow = false;
-                                    }
-
-                                    // ── Retail items / remarks row — highlighted, same treatment as the Loading Sheet ──
+                                    // ── Remarks - plain black text, no background shade ──
                                     if (order.Remarks != null)
                                     {
-                                        table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? $"{rowNum}" : "").Bold().FontSize(11);
-                                        table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? order.CustomerName : "").Bold().FontSize(11);
-                                        table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? order.OrderNumber : "").FontSize(9);
-                                        table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text($"⚖ RETAIL: {order.Remarks}").FontSize(10).Bold().FontColor(Colors.Orange.Darken2);
-                                        table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).AlignRight().Text("").FontSize(10);
-                                        table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).AlignRight().Text("").FontSize(10);
+                                        stopCol.Item().PaddingLeft(20).PaddingTop(4)
+                                            .Text(order.Remarks).FontSize(10).Bold().FontColor(Colors.Black);
                                     }
+                                });
+                            }
 
-                                    rowNum++;
-                                }
-                            });
+                            if (route != data.Routes.Last())
+                            {
+                                routeCol.Item().PageBreak();
+                            }
                         });
                     }
                 });
@@ -226,6 +248,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                         x.CurrentPageNumber();
                         x.Span(" of ");
                         x.TotalPages();
+                        x.Span($"  |  Generated: {data.GeneratedAt:HH:mm:ss}");
                     });
             });
         }).GeneratePdf();

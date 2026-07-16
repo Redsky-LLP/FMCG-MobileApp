@@ -1423,7 +1423,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.js3692nn918"
+    "revision": "0.2hfot9t7e54"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -66818,7 +66818,7 @@ export default apiClient;
 ## File: src/api/services.ts
 ``````typescript
 // PATH: src/api/services.ts
-// UPDATED: Added sizeGroupsApi, uqc update in unitsApi, and related types
+// UPDATED: Added sizeGroupsApi, uqc update in unitsApi, reopenRoute in settlementApi, and related types
 
 import apiClient from './client';
 import type {
@@ -66849,6 +66849,8 @@ import type {
   SizeGroupDto,
   // ── NEW: Enhanced Unit ──
   EnhancedProductUnitDto,
+  // ── NEW: Reopen Route Result ──
+  ReopenRouteResultDto,
 } from '../types/index';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -67165,10 +67167,19 @@ export const settlementApi = {
     const data = await get<OutstandingSummaryDto>('/api/v1/settlement/outstanding');
     return data.customers ?? [];
   },
-  getStatus: (date?: string) =>
-    get<DailyClosureStatusDto>('/api/v1/settlement/status', date ? { date } : undefined),
-  closeDay: (closureDate: string, notes?: string) =>
-    post<DailyClosureResultDto>('/api/v1/settlement/close-day', { closureDate, notes }),
+  getStatus: (date?: string, routeId?: string) =>
+    get<DailyClosureStatusDto>('/api/v1/settlement/status', {
+      ...(date ? { date } : {}),
+      ...(routeId ? { routeId } : {}),
+    }),
+ 
+  closeDay: (closureDate: string, routeId: string, notes?: string) =>
+    post<DailyClosureResultDto>('/api/v1/settlement/close-day', { closureDate, routeId, notes }),
+
+  // ── NEW: Reopen a closed route ──
+  reopenRoute: (closureDate: string, routeId: string) =>
+    post<ReopenRouteResultDto>('/api/v1/settlement/reopen-route', { closureDate, routeId }),
+
   recordPayment: (body: {
     customerId: number | string; amount: number; paymentDate: string; note?: string;
     paymentReference?: string; paymentMode?: string; remarks?: string;
@@ -67214,6 +67225,17 @@ export const reportsApi = {
     });
     return res.data as Blob;
   },
+  // ── Incentive Report ──
+downloadIncentiveReport: async (fromDate?: string, toDate?: string) => {
+  const params: Record<string, string> = {};
+  if (fromDate) params.fromDate = fromDate;
+  if (toDate) params.toDate = toDate;
+  const res = await apiClient.get('/api/v1/reports/incentive-report', {
+    params,
+    responseType: 'blob',
+  });
+  return res.data as Blob;
+},
   dailySummary: async (date: string) => {
     const res = await apiClient.get('/api/v1/reports/daily-summary', {
       params: { date },
@@ -72240,6 +72262,8 @@ export function AdminAnalytics() {
 ``````typescript
 // PATH: src/pages/Admin/AdminCatalogConfig.tsx
 // UPDATED: Removed Units and Incentives cards
+// FIXED: handleSavePackingCategory now properly updates name via unitsApi.update()
+// FIXED: handleDeletePackingCategory now shows clear error when unit is in use
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -73124,7 +73148,6 @@ export function AdminCatalogConfig() {
   // ── Packing Category Handlers ──
   function openAddPackingCategory() {
     setEditingPackingCategory(null);
-    const maxPriority = packingCategories.length > 0 ? Math.max(...packingCategories.map(c => c.priority)) : 0;
     setPackingCategoryForm({ id: undefined, name: '', priority: 0 });
     setShowPackingCategoryModal(true);
   }
@@ -73135,6 +73158,7 @@ export function AdminCatalogConfig() {
     setShowPackingCategoryModal(true);
   }
 
+  // ── FIXED: handleSavePackingCategory now properly updates name via unitsApi.update() ──
   async function handleSavePackingCategory(data: { name: string; priority: number }) {
     if (!data.name.trim()) {
       setError('Category name is required');
@@ -73145,8 +73169,16 @@ export function AdminCatalogConfig() {
     setError('');
     try {
       if (editingPackingCategory) {
-        // Update priority via API
-        await unitsApi.updatePriority(editingPackingCategory.id, data.priority);
+        // ── FIX: updatePriority() only ever touched LoadingPriority — the
+        // renamed text ("Bag" → "Bags") was captured in form state but never
+        // sent to the backend. update() hits PUT /api/v1/productunits/{id}
+        // which actually persists the name. Only call updatePriority()
+        // afterward if the priority value actually changed, to avoid an
+        // unnecessary second round-trip on every save. ──
+        await unitsApi.update(editingPackingCategory.id, data.name);
+        if (data.priority !== editingPackingCategory.priority) {
+          await unitsApi.updatePriority(editingPackingCategory.id, data.priority);
+        }
         setSuccess('Packing category updated successfully!');
       } else {
         // Create new unit as a packing category
@@ -73166,6 +73198,7 @@ export function AdminCatalogConfig() {
     }
   }
 
+  // ── FIXED: handleDeletePackingCategory now shows clear error when unit is in use ──
   async function handleDeletePackingCategory(id: string) {
     try {
       await unitsApi.delete(id);
@@ -73173,7 +73206,23 @@ export function AdminCatalogConfig() {
       await loadPackingCategories();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to delete packing category');
+      // The backend blocks delete (400) when a product still uses this unit
+      // as its default — that's intentional, not a bug. Surface it clearly
+      // and point at the Deactivate fallback instead of a raw error string.
+      const errorMessage = err?.message?.toLowerCase() || '';
+      const isInUse = errorMessage.includes('used by products') || 
+                      errorMessage.includes('in use') ||
+                      errorMessage.includes('assigned to') ||
+                      errorMessage.includes('cannot delete') ||
+                      errorMessage.includes('referenced');
+      
+      const categoryName = packingCategories.find(c => c.id === id)?.name ?? 'This category';
+      
+      setError(
+        isInUse
+          ? `"${categoryName}" is still assigned to one or more products, so it can't be deleted. Please reassign those products to a different packing category first, then try deleting again.`
+          : (err?.message || 'Failed to delete packing category')
+      );
     } finally {
       setDeleteConfirm(null);
     }
@@ -73230,7 +73279,7 @@ export function AdminCatalogConfig() {
         </div>
 
         {/* ── Header ─────────────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 900, color: D.text, margin: 0, letterSpacing: '-0.02em' }}>
               <Settings size={22} style={{ display: 'inline', marginRight: 8, color: D.accent }} />
@@ -73260,8 +73309,8 @@ export function AdminCatalogConfig() {
           </button>
         </div>
 
-        {/* {error && <Alert variant="error">{error}</Alert>} */}
         {success && <Alert variant="success">{success}</Alert>}
+        {error && <Alert variant="error">{error}</Alert>}
 
         {/* ── Responsive Grid ── */}
         <div style={{ 
@@ -73673,7 +73722,11 @@ export function AdminCatalogConfig() {
       <ConfirmModal
         open={!!deleteConfirm}
         title={`Delete ${deleteConfirm?.type === 'group' ? 'Group' : deleteConfirm?.type === 'sizeGroup' ? 'Size Group' : 'Packing Category'}`}
-        message={`Are you sure you want to delete "${deleteConfirm?.name}"? This action cannot be undone.`}
+        message={
+          deleteConfirm?.type === 'packingCategory'
+            ? `Are you sure you want to delete "${deleteConfirm?.name}"? This will only work if it's not assigned to any products.`
+            : `Are you sure you want to delete "${deleteConfirm?.name}"? This action cannot be undone.`
+        }
         confirmLabel="Delete"
         danger
         onConfirm={() => {
@@ -75022,6 +75075,7 @@ export function AdminDailyAssignment() {
 ``````typescript
 // PATH: src/pages/Admin/AdminDashboard.tsx
 // COMPLETE REWRITE - Dark theme with orange accent, uniform card sizes, sorted by priority, sticky note for password reminder
+// REMOVED: Global Close Day functionality - now routes to /admin/orders for per-route closure
 
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -75034,9 +75088,9 @@ import {
   Search, X, StickyNote, Edit3,
 } from 'lucide-react';
 import { analyticsApi, settlementApi } from '../../api/services';
-import type { DashboardKpisDto, DailyClosureStatusDto, DailyClosureResultDto } from '../../types';
+import type { DashboardKpisDto, DailyClosureStatusDto } from '../../types';
 import { fmt, fmtNum } from '../../types';
-import { PageLoader, Spinner, Alert, ConfirmModal } from '../../components/ui';
+import { PageLoader, Spinner, Alert } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
@@ -75189,12 +75243,8 @@ export function AdminDashboard() {
   const [kpis, setKpis] = useState<DashboardKpisDto | null>(null);
   const [closure, setClosure] = useState<DailyClosureStatusDto | null>(null);
   const [loading, setLoading] = useState(true);
-  const [closing, setClosing] = useState(false);
-  const [confirmClose, setConfirmClose] = useState(false);
-  const [closeNotes, setCloseNotes] = useState('');
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
-  const [closureResult, setClosureResult] = useState<DailyClosureResultDto | null>(null);
   const [showStickyNote, setShowStickyNote] = useState(true);
 
   // Sticky note state - for admin password reminder
@@ -75226,22 +75276,6 @@ export function AdminDashboard() {
   }
 
   useEffect(() => { load(); }, []);
-
-  async function handleCloseDay() {
-    setClosing(true);
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const res = await settlementApi.closeDay(today, closeNotes || undefined);
-      setClosureResult(res);
-      setMsg(`Day closed successfully. ${res.ordersLocked} orders locked. Revenue: ${fmt(res.totalRevenue)}`);
-      setConfirmClose(false);
-      load();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to close day');
-    } finally {
-      setClosing(false);
-    }
-  }
 
   if (loading) return <PageLoader />;
 
@@ -75363,9 +75397,37 @@ export function AdminDashboard() {
             <span style={{ fontSize: 12, fontWeight: 600, color: D.muted }}>{new Date().toLocaleDateString('en-IN', { weekday: 'short' })} — Let's get it done!</span>
           </div>
 
+          {/* ── Close Route button - navigates to Orders page ── */}
           {!closure?.isClosed && (
-            <button onClick={() => setConfirmClose(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, border: 'none', background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', boxShadow: `0 4px 14px ${D.accentGlow}`, marginLeft: 'auto' }}>
-              <Lock size={14} /> Close Day
+            <button
+              onClick={() => navigate('/admin/orders')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 16px',
+                borderRadius: 10,
+                border: 'none',
+                background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                color: '#fff',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                boxShadow: `0 4px 14px ${D.accentGlow}`,
+                marginLeft: 'auto',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${D.accentGlow}`;
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${D.accentGlow}`;
+              }}
+            >
+              <Lock size={14} /> Close a Route
             </button>
           )}
         </div>
@@ -75413,19 +75475,6 @@ export function AdminDashboard() {
           </div>
         )}
       </div>
-
-      {/* ── Close Day Modal ─────────────────────────────────────────────────── */}
-      {confirmClose && (
-        <ConfirmModal
-          open={confirmClose}
-          title="Close Operational Day"
-          message="This will lock all submitted orders for today. This action cannot be undone."
-          confirmLabel={closing ? 'Closing…' : 'Close Day'}
-          danger
-          onConfirm={handleCloseDay}
-          onCancel={() => setConfirmClose(false)}
-        />
-      )}
     </div>
   );
 }
@@ -76739,10 +76788,15 @@ Sugar - 50 kg`}
 ## File: src/pages/Admin/AdminOrders.tsx
 ``````typescript
 // PATH: src/pages/Admin/AdminOrders.tsx
-// FIXED: Layout matching the design in the screenshot
-// - Clean stats cards in a single row
-// - Close Day button properly positioned
-// - Removed Edit Order button from review modal
+// FIXED: Per-route closure instead of global close day
+// - Admin selects a route from dropdown → Close [Route Name] button appears
+// - Only the selected route's orders are locked
+// - Other routes remain InProgress and can still take orders
+// - Reopen Route undoes a closure
+// - UPDATED: Close/Reopen now toggle which one is the highlighted action —
+//   route open → bright "Close Route" button; route closed → quiet closed-at
+//   text + bright amber "Reopen Route" button. State flips instantly on
+//   success instead of waiting on a refetch round-trip.
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -76750,7 +76804,7 @@ import {
   ShoppingCart, RefreshCw, CheckCircle, Search,
   Package, Eye, Edit2, Clock, X,
   User, Globe, Lock, AlertTriangle, List, CalendarDays,
-  ArrowLeft,
+  ArrowLeft, RotateCcw,
 } from 'lucide-react';
 import { ordersApi, routesApi, settlementApi } from '../../api/services';
 import type { OrderDto, RouteDto, OrderDetailDto, CustomerOrderHistoryDto } from '../../types';
@@ -76774,6 +76828,8 @@ const D = {
   green:    '#22c55e',
   red:      '#ef4444',
   amber:    '#f59e0b',
+  amberH:   '#d97706',
+  amberGlow: 'rgba(245,158,11,0.35)',
   card:     '#1e293b',
 };
 
@@ -76854,12 +76910,17 @@ export function AdminOrders() {
   const [reviewOrder,    setReviewOrder]    = useState<OrderDetailDto | null>(null);
   const [showModal,      setShowModal]      = useState(false);
   const [loadingReview,  setLoadingReview]  = useState(false);
-  const [showCloseDayModal, setShowCloseDayModal] = useState(false);
+
+  // ── Per-route close state ────────────────────────────────────────────────
+  const [closingRouteId, setClosingRouteId] = useState<string | null>(null);
   const [closingDay,     setClosingDay]     = useState(false);
   const [closeDayError,  setCloseDayError]  = useState('');
   const [closeDayNotes,  setCloseDayNotes]  = useState('');
   const [closureStatus,  setClosureStatus]  = useState<{ isClosed: boolean; closedAt?: string } | null>(null);
-  const [currentDate,    setCurrentDate]    = useState('');
+
+  // ── Reopen Route state ──────────────────────────────────────────────────────
+  const [reopeningRouteId, setReopeningRouteId] = useState<string | null>(null);
+  const [reopening,        setReopening]        = useState(false);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -76875,7 +76936,7 @@ export function AdminOrders() {
     setLoading(true); setError('');
     try {
       const statusNumber = statusFilter ? STATUS_TO_NUMBER[statusFilter] : undefined;
-      
+
       let allOrders: OrderDto[] = [];
       if (!routeFilter || routeFilter === 'all') {
         const results = await Promise.all(
@@ -76890,8 +76951,12 @@ export function AdminOrders() {
       setOrders(filtered);
 
       try {
-        const status = await settlementApi.getStatus();
-        setClosureStatus(status);
+        if (routeFilter && routeFilter !== 'all') {
+          const status = await settlementApi.getStatus(dateFilter || today, routeFilter);
+          setClosureStatus(status);
+        } else {
+          setClosureStatus(null);
+        }
       } catch {
         // Ignore
       }
@@ -76936,23 +77001,50 @@ export function AdminOrders() {
     finally { setClosing(null); }
   }
 
-  async function handleCloseDay() {
+  async function handleCloseRoute(routeId: string) {
+    const route = routes.find(r => String(r.id) === routeId);
     setClosingDay(true); setCloseDayError('');
     try {
-      const result = await settlementApi.closeDay(today, closeDayNotes || undefined);
-      setShowCloseDayModal(false);
+      const result = await settlementApi.closeDay(dateFilter || today, routeId, closeDayNotes || undefined);
+      setClosingRouteId(null);
       setCloseDayNotes('');
-      setSuccess(`✅ Day closed successfully! ${result.ordersLocked} orders locked. Revenue: ${fmt(result.totalRevenue)}`);
-      
-      const status = await settlementApi.getStatus();
+      setSuccess(`✅ ${route?.name ?? 'Route'} closed! ${result.message ?? ''}`);
+
+      // ── Flip the UI to "closed" immediately — don't wait on the
+      // getStatus() round-trip below to know which button to show ──
+      setClosureStatus({ isClosed: true, closedAt: new Date().toISOString() });
+
+      // Then reconcile with the server's actual record (exact timestamp etc)
+      const status = await settlementApi.getStatus(dateFilter || today, routeId);
       setClosureStatus(status);
-      
+
       await load();
       setTimeout(() => setSuccess(''), 5000);
     } catch (err: unknown) {
-      setCloseDayError(err instanceof Error ? err.message : 'Failed to close the day');
+      setCloseDayError(err instanceof Error ? err.message : `Failed to close ${route?.name ?? 'the route'}`);
     } finally {
       setClosingDay(false);
+    }
+  }
+
+  async function handleReopenRoute(routeId: string) {
+    const route = routes.find(r => String(r.id) === routeId);
+    setReopening(true); setCloseDayError('');
+    try {
+      const result = await settlementApi.reopenRoute(dateFilter || today, routeId);
+      setReopeningRouteId(null);
+      setSuccess(`↩️ ${route?.name ?? 'Route'} reopened. ${result.ordersUnlocked} order(s) unlocked.`);
+
+      // ── Flip the UI back to "open" immediately — this is what makes
+      // "Close Route" reappear right away instead of a beat later ──
+      setClosureStatus({ isClosed: false });
+
+      await load();
+      setTimeout(() => setSuccess(''), 5000);
+    } catch (err: unknown) {
+      setCloseDayError(err instanceof Error ? err.message : `Failed to reopen ${route?.name ?? 'the route'}`);
+    } finally {
+      setReopening(false);
     }
   }
 
@@ -77014,6 +77106,11 @@ export function AdminOrders() {
     }
   }, [closureStatus?.isClosed]);
 
+  // ── Current date state ──
+  const [currentDate, setCurrentDate] = useState('');
+
+  const selectedRouteName = routes.find(r => String(r.id) === routeFilter)?.name ?? 'Route';
+
   return (
     <div style={{ background: D.bg, minHeight: '100vh', paddingBottom: 8 }}>
       {/* ── TOP HEADER ── */}
@@ -77024,7 +77121,7 @@ export function AdminOrders() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Link 
+            <Link
               to={user?.role === 'Admin' || user?.role === 'SuperAdmin' ? '/admin/dashboard' : '/'}
               style={{
                 display: 'flex',
@@ -77073,10 +77170,10 @@ export function AdminOrders() {
           </button>
         </div>
 
-        {/* ── STATS CARDS + CLOSE DAY ── */}
-        <div style={{ 
-          display: 'flex', 
-          gap: 12, 
+        {/* ── STATS CARDS + CLOSE / REOPEN ROUTE ── */}
+        <div style={{
+          display: 'flex',
+          gap: 12,
           marginTop: 12,
           alignItems: 'stretch',
           flexWrap: 'wrap'
@@ -77119,67 +77216,92 @@ export function AdminOrders() {
           {/* ── Spacer ── */}
           <div style={{ flex: 1 }} />
 
-          {/* ── Close Day button ── */}
-          {!closureStatus?.isClosed && (
-            <button
-              onClick={() => { setShowCloseDayModal(true); setCloseDayError(''); }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '8px 18px',
-                borderRadius: 10,
-                border: 'none',
-                background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 700,
-                color: '#fff',
-                fontFamily: 'inherit',
-                boxShadow: `0 2px 12px ${D.accentGlow}`,
-                transition: 'all 0.15s',
-                alignSelf: 'center',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-                (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 18px ${D.accentGlow}`;
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                (e.currentTarget as HTMLElement).style.boxShadow = `0 2px 12px ${D.accentGlow}`;
-              }}
-            >
-              <Lock size={15} />
-              Close Day
-            </button>
-          )}
-
-          {/* Day Closed status */}
-          {closureStatus?.isClosed && closureStatus.closedAt && (
-            <div style={{
-              padding: '8px 16px',
-              borderRadius: 10,
-              background: 'rgba(34,197,94,0.10)',
-              border: `1px solid rgba(34,197,94,0.25)`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              alignSelf: 'center',
-            }}>
-              <CheckCircle size={16} color={D.green} />
-              <div>
-                <span style={{ fontSize: 11, color: D.green, fontWeight: 700 }}>
-                  Day Closed ✓
-                </span>
-                <span style={{ fontSize: 10, color: D.muted, display: 'block' }}>
-                  {new Date(closureStatus.closedAt).toLocaleDateString('en-IN', { 
-                    day: 'numeric', month: 'short' 
-                  })} · {new Date(closureStatus.closedAt).toLocaleTimeString('en-IN', { 
-                    hour: '2-digit', minute: '2-digit' 
-                  })}
-                </span>
-              </div>
+          {/* ── Close / Reopen toggle — scoped to the currently selected route ──
+              Whichever action is actually available is the bright, primary
+              button. The other state is either hidden or shown as quiet text. ── */}
+          {routeFilter && routeFilter !== 'all' ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {!closureStatus?.isClosed ? (
+                // ── OPEN: "Close Route" is the highlighted action ──
+                <button
+                  onClick={() => { setClosingRouteId(routeFilter); setCloseDayError(''); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 18px',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: '#fff',
+                    fontFamily: 'inherit',
+                    boxShadow: `0 2px 12px ${D.accentGlow}`,
+                    transition: 'all 0.15s',
+                    alignSelf: 'center',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 18px ${D.accentGlow}`;
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = `0 2px 12px ${D.accentGlow}`;
+                  }}
+                >
+                  <Lock size={15} />
+                  Close {selectedRouteName}
+                </button>
+              ) : (
+                // ── CLOSED: "Reopen Route" is the highlighted action ──
+                <>
+                  <span style={{ fontSize: 12, color: D.sub, fontWeight: 600, alignSelf: 'center' }}>
+                    {selectedRouteName} closed at{' '}
+                    {closureStatus.closedAt
+                      ? new Date(closureStatus.closedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+                      : ''}
+                  </span>
+                  <button
+                    onClick={() => { setReopeningRouteId(routeFilter); setCloseDayError(''); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '8px 18px',
+                      borderRadius: 10,
+                      border: 'none',
+                      background: `linear-gradient(135deg, ${D.amber}, ${D.amberH})`,
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: '#fff',
+                      fontFamily: 'inherit',
+                      boxShadow: `0 2px 12px ${D.amberGlow}`,
+                      transition: 'all 0.15s',
+                      alignSelf: 'center',
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                      (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 18px ${D.amberGlow}`;
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                      (e.currentTarget as HTMLElement).style.boxShadow = `0 2px 12px ${D.amberGlow}`;
+                    }}
+                  >
+                    <RotateCcw size={15} />
+                    Reopen Route
+                  </button>
+                </>
+              )}
             </div>
+          ) : (
+            // ── "All Routes" selected — no single close action anymore ──
+            <span style={{ fontSize: 12, color: D.sub, alignSelf: 'center', fontStyle: 'italic' }}>
+              Select a route above to close or reopen it
+            </span>
           )}
         </div>
       </div>
@@ -77197,9 +77319,9 @@ export function AdminOrders() {
           marginBottom: 16,
         }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-            <select 
-              style={selectStyle} 
-              value={routeFilter} 
+            <select
+              style={selectStyle}
+              value={routeFilter}
               onChange={e => setRouteFilter(e.target.value)}
             >
               <option value="all">🌍 All Routes</option>
@@ -77207,9 +77329,9 @@ export function AdminOrders() {
             </select>
 
             <input
-              type="date" 
+              type="date"
               style={dateInputStyle}
-              value={dateFilter} 
+              value={dateFilter}
               onChange={e => setDateFilter(e.target.value)}
             />
 
@@ -77217,13 +77339,13 @@ export function AdminOrders() {
               <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: D.sub }} />
               <input
                 style={{ ...selectStyle, paddingLeft: 32, width: '100%' }}
-                value={search} 
+                value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search customer..."
               />
               {search && (
-                <button 
-                  onClick={() => setSearch('')} 
+                <button
+                  onClick={() => setSearch('')}
                   style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: D.sub, display: 'flex' }}
                 >
                   <X size={14} />
@@ -77258,10 +77380,10 @@ export function AdminOrders() {
                       const statusKey = String(order.status);
                       const cfg = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG['Draft'];
                       const items = order.items ?? [];
-                      
-                      const isClosable = (statusKey === 'Approved' || 
+
+                      const isClosable = (statusKey === 'Approved' ||
                                         statusKey === 'Packed') && !order.isLocked;
-                      
+
                       const isPending = statusKey === 'PendingApproval';
                       const isExpanded = expandedOrder === String(order.id);
 
@@ -77370,8 +77492,8 @@ export function AdminOrders() {
 
                             {/* Actions */}
                             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                              <button 
-                                onClick={() => handleReview(String(order.id))} 
+                              <button
+                                onClick={() => handleReview(String(order.id))}
                                 disabled={loadingReview}
                                 style={actionBtn(D.surface, D.muted)}
                               >
@@ -77379,8 +77501,8 @@ export function AdminOrders() {
                               </button>
 
                               {isPending && (
-                                <button 
-                                  onClick={() => handleApprove(String(order.id))} 
+                                <button
+                                  onClick={() => handleApprove(String(order.id))}
                                   disabled={approving === String(order.id)}
                                   style={actionBtn(D.accent, '#FFFFFF', true)}
                                 >
@@ -77390,8 +77512,8 @@ export function AdminOrders() {
                               )}
 
                               {isClosable && (
-                                <button 
-                                  onClick={() => handleClose(String(order.id))} 
+                                <button
+                                  onClick={() => handleClose(String(order.id))}
                                   disabled={closing === String(order.id)}
                                   style={actionBtn(D.green, '#FFFFFF', true)}
                                 >
@@ -77551,18 +77673,17 @@ export function AdminOrders() {
                 </div>
               </div>
 
-              {/* ── Updated Remarks Section with Numbered Items ── */}
               {reviewOrder.remarks && (
-                <div style={{ 
-                  marginTop: 10, 
-                  padding: '8px 10px', 
-                  borderRadius: 8, 
-                  background: 'rgba(245,158,11,0.08)', 
-                  border: `1px solid rgba(245,158,11,0.20)` 
+                <div style={{
+                  marginTop: 10,
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  background: 'rgba(245,158,11,0.08)',
+                  border: `1px solid rgba(245,158,11,0.20)`
                 }}>
                   <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: D.amber }}>📝 Retail Items</p>
-                  <div style={{ 
-                    fontSize: 12, 
+                  <div style={{
+                    fontSize: 12,
                     color: D.muted,
                     lineHeight: 1.6,
                     fontFamily: 'monospace',
@@ -77572,20 +77693,20 @@ export function AdminOrders() {
                       .map((item: string) => item.trim())
                       .filter((item: string) => item.length > 0)
                       .map((item: string, idx: number, arr: string[]) => (
-                        <div 
+                        <div
                           key={idx}
                           style={{
                             display: 'flex',
                             alignItems: 'flex-start',
                             gap: 8,
                             padding: '2px 0',
-                            borderBottom: idx < arr.length - 1 
-                              ? `1px solid rgba(245,158,11,0.10)` 
+                            borderBottom: idx < arr.length - 1
+                              ? `1px solid rgba(245,158,11,0.10)`
                               : 'none',
                           }}
                         >
-                          <span style={{ 
-                            fontWeight: 700, 
+                          <span style={{
+                            fontWeight: 700,
                             color: D.amber,
                             minWidth: 24,
                             flexShrink: 0,
@@ -77614,7 +77735,7 @@ export function AdminOrders() {
                   Approve
                 </button>
               )}
-              
+
               {(() => {
                 const modalStatusKey = String(reviewOrder.status);
                 return (modalStatusKey === 'Approved' || modalStatusKey === 'Packed') && !reviewOrder.isLocked ? (
@@ -77633,10 +77754,10 @@ export function AdminOrders() {
         </div>
       )}
 
-      {/* ── Close Day confirmation modal ── */}
-      {showCloseDayModal && (
+      {/* ── Close Route confirmation modal ── */}
+      {closingRouteId && (
         <div
-          onClick={() => !closingDay && setShowCloseDayModal(false)}
+          onClick={() => !closingDay && setClosingRouteId(null)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.70)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
         >
           <div
@@ -77647,11 +77768,16 @@ export function AdminOrders() {
               <div style={{ width: 36, height: 36, borderRadius: 8, background: D.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Lock size={16} color="#fff" />
               </div>
-              <h3 style={{ fontSize: 16, fontWeight: 900, color: D.text, margin: 0 }}>Close Day?</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 900, color: D.text, margin: 0 }}>
+                Close {routes.find(r => String(r.id) === closingRouteId)?.name ?? 'Route'}?
+              </h3>
             </div>
 
             <p style={{ fontSize: 13, color: D.muted, lineHeight: 1.5, fontWeight: 500, margin: '0 0 12px' }}>
-              This locks every submitted order for <strong style={{ color: D.text }}>{today}</strong>.
+              This locks every submitted order for{' '}
+              <strong style={{ color: D.text }}>{routes.find(r => String(r.id) === closingRouteId)?.name}</strong>{' '}
+              on <strong style={{ color: D.text }}>{dateFilter || today}</strong> and generates its loading sheet.
+              Only this route is affected — other routes keep taking orders normally.
               This action cannot be undone.
             </p>
 
@@ -77661,21 +77787,13 @@ export function AdminOrders() {
             <textarea
               value={closeDayNotes}
               onChange={e => setCloseDayNotes(e.target.value)}
-              placeholder="Remarks for today's closure"
+              placeholder="Remarks for this route's closure"
               rows={2}
               style={{
-                width: '100%',
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: `1px solid ${D.border}`,
-                background: D.bg,
-                fontSize: 13,
-                color: D.text,
-                fontFamily: 'inherit',
-                resize: 'vertical',
-                marginBottom: 12,
-                boxSizing: 'border-box',
-                outline: 'none',
+                width: '100%', padding: '8px 10px', borderRadius: 8,
+                border: `1px solid ${D.border}`, background: D.bg, fontSize: 13,
+                color: D.text, fontFamily: 'inherit', resize: 'vertical',
+                marginBottom: 12, boxSizing: 'border-box', outline: 'none',
               }}
             />
 
@@ -77687,46 +77805,93 @@ export function AdminOrders() {
 
             <div style={{ display: 'flex', gap: 8 }}>
               <button
-                onClick={() => setShowCloseDayModal(false)}
+                onClick={() => setClosingRouteId(null)}
                 disabled={closingDay}
                 style={{
-                  flex: 1,
-                  padding: '10px',
-                  borderRadius: 8,
-                  border: `1px solid ${D.border}`,
-                  background: D.bg,
-                  color: D.muted,
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: closingDay ? 'not-allowed' : 'pointer',
-                  fontFamily: 'inherit',
+                  flex: 1, padding: '10px', borderRadius: 8, border: `1px solid ${D.border}`,
+                  background: D.bg, color: D.muted, fontWeight: 700, fontSize: 13,
+                  cursor: closingDay ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
                 }}
               >
                 Cancel
               </button>
               <button
-                onClick={handleCloseDay}
+                onClick={() => handleCloseRoute(closingRouteId)}
                 disabled={closingDay}
                 style={{
-                  flex: 1,
-                  padding: '10px',
-                  borderRadius: 8,
-                  border: 'none',
+                  flex: 1, padding: '10px', borderRadius: 8, border: 'none',
                   background: closingDay ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-                  color: '#fff',
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: closingDay ? 'not-allowed' : 'pointer',
-                  fontFamily: 'inherit',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
+                  color: '#fff', fontWeight: 700, fontSize: 13,
+                  cursor: closingDay ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   boxShadow: closingDay ? 'none' : `0 2px 12px ${D.accentGlow}`,
                 }}
               >
                 {closingDay ? <Spinner size={14} /> : <Lock size={14} />}
-                {closingDay ? 'Closing...' : 'Close Day'}
+                {closingDay ? 'Closing…' : 'Close Route'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reopen Route confirmation modal ── */}
+      {reopeningRouteId && (
+        <div
+          onClick={() => !reopening && setReopeningRouteId(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.70)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: D.surface, borderRadius: 14, padding: 20, width: '100%', maxWidth: 400, border: `1px solid ${D.border}`, boxShadow: `0 20px 60px rgba(0,0,0,0.5)` }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: D.amber, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <RotateCcw size={16} color="#fff" />
+              </div>
+              <h3 style={{ fontSize: 16, fontWeight: 900, color: D.text, margin: 0 }}>
+                Reopen {routes.find(r => String(r.id) === reopeningRouteId)?.name ?? 'Route'}?
+              </h3>
+            </div>
+
+            <p style={{ fontSize: 13, color: D.muted, lineHeight: 1.5, fontWeight: 500, margin: '0 0 16px' }}>
+              This unlocks orders for this route and puts it back in progress, as if it was never closed.
+              It'll be blocked automatically if the salesman already started a new cycle, or if warehouse
+              has already started packing.
+            </p>
+
+            {closeDayError && (
+              <div style={{ marginBottom: 12 }}>
+                <Alert variant="error">{closeDayError}</Alert>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setReopeningRouteId(null)}
+                disabled={reopening}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: 8, border: `1px solid ${D.border}`,
+                  background: D.bg, color: D.muted, fontWeight: 700, fontSize: 13,
+                  cursor: reopening ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleReopenRoute(reopeningRouteId)}
+                disabled={reopening}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: 8, border: 'none',
+                  background: reopening ? D.border : `linear-gradient(135deg, ${D.amber}, ${D.amberH})`,
+                  color: '#fff', fontWeight: 700, fontSize: 13,
+                  cursor: reopening ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  boxShadow: reopening ? 'none' : `0 2px 12px ${D.amberGlow}`,
+                }}
+              >
+                {reopening ? <Spinner size={14} /> : <RotateCcw size={14} />}
+                {reopening ? 'Reopening…' : 'Reopen Route'}
               </button>
             </div>
           </div>
@@ -77839,6 +78004,17 @@ function parsePriceFromItemCode(code: string): number | null {
   return !isNaN(n) && n >= 0 ? n : null;
 }
 
+// ── Helper: Format a price for embedding in an item code, WITHOUT rounding
+// away decimals (99.57 must stay "99.57", not become "100"). Rounds only to
+// kill binary floating-point noise (e.g. 500.1 * 1 -> 500.09999999999997),
+// then trims trailing zeros so whole numbers still look clean ("100", not "100.00"). ──
+function formatPriceForItemCode(price: number): string {
+  const rounded = Math.round(price * 100) / 100;   // clamp to 2dp, kills float noise only
+  let s = rounded.toFixed(2);                       // "99.57", "500.50", "100.00"
+  s = s.replace(/0+$/, '').replace(/\.$/, '');       // "99.57", "500.5", "100"
+  return s;
+}
+
 // ── Helper: Generate item code from prefix and price ────────
 function generateItemCode(prefix: string, price: number): string {
   const cleanPrefix = prefix.trim();
@@ -77846,7 +78022,7 @@ function generateItemCode(prefix: string, price: number): string {
   const basePrefix = cleanPrefix.includes('-') 
     ? cleanPrefix.substring(0, cleanPrefix.lastIndexOf('-') + 1)
     : cleanPrefix + '-';
-  return `${basePrefix}${Math.round(price)}`;
+  return `${basePrefix}${formatPriceForItemCode(price)}`;
 }
 
 // ── Helper: Extract prefix from item code ─────────────────────
@@ -78051,6 +78227,7 @@ function ProductFormFields({
         min="0"
         value={form.basePrice} 
         onChange={handlePriceChange}
+        onWheel={e => e.currentTarget.blur()}
         placeholder="Enter base price" 
         style={{ ...inp, fontSize: 18, fontWeight: 700, color: D.accent }}
         onFocus={onFoc} onBlur={onBlr} 
@@ -78095,6 +78272,7 @@ function ProductFormFields({
         min="0"
         value={form.unitSize}
         onChange={e => setForm((p: any) => ({ ...p, unitSize: e.target.value }))}
+        onWheel={e => e.currentTarget.blur()}
         placeholder="Enter unit size (e.g., 50, 100)"
         style={inp}
         onFocus={onFoc} onBlur={onBlr}
@@ -78120,6 +78298,7 @@ function ProductFormFields({
         min="0"
         value={form.incentive}
         onChange={e => setForm((p: any) => ({ ...p, incentive: e.target.value }))}
+        onWheel={e => e.currentTarget.blur()}
         placeholder="Enter incentive amount (e.g., 5, 10.50)"
         style={inp}
         onFocus={onFoc} onBlur={onBlr}
@@ -78229,21 +78408,18 @@ export function AdminProducts() {
   useEffect(() => {
     if (showAdd) {
       setAddForm({ ...emptyForm, productGroupId: groups[0]?.id ?? '' });
-      setTimeout(() => addCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+       setTimeout(() => {
+      const firstInput = addCardRef.current?.querySelector('input');
+      if (firstInput) firstInput.focus();
+    }, 50);
+  
     }
   }, [showAdd]);
 
   function openEdit(p: ProductDto) {
-      console.log('🔵 ===== OPEN EDIT =====');
-  console.log('🔵 Full product object:', p);
-  console.log('🔵 UnitSize from product:', (p as any).UnitSize);
-  console.log('🔵 Incentive from product:', (p as any).Incentive);
-  console.log('🔵 Product keys:', Object.keys(p));
     const prefix = p.itemCode ? extractItemCodePrefix(p.itemCode) : DEFAULT_ITEM_CODE_PREFIX;
     const unitSizeValue = (p as any).unitSize ?? "";
     const incentiveValue = (p as any).incentive ?? "";
-      console.log('🔵 unitSizeValue:', unitSizeValue);
-  console.log('🔵 incentiveValue:', incentiveValue);
     setEditForm({
       name: p.nameEnglish,
       nameMl: p.nameMalayalam ?? '',
@@ -78271,20 +78447,20 @@ export function AdminProducts() {
   }
 
   async function handleAdd() {
-     console.log('🔵 unitSize value:', addForm.unitSize);
-  console.log('🔵 incentive value:', addForm.incentive);
-  console.log('🔵 Type of unitSize:', typeof addForm.unitSize);
-  console.log('🔵 Full addForm:', addForm);
     if (!addForm.name.trim() || !addForm.productGroupId) {
       setError('Fill all required fields.');
       return;
     }
-    // Parse price from either the item code or the base price field
-    let parsedPrice = parsePriceFromItemCode(addForm.itemCode);
-    if (parsedPrice === null) {
-      parsedPrice = parseFloat(addForm.basePrice);
+    // ── The Base Price field is the source of truth (it's what the admin sees and
+    // typed directly). Only fall back to parsing the item code if Base Price is
+    // somehow empty/invalid — previously this was backwards, which combined with
+    // generateItemCode's old Math.round() meant a typed price like 99.57 could get
+    // silently replaced by whatever integer the item code got rounded to (100). ──
+    let parsedPrice = parseFloat(addForm.basePrice);
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+      parsedPrice = parsePriceFromItemCode(addForm.itemCode) ?? NaN;
     }
-    if (parsedPrice === null || parsedPrice <= 0) {
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
       setError('Please enter a valid price (either in Base Price or Item Code).');
       return;
     }
@@ -78298,12 +78474,6 @@ export function AdminProducts() {
     setError('');
     
     try {
-      console.log('🔵 Payload being sent:', {
-  nameEnglish: addForm.name,
-  productGroupId: addForm.productGroupId,
-  UnitSize: addForm.unitSize ? parseFloat(addForm.unitSize) : 0,
-  Incentive: addForm.incentive ? parseFloat(addForm.incentive) : 0,
-});
       await productsApi.create({
         nameEnglish: addForm.name,
         nameMalayalam: addForm.nameMl || undefined,
@@ -78327,12 +78497,12 @@ export function AdminProducts() {
       setError('Fill all required fields.');
       return;
     }
-    // Parse price from either the item code or the base price field
-    let parsedPrice = parsePriceFromItemCode(editForm.itemCode);
-    if (parsedPrice === null) {
-      parsedPrice = parseFloat(editForm.basePrice);
+    // ── Base Price field is authoritative — see note in handleAdd above. ──
+    let parsedPrice = parseFloat(editForm.basePrice);
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+      parsedPrice = parsePriceFromItemCode(editForm.itemCode) ?? NaN;
     }
-    if (parsedPrice === null || parsedPrice <= 0) {
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
       setError('Please enter a valid price.');
       return;
     }
@@ -78879,6 +79049,7 @@ export function AdminProducts() {
                   <div style={{ position: 'relative' }}>
                     <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: D.accent, fontSize: 16 }}>₹</span>
                     <input type="number" step="0.01" min="0" value={newPrice} onChange={e => setNewPrice(e.target.value)}
+                      onWheel={e => e.currentTarget.blur()}
                       style={{ ...inp, paddingLeft: 32, fontSize: 18, fontWeight: 800, color: D.accent }} onFocus={onFoc} onBlur={onBlr} autoFocus />
                   </div>
                   {newPrice && priceModal.basePrice && (
@@ -79434,9 +79605,11 @@ export function AdminReports() {
   const [loadDate,   setLoadDate]   = useState(today);
   const [billRoute,  setBillRoute]  = useState('');
   const [billDate,   setBillDate]   = useState(today);
-  const [routeRptRoute, setRouteRptRoute] = useState('');
-  const [routeFrom, setRouteFrom]  = useState(thirtyDaysAgo);
-  const [routeTo,   setRouteTo]    = useState(today);
+  // const [routeRptRoute, setRouteRptRoute] = useState('');
+  // const [routeFrom, setRouteFrom]  = useState(thirtyDaysAgo);
+  // const [routeTo,   setRouteTo]    = useState(today);
+  const [incentiveFrom, setIncentiveFrom] = useState(thirtyDaysAgo);
+  const [incentiveTo, setIncentiveTo] = useState(today);
   const [prodGroup, setProdGroup]   = useState('');
   const [prodFrom,  setProdFrom]    = useState(thirtyDaysAgo);
   const [prodTo,    setProdTo]      = useState(today);
@@ -79575,92 +79748,125 @@ export function AdminReports() {
         previewReport('billing', `Billing Sheet - ${billDate} (${routeName})`, fn, downloadFn);
       },
     },
+    // {
+    //   key: 'routeSummary',
+    //   title: 'Route Summary Report',
+    //   desc: 'Route-wise performance summary for a date range',
+    //   icon: '📊',
+    //   color: '#3B82F6',
+    //   roles: 'Admin',
+    //   filters: (
+    //     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+    //       <select 
+    //         className="input" 
+    //         value={routeRptRoute} 
+    //         onChange={(e) => setRouteRptRoute(e.target.value)} 
+    //         style={selectStyle(isMobile)}
+    //       >
+    //         <option value="">🌍 All Routes</option>
+    //         {routes.map((r) => <option key={r.id} value={r.id}>📍 {r.name}</option>)}
+    //       </select>
+    //       <input 
+    //         className="input" 
+    //         type="date" 
+    //         value={routeFrom} 
+    //         onChange={(e) => setRouteFrom(e.target.value)} 
+    //         style={dateInputStyle(isMobile)}
+    //       />
+    //       <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
+    //       <input 
+    //         className="input" 
+    //         type="date" 
+    //         value={routeTo} 
+    //         onChange={(e) => setRouteTo(e.target.value)} 
+    //         style={dateInputStyle(isMobile)}
+    //       />
+    //     </div>
+    //   ),
+    //   onDownload: () => download('routeSummary', () => reportsApi.downloadRouteSummary(routeRptRoute || undefined, routeFrom, routeTo), `RouteSummary_${routeFrom}_${routeTo}.pdf`),
+    //   onPreview: () => {
+    //     const fn = () => reportsApi.downloadRouteSummary(routeRptRoute || undefined, routeFrom, routeTo);
+    //     const downloadFn = () => download('routeSummary', fn, `RouteSummary_${routeFrom}_${routeTo}.pdf`);
+    //     const routeName = routeRptRoute ? routes.find(r => r.id === routeRptRoute)?.name : 'All Routes';
+    //     previewReport('routeSummary', `Route Summary - ${routeFrom} to ${routeTo} (${routeName})`, fn, downloadFn);
+    //   },
+    // },
     {
-      key: 'routeSummary',
-      title: 'Route Summary Report',
-      desc: 'Route-wise performance summary for a date range',
-      icon: '📊',
-      color: '#3B82F6',
-      roles: 'Admin',
-      filters: (
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <select 
-            className="input" 
-            value={routeRptRoute} 
-            onChange={(e) => setRouteRptRoute(e.target.value)} 
-            style={selectStyle(isMobile)}
-          >
-            <option value="">🌍 All Routes</option>
-            {routes.map((r) => <option key={r.id} value={r.id}>📍 {r.name}</option>)}
-          </select>
-          <input 
-            className="input" 
-            type="date" 
-            value={routeFrom} 
-            onChange={(e) => setRouteFrom(e.target.value)} 
-            style={dateInputStyle(isMobile)}
-          />
-          <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
-          <input 
-            className="input" 
-            type="date" 
-            value={routeTo} 
-            onChange={(e) => setRouteTo(e.target.value)} 
-            style={dateInputStyle(isMobile)}
-          />
-        </div>
-      ),
-      onDownload: () => download('routeSummary', () => reportsApi.downloadRouteSummary(routeRptRoute || undefined, routeFrom, routeTo), `RouteSummary_${routeFrom}_${routeTo}.pdf`),
-      onPreview: () => {
-        const fn = () => reportsApi.downloadRouteSummary(routeRptRoute || undefined, routeFrom, routeTo);
-        const downloadFn = () => download('routeSummary', fn, `RouteSummary_${routeFrom}_${routeTo}.pdf`);
-        const routeName = routeRptRoute ? routes.find(r => r.id === routeRptRoute)?.name : 'All Routes';
-        previewReport('routeSummary', `Route Summary - ${routeFrom} to ${routeTo} (${routeName})`, fn, downloadFn);
-      },
-    },
-    {
-      key: 'productSummary',
-      title: 'Product Summary Report',
-      desc: 'SKU-level movement and revenue analysis',
-      icon: '📦',
-      color: '#8B5CF6',
-      roles: 'Admin',
-      filters: (
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <select 
-            className="input" 
-            value={prodGroup} 
-            onChange={(e) => setProdGroup(e.target.value)} 
-            style={selectStyle(isMobile)}
-          >
-            <option value="">📦 All Groups</option>
-            {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-          </select>
-          <input 
-            className="input" 
-            type="date" 
-            value={prodFrom} 
-            onChange={(e) => setProdFrom(e.target.value)} 
-            style={dateInputStyle(isMobile)}
-          />
-          <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
-          <input 
-            className="input" 
-            type="date" 
-            value={prodTo} 
-            onChange={(e) => setProdTo(e.target.value)} 
-            style={dateInputStyle(isMobile)}
-          />
-        </div>
-      ),
-      onDownload: () => download('productSummary', () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo), `ProductSummary_${prodFrom}_${prodTo}.pdf`),
-      onPreview: () => {
-        const fn = () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo);
-        const downloadFn = () => download('productSummary', fn, `ProductSummary_${prodFrom}_${prodTo}.pdf`);
-        const groupName = prodGroup ? groups.find(g => g.id === prodGroup)?.name : 'All Groups';
-        previewReport('productSummary', `Product Summary - ${prodFrom} to ${prodTo} (${groupName})`, fn, downloadFn);
-      },
-    },
+  key: 'summaryReport',
+  title: 'Summary Report',  // ← CHANGED
+  desc: 'Product-wise summary with packing category & size group',
+  icon: '📊',
+  color: '#8B5CF6',
+  roles: 'Admin',
+  filters: (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      <select 
+        className="input" 
+        value={prodGroup} 
+        onChange={(e) => setProdGroup(e.target.value)} 
+        style={selectStyle(isMobile)}
+      >
+        <option value="">📦 All Groups</option>
+        {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+      </select>
+      <input 
+        className="input" 
+        type="date" 
+        value={prodFrom} 
+        onChange={(e) => setProdFrom(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+      <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
+      <input 
+        className="input" 
+        type="date" 
+        value={prodTo} 
+        onChange={(e) => setProdTo(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+    </div>
+  ),
+  onDownload: () => download('summaryReport', () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo), `SummaryReport_${prodFrom}_${prodTo}.pdf`),
+  onPreview: () => {
+    const fn = () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo);
+    const downloadFn = () => download('summaryReport', fn, `SummaryReport_${prodFrom}_${prodTo}.pdf`);
+    const groupName = prodGroup ? groups.find(g => g.id === prodGroup)?.name : 'All Groups';
+    previewReport('summaryReport', `Summary Report - ${prodFrom} to ${prodTo} (${groupName})`, fn, downloadFn);
+  },
+},
+{
+  key: 'incentive',
+  title: 'Incentive Report',
+  desc: 'Salesman-wise incentive earnings from product incentives',
+  icon: '🎯',
+  color: '#8B5CF6',
+  roles: 'Admin',
+  filters: (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+      <input 
+        className="input" 
+        type="date" 
+        value={incentiveFrom} 
+        onChange={(e) => setIncentiveFrom(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+      <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
+      <input 
+        className="input" 
+        type="date" 
+        value={incentiveTo} 
+        onChange={(e) => setIncentiveTo(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+    </div>
+  ),
+  onDownload: () => download('incentive', () => reportsApi.downloadIncentiveReport(incentiveFrom, incentiveTo), `IncentiveReport_${incentiveFrom}.pdf`),
+  onPreview: () => {
+    const fn = () => reportsApi.downloadIncentiveReport(incentiveFrom, incentiveTo);
+    const downloadFn = () => download('incentive', fn, `IncentiveReport_${incentiveFrom}.pdf`);
+    previewReport('incentive', `Incentive Report - ${incentiveFrom} to ${incentiveTo}`, fn, downloadFn);
+  },
+},
     {
       key: 'daily',
       title: 'Daily Summary Report',
@@ -87152,9 +87358,9 @@ export function PreviousOrdersModal({ isOpen, onClose, previousOrders, onUseOrde
           ))}
         </div>
         
-        <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-3 rounded-b-2xl text-center text-xs text-slate-400">
+        {/* <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-3 rounded-b-2xl text-center text-xs text-slate-400">
           Click "Use This Order" to load items into current bill
-        </div>
+        </div> */}
       </div>
     </>
   );
@@ -87439,30 +87645,54 @@ export default function OrderEntry() {
   ...(remarks ? { remarks } : {}),
 });
   const handleSave = async () => {
-    if (!canEdit) { setError('Cannot edit this order.'); return; }
-    if (lines.length === 0 && !remarks.trim()) { setError('Add at least one product or retail remark.'); return; }
-    const incomplete = lines.find(l => !l.qty || !l.sellingPrice);
-    if (incomplete) {
-      setError(`Enter quantity and price for "${incomplete.product.nameEnglish}" before saving.`);
-      return;
+  if (!canEdit) { 
+    setError('Cannot edit this order.'); 
+    return; 
+  }
+  
+  if (lines.length === 0 && !remarks.trim()) { 
+    setError('Add at least one product or retail remark.'); 
+    return; 
+  }
+  
+  const incomplete = lines.find(l => !l.qty || !l.sellingPrice);
+  if (incomplete) {
+    setError(`Enter quantity and price for "${incomplete.product.nameEnglish}" before saving.`);
+    return;
+  }
+  
+  setSaving(true); 
+  setError(''); 
+  setSuccessMsg('');
+  
+  try {
+    let result;
+    const payload = buildPayload();
+    
+    if (existingOrder) {
+      result = await ordersApi.update(existingOrder.id, { id: existingOrder.id, ...payload });
+      setSuccessMsg('Order updated!');
+    } else {
+      result = await ordersApi.create(payload);
+      setSuccessMsg('Saved as draft!');
     }
-    setSaving(true); setError(''); setSuccessMsg('');
-    try {
-      let result;
-      const payload = buildPayload();
-      if (existingOrder) {
-        result = await ordersApi.update(existingOrder.id, { id: existingOrder.id, ...payload });
-        setSuccessMsg('Order updated!');
-      } else {
-        result = await ordersApi.create(payload);
-        setSuccessMsg('Saved as draft!');
-      }
-      setExistingOrder(result);
-      // setTimeout(() => setSuccessMsg(''), 3000);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Save failed');
-    } finally { setSaving(false); }
-  };
+    
+    setExistingOrder(result);
+    
+    // ── SCROLL TO TOP (Multiple methods to ensure it works) ──
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    
+  } catch (e: unknown) {
+    setError(e instanceof Error ? e.message : 'Save failed');
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  } finally { 
+    setSaving(false); 
+  }
+};
 
   // ── FIX: Cancel/Delete Order — redirect back to Route Execution ──
   const handleCancelOrder = async () => {
@@ -90059,30 +90289,6 @@ export default function SalesmanOrders() {
 ## File: src/pages/Salesman/SalesmanRoutes.tsx
 ``````typescript
 // PATH: src/pages/Salesman/SalesmanRoutes.tsx
-//
-// "My Routes" — the single canonical route list, used on both desktop and mobile.
-//
-// IMPORTANT: routes are NOT gated behind a formal daily admin-assignment step.
-// All active routes are visible to every salesman (admin coordinates who takes
-// what informally, e.g. over WhatsApp/call) — the system's job is just to show
-// what's available vs. already started by someone else today, and to lock a
-// route to whoever starts it first. See routesApi.getActiveRoutes() / the
-// backend's GetActiveRoutesQueryHandler + StartRouteExecutionCommandHandler for
-// the actual locking logic.
-//
-// FIXES carried over from earlier passes:
-// 1. Route shows "Completed" immediately when returning
-// 2. No "Continue" loop — if route has submitted orders with no drafts → show Completed
-// 3. One active route at a time PER SALESMAN — blocks that same salesman's
-//    other routes while one is InProgress. Does NOT block other salesmen —
-//    each works their own assigned route independently and simultaneously.
-// 4. handleStartOrderTaking checks existing execution first
-// 5. Reloads on location.key change / on visibilitychange
-// 6. Completed route detection is AGGRESSIVE
-// 7. "Taken by X" — another salesman's in-progress route is shown, not hidden
-// 8. Removed the global "hasUnclosedCycle" block — it was wrongly preventing
-//    EVERY salesman from starting ANY route the moment ANY salesman, anywhere,
-//    had one open. Multiple salesmen now correctly work independently.
 
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -90122,7 +90328,6 @@ interface EnrichedRoute {
   description?:         string;
   customerCount?:       number;
   isDedicatedToAnother?: boolean;
-  // Someone else already has this route running today — locked, read-only card.
   takenByOther?:        boolean;
   takenByName?:         string;
   executionId?:         string;
@@ -90130,14 +90335,7 @@ interface EnrichedRoute {
   ordersAllSubmitted?:  boolean;
   submittedCount?:      number;
   isTrulyCompleted?:    boolean;
-  // True only when the BACKEND execution status is actually 'Completed' —
-  // which now happens ONLY via admin's Close Day action (salesman side
-  // never sets this anymore). This is what locks the route from further
-  // editing, separately from "all stops visited" which just means the
-  // salesman is done but admin hasn't closed yet (still editable).
   isAdminClosed?:       boolean;
-  // Still returned by the backend on every route, currently unused here —
-  // see header note #8. Harmless to leave on the type.
   hasUnclosedCycle?:    boolean;
 }
 
@@ -90176,8 +90374,6 @@ export function SalesmanRoutes() {
             hasUnclosedCycle:     r.hasUnclosedCycle,
           };
 
-          // Someone else already has this route running today — it's locked.
-          // No point probing executions/orders for a route that isn't mine.
           if (r.isStarted && !r.isMine) {
             return { ...base, takenByOther: true, takenByName: r.startedBy };
           }
@@ -90196,15 +90392,7 @@ export function SalesmanRoutes() {
                 executionId = exec.executionId;
                 const totalCustomers = exec.totalCustomers ?? 0;
                 const pending = exec.pendingCount ?? 0;
-                // The real backend status is the trustworthy "did admin close
-                // this" signal — Completed now only ever happens via admin's
-                // Close Day action. This takes priority over the pendingCount
-                // heuristic below: even if every stop got visited, the route
-                // is only LOCKED once admin has actually closed it.
                 isAdminClosed = exec.status === 'Completed';
-                // "All stops visited" — the salesman is done, but the route
-                // stays editable until admin closes it. Not the same thing
-                // as isAdminClosed.
                 isTrulyCompleted = totalCustomers > 0 && pending === 0;
                 ordersAllSubmitted = isTrulyCompleted;
                 submittedCount = (exec.customers ?? []).filter(c => c.visitStatus === 'OrderPlaced').length;
@@ -90236,26 +90424,19 @@ export function SalesmanRoutes() {
     } finally { setLoading(false); }
   }
 
-  // Reload on mount
   useEffect(() => { load(); }, []);
-
-  // Reload when React Router navigates back to this page
   useEffect(() => { load(); }, [location.key]);
 
-  // Reload when tab becomes visible again
   useEffect(() => {
     function onVisible() { if (document.visibilityState === 'visible') load(); }
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
-  // ── COMPLETION CHECK — backed by real visit counts from the execution,
-  // not order-history guesswork (see load() above) ──
   function isEffectivelyCompleted(r: EnrichedRoute): boolean {
     return !!r.isTrulyCompleted || r.executionStatus === 'Completed' || !!r.ordersAllSubmitted;
   }
 
-  // ── IN PROGRESS CHECK ──
   function isGenuinelyInProgress(r: EnrichedRoute): boolean {
     if (!r.executionId) return false;
     if (r.executionStatus !== 'InProgress') return false;
@@ -90278,15 +90459,12 @@ export function SalesmanRoutes() {
 
   setStarting(routeId);
 
-  // ── Try to start the execution ──
   try {
     await routesApi.startOrderTaking(routeId);
   } catch (err) {
-    // Ignore error - execution might already exist
     console.log('Starting execution failed, might already exist');
   }
 
-  // ── ALWAYS navigate to execution page ──
   navigate(`/salesman/routes/${routeId}/execute`, { 
     state: { mode: 'order-taking' } 
   });
@@ -90294,233 +90472,217 @@ export function SalesmanRoutes() {
   setStarting(null);
 }
 
-  // async function handleStartDelivery(routeId: string) {
-  //   if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
-  //     setError('Invalid route selected.'); return;
-  //   }
-
-  //   if (isRouteAlreadyCompleted(routeId)) {
-  //     setError('This route is already completed for today.');
-  //     return;
-  //   }
-
-  //   if (!isDayClosed) {
-  //     setError("Cannot start delivery. Admin must close today's operations first.");
-  //     return;
-  //   }
-  //   setStarting(routeId); setActiveMode('delivery');
-  //   try {
-  //     const execution = await routesApi.getCurrentExecution(routeId).catch(() => null);
-  //     if (execution?.executionId && execution.status === 'InProgress') {
-  //       navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'delivery' } });
-  //       return;
-  //     }
-  //     await routesApi.startExecution(routeId);
-  //     navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'delivery' } });
-  //   } catch (err: unknown) {
-  //     setError(err instanceof Error ? err.message : 'Failed to start delivery');
-  //     await load();
-  //   } finally { setStarting(null); setActiveMode(null); }
-  // }
-
   if (loading) return <PageLoader />;
 
   const completedCount = routes.filter(r => isEffectivelyCompleted(r)).length;
   const firstName = user?.name?.split(' ')[0] ?? 'Salesman';
-  // const greeting  = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
-  const showRouteSearch = routes.length > 6; // most salesmen have a handful of routes; only show search once it's worth it
+  const showRouteSearch = routes.length > 6;
   const visibleRoutes = showRouteSearch && search.trim()
     ? routes.filter(r => r.routeName?.toLowerCase().includes(search.trim().toLowerCase()))
     : routes;
 
   return (
-    <div style={{ background: D.bg }}>
+    <div style={{ 
+      background: D.bg,
+      minHeight: '100vh',
+      padding: '16px',
+      maxWidth: '100%',
+      overflowX: 'hidden',
+    }}>
       <div style={{
-        padding: '6px 0 10px',
-        borderBottom: `1px solid ${D.border}`,
-        marginBottom: 10,
+        maxWidth: 1200,
+        margin: '0 auto',
+        width: '100%',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-            }}>
-              {firstName.charAt(0).toUpperCase()}
+        <div style={{
+          padding: '6px 0 10px',
+          borderBottom: `1px solid ${D.border}`,
+          marginBottom: 10,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+              }}>
+                {firstName.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <h1 style={{ fontSize: 13, fontWeight: 800, color: D.text, margin: 0 }}>
+                    {firstName} 👋
+                </h1>
+                <p style={{ fontSize: 10, color: D.muted, margin: '1px 0 0' }}>
+                  {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 style={{ fontSize: 13, fontWeight: 800, color: D.text, margin: 0 }}>
-                  {firstName} 👋
-              </h1>
-              <p style={{ fontSize: 10, color: D.muted, margin: '1px 0 0' }}>
-                {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={load}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 3,
-              padding: '4px 10px',
-              borderRadius: 6,
-              border: `1px solid ${D.border}`,
-              background: D.surface,
-              color: D.muted,
-              fontSize: 10,
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            <RefreshCw size={12} /> Refresh
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 3,
-            fontSize: 9, fontWeight: 600, padding: '2px 8px',
-            borderRadius: 12,
-            background: isDayClosed ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
-            border: `1px solid ${isDayClosed ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
-            color: isDayClosed ? D.green : D.amber,
-          }}>
-            {isDayClosed ? <CheckCircle2 size={9} /> : <Lock size={9} />}
-            {isDayClosed ? 'Day closed' : 'Day open'}
-          </span>
-
-          {completedCount > 0 && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 3,
-              fontSize: 9, fontWeight: 600, padding: '2px 8px',
-              borderRadius: 12,
-              background: 'rgba(59,130,246,0.12)',
-              border: '1px solid rgba(59,130,246,0.25)',
-              color: '#3B82F6',
-            }}>
-              <CheckCircle2 size={9} /> {completedCount}/{routes.length} done
-            </span>
-          )}
-
-          {activeRoute && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 3,
-              fontSize: 9, fontWeight: 600, padding: '2px 8px',
-              borderRadius: 12,
-              background: 'rgba(245,158,11,0.12)',
-              border: '1px solid rgba(245,158,11,0.25)',
-              color: D.amber,
-            }}>
-              <AlertTriangle size={9} /> Complete {activeRoute.routeName}
-            </span>
-          )}
-        </div>
-
-        {showRouteSearch && (
-          <div style={{ position: 'relative', marginTop: 8 }}>
-            <Search size={12} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: D.sub }} />
-            <input
-              type="text"
-              placeholder="Search routes..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+            <button
+              onClick={load}
               style={{
-                width: '100%',
-                padding: '4px 28px 4px 28px',
-                fontSize: 11,
-                border: `1px solid ${D.border}`,
+                display: 'flex', alignItems: 'center', gap: 3,
+                padding: '4px 10px',
                 borderRadius: 6,
+                border: `1px solid ${D.border}`,
                 background: D.surface,
-                color: D.text,
-                outline: 'none',
+                color: D.muted,
+                fontSize: 10,
+                fontWeight: 600,
+                cursor: 'pointer',
                 fontFamily: 'inherit',
               }}
-            />
-            {search && (
-              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer' }}>
-                <X size={12} />
-              </button>
+            >
+              <RefreshCw size={12} /> Refresh
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 9, fontWeight: 600, padding: '2px 8px',
+              borderRadius: 12,
+              background: isDayClosed ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
+              border: `1px solid ${isDayClosed ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
+              color: isDayClosed ? D.green : D.amber,
+            }}>
+              {isDayClosed ? <CheckCircle2 size={9} /> : <Lock size={9} />}
+              {isDayClosed ? 'Day closed' : 'Day open'}
+            </span>
+
+            {completedCount > 0 && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 3,
+                fontSize: 9, fontWeight: 600, padding: '2px 8px',
+                borderRadius: 12,
+                background: 'rgba(59,130,246,0.12)',
+                border: '1px solid rgba(59,130,246,0.25)',
+                color: '#3B82F6',
+              }}>
+                <CheckCircle2 size={9} /> {completedCount}/{routes.length} done
+              </span>
+            )}
+
+            {activeRoute && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 3,
+                fontSize: 9, fontWeight: 600, padding: '2px 8px',
+                borderRadius: 12,
+                background: 'rgba(245,158,11,0.12)',
+                border: '1px solid rgba(245,158,11,0.25)',
+                color: D.amber,
+              }}>
+                <AlertTriangle size={9} /> Complete {activeRoute.routeName}
+              </span>
             )}
           </div>
-        )}
-      </div>
 
-      {error && (
-        <div style={{
-          margin: '12px 20px 0',
-          background: 'rgba(239,68,68,0.10)',
-          border: `1px solid rgba(239,68,68,0.25)`,
-          borderRadius: 10,
-          padding: '12px 16px',
-          color: D.red,
-          fontSize: 13,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
-          <span>{error}</span>
-          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: D.red, cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>✕</button>
+          {showRouteSearch && (
+            <div style={{ position: 'relative', marginTop: 8 }}>
+              <Search size={12} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: D.sub }} />
+              <input
+                type="text"
+                placeholder="Search routes..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '4px 28px 4px 28px',
+                  fontSize: 11,
+                  border: `1px solid ${D.border}`,
+                  borderRadius: 6,
+                  background: D.surface,
+                  color: D.text,
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                }}
+              />
+              {search && (
+                <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer' }}>
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          )}
         </div>
-      )}
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 20px' }}>
-        {routes.length === 0 ? (
+        {error && (
           <div style={{
-            background: D.surface,
-            borderRadius: 16,
-            border: `1px solid ${D.border}`,
-            padding: '48px 24px',
-            textAlign: 'center',
+            margin: '12px 0 0',
+            background: 'rgba(239,68,68,0.10)',
+            border: `1px solid rgba(239,68,68,0.25)`,
+            borderRadius: 10,
+            padding: '12px 16px',
+            color: D.red,
+            fontSize: 13,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
           }}>
-            <Route size={48} style={{ color: D.border, margin: '0 auto 16px' }} />
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: '0 0 8px' }}>No active routes</h3>
-            <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>Ask your admin to create a route — once it's active, it shows up here for every salesman.</p>
-          </div>
-        ) : visibleRoutes.length === 0 ? (
-          <div style={{
-            background: D.surface,
-            borderRadius: 16,
-            border: `1px solid ${D.border}`,
-            padding: '48px 24px',
-            textAlign: 'center',
-          }}>
-            <Search size={48} style={{ color: D.border, margin: '0 auto 16px' }} />
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: '0 0 8px' }}>No routes match your search</h3>
-            <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>Nothing found for "{search}".</p>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
-            {visibleRoutes.map(route => {
-              const completed   = isEffectivelyCompleted(route);
-              const inProgress  = isGenuinelyInProgress(route);
-              const blocked = false;
-              return (
-                <RouteCard
-                  key={route.routeId}
-                  route={route}
-                  isCompleted={completed}
-                  isInProgress={inProgress}
-                  // isBlocked={false}
-                  isDayClosed={isDayClosed}
-                  starting={starting === route.routeId}
-                  activeMode={activeMode}
-                  onStartOrderTaking={() => handleStartOrderTaking(route.routeId)}
-                  onContinueOrderTaking={() => {
-                    navigate(`/salesman/routes/${route.routeId}/execute`, { state: { mode: 'order-taking' } });
-                  }}
-                  // onStartDelivery={() => handleStartDelivery(route.routeId)}
-                  onViewCustomers={() => navigate(`/salesman/routes/${route.routeId}/customers`)}
-                  onViewOrders={() => navigate(`/salesman/routes/${route.routeId}/orders`)}
-                />
-              );
-            })}
+            <span>{error}</span>
+            <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: D.red, cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>✕</button>
           </div>
         )}
+
+        <div style={{ padding: '16px 0' }}>
+          {routes.length === 0 ? (
+            <div style={{
+              background: D.surface,
+              borderRadius: 16,
+              border: `1px solid ${D.border}`,
+              padding: '48px 24px',
+              textAlign: 'center',
+            }}>
+              <Route size={48} style={{ color: D.border, margin: '0 auto 16px' }} />
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: '0 0 8px' }}>No active routes</h3>
+              <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>Ask your admin to create a route — once it's active, it shows up here for every salesman.</p>
+            </div>
+          ) : visibleRoutes.length === 0 ? (
+            <div style={{
+              background: D.surface,
+              borderRadius: 16,
+              border: `1px solid ${D.border}`,
+              padding: '48px 24px',
+              textAlign: 'center',
+            }}>
+              <Search size={48} style={{ color: D.border, margin: '0 auto 16px' }} />
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: '0 0 8px' }}>No routes match your search</h3>
+              <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>Nothing found for "{search}".</p>
+            </div>
+          ) : (
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
+              gap: 16,
+              width: '100%',
+            }}>
+              {visibleRoutes.map(route => {
+                const completed   = isEffectivelyCompleted(route);
+                const inProgress  = isGenuinelyInProgress(route);
+                return (
+                  <RouteCard
+                    key={route.routeId}
+                    route={route}
+                    isCompleted={completed}
+                    isInProgress={inProgress}
+                    isDayClosed={isDayClosed}
+                    starting={starting === route.routeId}
+                    activeMode={activeMode}
+                    onStartOrderTaking={() => handleStartOrderTaking(route.routeId)}
+                    onContinueOrderTaking={() => {
+                      navigate(`/salesman/routes/${route.routeId}/execute`, { state: { mode: 'order-taking' } });
+                    }}
+                    onViewCustomers={() => navigate(`/salesman/routes/${route.routeId}/customers`)}
+                    onViewOrders={() => navigate(`/salesman/routes/${route.routeId}/orders`)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -90535,19 +90697,16 @@ function RouteCard({
   route: EnrichedRoute;
   isCompleted: boolean;
   isInProgress: boolean;
-  // isBlocked: boolean;
   isDayClosed: boolean;
   starting: boolean;
   activeMode: 'order' | 'delivery' | null;
   onStartOrderTaking: () => void;
   onContinueOrderTaking: () => void;
-  // onStartDelivery: () => void;
   onViewCustomers: () => void;
   onViewOrders: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
-  // ── TAKEN BY ANOTHER SALESMAN ── (locked — first to tap Start gets it)
   if (route.takenByOther) {
     return (
       <div style={{
@@ -90555,6 +90714,7 @@ function RouteCard({
         borderRadius: 14,
         border: `1px solid ${D.amber}44`,
         opacity: 0.8,
+        width: '100%',
       }}>
         <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{
@@ -90588,7 +90748,6 @@ function RouteCard({
     );
   }
 
-  // ── CLOSED BY ADMIN ── (locked — read-only, will be fresh again tomorrow)
   if (route.isAdminClosed) {
     return (
       <div style={{
@@ -90596,6 +90755,7 @@ function RouteCard({
         borderRadius: 14,
         border: `1px solid ${D.border}`,
         opacity: 0.7,
+        width: '100%',
       }}>
         <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{
@@ -90639,7 +90799,6 @@ function RouteCard({
     );
   }
 
-  // ── COMPLETED (all shops visited, waiting for admin to close day) ──
   if (isCompleted) {
     return (
       <div
@@ -90650,6 +90809,7 @@ function RouteCard({
           border: `2px solid #4f46e5`,
           cursor: 'pointer',
           transition: 'all 0.15s',
+          width: '100%',
         }}
         onMouseEnter={e => {
           (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
@@ -90705,7 +90865,6 @@ function RouteCard({
     );
   }
 
-  // ── ACTIVE or PENDING ──
   return (
     <div style={{
       background: D.surface,
@@ -90714,6 +90873,7 @@ function RouteCard({
       boxShadow: isInProgress ? `0 2px 12px ${D.accentGlow}` : 'none',
       opacity: 1,
       transition: 'all 0.15s',
+      width: '100%',
     }}>
       <div style={{ padding: '16px 18px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -90758,19 +90918,6 @@ function RouteCard({
                 <Users size={13} /> {route.customerCount ?? 0} customers
               </span>
             </div>
-            {/* {isBlocked && (
-              <div style={{
-                marginTop: 8,
-                display: 'flex', alignItems: 'center', gap: 6,
-                fontSize: 12, color: D.amber,
-                background: 'rgba(245,158,11,0.08)',
-                padding: '4px 10px',
-                borderRadius: 6,
-                border: `1px solid ${D.amber}33`,
-              }}>
-                <AlertTriangle size={12} /> Complete active route first
-              </div>
-            )} */}
             {!isDayClosed && (
               <div style={{
                 marginTop: 6,
@@ -90820,73 +90967,38 @@ function RouteCard({
             ) : (
               <>
                 <button
-  onClick={onStartOrderTaking}
-  disabled={starting}
-  style={{
-    display: 'flex', alignItems: 'center', gap: 6,
-    padding: '8px 16px',
-    borderRadius: 10,
-    border: 'none',
-    background: starting ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: 700,
-    cursor: starting ? 'not-allowed' : 'pointer',
-    fontFamily: 'inherit',
-    boxShadow: starting ? 'none' : `0 4px 14px ${D.accentGlow}`,
-    transition: 'all 0.15s',
-    opacity: starting ? 0.5 : 1,
-  }}
-  onMouseEnter={e => {
-    if (!starting) {
-      (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-      (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${D.accentGlow}`;
-    }
-  }}
-  onMouseLeave={e => {
-    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-    if (!starting) {
-      (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${D.accentGlow}`;
-    }
-  }}
->
-  <ShoppingBag size={15} /> Take Orders
-</button>
-                {/* <button
-                  onClick={onStartDelivery}
-                  disabled={starting || isBlocked || !isDayClosed}
+                  onClick={onStartOrderTaking}
+                  disabled={starting}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6,
                     padding: '8px 16px',
                     borderRadius: 10,
                     border: 'none',
-                    background: (starting || isBlocked || !isDayClosed)
-                      ? D.border
-                      : `linear-gradient(135deg, #3B82F6, #2563EB)`,
+                    background: starting ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
                     color: '#fff',
                     fontSize: 13,
                     fontWeight: 700,
-                    cursor: (starting || isBlocked || !isDayClosed) ? 'not-allowed' : 'pointer',
+                    cursor: starting ? 'not-allowed' : 'pointer',
                     fontFamily: 'inherit',
-                    boxShadow: (starting || isBlocked || !isDayClosed) ? 'none' : '0 4px 14px rgba(59,130,246,0.25)',
+                    boxShadow: starting ? 'none' : `0 4px 14px ${D.accentGlow}`,
                     transition: 'all 0.15s',
-                    opacity: (starting || isBlocked || !isDayClosed) ? 0.5 : 1,
+                    opacity: starting ? 0.5 : 1,
                   }}
                   onMouseEnter={e => {
-                    if (!starting && !isBlocked && isDayClosed) {
+                    if (!starting) {
                       (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-                      (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 20px rgba(59,130,246,0.30)';
+                      (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${D.accentGlow}`;
                     }
                   }}
                   onMouseLeave={e => {
                     (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                    if (!starting && !isBlocked && isDayClosed) {
-                      (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 14px rgba(59,130,246,0.25)';
+                    if (!starting) {
+                      (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${D.accentGlow}`;
                     }
                   }}
                 >
-                  <Truck size={15} /> Delivery
-                </button> */}
+                  <ShoppingBag size={15} /> Take Orders
+                </button>
               </>
             )}
             <button
@@ -91988,7 +92100,7 @@ export function getRoleHome(role: UserRole): string {
 ## File: src/types/index.ts
 ``````typescript
 // PATH: src/types/index.ts
-// UPDATED: Added SizeGroupDto, UQC fields, and related product/unit types
+// UPDATED: Added SizeGroupDto, UQC fields, ReopenRouteResultDto, and related product/unit types
 
 // ── Route Execution (Salesman daily flow) ─────────────────────────────────────
 export type VisitStatus = 'Pending' | 'OrderPlaced' | 'Skipped' | 'NoOrder';
@@ -92560,6 +92672,14 @@ export interface DailyClosureResultDto {
   ordersLocked:  number;
   totalRevenue:  number;
   message:       string;
+}
+
+// ── NEW: Reopen Route Result ──────────────────────────────────────────────────
+export interface ReopenRouteResultDto {
+  success: boolean;
+  message?: string;
+  ordersUnlocked: number;
+  executionsReopened: number;
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────────

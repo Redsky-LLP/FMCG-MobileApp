@@ -1,6 +1,7 @@
 // PATH: src/pages/Dashboard/HomeHub.tsx
 // UPDATED: Removed Record Payment, Scan Product, Daily Settlement from Quick Actions
 //          Removed Analytics - View Insights from main page
+// FIX: Combined primary admin cards into one uniform 3×2 grid
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -266,15 +267,19 @@ export function HomeHub() {
   const isAdmin      = role === 'Admin' || role === 'SuperAdmin';
 
   const blocks       = NAV_BLOCKS.filter(b => b.roles.includes(role));
-  // REMOVED: statCards filter for Analytics
   const quickActions = QUICK_ACTIONS.filter(a => a.roles.includes(role));
 
-  // Filter blocks: main blocks (Route Hub, Customers)
-  const mainBlocks   = isAdmin ? blocks.filter(b => ['admin-routes','customers'].includes(b.id)) : blocks;
-  // Filter large blocks: Products, Users, Reports, Catalog
-  const largeBlocks  = isAdmin ? blocks.filter(b => ['products','users','reports','catalog'].includes(b.id)) : [];
+  // ── All primary admin cards now render at the same uniform size, in one
+  // grid, in this fixed order. "large" sizing is no longer used — every
+  // card gets identical padding/height via NavBlockCard. ──
+  const primaryBlockIds = ['admin-routes', 'customers', 'products', 'catalog', 'users', 'reports'];
+  const primaryBlocks = isAdmin
+    ? primaryBlockIds
+        .map(id => blocks.find(b => b.id === id))
+        .filter((b): b is NavBlock => !!b)
+    : blocks;
   // Everything else goes to more tools
-  const moreTools    = isAdmin ? blocks.filter(b => !['admin-routes','customers','products','users','reports','catalog'].includes(b.id)) : [];
+  const moreTools = isAdmin ? blocks.filter(b => !primaryBlockIds.includes(b.id)) : [];
 
   function liveBadge(blockId: string): string | undefined {
     if (blockId === 'admin-routes') return liveStats.routesCount !== undefined ? `${liveStats.routesCount} Routes` : undefined;
@@ -381,35 +386,25 @@ export function HomeHub() {
           </div>
         </div>
 
-        {/* ── Main Nav Grid (Route Hub, Customers) ── */}
+        {/* ── Primary Nav Grid — every card the same size, 3 per row ── */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : mainBlocks.length >= 3 ? 'repeat(3,1fr)' : mainBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)',
           gap: 14,
           marginBottom: 14,
           opacity: mounted ? 1 : 0,
           transition: 'all 0.42s 0.12s cubic-bezier(0.34,1.2,0.64,1)',
         }}>
-          {mainBlocks.map((block, idx) => (
-            <NavBlockCard key={block.id} block={block} delay={idx * 0.05} fullWidth={false} badgeOverride={liveBadge(block.id)} />
+          {primaryBlocks.map((block, idx) => (
+            <NavBlockCard
+              key={block.id}
+              block={block}
+              delay={idx * 0.05}
+              fullWidth={false}
+              badgeOverride={liveBadge(block.id)}
+            />
           ))}
         </div>
-
-        {/* ── Admin Large Cards: Products, Users, Reports, Catalog ── */}
-        {isAdmin && largeBlocks.length > 0 && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : largeBlocks.length === 4 ? 'repeat(4,1fr)' : largeBlocks.length === 3 ? 'repeat(3,1fr)' : largeBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
-            gap: 14,
-            marginBottom: 14,
-            opacity: mounted ? 1 : 0,
-            transition: 'all 0.42s 0.18s cubic-bezier(0.34,1.2,0.64,1)',
-          }}>
-            {largeBlocks.map((block, idx) => (
-              <NavBlockCard key={block.id} block={block} delay={idx * 0.05} fullWidth={false} isLarge={true} />
-            ))}
-          </div>
-        )}
 
         {/* ── More Tools (everything else) ────── */}
         {isAdmin && moreTools.length > 0 && (
@@ -605,30 +600,28 @@ export function HomeHub() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-function NavBlockCard({ block, delay, fullWidth, badgeOverride, isLarge }: { 
+function NavBlockCard({ block, delay, fullWidth, badgeOverride }: { 
   block: NavBlock; 
   delay: number; 
   fullWidth: boolean; 
   badgeOverride?: string;
-  isLarge?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
   const badgeStyle = block.badgeColor ? BADGE_STYLES[block.badgeColor] : BADGE_STYLES.blue;
   const badgeText = badgeOverride ?? block.badge;
-  const large = isLarge || block.size === 'large';
 
   return (
     <Link to={block.to} style={{
       gridColumn: fullWidth ? '1 / -1' : undefined,
       display: 'flex', flexDirection: 'column',
-      padding: large ? '24px 22px' : '20px 18px',
+      padding: '20px 18px',
       borderRadius: 16,
       border: `1px solid ${hovered ? `${block.accentText}44` : 'rgba(255,255,255,0.06)'}`,
       background: hovered ? `${block.accentText}10` : D.surface,
       textDecoration: 'none', cursor: 'pointer',
       transition: 'all 0.25s cubic-bezier(0.34,1.2,0.64,1)',
       transform: hovered ? 'translateY(-3px)' : 'translateY(0)',
-      minHeight: large ? 170 : 140,
+      minHeight: 140,
       position: 'relative', overflow: 'hidden',
       boxShadow: hovered ? `0 8px 32px rgba(0,0,0,0.4)` : 'none',
     }}
@@ -650,15 +643,15 @@ function NavBlockCard({ block, delay, fullWidth, badgeOverride, isLarge }: {
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 'auto' }}>
         <div style={{
-          width: large ? 52 : 44,
-          height: large ? 52 : 44,
+          width: 44,
+          height: 44,
           borderRadius: 14,
           background: hovered ? `${block.accentText}18` : 'rgba(255,255,255,0.04)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           transition: 'all 0.25s',
           border: hovered ? `1px solid ${block.accentText}22` : '1px solid rgba(255,255,255,0.04)',
         }}>
-          <block.icon size={large ? 24 : 20} style={{ color: block.accentText }} strokeWidth={hovered ? 2.2 : 1.8} />
+          <block.icon size={20} style={{ color: block.accentText }} strokeWidth={hovered ? 2.2 : 1.8} />
         </div>
 
         {badgeText && (
@@ -676,10 +669,10 @@ function NavBlockCard({ block, delay, fullWidth, badgeOverride, isLarge }: {
         )}
       </div>
 
-      <div style={{ marginTop: large ? 20 : 16 }}>
+      <div style={{ marginTop: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
           <h3 style={{
-            fontSize: large ? 17 : 14,
+            fontSize: 14,
             fontWeight: 800,
             color: D.text,
             margin: 0,
@@ -688,14 +681,14 @@ function NavBlockCard({ block, delay, fullWidth, badgeOverride, isLarge }: {
           }}>
             {block.label}
           </h3>
-          <ChevronRight size={large ? 15 : 13} style={{
+          <ChevronRight size={13} style={{
             transition: 'transform 0.2s,color 0.15s',
             transform: hovered ? 'translateX(4px)' : 'translateX(0)',
             color: hovered ? block.accentText : D.muted,
           }} />
         </div>
         <p style={{
-          fontSize: large ? 13 : 12,
+          fontSize: 12,
           color: D.muted,
           margin: 0,
           lineHeight: 1.5,
@@ -703,38 +696,6 @@ function NavBlockCard({ block, delay, fullWidth, badgeOverride, isLarge }: {
         }}>
           {block.description}
         </p>
-
-        {/* Large card extra info */}
-        {large && block.id === 'users' && (
-          <div style={{ marginTop: 12, display: 'flex', gap: 14 }}>
-            <span style={{ fontSize: 11, color: D.green, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: D.green }} /> 12 Active
-            </span>
-            <span style={{ fontSize: 11, color: D.amber, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: D.amber }} /> 6 Pending
-            </span>
-          </div>
-        )}
-        {large && block.id === 'reports' && (
-          <div style={{ marginTop: 12, display: 'flex', gap: 14 }}>
-            <span style={{ fontSize: 11, color: D.accent, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <FileText size={11} /> 5 New Reports
-            </span>
-            <span style={{ fontSize: 11, color: D.green, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <ArrowUpRight size={11} /> +12% This Week
-            </span>
-          </div>
-        )}
-        {large && block.id === 'catalog' && (
-          <div style={{ marginTop: 12, display: 'flex', gap: 14 }}>
-            <span style={{ fontSize: 11, color: D.purple, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Settings size={11} /> Groups & Units
-            </span>
-            <span style={{ fontSize: 11, color: D.green, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Boxes size={11} /> Manage Catalog
-            </span>
-          </div>
-        )}
       </div>
     </Link>
   );

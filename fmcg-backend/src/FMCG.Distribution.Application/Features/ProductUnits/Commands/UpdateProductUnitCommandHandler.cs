@@ -1,4 +1,7 @@
-﻿using MediatR;
+﻿// PATH: src/FMCG.Distribution.Application/Features/ProductUnits/Commands/UpdateProductUnitCommandHandler.cs
+// FIX: Added guard to prevent deactivating units that are still assigned to active products
+
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
@@ -15,6 +18,19 @@ public class UpdateProductUnitCommandHandler(IApplicationDbContext context)
         if (unit == null)
         {
             return Result<UpdateProductUnitResponse>.Failure("Unit not found.");
+        }
+
+        // ── Guard: Prevent deactivating units still assigned to active products ──
+        // This closes the loop from the deactivation side — mirroring the delete guard
+        // in DeleteProductUnitCommandHandler. Deactivating a packing category that's
+        // still a product's default unit would cause orders to fail silently.
+        if (!request.IsActive)
+        {
+            var stillInUse = await context.Products
+                .AnyAsync(p => p.DefaultUnitId == request.Id && p.IsActive && !p.IsDeleted, cancellationToken);
+            if (stillInUse)
+                return Result<UpdateProductUnitResponse>.Failure(
+                    "This packing category is still assigned to one or more active products — reassign them to a different unit before deactivating.");
         }
 
         unit.Name = request.Name;

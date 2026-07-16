@@ -3,6 +3,7 @@
 //      PostgreSQL sequence (order_number_seq) via IApplicationDbContext.NextOrderSequenceAsync().
 //      PostgreSQL sequences are atomic at the database level — no duplicate keys possible,
 //      no race conditions, works correctly across multiple server instances.
+// FIX: Unit lookup no longer requires IsActive - only checks IsDeleted
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -17,13 +18,6 @@ namespace FMCG.Distribution.Application.Features.Orders.Commands;
 public class CreateOrderCommandHandler(IApplicationDbContext context)
     : IRequestHandler<CreateOrderCommand, Result<OrderDetailDto>>
 {
-    // SemaphoreSlim REMOVED — was the root cause of duplicate key errors.
-    // The lock prevented parallel execution within one process but:
-    //  a) didn't protect against multiple server instances
-    //  b) the SELECT-then-INSERT is still not atomic — a gap exists between
-    //     reading the max number and writing the new order.
-    // PostgreSQL sequence is atomic at the DB level — zero gap possible.
-
     public async Task<Result<OrderDetailDto>> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
         // ── Validate Customer ──────────────────────────────────────────────────
@@ -67,8 +61,13 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             if (item.SellingPrice <= 0)
                 return Result<OrderDetailDto>.Failure($"Selling price must be greater than zero for '{product.NameEnglish}'.");
 
+            // ── FIX: no longer require IsActive here. A packing category being
+            // deactivated (e.g. via AdminCatalogConfig) is meant to hide it from NEW
+            // product assignments — it should NOT retroactively break orders for
+            // products that are already linked to it. Only IsDeleted disqualifies a
+            // unit, since a hard-deleted unit genuinely no longer exists. ──
             var unit = await context.ProductUnits
-                .FirstOrDefaultAsync(u => u.Id == item.UnitId && u.IsActive && !u.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(u => u.Id == item.UnitId && !u.IsDeleted, cancellationToken);
 
             if (unit == null)
                 return Result<OrderDetailDto>.Failure($"Unit not found for product '{product.NameEnglish}'.");

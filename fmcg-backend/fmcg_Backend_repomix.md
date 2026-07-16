@@ -184,6 +184,8 @@ src/FMCG.Distribution.Application/Features/Reports/Queries/GetBillingSheetQuery.
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetBillingSheetQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetDailySummaryReportQuery.cs
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetDailySummaryReportQueryHandler.cs
+src/FMCG.Distribution.Application/Features/Reports/Queries/GetIncentiveReportQuery.cs
+src/FMCG.Distribution.Application/Features/Reports/Queries/GetIncentiveReportQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetLoadingSheetAllQuery.cs
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetLoadingSheetAllQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetLoadingSheetQuery.cs
@@ -330229,6 +330231,27 @@ public class ReportsController(IMediator mediator) : ControllerBase
         return File(result.Data!, "application/pdf", fileName);
     }
 
+    [HttpGet("incentive-report")]
+public async Task<IActionResult> GetIncentiveReport(
+    [FromQuery] string? fromDate,
+    [FromQuery] string? toDate)
+{
+    var query = new GetIncentiveReportQuery
+    {
+        FromDate = fromDate != null ? DateTime.Parse(fromDate) : null,
+        ToDate = toDate != null ? DateTime.Parse(toDate) : null
+    };
+
+    // ── FIX: Change _mediator to mediator ──
+    var result = await mediator.Send(query);  // ✅ Use 'mediator' not '_mediator'
+
+    if (!result.IsSuccess)
+    {
+        return BadRequest(new { error = result.Error });
+    }
+
+    return File(result.Data!, "application/pdf", $"IncentiveReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
+}
     // ─────────────────────────────────────────────────────────────────────────
     // GET /api/v1/reports/daily-summary
     // Roles: Admin, SuperAdmin, Accounts
@@ -330993,8 +331016,8 @@ public class SettlementController(IMediator mediator, IApplicationDbContext cont
 
     // ─────────────────────────────────────────────────────────────────────────
     // GET /api/v1/settlement/status
-    // ─────────────────────────────────────────────────────────────────────────
-    // Salesman can view closure status to know if delivery can start
+    // Salesman can view closure status to know if delivery can start.
+    // Accepts an optional routeId so status can be checked per-route.
     // ─────────────────────────────────────────────────────────────────────────
     [HttpGet("status")]
     [Authorize(Roles = "Admin,SuperAdmin,Accounts,Salesman")]
@@ -331009,8 +331032,12 @@ public class SettlementController(IMediator mediator, IApplicationDbContext cont
         // For salesman, only return status for today
         if (userRole == "Salesman" && date == null)
         {
+            // ── BUG FIX: was missing `c.IsActive` — a reopened route's old,
+            // deactivated closure record still matched here (only IsDeleted
+            // was checked), so salesman would keep seeing "Day closed" even
+            // after admin reopened it. ──
             var closure = await context.DailyClosures
-                .Where(c => !c.IsDeleted && c.ClosureDate.Date == targetDate)
+                .Where(c => !c.IsDeleted && c.IsActive && c.ClosureDate.Date == targetDate)
                 .Where(c => routeId == null || c.RouteId == routeId)
                 .FirstOrDefaultAsync();
 
@@ -338387,6 +338414,8 @@ public class ProductSummaryItemDto
     public string? ProductNameMalayalam { get; set; }
     public string ProductGroupName { get; set; } = string.Empty;
     public string UnitSymbol { get; set; } = string.Empty;
+    public string? PackingCategory { get; set; }    // ← ADD THIS
+    public string? SizeGroup { get; set; }          // ← ADD THIS
     public decimal TotalQuantity { get; set; }
     public decimal TotalSales { get; set; }
     public decimal TotalVariance { get; set; }
@@ -338432,6 +338461,29 @@ public class DailySummaryReportDataDto
     public bool IsDayClosed { get; set; }
     public DateTime? ClosedAt { get; set; }
 }
+// ─────────────────────────────────────────────────────────────────────────────
+// Incentive Report DTOs
+// ─────────────────────────────────────────────────────────────────────────────
+
+public class IncentiveReportItemDto
+{
+    public Guid SalesmanId { get; set; }
+    public string SalesmanName { get; set; } = string.Empty;
+    public int TotalOrders { get; set; }
+    public decimal TotalSales { get; set; }
+    public decimal TotalIncentive { get; set; }
+}
+
+public class IncentiveReportDataDto
+{
+    public DateTime FromDate { get; set; }
+    public DateTime ToDate { get; set; }
+    public DateTime GeneratedAt { get; set; }
+    public List<IncentiveReportItemDto> Salesmen { get; set; } = new();
+    public decimal GrandTotalIncentive { get; set; }
+    public decimal GrandTotalSales { get; set; }
+    public int TotalSalesmen { get; set; }
+}
 ```````
 
 ## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetBillingSheetQuery.cs
@@ -338451,17 +338503,21 @@ public class GetBillingSheetQuery : IRequest<Result<byte[]>>
 
 ## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetBillingSheetQueryHandler.cs
 ```````csharp
+// PATH: src/FMCG.Distribution.Application/Features/Reports/Queries/GetBillingSheetQueryHandler.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using FMCG.Distribution.Application.Common;
+using FMCG.Distribution.Application.Common.Interfaces;
+using FMCG.Distribution.Application.Features.Reports.DTOs;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using FMCG.Distribution.Application.Common;
-using FMCG.Distribution.Application.Common.Interfaces;
-using FMCG.Distribution.Application.Features.Reports.DTOs;
-using FMCG.Distribution.Domain.Enums;
-
-// Alias to resolve ambiguity between QuestPDF.Unit and MediatR.Unit
 using PdfUnit = QuestPDF.Infrastructure.Unit;
 
 namespace FMCG.Distribution.Application.Features.Reports.Queries;
@@ -338503,7 +338559,6 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
             {
                 RouteId = g.Key.RouteId,
                 RouteName = g.Key.Name,
-                // ── Shops shown in the sequence order the admin assigned to customers ──
                 Orders = g
                     .OrderBy(o => o.Customer?.SequenceOrder ?? 0)
                     .Select(o => new BillingSheetOrderDto
@@ -338552,8 +338607,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
         return Result<byte[]>.Success(pdfBytes);
     }
 
-    // ── PDF Generator: same table style as the Loading Sheet (#, Customer, Order#, Product, Qty),
-    // with a Price column added — no Units, line/route/grand totals, or variance. ──
+    // ── PDF Generator: matching the Loading Sheet style with 3 columns (Product, Qty, Price) ──
     private static byte[] GenerateBillingSheetPdf(BillingSheetDataDto data)
     {
         return Document.Create(container =>
@@ -338568,102 +338622,122 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                 page.Header()
                     .BorderBottom(0.5f)
                     .PaddingBottom(5)
-                    .Row(row =>
+                    .Column(col =>
                     {
-                        row.RelativeItem().Column(col =>
-                        {
-                            col.Item().Text("BILLING SHEET").FontSize(16).Bold();
-                            col.Item().Text($"Date: {data.ReportDate:dd-MM-yyyy}").FontSize(10);
-                        });
-                        row.RelativeItem().AlignRight().Column(col =>
-                        {
-                            col.Item().Text($"Generated: {data.GeneratedAt:dd-MM-yyyy HH:mm}").FontSize(9);
-                            col.Item().Text($"Orders: {data.TotalOrders} | Routes: {data.TotalRoutes}").FontSize(9);
-                        });
+                        col.Item().Text("BILLING SHEET").FontSize(16).Bold();
+                        col.Item().Text($"Date: {data.ReportDate:dd-MM-yyyy}").FontSize(10);
                     });
 
                 // Content
-                page.Content().Column(col =>
+                page.Content().Column(contentCol =>
                 {
                     foreach (var route in data.Routes)
                     {
-                        col.Item().PaddingTop(10).Column(routeCol =>
+                        contentCol.Item().PaddingTop(10).Column(routeCol =>
                         {
-                            // Route header
+                            // Route header - centered like loading sheet
                             routeCol.Item().Background(Colors.Grey.Lighten2)
                                 .Padding(6)
-                                .Row(r =>
-                                {
-                                    r.RelativeItem().Text($"{route.RouteName}").FontSize(13).Bold();
-                                    r.RelativeItem().AlignRight().Text($"Orders: {route.Orders.Count}").FontSize(10);
-                                });
+                                .AlignCenter()
+                                .Text($"{route.RouteName}").FontSize(14).Bold();
 
-                            // ── Customer / Order table (#, Customer, Order#, Product, Qty, Price) ──
-                            routeCol.Item().PaddingTop(6).Table(table =>
+                            // ── One block per customer stop ──
+                            foreach (var order in route.Orders)
                             {
-                                table.ColumnsDefinition(columns =>
+                                routeCol.Item().PaddingTop(8).ShowEntire().Column(stopCol =>
                                 {
-                                    columns.ConstantColumn(28);   // #
-                                    columns.RelativeColumn(2.6f); // Customer
-                                    columns.RelativeColumn(2.6f); // Order #
-                                    columns.RelativeColumn(3.4f); // Product
-                                    columns.RelativeColumn(1.1f); // Qty
-                                    columns.RelativeColumn(1.3f); // Price
-                                });
+                                    // Customer header with number and name centered
+                                    stopCol.Item().Background(Colors.Grey.Lighten3)
+                                        .Padding(4)
+                                        .Row(r =>
+                                        {
+                                            r.ConstantItem(30).AlignLeft().Text($"{order.SequenceOrder + 1}.").FontSize(12).Bold();
+                                            r.RelativeItem().AlignCenter().Text(order.CustomerName).FontSize(16).Bold();
+                                            r.ConstantItem(30);
+                                        });
 
-                                table.Header(header =>
-                                {
-                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("#").Bold().FontSize(10);
-                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("CUSTOMER").Bold().FontSize(10);
-                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("ORDER #").Bold().FontSize(10);
-                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("PRODUCT").Bold().FontSize(10);
-                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).AlignRight().Text("QTY").Bold().FontSize(10);
-                                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).AlignRight().Text("PRICE").Bold().FontSize(10);
-                                });
-
-                                var rowNum = 1;
-                                foreach (var order in route.Orders)
-                                {
-                                    var firstRow = true;
-
-                                    if (order.Items.Count == 0 && order.Remarks == null)
+                                    if (order.Items.Count > 0)
                                     {
-                                        table.Cell().BorderBottom(0.5f).Padding(4).Text($"{rowNum}").Bold().FontSize(11);
-                                        table.Cell().BorderBottom(0.5f).Padding(4).Text(order.CustomerName).Bold().FontSize(11);
-                                        table.Cell().BorderBottom(0.5f).Padding(4).Text(order.OrderNumber).FontSize(9);
-                                        table.Cell().BorderBottom(0.5f).Padding(4).Text("—").FontSize(10);
-                                        table.Cell().BorderBottom(0.5f).Padding(4).AlignRight().Text("").FontSize(10);
-                                        table.Cell().BorderBottom(0.5f).Padding(4).AlignRight().Text("").FontSize(10);
+                                        stopCol.Item().PaddingLeft(15).PaddingRight(15).PaddingTop(4).Table(table =>
+                                        {
+                                            // Three columns: Product (40%), Qty (20%), Price (40%)
+                                            table.ColumnsDefinition(columns =>
+                                            {
+                                                columns.RelativeColumn(4);  // Product takes 40%
+                                                columns.RelativeColumn(2);  // Qty takes 20%
+                                                columns.RelativeColumn(4);  // Price takes 40%
+                                            });
+
+                                            table.Header(header =>
+                                            {
+                                                header.Cell().BorderBottom(1)
+                                                    .PaddingVertical(3)
+                                                    .PaddingLeft(5)
+                                                    .Text("PRODUCT")
+                                                    .Bold()
+                                                    .FontSize(9);
+
+                                                header.Cell().BorderBottom(1)
+                                                    .PaddingVertical(3)
+                                                    .AlignCenter()
+                                                    .Text("QTY")
+                                                    .Bold()
+                                                    .FontSize(9);
+
+                                                header.Cell().BorderBottom(1)
+                                                    .PaddingVertical(3)
+                                                    .PaddingRight(5)
+                                                    .AlignRight()
+                                                    .Text("PRICE")
+                                                    .Bold()
+                                                    .FontSize(9);
+                                            });
+
+                                            foreach (var item in order.Items)
+                                            {
+                                                // Product name - left aligned
+                                                table.Cell().BorderBottom(0.5f)
+                                                    .PaddingVertical(2)
+                                                    .PaddingLeft(5)
+                                                    .Text(item.ProductName)
+                                                    .FontSize(10);
+
+                                                // Quantity - centered
+                                                table.Cell().BorderBottom(0.5f)
+                                                    .PaddingVertical(2)
+                                                    .AlignCenter()
+                                                    .Text($"{item.Quantity:N0} {item.UnitSymbol}")
+                                                    .FontSize(10)
+                                                    .Bold();
+
+                                                // Price - right aligned
+                                                table.Cell().BorderBottom(0.5f)
+                                                    .PaddingVertical(2)
+                                                    .PaddingRight(5)
+                                                    .AlignRight()
+                                                    .Text($"₹{item.SellingPrice:N2}")
+                                                    .FontSize(10);
+                                            }
+                                        });
+                                    }
+                                    else if (order.Remarks == null)
+                                    {
+                                        stopCol.Item().PaddingLeft(20).Padding(3).Text("—").FontSize(10);
                                     }
 
-                                    foreach (var item in order.Items)
-                                    {
-                                        var borderBottom = (item == order.Items.Last() && order.Remarks == null) ? 0.5f : 0f;
-
-                                        table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? $"{rowNum}" : "").Bold().FontSize(11);
-                                        table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? order.CustomerName : "").Bold().FontSize(11);
-                                        table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? order.OrderNumber : "").FontSize(9);
-                                        table.Cell().Padding(4).BorderBottom(borderBottom).Text(item.ProductName).FontSize(10);
-                                        table.Cell().Padding(4).BorderBottom(borderBottom).AlignRight().Text($"{item.Quantity:N0} {item.UnitSymbol}").FontSize(10).Bold();
-                                        table.Cell().Padding(4).BorderBottom(borderBottom).AlignRight().Text($"{item.SellingPrice:N2}").FontSize(10);
-
-                                        firstRow = false;
-                                    }
-
-                                    // ── Retail items / remarks row — highlighted, same treatment as the Loading Sheet ──
+                                    // ── Remarks - plain black text, no background shade ──
                                     if (order.Remarks != null)
                                     {
-                                        table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? $"{rowNum}" : "").Bold().FontSize(11);
-                                        table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? order.CustomerName : "").Bold().FontSize(11);
-                                        table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? order.OrderNumber : "").FontSize(9);
-                                        table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text($"⚖ RETAIL: {order.Remarks}").FontSize(10).Bold().FontColor(Colors.Orange.Darken2);
-                                        table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).AlignRight().Text("").FontSize(10);
-                                        table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).AlignRight().Text("").FontSize(10);
+                                        stopCol.Item().PaddingLeft(20).PaddingTop(4)
+                                            .Text(order.Remarks).FontSize(10).Bold().FontColor(Colors.Black);
                                     }
+                                });
+                            }
 
-                                    rowNum++;
-                                }
-                            });
+                            if (route != data.Routes.Last())
+                            {
+                                routeCol.Item().PageBreak();
+                            }
                         });
                     }
                 });
@@ -338679,6 +338753,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                         x.CurrentPageNumber();
                         x.Span(" of ");
                         x.TotalPages();
+                        x.Span($"  |  Generated: {data.GeneratedAt:HH:mm:ss}");
                     });
             });
         }).GeneratePdf();
@@ -338931,6 +339006,246 @@ public class GetDailySummaryReportQueryHandler(IApplicationDbContext context)
                 });
 
                 // Footer
+                page.Footer()
+                    .BorderTop(0.5f)
+                    .PaddingTop(5)
+                    .AlignCenter()
+                    .Text(x =>
+                    {
+                        x.Span("Page ");
+                        x.CurrentPageNumber();
+                        x.Span(" of ");
+                        x.TotalPages();
+                    });
+            });
+        }).GeneratePdf();
+    }
+}
+```````
+
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetIncentiveReportQuery.cs
+```````csharp
+using MediatR;
+using FMCG.Distribution.Application.Common;
+
+namespace FMCG.Distribution.Application.Features.Reports.Queries;
+
+public class GetIncentiveReportQuery : IRequest<Result<byte[]>>
+{
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
+}
+```````
+
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetIncentiveReportQueryHandler.cs
+```````csharp
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+using FMCG.Distribution.Application.Common;
+using FMCG.Distribution.Application.Common.Interfaces;
+using FMCG.Distribution.Application.Features.Reports.DTOs;
+using FMCG.Distribution.Domain.Enums;
+using PdfUnit = QuestPDF.Infrastructure.Unit;
+
+namespace FMCG.Distribution.Application.Features.Reports.Queries;
+
+public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReportQuery, Result<byte[]>>
+{
+    private readonly IApplicationDbContext _context;
+
+    public GetIncentiveReportQueryHandler(IApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Result<byte[]>> Handle(GetIncentiveReportQuery request, CancellationToken cancellationToken)
+    {
+        // ─── Step 1: Get date range ───
+        var fromDate = request.FromDate ?? DateTime.UtcNow.Date.AddDays(-30);
+        var toDate = request.ToDate ?? DateTime.UtcNow.Date;
+
+        Console.WriteLine($"🔵 Incentive Report: {fromDate:yyyy-MM-dd} to {toDate:yyyy-MM-dd}");
+
+        // ─── Step 2: Get all active salesmen ───
+        var salesmen = await _context.Users
+            .Where(u => u.Role == UserRole.Salesman && u.IsActive && !u.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        if (salesmen.Count == 0)
+        {
+            return Result<byte[]>.Failure("No salesmen found.");
+        }
+
+        // ─── Step 3: Get CLOSED orders with items and products ───
+        var orders = await _context.Orders
+            .Include(o => o.Items)
+                .ThenInclude(i => i.Product)
+            .Where(o => !o.IsDeleted
+                && o.SalesmanId != null
+                && o.Status == OrderStatus.Closed
+                && o.OrderDate.Date >= fromDate.Date
+                && o.OrderDate.Date <= toDate.Date)
+            .ToListAsync(cancellationToken);
+
+        Console.WriteLine($"🔵 Orders found: {orders.Count}");
+
+        // ─── Step 4: Prepare report data ───
+        var reportData = new IncentiveReportDataDto
+        {
+            FromDate = fromDate,
+            ToDate = toDate,
+            GeneratedAt = DateTime.UtcNow,
+            Salesmen = new List<IncentiveReportItemDto>(),
+            GrandTotalIncentive = 0,
+            GrandTotalSales = 0,
+            TotalSalesmen = salesmen.Count
+        };
+
+        // ─── Step 5: Calculate per salesman ───
+        foreach (var salesman in salesmen)
+        {
+            var salesmanOrders = orders.Where(o => o.SalesmanId == salesman.Id).ToList();
+            var totalSales = salesmanOrders.Sum(o => o.Items.Sum(i => i.SellingPrice * i.Quantity));
+            var totalIncentive = 0m;
+
+            foreach (var order in salesmanOrders)
+            {
+                foreach (var item in order.Items)
+                {
+                    if (item.ProductId == Guid.Empty || item.Product == null) continue;
+
+                    // ─── GET INCENTIVE FROM PRODUCT ───
+                    var incentive = item.Product.Incentive;
+
+                    // ─── ONLY COUNT IF INCENTIVE > 0 ───
+                    if (incentive.HasValue && incentive.Value > 0)
+                    {
+                        totalIncentive += item.Quantity * incentive.Value;
+                    }
+                }
+            }
+
+            reportData.Salesmen.Add(new IncentiveReportItemDto
+            {
+                SalesmanId = salesman.Id,
+                SalesmanName = salesman.FullName,
+                TotalOrders = salesmanOrders.Count,
+                TotalSales = totalSales,
+                TotalIncentive = totalIncentive
+            });
+
+            reportData.GrandTotalIncentive += totalIncentive;
+            reportData.GrandTotalSales += totalSales;
+        }
+
+        // ─── Step 6: Sort by highest incentive ───
+        reportData.Salesmen = reportData.Salesmen
+            .OrderByDescending(s => s.TotalIncentive)
+            .ToList();
+
+        Console.WriteLine($"🔵 Total Incentive: {reportData.GrandTotalIncentive}");
+
+        // ─── Step 7: Generate PDF ───
+        var pdfBytes = GenerateIncentiveReportPdf(reportData);
+
+        return Result<byte[]>.Success(pdfBytes);
+    }
+
+    private byte[] GenerateIncentiveReportPdf(IncentiveReportDataDto data)
+    {
+        return Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(0.5f, PdfUnit.Centimetre);
+                page.DefaultTextStyle(x => x.FontSize(7).FontFamily("Arial"));
+
+                // ─── Header ───
+                page.Header()
+                    .BorderBottom(0.5f)
+                    .PaddingBottom(5)
+                    .Row(row =>
+                    {
+                        row.RelativeItem().Column(col =>
+                        {
+                            col.Item().Text("INCENTIVE REPORT").FontSize(14).Bold();
+                            col.Item().Text($"Period: {data.FromDate:dd-MM-yyyy} to {data.ToDate:dd-MM-yyyy}");
+                        });
+                        row.RelativeItem().AlignRight().Column(col =>
+                        {
+                            col.Item().Text($"Generated: {data.GeneratedAt:dd-MM-yyyy HH:mm}");
+                            col.Item().Text($"Total Incentive: ₹{data.GrandTotalIncentive:N2}");
+                        });
+                    });
+
+                // ─── Content ───
+                page.Content().Column(col =>
+                {
+                    // ─── Summary Cards ───
+                    col.Item().PaddingTop(8).PaddingBottom(8).Row(summaryRow =>
+                    {
+                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
+                        {
+                            c.Item().Text("SALESMEN").FontSize(7).FontColor(Colors.Grey.Medium);
+                            c.Item().Text($"{data.TotalSalesmen}").FontSize(12).Bold();
+                        });
+                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
+                        {
+                            c.Item().Text("TOTAL INCENTIVE").FontSize(7).FontColor(Colors.Grey.Medium);
+                            c.Item().Text($"₹{data.GrandTotalIncentive:N2}").FontSize(12).Bold()
+                                .FontColor(Colors.Green.Medium);
+                        });
+                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
+                        {
+                            c.Item().Text("TOTAL SALES").FontSize(7).FontColor(Colors.Grey.Medium);
+                            c.Item().Text($"₹{data.GrandTotalSales:N2}").FontSize(12).Bold();
+                        });
+                    });
+
+                    // ─── Salesmen Table ───
+                    col.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn(3);  // Salesman
+                            columns.RelativeColumn(1);  // Orders
+                            columns.RelativeColumn(2);  // Total Sales
+                            columns.RelativeColumn(2);  // Incentive
+                        });
+
+                        // ─── Table Header ───
+                        table.Header(header =>
+                        {
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("SALESMAN").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("ORDERS").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("TOTAL SALES").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("INCENTIVE").Bold();
+                        });
+
+                        // ─── Table Rows ───
+                        foreach (var salesman in data.Salesmen)
+                        {
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(salesman.SalesmanName);
+                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{salesman.TotalOrders}");
+                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{salesman.TotalSales:N2}");
+                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{salesman.TotalIncentive:N2}")
+                                .FontColor(salesman.TotalIncentive > 0 ? Colors.Green.Medium : Colors.Grey.Medium);
+                        }
+
+                        // ─── Total Row ───
+                        table.Cell().BorderTop(0.5f).Padding(3).Text("TOTAL").Bold();
+                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Salesmen.Sum(s => s.TotalOrders)}").Bold();
+                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"₹{data.GrandTotalSales:N2}").Bold();
+                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"₹{data.GrandTotalIncentive:N2}").Bold()
+                            .FontColor(Colors.Green.Medium);
+                    });
+                });
+
+                // ─── Footer ───
                 page.Footer()
                     .BorderTop(0.5f)
                     .PaddingTop(5)
@@ -339766,7 +340081,10 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
     private static bool Is50KgSizeGroup(string? sizeGroupName)
         => sizeGroupName != null && Regex.IsMatch(sizeGroupName, @"\b50\s*kg\b", RegexOptions.IgnoreCase);
 
-    // ── PDF Generator: order/customer table format, matching the Billing Sheet's style ──
+    // ── PDF Generator: original block-per-stop layout (mirrors the Billing Sheet's style) —
+    // route header, then one block per customer stop with a Product/Qty table underneath.
+    // Order # is intentionally not shown anywhere in this layout, and retail/weigh remarks
+    // are shown without the "RETAIL / WEIGH" label. ──
     private static byte[] GenerateSimpleLoadingSheetPdf(
         List<LoadingSheetRouteSummaryDto> routes,
         DateTime targetDate,
@@ -339786,31 +340104,14 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                     page.Header()
                         .BorderBottom(0.5f)
                         .PaddingBottom(5)
-                        .Row(row =>
+                        .Column(col =>
                         {
-                            row.RelativeItem().Column(col =>
+                            col.Item().Text("LOADING SHEET").FontSize(16).Bold();
+                            col.Item().Text($"Date: {targetDate:dd-MM-yyyy}").FontSize(10);
+                            if (isSingleRoute && routes.Count == 1)
                             {
-                                col.Item().Text("LOADING SHEET").FontSize(16).Bold();
-                                col.Item().Text($"Date: {targetDate:dd-MM-yyyy}").FontSize(10);
-                                if (isSingleRoute && routes.Count == 1)
-                                {
-                                    col.Item().Text($"Route: {routes[0].RouteName}").FontSize(11).Bold();
-                                }
-                            });
-                            row.RelativeItem().AlignRight().Column(col =>
-                            {
-                                col.Item().Text($"Generated: {DateTime.UtcNow:dd-MM-yyyy HH:mm}").FontSize(9);
-                                if (isSingleRoute && routes.Count == 1)
-                                {
-                                    col.Item().Text($"Orders: {routes[0].TotalOrders} | Customers: {routes[0].TotalCustomers}").FontSize(9);
-                                }
-                                else
-                                {
-                                    var totalOrders = routes.Sum(r => r.TotalOrders);
-                                    var totalStops = routes.Sum(r => r.TotalCustomers);
-                                    col.Item().Text($"Routes: {routes.Count} | Orders: {totalOrders} | Stops: {totalStops}").FontSize(9);
-                                }
-                            });
+                                col.Item().Text($"Route: {routes[0].RouteName}").FontSize(11).Bold();
+                            }
                         });
 
                     // ── Content ──
@@ -339820,87 +340121,104 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                         {
                             contentCol.Item().PaddingTop(10).Column(routeCol =>
                             {
-                                // ── Route Header ──
+                                // ── Route Header (name centered) ──
                                 routeCol.Item().Background(Colors.Grey.Lighten2)
                                     .Padding(6)
-                                    .Row(r =>
-                                    {
-                                        r.RelativeItem().Text($"{route.RouteName}").FontSize(13).Bold();
-                                        r.RelativeItem().AlignRight().Text($"Orders: {route.TotalOrders}  |  Customers: {route.TotalCustomers}").FontSize(10);
-                                    });
+                                    .AlignCenter()
+                                    .Text($"{route.RouteName}").FontSize(14).Bold();
 
-                                // ── Customer / Order table (Billing-Sheet style: #, Customer, Order#, Product, Qty) ──
-                                routeCol.Item().PaddingTop(6).Table(table =>
+                                // ── One block per customer stop (numbering stays left, name centered & large) ──
+                                // ShowEntire() keeps a stop's header + product table + remarks together as one
+                                // unit — if it doesn't fully fit on the current page, the whole block moves to
+                                // the next page instead of splitting a customer's products across pages.
+                                foreach (var stop in route.Stops)
                                 {
-                                    table.ColumnsDefinition(columns =>
+                                    routeCol.Item().PaddingTop(8).ShowEntire().Column(stopCol =>
                                     {
-                                        columns.ConstantColumn(28);   // #
-                                        columns.RelativeColumn(2.8f); // Customer
-                                        columns.RelativeColumn(2.6f); // Order #
-                                        columns.RelativeColumn(3.6f); // Product
-                                        columns.RelativeColumn(1.4f); // Qty
-                                    });
+                                        stopCol.Item().Background(Colors.Grey.Lighten3)
+                                            .Padding(4)
+                                            .Row(r =>
+                                            {
+                                                r.ConstantItem(30).AlignLeft().Text($"{stop.SequenceOrder}.").FontSize(12).Bold();
+                                                r.RelativeItem().AlignCenter().Text(stop.CustomerName).FontSize(16).Bold();
+                                                r.ConstantItem(30);
+                                            });
 
-                                    table.Header(header =>
-                                    {
-                                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("#").Bold().FontSize(10);
-                                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("CUSTOMER").Bold().FontSize(10);
-                                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("ORDER #").Bold().FontSize(10);
-                                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).Text("PRODUCT").Bold().FontSize(10);
-                                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).Padding(4).AlignRight().Text("QTY").Bold().FontSize(10);
-                                    });
+                                        // Replace the table definition section (around line 260-280) with:
 
-                                    foreach (var stop in route.Stops)
-                                    {
-                                        var firstRow = true;
-
-                                        if (stop.Items.Count == 0 && stop.Remarks == null)
+                                        if (stop.Items.Count > 0)
                                         {
-                                            table.Cell().BorderBottom(0.5f).Padding(4).Text($"{stop.SequenceOrder}").Bold().FontSize(11);
-                                            table.Cell().BorderBottom(0.5f).Padding(4).Text(stop.CustomerName).Bold().FontSize(11);
-                                            table.Cell().BorderBottom(0.5f).Padding(4).Text(stop.OrderNumber ?? "").FontSize(9);
-                                            table.Cell().BorderBottom(0.5f).Padding(4).Text("—").FontSize(10);
-                                            table.Cell().BorderBottom(0.5f).Padding(4).AlignRight().Text("").FontSize(10);
+                                            stopCol.Item().PaddingLeft(15).PaddingRight(15).PaddingTop(4).Table(table =>
+                                            {
+                                                // Equal margins on both sides (15 points each)
+                                                // Available width: A4 (595) - margins (28.35*2) - padding (15*2) ≈ 508 points
+                                                table.ColumnsDefinition(columns =>
+                                                {
+                                                    columns.RelativeColumn(4);  // Product takes 80% (≈406 points)
+                                                    columns.RelativeColumn(1);  // Qty takes 20% (≈102 points)
+                                                });
+
+                                                table.Header(header =>
+                                                {
+                                                    header.Cell().BorderBottom(1)
+                                                        .PaddingVertical(3)
+                                                        .PaddingLeft(5)
+                                                        .Text("PRODUCT")
+                                                        .Bold()
+                                                        .FontSize(9);
+
+                                                    header.Cell().BorderBottom(1)
+                                                        .PaddingVertical(3)
+                                                        .PaddingRight(5)
+                                                        .AlignRight()
+                                                        .Text("QTY")
+                                                        .Bold()
+                                                        .FontSize(9);
+                                                });
+
+                                                foreach (var item in stop.Items)
+                                                {
+                                                    // Keep product name left aligned
+                                                    table.Cell().BorderBottom(0.5f)
+                                                        .PaddingVertical(2)
+                                                        .PaddingLeft(5)
+                                                        .Text($"{item.ProductName}{(string.IsNullOrEmpty(item.SizeGroupName) ? "" : $" ({item.SizeGroupName})")}")
+                                                        .FontSize(10);
+
+                                                    // Quantity right aligned with consistent right padding
+                                                    table.Cell().BorderBottom(0.5f)
+                                                        .PaddingVertical(2)
+                                                        .PaddingRight(5)
+                                                        .AlignRight()
+                                                        .Text($"{item.TotalQuantity:N0} {item.UnitSymbol}")
+                                                        .FontSize(10)
+                                                        .Bold();
+                                                }
+                                            });
+                                        }
+                                        else if (stop.Remarks == null)
+                                        {
+                                            stopCol.Item().PaddingLeft(20).Padding(3).Text("—").FontSize(10);
                                         }
 
-                                        foreach (var item in stop.Items)
-                                        {
-                                            var borderBottom = (item == stop.Items.Last() && stop.Remarks == null) ? 0.5f : 0f;
-
-                                            // # and Customer only printed once, on the first row of this stop
-                                            table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? $"{stop.SequenceOrder}" : "").Bold().FontSize(11);
-                                            table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? stop.CustomerName : "").Bold().FontSize(11);
-                                            table.Cell().Padding(4).BorderBottom(borderBottom).Text(firstRow ? (stop.OrderNumber ?? "") : "").FontSize(9);
-                                            table.Cell().Padding(4).BorderBottom(borderBottom).Text($"{item.ProductName}{(string.IsNullOrEmpty(item.SizeGroupName) ? "" : $"  ({item.SizeGroupName})")}").FontSize(10);
-                                            table.Cell().Padding(4).BorderBottom(borderBottom).AlignRight().Text($"{item.TotalQuantity:N0} {item.UnitSymbol}").FontSize(10).Bold();
-
-                                            firstRow = false;
-                                        }
-
-                                        // ── Retail items / remarks row — highlighted so warehouse staff know to weigh manually ──
+                                        // ── Retail items / remarks — plain black text, no background shade, no "RETAIL / WEIGH" label ──
                                         if (stop.Remarks != null)
                                         {
-                                            table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? $"{stop.SequenceOrder}" : "").Bold().FontSize(11);
-                                            table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? stop.CustomerName : "").Bold().FontSize(11);
-                                            table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text(firstRow ? (stop.OrderNumber ?? "") : "").FontSize(9);
-                                            table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).Text($"⚖ RETAIL / WEIGH: {stop.Remarks}").FontSize(10).Bold().FontColor(Colors.Orange.Darken2);
-                                            table.Cell().Padding(4).BorderBottom(0.5f).Background(Colors.Yellow.Lighten3).AlignRight().Text("").FontSize(10);
+                                            stopCol.Item().PaddingLeft(20).PaddingTop(4)
+                                                .Text(stop.Remarks).FontSize(10).Bold().FontColor(Colors.Black);
                                         }
+                                    });
 
-                                        // ── 50kg bag threshold alert(s), inserted right after the stop that crossed them ──
-                                        // Repeats every time cumulative bags cross another multiple (110, 220, 330...).
-                                        foreach (var milestone in stop.FiftyKgThresholdMilestonesCrossed)
-                                        {
-                                            table.Cell().ColumnSpan(5).PaddingTop(8).PaddingBottom(4).Element(e => e);
-
-                                            table.Cell().ColumnSpan(5).Background(Colors.Red.Lighten3).Padding(6)
-                                                .Text($"⚠ ALERT: 50 KG BAGS HAVE REACHED {milestone}+ (RUNNING TOTAL: {stop.RunningFiftyKgBagTotal}) — AFTER \"{stop.CustomerName}\" — VERIFY LOADING CAPACITY")
-                                                .Bold().FontSize(11).FontColor(Colors.Red.Darken2);
-
-                                            table.Cell().ColumnSpan(5).PaddingTop(4).PaddingBottom(2).Element(e => e);
-                                        }
+                                    // ── 50kg bag threshold alert(s), inserted right after the stop that crossed them ──
+                                    // Repeats every time cumulative bags cross another multiple (110, 220, 330...).
+                                    foreach (var milestone in stop.FiftyKgThresholdMilestonesCrossed)
+                                    {
+                                        routeCol.Item().PaddingTop(6)
+                                            .Background(Colors.Red.Lighten3).Padding(6)
+                                            .Text($"⚠ ALERT: 50 KG BAGS HAVE REACHED {milestone}+ (RUNNING TOTAL: {stop.RunningFiftyKgBagTotal}) — AFTER \"{stop.CustomerName}\" — VERIFY LOADING CAPACITY")
+                                            .Bold().FontSize(11).FontColor(Colors.Red.Darken2);
                                     }
-                                });
+                                }
 
                                 // ── Size Group Summary (end of route) — helps loaders plan bag counts by weight ──
                                 if (route.SizeGroupSummary.Count > 0)
@@ -340066,7 +340384,11 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
         // Query order items with product details
         var orderItemsQuery = context.OrderItems
             .Include(i => i.Product!)
-                .ThenInclude(p => p!.ProductGroup)
+        .ThenInclude(p => p!.ProductGroup)
+    .Include(i => i.Product!)
+        .ThenInclude(p => p!.DefaultUnit)    // ← ADD THIS for Packing Category
+    .Include(i => i.Product!)
+        .ThenInclude(p => p!.SizeGroup)      // ← ADD THIS for Size Group
             .Include(i => i.Unit)
             .Where(i => orderIds.Contains(i.OrderId) && !i.IsDeleted);
 
@@ -340084,7 +340406,10 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
 
         // Group by product
         var productSummaries = orderItems
-            .GroupBy(i => new { i.ProductId, i.Product!.NameEnglish, i.Product.NameMalayalam, i.Product!.ProductGroup!.Name, i.Unit!.Symbol })
+            .GroupBy(i => new { i.ProductId, i.Product!.NameEnglish, i.Product.NameMalayalam, i.Product!.ProductGroup!.Name, i.Unit!.Symbol,
+                PackingCategory = i.Product.DefaultUnit != null ? i.Product.DefaultUnit.Name : "—",
+                SizeGroup = i.Product.SizeGroup != null ? i.Product.SizeGroup.Name : "—"
+            })
             .Select(g => new ProductSummaryItemDto
             {
                 ProductId = g.Key.ProductId,
@@ -340092,6 +340417,8 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
                 ProductNameMalayalam = g.Key.NameMalayalam,
                 ProductGroupName = g.Key.Name,
                 UnitSymbol = g.Key.Symbol,
+                PackingCategory = g.Key.PackingCategory,    // ← ADD THIS
+                SizeGroup = g.Key.SizeGroup,                // ← ADD THIS
                 TotalQuantity = g.Sum(i => i.Quantity),
                 TotalSales = g.Sum(i => i.SellingPrice * i.Quantity),
                 TotalVariance = g.Sum(i => (i.SellingPrice - i.BasePriceAtTime) * i.Quantity),
@@ -340150,7 +340477,7 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
                     {
                         row.RelativeItem().Column(col =>
                         {
-                            col.Item().Text("PRODUCT SUMMARY REPORT").FontSize(14).Bold();
+                            col.Item().Text("SUMMARY REPORT").FontSize(14).Bold();
                             col.Item().Text($"Period: {data.FromDate:dd-MM-yyyy} to {data.ToDate:dd-MM-yyyy}");
                         });
                         row.RelativeItem().AlignRight().Column(col =>
@@ -340164,31 +340491,31 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
                 page.Content().Column(col =>
                 {
                     // Summary statistics
-                    col.Item().PaddingTop(8).PaddingBottom(8).Row(summaryRow =>
-                    {
-                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
-                        {
-                            c.Item().Text("TOTAL SALES").FontSize(7).FontColor(Colors.Grey.Medium);
-                            c.Item().Text($"{data.OverallSales:N2}").FontSize(12).Bold();
-                        });
-                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
-                        {
-                            c.Item().Text("TOTAL VARIANCE").FontSize(7).FontColor(Colors.Grey.Medium);
-                            c.Item().Text($"{data.OverallVariance:N2}").FontSize(12).Bold()
-                                .FontColor(data.OverallVariance >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
-                        });
-                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
-                        {
-                            c.Item().Text("MARGIN %").FontSize(7).FontColor(Colors.Grey.Medium);
-                            c.Item().Text($"{data.OverallMarginPercentage:N2}%").FontSize(12).Bold()
-                                .FontColor(data.OverallMarginPercentage >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
-                        });
-                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
-                        {
-                            c.Item().Text("PRODUCTS").FontSize(7).FontColor(Colors.Grey.Medium);
-                            c.Item().Text($"{data.TotalProductCount}").FontSize(12).Bold();
-                        });
-                    });
+                    //col.Item().PaddingTop(8).PaddingBottom(8).Row(summaryRow =>
+                    //{
+                    //    summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
+                    //    {
+                    //        c.Item().Text("TOTAL SALES").FontSize(7).FontColor(Colors.Grey.Medium);
+                    //        c.Item().Text($"{data.OverallSales:N2}").FontSize(12).Bold();
+                    //    });
+                    //    summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
+                    //    {
+                    //        c.Item().Text("TOTAL VARIANCE").FontSize(7).FontColor(Colors.Grey.Medium);
+                    //        c.Item().Text($"{data.OverallVariance:N2}").FontSize(12).Bold()
+                    //            .FontColor(data.OverallVariance >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
+                    //    });
+                    //    summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
+                    //    {
+                    //        c.Item().Text("MARGIN %").FontSize(7).FontColor(Colors.Grey.Medium);
+                    //        c.Item().Text($"{data.OverallMarginPercentage:N2}%").FontSize(12).Bold()
+                    //            .FontColor(data.OverallMarginPercentage >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
+                    //    });
+                    //    summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
+                    //    {
+                    //        c.Item().Text("PRODUCTS").FontSize(7).FontColor(Colors.Grey.Medium);
+                    //        c.Item().Text($"{data.TotalProductCount}").FontSize(12).Bold();
+                    //    });
+                    //});
 
                     // Products table
                     col.Item().Table(table =>
@@ -340196,26 +340523,30 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
                         table.ColumnsDefinition(columns =>
                         {
                             columns.RelativeColumn(3);  // Product Name
-                            columns.RelativeColumn(1);  // Group
-                            columns.RelativeColumn(1);  // Unit
-                            columns.RelativeColumn(1);  // Qty
-                            columns.RelativeColumn(1);  // Orders
-                            columns.RelativeColumn(2);  // Sales
-                            columns.RelativeColumn(2);  // Variance
-                            columns.RelativeColumn(1);  // Margin %
+                            columns.RelativeColumn(1);  // Packing Category  ← NEW
+                            columns.RelativeColumn(1);  // Size Group        ← NEW
+                            //columns.RelativeColumn(1);  // Group
+                            //columns.RelativeColumn(1);  // Unit
+                            //columns.RelativeColumn(1);  // Qty
+                            //columns.RelativeColumn(1);  // Orders
+                            //columns.RelativeColumn(2);  // Sales
+                            //columns.RelativeColumn(2);  // Variance
+                            //columns.RelativeColumn(1);  // Margin %
                         });
 
                         // Table header
                         table.Header(header =>
                         {
                             header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("PRODUCT").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("GROUP").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("UNIT").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("QTY").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("ORDERS").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("SALES").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("VARIANCE").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("MARGIN %").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("PACKING Category").Bold();      // ← NEW
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("SIZE GROUP").Bold();   // ← NEW
+                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("GROUP").Bold();
+                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("UNIT").Bold();
+                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("QTY").Bold();
+                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("ORDERS").Bold();
+                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("SALES").Bold();
+                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("VARIANCE").Bold();
+                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("MARGIN %").Bold();
                         });
 
                         // Table rows
@@ -340223,28 +340554,30 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
                         {
                             var marginColor = product.MarginPercentage >= 0 ? Colors.Green.Medium : Colors.Red.Medium;
                             table.Cell().BorderBottom(0.5f).Padding(3).Text(product.ProductName);
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(product.ProductGroupName);
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(product.UnitSymbol);
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.TotalQuantity:N0}");
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.OrderCount}");
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.TotalSales:N2}");
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.TotalVariance:N2}")
-                                .FontColor(product.TotalVariance >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.MarginPercentage:N2}%")
-                                .FontColor(marginColor);
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(product.PackingCategory ?? "—");    // ← NEW
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(product.SizeGroup ?? "—");          // ← NEW
+                            //table.Cell().BorderBottom(0.5f).Padding(3).Text(product.ProductGroupName);
+                            //table.Cell().BorderBottom(0.5f).Padding(3).Text(product.UnitSymbol);
+                            //table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.TotalQuantity:N0}");
+                            //table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.OrderCount}");
+                            //table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.TotalSales:N2}");
+                            //table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.TotalVariance:N2}")
+                            //    .FontColor(product.TotalVariance >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
+                            //table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.MarginPercentage:N2}%")
+                            //    .FontColor(marginColor);
                         }
 
                         // Total row
-                        table.Cell().BorderTop(0.5f).Padding(3).Text("TOTAL").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Products.Sum(p => p.TotalQuantity):N0}").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Products.Sum(p => p.OrderCount)}").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.OverallSales:N2}").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.OverallVariance:N2}").Bold()
-                            .FontColor(data.OverallVariance >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.OverallMarginPercentage:N2}%").Bold()
-                            .FontColor(data.OverallMarginPercentage >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
+                        //table.Cell().BorderTop(0.5f).Padding(3).Text("TOTAL").Bold();
+                        //table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
+                        //table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
+                        //table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Products.Sum(p => p.TotalQuantity):N0}").Bold();
+                        //table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Products.Sum(p => p.OrderCount)}").Bold();
+                        //table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.OverallSales:N2}").Bold();
+                        //table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.OverallVariance:N2}").Bold()
+                        //    .FontColor(data.OverallVariance >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
+                        //table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.OverallMarginPercentage:N2}%").Bold()
+                        //    .FontColor(data.OverallMarginPercentage >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
                     });
                 });
 
@@ -378426,10 +378759,14 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         // the settlement totals below (CalculateExpectedCashAsync filters
         // them out), so they have zero effect on the closure's accuracy.
 
-        // ── CHANGED: "already closed" is now checked per ROUTE + date, not
-        // globally. Chengannur being closed does not block Mavelikkara. ──
+        // ── "already closed" is checked per ROUTE + date. ──
+        // ── BUG FIX: was missing `c.IsActive` — after a route is reopened,
+        // its old closure record is deactivated (IsActive = false) but not
+        // deleted. Without this check, trying to close the route again after
+        // a reopen would incorrectly say "already closed" forever. ──
         var existingClosure = await context.DailyClosures
             .FirstOrDefaultAsync(c => !c.IsDeleted
+                && c.IsActive
                 && c.ClosureDate.Date == targetDate.Date
                 && c.RouteId == routeId, cancellationToken);
 

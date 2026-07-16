@@ -1,5 +1,7 @@
 // PATH: src/pages/Admin/AdminCatalogConfig.tsx
 // UPDATED: Removed Units and Incentives cards
+// FIXED: handleSavePackingCategory now properly updates name via unitsApi.update()
+// FIXED: handleDeletePackingCategory now shows clear error when unit is in use
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -884,7 +886,6 @@ export function AdminCatalogConfig() {
   // ── Packing Category Handlers ──
   function openAddPackingCategory() {
     setEditingPackingCategory(null);
-    const maxPriority = packingCategories.length > 0 ? Math.max(...packingCategories.map(c => c.priority)) : 0;
     setPackingCategoryForm({ id: undefined, name: '', priority: 0 });
     setShowPackingCategoryModal(true);
   }
@@ -895,6 +896,7 @@ export function AdminCatalogConfig() {
     setShowPackingCategoryModal(true);
   }
 
+  // ── FIXED: handleSavePackingCategory now properly updates name via unitsApi.update() ──
   async function handleSavePackingCategory(data: { name: string; priority: number }) {
     if (!data.name.trim()) {
       setError('Category name is required');
@@ -905,8 +907,16 @@ export function AdminCatalogConfig() {
     setError('');
     try {
       if (editingPackingCategory) {
-        // Update priority via API
-        await unitsApi.updatePriority(editingPackingCategory.id, data.priority);
+        // ── FIX: updatePriority() only ever touched LoadingPriority — the
+        // renamed text ("Bag" → "Bags") was captured in form state but never
+        // sent to the backend. update() hits PUT /api/v1/productunits/{id}
+        // which actually persists the name. Only call updatePriority()
+        // afterward if the priority value actually changed, to avoid an
+        // unnecessary second round-trip on every save. ──
+        await unitsApi.update(editingPackingCategory.id, data.name);
+        if (data.priority !== editingPackingCategory.priority) {
+          await unitsApi.updatePriority(editingPackingCategory.id, data.priority);
+        }
         setSuccess('Packing category updated successfully!');
       } else {
         // Create new unit as a packing category
@@ -926,6 +936,7 @@ export function AdminCatalogConfig() {
     }
   }
 
+  // ── FIXED: handleDeletePackingCategory now shows clear error when unit is in use ──
   async function handleDeletePackingCategory(id: string) {
     try {
       await unitsApi.delete(id);
@@ -933,7 +944,23 @@ export function AdminCatalogConfig() {
       await loadPackingCategories();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to delete packing category');
+      // The backend blocks delete (400) when a product still uses this unit
+      // as its default — that's intentional, not a bug. Surface it clearly
+      // and point at the Deactivate fallback instead of a raw error string.
+      const errorMessage = err?.message?.toLowerCase() || '';
+      const isInUse = errorMessage.includes('used by products') || 
+                      errorMessage.includes('in use') ||
+                      errorMessage.includes('assigned to') ||
+                      errorMessage.includes('cannot delete') ||
+                      errorMessage.includes('referenced');
+      
+      const categoryName = packingCategories.find(c => c.id === id)?.name ?? 'This category';
+      
+      setError(
+        isInUse
+          ? `"${categoryName}" is still assigned to one or more products, so it can't be deleted. Please reassign those products to a different packing category first, then try deleting again.`
+          : (err?.message || 'Failed to delete packing category')
+      );
     } finally {
       setDeleteConfirm(null);
     }
@@ -990,7 +1017,7 @@ export function AdminCatalogConfig() {
         </div>
 
         {/* ── Header ─────────────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 900, color: D.text, margin: 0, letterSpacing: '-0.02em' }}>
               <Settings size={22} style={{ display: 'inline', marginRight: 8, color: D.accent }} />
@@ -1020,8 +1047,8 @@ export function AdminCatalogConfig() {
           </button>
         </div>
 
-        {/* {error && <Alert variant="error">{error}</Alert>} */}
         {success && <Alert variant="success">{success}</Alert>}
+        {error && <Alert variant="error">{error}</Alert>}
 
         {/* ── Responsive Grid ── */}
         <div style={{ 
@@ -1433,7 +1460,11 @@ export function AdminCatalogConfig() {
       <ConfirmModal
         open={!!deleteConfirm}
         title={`Delete ${deleteConfirm?.type === 'group' ? 'Group' : deleteConfirm?.type === 'sizeGroup' ? 'Size Group' : 'Packing Category'}`}
-        message={`Are you sure you want to delete "${deleteConfirm?.name}"? This action cannot be undone.`}
+        message={
+          deleteConfirm?.type === 'packingCategory'
+            ? `Are you sure you want to delete "${deleteConfirm?.name}"? This will only work if it's not assigned to any products.`
+            : `Are you sure you want to delete "${deleteConfirm?.name}"? This action cannot be undone.`
+        }
         confirmLabel="Delete"
         danger
         onConfirm={() => {
