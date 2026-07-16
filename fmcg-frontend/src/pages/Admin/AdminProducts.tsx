@@ -3,6 +3,7 @@
 // FIX: Item code now mirrors Base Price field exactly (no trailing-zero trim)
 // REMOVED: Packing Category (units) from product form UI (merged from develop)
 // FIX: Kept unitId in state (hidden) to satisfy backend requirement
+// FIX: Added default unit ID to resolve 400 error when creating products
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -431,6 +432,9 @@ export function AdminProducts() {
 
   const DEFAULT_ITEM_CODE_PREFIX = '1000-';
 
+  // ── Default unit ID (set from first available unit) ──
+  const [defaultUnitId, setDefaultUnitId] = useState('');
+
   const emptyForm = { 
     name: '', 
     nameMl: '', 
@@ -460,6 +464,11 @@ export function AdminProducts() {
       setUnits(u);
       setSizeGroups(sg);
       setPriorities(pri);
+      
+      // ── Set default unit ID from first available unit ──
+      if (u.length > 0) {
+        setDefaultUnitId(u[0].id);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Load failed');
     } finally { setLoading(false); }
@@ -528,6 +537,9 @@ export function AdminProducts() {
     // Pass the raw basePrice string to generateItemCode
     const finalItemCode = generateItemCode(prefix, addForm.basePrice);
     
+    // ── Use default unit if none selected ──
+    const unitIdToSend = addForm.unitId || defaultUnitId;
+    
     setSaving(true);
     setError('');
     
@@ -536,7 +548,7 @@ export function AdminProducts() {
         nameEnglish: addForm.name,
         nameMalayalam: addForm.nameMl || undefined,
         productGroupId: addForm.productGroupId,
-        productUnitId: addForm.unitId || undefined,  // ← ADDED BACK (required by backend)
+        productUnitId: unitIdToSend || undefined,  // ← Use default if empty
         basePrice: parsedPrice,
         itemCode: finalItemCode,
         sizeGroupId: addForm.sizeGroupId || undefined,
@@ -571,6 +583,9 @@ export function AdminProducts() {
     // Pass the raw basePrice string to generateItemCode
     const finalItemCode = generateItemCode(prefix, editForm.basePrice);
     
+    // ── Use default unit if none selected ──
+    const unitIdToSend = editForm.unitId || defaultUnitId;
+    
     setSaving(true);
     setError('');
     try {
@@ -580,7 +595,7 @@ export function AdminProducts() {
         nameEnglish: editForm.name,
         nameMalayalam: editForm.nameMl || undefined,
         productGroupId: editForm.productGroupId,
-        productUnitId: editForm.unitId || undefined,  // ← ADDED BACK (required by backend)
+        productUnitId: unitIdToSend || undefined,  // ← Use default if empty
         basePrice: parsedPrice,
         itemCode: finalItemCode,
         sizeGroupId: editForm.sizeGroupId || undefined,
