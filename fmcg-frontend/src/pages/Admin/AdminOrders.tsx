@@ -1,13 +1,4 @@
-// PATH: src/pages/Admin/AdminOrders.tsx
-// FIXED: Per-route closure instead of global close day
-// - Admin selects a route from dropdown → Close [Route Name] button appears
-// - Only the selected route's orders are locked
-// - Other routes remain InProgress and can still take orders
-// - Reopen Route undoes a closure
-// - UPDATED: Close/Reopen now toggle which one is the highlighted action —
-//   route open → bright "Close Route" button; route closed → quiet closed-at
-//   text + bright amber "Reopen Route" button. State flips instantly on
-//   success instead of waiting on a refetch round-trip.
+
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -22,7 +13,6 @@ import type { OrderDto, RouteDto, OrderDetailDto, CustomerOrderHistoryDto } from
 import { OrderStatus, ORDER_STATUS_LABELS, fmt, fmtDate } from '../../types';
 import { PageLoader, Spinner, Alert, Badge, EmptyState } from '../../components/ui';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { useAuthStore } from '../../store/authStore';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -102,7 +92,6 @@ const selectStyle = {
 
 export function AdminOrders() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
   const isMobile = useIsMobile();
   const [orders,         setOrders]         = useState<OrderDto[]>([]);
   const [routes,         setRoutes]         = useState<RouteDto[]>([]);
@@ -333,7 +322,7 @@ export function AdminOrders() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Link
-              to={user?.role === 'Admin' || user?.role === 'SuperAdmin' ? '/admin/dashboard' : '/'}
+              to="/admin/reports"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -348,7 +337,7 @@ export function AdminOrders() {
                 textDecoration: 'none',
               }}
             >
-              <ArrowLeft size={14} /> Dashboard
+              <ArrowLeft size={14} /> Reports
             </Link>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{

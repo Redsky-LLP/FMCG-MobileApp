@@ -357,64 +357,71 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
 
                                         if (stop.Items.Count > 0)
                                         {
-                                            stopCol.Item().PaddingLeft(15).PaddingRight(15).PaddingTop(4).Table(table =>
+                                            // Narrower, centered table: capping the width closes the visual gap
+                                            // between PRODUCT and QTY and pushes the leftover space out to equal
+                                            // left/right margins instead of sitting between the two columns.
+                                            stopCol.Item().AlignCenter().Width(380).PaddingTop(4).Table(table =>
                                             {
-                                                // Equal margins on both sides (15 points each)
-                                                // Available width: A4 (595) - margins (28.35*2) - padding (15*2) ≈ 508 points
                                                 table.ColumnsDefinition(columns =>
                                                 {
-                                                    columns.RelativeColumn(4);  // Product takes 80% (≈406 points)
-                                                    columns.RelativeColumn(1);  // Qty takes 20% (≈102 points)
+                                                    columns.RelativeColumn(3);  // Product ≈ 75%
+                                                    columns.RelativeColumn(1);  // Qty ≈ 25%
                                                 });
 
                                                 table.Header(header =>
                                                 {
                                                     header.Cell().BorderBottom(1)
-                                                        .PaddingVertical(3)
+                                                        .PaddingVertical(4)
                                                         .PaddingLeft(5)
                                                         .Text("PRODUCT")
                                                         .Bold()
-                                                        .FontSize(9);
+                                                        .FontSize(11);
 
                                                     header.Cell().BorderBottom(1)
-                                                        .PaddingVertical(3)
+                                                        .PaddingVertical(4)
                                                         .PaddingRight(5)
                                                         .AlignRight()
                                                         .Text("QTY")
                                                         .Bold()
-                                                        .FontSize(9);
+                                                        .FontSize(11);
                                                 });
 
                                                 foreach (var item in stop.Items)
                                                 {
-                                                    // Keep product name left aligned
+                                                    // Product name - left aligned, bold, larger
                                                     table.Cell().BorderBottom(0.5f)
-                                                        .PaddingVertical(2)
+                                                        .PaddingVertical(3)
                                                         .PaddingLeft(5)
                                                         .Text($"{item.ProductName}{(string.IsNullOrEmpty(item.SizeGroupName) ? "" : $" ({item.SizeGroupName})")}")
-                                                        .FontSize(10);
+                                                        .FontSize(13)
+                                                        .Bold();
 
-                                                    // Quantity right aligned with consistent right padding
+                                                    // Quantity right aligned, bold, larger
                                                     table.Cell().BorderBottom(0.5f)
-                                                        .PaddingVertical(2)
+                                                        .PaddingVertical(3)
                                                         .PaddingRight(5)
                                                         .AlignRight()
                                                         .Text($"{item.TotalQuantity:N0} {item.UnitSymbol}")
-                                                        .FontSize(10)
+                                                        .FontSize(13)
                                                         .Bold();
                                                 }
                                             });
                                         }
                                         else if (stop.Remarks == null)
                                         {
-                                            stopCol.Item().PaddingLeft(20).Padding(3).Text("—").FontSize(10);
+                                            stopCol.Item().AlignCenter().Width(380).PaddingLeft(5).Padding(3).Text("—").FontSize(10);
                                         }
 
                                         // ── Retail items / remarks — plain black text, no background shade, no "RETAIL / WEIGH" label ──
+                                        // Wrapped with the same AlignCenter().Width(380) + PaddingLeft(5) as the
+                                        // product table above, so remarks line up directly under the PRODUCT column
+                                        // instead of sitting further left than the table.
                                         if (stop.Remarks != null)
                                         {
-                                            stopCol.Item().PaddingLeft(20).PaddingTop(4)
-                                                .Text(stop.Remarks).FontSize(10).Bold().FontColor(Colors.Black);
+                                            // Font size bumped 10 → 13 (matches product/qty row size) so remarks
+                                            // are as readable as the rest of the stop block.
+                                            stopCol.Item().AlignCenter().Width(380).PaddingLeft(5).PaddingTop(4)
+                                                .Text(stop.Remarks).FontSize(13).Bold().FontColor(Colors.Black);
                                         }
                                     });
 

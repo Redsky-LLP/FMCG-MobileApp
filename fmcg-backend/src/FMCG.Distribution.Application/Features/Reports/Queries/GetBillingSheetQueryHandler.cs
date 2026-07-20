@@ -56,14 +56,19 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                 RouteName = g.Key.Name,
                 Orders = g
                     .OrderBy(o => o.Customer?.SequenceOrder ?? 0)
-                    .Select(o => new BillingSheetOrderDto
+                    // ── FIX: number stops by their position within THIS route's sorted list,
+                    // not by the customer's raw (global) SequenceOrder field. The old code used
+                    // o.Customer.SequenceOrder directly, which can have gaps/duplicates across
+                    // customers (e.g. 3, 7, 12...). Using the loop index guarantees a clean,
+                    // contiguous 1, 2, 3, 4, 5, 6... sequence per route, matching the loading sheet. ──
+                    .Select((o, idx) => new BillingSheetOrderDto
                     {
                         OrderId = o.Id,
                         OrderNumber = o.OrderNumber,
                         CustomerName = o.Customer?.NameEnglish ?? string.Empty,
                         CustomerNameMalayalam = o.Customer?.NameMalayalam,
                         OrderDate = o.OrderDate,
-                        SequenceOrder = o.Customer?.SequenceOrder ?? 0,
+                        SequenceOrder = idx,
                         Remarks = string.IsNullOrWhiteSpace(o.Remarks) ? null : o.Remarks,
                         Items = o.Items!.Select(i => new BillingSheetItemDto
                         {
@@ -142,6 +147,8 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                 routeCol.Item().PaddingTop(8).ShowEntire().Column(stopCol =>
                                 {
                                     // Customer header with number and name centered
+                                    // order.SequenceOrder is now a contiguous, per-route index (see Handle() above),
+                                    // so "+ 1" always produces 1, 2, 3, 4, 5, 6... in delivery order.
                                     stopCol.Item().Background(Colors.Grey.Lighten3)
                                         .Padding(4)
                                         .Row(r =>
@@ -166,52 +173,54 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                             table.Header(header =>
                                             {
                                                 header.Cell().BorderBottom(1)
-                                                    .PaddingVertical(3)
+                                                    .PaddingVertical(4)
                                                     .PaddingLeft(5)
                                                     .Text("PRODUCT")
                                                     .Bold()
-                                                    .FontSize(9);
+                                                    .FontSize(11);
 
                                                 header.Cell().BorderBottom(1)
-                                                    .PaddingVertical(3)
+                                                    .PaddingVertical(4)
                                                     .AlignCenter()
                                                     .Text("QTY")
                                                     .Bold()
-                                                    .FontSize(9);
+                                                    .FontSize(11);
 
                                                 header.Cell().BorderBottom(1)
-                                                    .PaddingVertical(3)
+                                                    .PaddingVertical(4)
                                                     .PaddingRight(5)
                                                     .AlignRight()
                                                     .Text("PRICE")
                                                     .Bold()
-                                                    .FontSize(9);
+                                                    .FontSize(11);
                                             });
 
                                             foreach (var item in order.Items)
                                             {
-                                                // Product name - left aligned
+                                                // Product name - left aligned, bold, larger
                                                 table.Cell().BorderBottom(0.5f)
-                                                    .PaddingVertical(2)
+                                                    .PaddingVertical(3)
                                                     .PaddingLeft(5)
                                                     .Text(item.ProductName)
-                                                    .FontSize(10);
-
-                                                // Quantity - centered
-                                                table.Cell().BorderBottom(0.5f)
-                                                    .PaddingVertical(2)
-                                                    .AlignCenter()
-                                                    .Text($"{item.Quantity:N0} {item.UnitSymbol}")
-                                                    .FontSize(10)
+                                                    .FontSize(13)
                                                     .Bold();
 
-                                                // Price - right aligned
+                                                // Quantity - centered, bold, larger
                                                 table.Cell().BorderBottom(0.5f)
-                                                    .PaddingVertical(2)
+                                                    .PaddingVertical(3)
+                                                    .AlignCenter()
+                                                    .Text($"{item.Quantity:N0} {item.UnitSymbol}")
+                                                    .FontSize(13)
+                                                    .Bold();
+
+                                                // Price - right aligned, bold, larger
+                                                table.Cell().BorderBottom(0.5f)
+                                                    .PaddingVertical(3)
                                                     .PaddingRight(5)
                                                     .AlignRight()
                                                     .Text($"₹{item.SellingPrice:N2}")
-                                                    .FontSize(10);
+                                                    .FontSize(12)
+                                                    .Bold();
                                             }
                                         });
                                     }
@@ -221,10 +230,12 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                     }
 
                                     // ── Remarks - plain black text, no background shade ──
+                                    // Font size bumped 10 → 13 (matches product/qty row size) so remarks
+                                    // are as readable as the rest of the stop block.
                                     if (order.Remarks != null)
                                     {
                                         stopCol.Item().PaddingLeft(20).PaddingTop(4)
-                                            .Text(order.Remarks).FontSize(10).Bold().FontColor(Colors.Black);
+                                            .Text(order.Remarks).FontSize(13).Bold().FontColor(Colors.Black);
                                     }
                                 });
                             }

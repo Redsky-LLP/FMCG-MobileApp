@@ -1423,7 +1423,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.2hfot9t7e54"
+    "revision": "0.s2mso15st6s"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -69155,17 +69155,12 @@ const NAV_ITEMS: NavItem[] = [
   // Admin / SuperAdmin
   { to: '/admin/dashboard',   label: 'Dashboard',        icon: Home,         roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/routes',      label: 'Routes',           icon: Route,        roles: ['Admin', 'SuperAdmin'] },
-  { to: '/admin/assignments', label: 'Temp Assignments', icon: CalendarDays, roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/customers',   label: 'Customers',        icon: Users,        roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/products',    label: 'Products',         icon: Package,      roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/orders',      label: 'Orders',           icon: ShoppingCart, roles: ['Admin', 'SuperAdmin'] },
-  { to: '/admin/settlement',  label: 'Settlement',       icon: Calculator,   roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/reports',     label: 'Reports',          icon: FileText,     roles: ['Admin', 'SuperAdmin'] },
-  { to: '/admin/analytics',   label: 'Analytics',        icon: BarChart3,    roles: ['Admin', 'SuperAdmin'] },
-  { to: '/admin/incentives',  label: 'Incentives',       icon: Gift,         roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/users',        label: 'Users',            icon: UserCog,      roles: ['Admin', 'SuperAdmin'] },
   { to: '/admin/session-log',  label: 'Session Log',      icon: Clock,        roles: ['Admin', 'SuperAdmin'] },
-  { to: '/admin/settings',    label: 'Settings',         icon: Settings,     roles: ['Admin', 'SuperAdmin'] },
 
   // Salesman
   { to: '/salesman/routes',     label: 'My Routes',  icon: Route,        roles: ['Salesman'] },
@@ -73286,7 +73281,7 @@ export function AdminCatalogConfig() {
               Catalog Config
             </h1>
             <p style={{ color: D.muted, fontSize: 14, marginTop: 4, fontWeight: 500 }}>
-              Item Groups, Size Groups &amp; Packing Categories
+              Item Groups, Size Groups
             </p>
           </div>
           <button
@@ -73315,10 +73310,9 @@ export function AdminCatalogConfig() {
         {/* ── Responsive Grid ── */}
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', 
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr ', 
           gap: 16 
         }}>
-
           {/* ── Groups Card ── */}
           <div style={{
             background: D.surface,
@@ -73553,138 +73547,7 @@ export function AdminCatalogConfig() {
             </div>
           </div>
 
-          {/* ── Packing Categories Card ── */}
-          <div style={{
-            background: D.surface,
-            borderRadius: 16,
-            border: `1px solid ${D.border}`,
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '14px 16px',
-              borderBottom: `1px solid ${D.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Package size={16} style={{ color: D.accent }} />
-                <h2 style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
-                  Packing Categories
-                </h2>
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: D.muted,
-                  background: D.bg,
-                  padding: '1px 8px',
-                  borderRadius: 12,
-                }}>
-                  {packingCategories.length}
-                </span>
-              </div>
-              <button
-                onClick={openAddPackingCategory}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '4px 10px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: D.accent,
-                  color: '#fff',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                <Plus size={12} /> Add
-              </button>
-            </div>
-
-            <div style={{ padding: '10px 12px', maxHeight: 300, overflowY: 'auto' }}>
-              <div style={{ fontSize: 10, color: D.muted, marginBottom: 8, padding: '6px 8px', background: D.bg, borderRadius: 6 }}>
-                <strong style={{ color: D.accent }}>1</strong> = Highest priority · 
-                <strong style={{ color: D.accent }}> 99</strong> = Lowest priority
-              </div>
-              {packingCategoriesLoading ? (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <Spinner size={20} />
-                </div>
-              ) : packingCategories.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '20px 0', color: D.muted, fontSize: 12 }}>
-                  No packing categories yet
-                </div>
-              ) : (
-                packingCategories
-                  .sort((a, b) => a.priority - b.priority)
-                  .map((category) => (
-                    <div
-                      key={category.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '6px 8px',
-                        marginBottom: 4,
-                        borderRadius: 8,
-                        background: D.bg,
-                        border: `1px solid ${D.border}`,
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 6,
-                          flexShrink: 0,
-                          background: `${D.accent}15`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 800,
-                          fontSize: 12,
-                          color: D.accent,
-                        }}>
-                          {category.priority}
-                        </div>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: D.text }}>
-                          {category.name}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 2 }}>
-                        <button
-                          onClick={() => openEditPackingCategory(category)}
-                          style={{
-                            padding: '3px 6px',
-                            borderRadius: 4,
-                            border: 'none',
-                            background: 'transparent',
-                            color: D.sub,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <Edit2 size={12} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm({ type: 'packingCategory', id: category.id, name: category.name })}
-                          style={{
-                            padding: '3px 6px',
-                            borderRadius: 4,
-                            border: 'none',
-                            background: 'transparent',
-                            color: D.sub,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-              )}
-            </div>
-          </div>
+         
 
         </div>
       </div>
@@ -73708,7 +73571,7 @@ export function AdminCatalogConfig() {
         saving={loading}
       />
 
-      <PackingCategoryModal
+      {/* <PackingCategoryModal
         isOpen={showPackingCategoryModal}
         onClose={() => setShowPackingCategoryModal(false)}
         onSave={handleSavePackingCategory}
@@ -73716,7 +73579,7 @@ export function AdminCatalogConfig() {
         initialData={packingCategoryForm}
         existingCategories={packingCategories}
         saving={loading}
-      />
+      /> */}
 
       {/* ── Delete Confirmation ── */}
       <ConfirmModal
@@ -77925,6 +77788,10 @@ function actionBtn(bg: string, color: string, strong = false): React.CSSProperti
 ``````typescript
 // PATH: src/pages/Admin/AdminProducts.tsx
 // UPDATED: Added Size Group support to product form
+// FIX: Item code now mirrors Base Price field exactly (no trailing-zero trim)
+// REMOVED: Packing Category (units) from product form UI (merged from develop)
+// FIX: Kept unitId in state (hidden) to satisfy backend requirement
+// FIX: Added default unit ID to resolve 400 error when creating products
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -78004,25 +77871,19 @@ function parsePriceFromItemCode(code: string): number | null {
   return !isNaN(n) && n >= 0 ? n : null;
 }
 
-// ── Helper: Format a price for embedding in an item code, WITHOUT rounding
-// away decimals (99.57 must stay "99.57", not become "100"). Rounds only to
-// kill binary floating-point noise (e.g. 500.1 * 1 -> 500.09999999999997),
-// then trims trailing zeros so whole numbers still look clean ("100", not "100.00"). ──
-function formatPriceForItemCode(price: number): string {
-  const rounded = Math.round(price * 100) / 100;   // clamp to 2dp, kills float noise only
-  let s = rounded.toFixed(2);                       // "99.57", "500.50", "100.00"
-  s = s.replace(/0+$/, '').replace(/\.$/, '');       // "99.57", "500.5", "100"
-  return s;
-}
-
-// ── Helper: Generate item code from prefix and price ────────
-function generateItemCode(prefix: string, price: number): string {
+// ── Helper: Generate item code from prefix and price.
+// FIX: takes the price as the RAW STRING already sitting in the Base Price
+// field (not a re-parsed/re-rounded number), so the item code is always
+// character-for-character identical to what's shown there. This is what
+// was causing "900.90" in Base Price to show as "900.9" in Item Code —
+// the old version ran the number through toFixed(2) + trailing-zero-trim,
+// which is a reformat, not a mirror. No reformatting = no mismatch. ──
+function generateItemCode(prefix: string, priceStr: string): string {
   const cleanPrefix = prefix.trim();
-  // If prefix already has a dash, remove the price part
-  const basePrefix = cleanPrefix.includes('-') 
+  const basePrefix = cleanPrefix.includes('-')
     ? cleanPrefix.substring(0, cleanPrefix.lastIndexOf('-') + 1)
     : cleanPrefix + '-';
-  return `${basePrefix}${formatPriceForItemCode(price)}`;
+  return `${basePrefix}${priceStr.trim()}`;
 }
 
 // ── Helper: Extract prefix from item code ─────────────────────
@@ -78079,11 +77940,6 @@ function ProductCard({
             {product.productGroupName && (
               <span style={{ fontSize: 11, fontWeight: 700, color: D.accent, background: `${D.accent}15`, border: `1px solid ${D.accent}33`, padding: '2px 8px', borderRadius: 6 }}>
                 {product.productGroupName}
-              </span>
-            )}
-            {product.productUnitName && (
-              <span style={{ fontSize: 11, fontWeight: 600, color: D.sub, background: D.bg, border: `1px solid ${D.border}`, padding: '2px 8px', borderRadius: 6 }}>
-                {product.productUnitName}
               </span>
             )}
             {product.sizeGroupName && (
@@ -78145,12 +78001,21 @@ function ProductCard({
 
 // ── Product Form Fields ────────────────────────────────────
 function ProductFormFields({
-  form, setForm, groups, units, sizeGroups, autoFocus, isEdit = false,
+  form, setForm, groups, sizeGroups, autoFocus, isEdit = false,
 }: {
-  form: { name: string; nameMl: string; productGroupId: string; unitId: string; basePrice: string; itemCode: string; sizeGroupId: string, unitSize: string;  incentive: string;   };
+  form: { 
+    name: string; 
+    nameMl: string; 
+    productGroupId: string; 
+    unitId: string;  // ← KEPT (hidden from UI, required by backend)
+    basePrice: string; 
+    itemCode: string; 
+    sizeGroupId: string;
+    unitSize: string;
+    incentive: string;
+  };
   setForm: React.Dispatch<React.SetStateAction<any>>;
   groups: ProductGroupDto[];
-  units: UnitDto[];
   sizeGroups: SizeGroupDto[];
   autoFocus?: boolean;
   isEdit?: boolean;
@@ -78165,15 +78030,15 @@ function ProductFormFields({
     const newPrice = e.target.value;
     setForm((p: any) => {
       const updated = { ...p, basePrice: newPrice };
-      
-      // Auto-generate item code from price
+
+      // Auto-generate item code from price — pass the raw typed string
+      // straight through so it matches the Base Price field exactly.
       const priceNum = parseFloat(newPrice);
       if (!isNaN(priceNum) && priceNum >= 0) {
-        // Use existing prefix or default
-        const prefix = p.itemCode && p.itemCode.includes('-') 
-          ? extractItemCodePrefix(p.itemCode) 
+        const prefix = p.itemCode && p.itemCode.includes('-')
+          ? extractItemCodePrefix(p.itemCode)
           : '1000-';
-        updated.itemCode = generateItemCode(prefix, priceNum);
+        updated.itemCode = generateItemCode(prefix, newPrice);
       }
       return updated;
     });
@@ -78184,7 +78049,6 @@ function ProductFormFields({
     const newCode = e.target.value;
     setForm((p: any) => {
       const updated = { ...p, itemCode: newCode };
-      // Try to parse price from the new item code
       const parsedPrice = parsePriceFromItemCode(newCode);
       if (parsedPrice !== null) {
         updated.basePrice = String(parsedPrice);
@@ -78193,147 +78057,136 @@ function ProductFormFields({
     });
   };
 
-  // Get the current price from the form
   const currentPrice = parseFloat(form.basePrice);
   const isValidPrice = !isNaN(currentPrice) && currentPrice >= 0;
   const currentPrefix = form.itemCode && form.itemCode.includes('-') 
     ? extractItemCodePrefix(form.itemCode) 
     : '1000-';
-  const autoGeneratedCode = isValidPrice ? generateItemCode(currentPrefix, currentPrice) : '';
+  // Pass form.basePrice (the raw string) so the preview matches the field exactly.
+  const autoGeneratedCode = isValidPrice ? generateItemCode(currentPrefix, form.basePrice) : '';
 
   return (
-    
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-    {/* 1. Product Name */}
-    <div>
-      <label style={lbl}>Product Name <span style={{ color: D.red }}>*</span></label>
-      <input value={form.name} onChange={e => setForm((p: any) => ({ ...p, name: e.target.value }))}
-        placeholder="Name in English" style={inp} onFocus={onFoc} onBlur={onBlr} autoFocus={autoFocus} />
-    </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* 1. Product Name */}
+      <div>
+        <label style={lbl}>Product Name <span style={{ color: D.red }}>*</span></label>
+        <input value={form.name} onChange={e => setForm((p: any) => ({ ...p, name: e.target.value }))}
+          placeholder="Name in English" style={inp} onFocus={onFoc} onBlur={onBlr} autoFocus={autoFocus} />
+      </div>
 
-    {/* 2. Malayalam Name */}
-    <div>
-      <label style={lbl}>Malayalam Name <span style={{ fontSize: 10, color: D.sub }}>(optional)</span></label>
-      <input value={form.nameMl} onChange={e => setForm((p: any) => ({ ...p, nameMl: e.target.value }))}
-        placeholder="മലയാളം" lang="ml" style={inp} onFocus={onFoc} onBlur={onBlr} />
-    </div>
+      {/* 2. Malayalam Name */}
+      <div>
+        <label style={lbl}>Malayalam Name <span style={{ fontSize: 10, color: D.sub }}>(optional)</span></label>
+        <input value={form.nameMl} onChange={e => setForm((p: any) => ({ ...p, nameMl: e.target.value }))}
+          placeholder="മലയാളം" lang="ml" style={inp} onFocus={onFoc} onBlur={onBlr} />
+      </div>
 
-    {/* 3. Base Price */}
-    <div>
-      <label style={lbl}>Base Price (₹) <span style={{ color: D.red }}>*</span></label>
-      <input 
-        type="number" 
-        step="0.01" 
-        min="0"
-        value={form.basePrice} 
-        onChange={handlePriceChange}
-        onWheel={e => e.currentTarget.blur()}
-        placeholder="Enter base price" 
-        style={{ ...inp, fontSize: 18, fontWeight: 700, color: D.accent }}
-        onFocus={onFoc} onBlur={onBlr} 
-      />
-      {autoGeneratedCode && (
-        <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
-          Item code will be: <strong style={{ color: D.accent }}>{autoGeneratedCode}</strong>
+      {/* 3. Base Price */}
+      <div>
+        <label style={lbl}>Base Price (₹) <span style={{ color: D.red }}>*</span></label>
+        <input 
+          type="number" 
+          step="0.01" 
+          min="0"
+          value={form.basePrice} 
+          onChange={handlePriceChange}
+          onWheel={e => e.currentTarget.blur()}
+          placeholder="Enter base price" 
+          style={{ ...inp, fontSize: 18, fontWeight: 700, color: D.accent }}
+          onFocus={onFoc} onBlur={onBlr} 
+        />
+        {autoGeneratedCode && (
+          <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
+            Item code will be: <strong style={{ color: D.accent }}>{autoGeneratedCode}</strong>
+          </p>
+        )}
+      </div>
+
+      {/* 4. Item Group */}
+      <div>
+        <label style={lbl}>Item Group <span style={{ color: D.red }}>*</span></label>
+        <select value={form.productGroupId} onChange={e => setForm((p: any) => ({ ...p, productGroupId: e.target.value }))}
+          style={{ ...inp, cursor: 'pointer' }} onFocus={onFoc} onBlur={onBlr}>
+          <option value="">Select item group</option>
+          {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+        </select>
+      </div>
+
+      {/* 5. Size Group */}
+      <div>
+        <label style={lbl}>Size Group</label>
+        <select 
+          value={form.sizeGroupId} 
+          onChange={e => setForm((p: any) => ({ ...p, sizeGroupId: e.target.value }))}
+          style={{ ...inp, cursor: 'pointer' }} 
+          onFocus={onFoc} onBlur={onBlr}
+        >
+          <option value="">Select size group</option>
+          {sizeGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+        </select>
+      </div>
+
+      {/* 6. Unit Size */}
+      <div>
+        <label style={lbl}>Unit Size</label>
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          value={form.unitSize}
+          onChange={e => setForm((p: any) => ({ ...p, unitSize: e.target.value }))}
+          onWheel={e => e.currentTarget.blur()}
+          placeholder="Enter unit size (e.g., 50, 100)"
+          style={inp}
+          onFocus={onFoc} onBlur={onBlr}
+        />
+      </div>
+
+      {/* 7. Incentive */}
+      <div>
+        <label style={lbl}>Incentive <span style={{ fontSize: 10, color: D.sub }}>(optional)</span></label>
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          value={form.incentive}
+          onChange={e => setForm((p: any) => ({ ...p, incentive: e.target.value }))}
+          onWheel={e => e.currentTarget.blur()}
+          placeholder="Enter incentive amount (e.g., 5, 10.50)"
+          style={inp}
+          onFocus={onFoc} onBlur={onBlr}
+        />
+      </div>
+
+      {/* ── Item Code field (auto-generated, at the bottom) ── */}
+      <div style={{ padding: '16px', borderRadius: 12, background: `${D.accent}10`, border: `1px solid ${D.accent}33` }}>
+        <label style={{ ...lbl, color: D.accent }}>Item Code <span style={{ color: D.red }}>*</span></label>
+        <input 
+          value={form.itemCode} 
+          onChange={handleItemCodeChange}
+          placeholder="Auto-generated from price" 
+          style={{ ...inp, fontSize: 18, fontWeight: 800, color: D.accent, background: D.surface2, border: `1px solid ${D.accent}33` }}
+          onFocus={onFoc} onBlur={onBlr} 
+        />
+        <p style={{ margin: '8px 0 0', fontSize: 11, color: D.sub }}>
+          Format: <strong>code-price</strong> — the number after the last dash is the price. "1000-90" → price ₹90.
         </p>
-      )}
+        {(() => {
+          const parsed = parsePriceFromItemCode(form.itemCode);
+          if (!form.itemCode) return null;
+          return parsed !== null ? (
+            <p style={{ margin: '8px 0 0', fontSize: 12, color: D.accent, fontWeight: 600 }}>
+              Salesman will see: <strong>{form.itemCode}</strong> · price ₹{form.basePrice || parsed}
+            </p>
+          ) : (
+            <p style={{ margin: '8px 0 0', fontSize: 12, color: D.red, fontWeight: 600 }}>
+              ⚠ No price found — add a dash and the price at the end, e.g. "{form.itemCode}-90".
+            </p>
+          );
+        })()}
+      </div>
     </div>
-
-    {/* 4. Item Group */}
-    <div>
-      <label style={lbl}>Item Group <span style={{ color: D.red }}>*</span></label>
-      <select value={form.productGroupId} onChange={e => setForm((p: any) => ({ ...p, productGroupId: e.target.value }))}
-        style={{ ...inp, cursor: 'pointer' }} onFocus={onFoc} onBlur={onBlr}>
-        <option value="">Select group</option>
-        {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-      </select>
-    </div>
-
-    {/* 5. Size Group */}
-    <div>
-      <label style={lbl}>Size Group</label>
-      <select 
-        value={form.sizeGroupId} 
-        onChange={e => setForm((p: any) => ({ ...p, sizeGroupId: e.target.value }))}
-        style={{ ...inp, cursor: 'pointer' }} 
-        onFocus={onFoc} onBlur={onBlr}
-      >
-        <option value="">Select size group</option>
-        {sizeGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-      </select>
-    </div>
-
-    {/* 6. Unit Size */}
-    <div>
-      <label style={lbl}>Unit Size</label>
-      <input
-        type="number"
-        step="0.01"
-        min="0"
-        value={form.unitSize}
-        onChange={e => setForm((p: any) => ({ ...p, unitSize: e.target.value }))}
-        onWheel={e => e.currentTarget.blur()}
-        placeholder="Enter unit size (e.g., 50, 100)"
-        style={inp}
-        onFocus={onFoc} onBlur={onBlr}
-      />
-    </div>
-
-    {/* 7. Packing Category */}
-    <div>
-      <label style={lbl}>Packing Category</label>
-      <select value={form.unitId} onChange={e => setForm((p: any) => ({ ...p, unitId: e.target.value }))}
-        style={{ ...inp, cursor: 'pointer' }} onFocus={onFoc} onBlur={onBlr}>
-        <option value="">Select packing category</option>
-        {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-      </select>
-    </div>
-
-    {/* 8. Incentive */}
-    <div>
-      <label style={lbl}>Incentive <span style={{ fontSize: 10, color: D.sub }}>(optional)</span></label>
-      <input
-        type="number"
-        step="0.01"
-        min="0"
-        value={form.incentive}
-        onChange={e => setForm((p: any) => ({ ...p, incentive: e.target.value }))}
-        onWheel={e => e.currentTarget.blur()}
-        placeholder="Enter incentive amount (e.g., 5, 10.50)"
-        style={inp}
-        onFocus={onFoc} onBlur={onBlr}
-      />
-    </div>
-
-    {/* ── Item Code field (auto-generated, at the bottom) ── */}
-    <div style={{ padding: '16px', borderRadius: 12, background: `${D.accent}10`, border: `1px solid ${D.accent}33` }}>
-      <label style={{ ...lbl, color: D.accent }}>Item Code <span style={{ color: D.red }}>*</span></label>
-      <input 
-        value={form.itemCode} 
-        onChange={handleItemCodeChange}
-        placeholder="Auto-generated from price" 
-        style={{ ...inp, fontSize: 18, fontWeight: 800, color: D.accent, background: D.surface2, border: `1px solid ${D.accent}33` }}
-        onFocus={onFoc} onBlur={onBlr} 
-      />
-      <p style={{ margin: '8px 0 0', fontSize: 11, color: D.sub }}>
-        Format: <strong>code-price</strong> — the number after the last dash is the price. "1000-90" → price ₹90.
-      </p>
-      {(() => {
-        const parsed = parsePriceFromItemCode(form.itemCode);
-        if (!form.itemCode) return null;
-        return parsed !== null ? (
-          <p style={{ margin: '8px 0 0', fontSize: 12, color: D.accent, fontWeight: 600 }}>
-            Salesman will see: <strong>{form.itemCode}</strong> · price ₹{parsed}
-          </p>
-        ) : (
-          <p style={{ margin: '8px 0 0', fontSize: 12, color: D.red, fontWeight: 600 }}>
-            ⚠ No price found — add a dash and the price at the end, e.g. "{form.itemCode}-90".
-          </p>
-        );
-      })()}
-    </div>
-  </div>
-);
+  );
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -78347,7 +78200,6 @@ export function AdminProducts() {
   const [groups, setGroups] = useState<ProductGroupDto[]>([]);
   const [units, setUnits] = useState<UnitDto[]>([]);
   const [priorities, setPriorities] = useState<UnitPriorityDto[]>([]);
-  // ── NEW: Size Groups state ──
   const [sizeGroups, setSizeGroups] = useState<SizeGroupDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -78366,19 +78218,21 @@ export function AdminProducts() {
   const [priceReason, setPriceReason] = useState('');
   const addCardRef = useRef<HTMLDivElement>(null);
 
-  // ── Default item code prefix ──
   const DEFAULT_ITEM_CODE_PREFIX = '1000-';
+
+  // ── Default unit ID (set from first available unit) ──
+  const [defaultUnitId, setDefaultUnitId] = useState('');
 
   const emptyForm = { 
     name: '', 
     nameMl: '', 
     productGroupId: '', 
-    unitId: '', 
+    unitId: '',  // ← KEPT (hidden from UI, required by backend)
     basePrice: '', 
     itemCode: DEFAULT_ITEM_CODE_PREFIX,
-    sizeGroupId: '',  // ── NEW ──
-    unitSize: '',  // ── NEW ──
-    incentive: '',  // ── NEW ──
+    sizeGroupId: '',
+    unitSize: '',
+    incentive: '',
   };
   const [addForm, setAddForm] = useState(emptyForm);
   const [editForm, setEditForm] = useState(emptyForm);
@@ -78390,14 +78244,19 @@ export function AdminProducts() {
         productsApi.getAll(groupFilter ? { productGroupId: groupFilter } : undefined),
         productGroupsApi.getAll(),
         unitsApi.getAll(),
-        sizeGroupsApi.getAll().catch(() => [] as SizeGroupDto[]),  // ── NEW ──
+        sizeGroupsApi.getAll().catch(() => [] as SizeGroupDto[]),
         unitsApi.getPriorities().catch(() => [] as UnitPriorityDto[]),
       ]);
       setProducts(p);
       setGroups(g);
       setUnits(u);
-      setSizeGroups(sg);  // ── NEW ──
+      setSizeGroups(sg);
       setPriorities(pri);
+      
+      // ── Set default unit ID from first available unit ──
+      if (u.length > 0) {
+        setDefaultUnitId(u[0].id);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Load failed');
     } finally { setLoading(false); }
@@ -78408,11 +78267,10 @@ export function AdminProducts() {
   useEffect(() => {
     if (showAdd) {
       setAddForm({ ...emptyForm, productGroupId: groups[0]?.id ?? '' });
-       setTimeout(() => {
-      const firstInput = addCardRef.current?.querySelector('input');
-      if (firstInput) firstInput.focus();
-    }, 50);
-  
+      setTimeout(() => {
+        const firstInput = addCardRef.current?.querySelector('input');
+        if (firstInput) firstInput.focus();
+      }, 50);
     }
   }, [showAdd]);
 
@@ -78424,10 +78282,10 @@ export function AdminProducts() {
       name: p.nameEnglish,
       nameMl: p.nameMalayalam ?? '',
       productGroupId: p.productGroupId,
-      unitId: p.productUnitId ?? '',
+      unitId: p.productUnitId ?? '',  // ← KEPT (hidden from UI, required by backend)
       basePrice: p.basePrice.toString(),
-      itemCode: p.itemCode ?? generateItemCode(prefix, p.basePrice),
-      sizeGroupId: p.sizeGroupId ?? '',  // ── NEW ──
+      itemCode: p.itemCode ?? generateItemCode(prefix, p.basePrice.toString()),
+      sizeGroupId: p.sizeGroupId ?? '',
       unitSize: unitSizeValue ? String(unitSizeValue) : '',
       incentive: incentiveValue ? String(incentiveValue) : '',
     });
@@ -78451,11 +78309,7 @@ export function AdminProducts() {
       setError('Fill all required fields.');
       return;
     }
-    // ── The Base Price field is the source of truth (it's what the admin sees and
-    // typed directly). Only fall back to parsing the item code if Base Price is
-    // somehow empty/invalid — previously this was backwards, which combined with
-    // generateItemCode's old Math.round() meant a typed price like 99.57 could get
-    // silently replaced by whatever integer the item code got rounded to (100). ──
+    // ── The Base Price field is the source of truth ──
     let parsedPrice = parseFloat(addForm.basePrice);
     if (isNaN(parsedPrice) || parsedPrice < 0) {
       parsedPrice = parsePriceFromItemCode(addForm.itemCode) ?? NaN;
@@ -78468,7 +78322,11 @@ export function AdminProducts() {
     const prefix = addForm.itemCode && addForm.itemCode.includes('-') 
       ? extractItemCodePrefix(addForm.itemCode) 
       : DEFAULT_ITEM_CODE_PREFIX;
-    const finalItemCode = generateItemCode(prefix, parsedPrice);
+    // Pass the raw basePrice string to generateItemCode
+    const finalItemCode = generateItemCode(prefix, addForm.basePrice);
+    
+    // ── Use default unit if none selected ──
+    const unitIdToSend = addForm.unitId || defaultUnitId;
     
     setSaving(true);
     setError('');
@@ -78478,12 +78336,12 @@ export function AdminProducts() {
         nameEnglish: addForm.name,
         nameMalayalam: addForm.nameMl || undefined,
         productGroupId: addForm.productGroupId,
-        productUnitId: addForm.unitId || undefined,
+        productUnitId: unitIdToSend || undefined,  // ← Use default if empty
         basePrice: parsedPrice,
         itemCode: finalItemCode,
-        sizeGroupId: addForm.sizeGroupId || undefined,  // ── NEW ──
-        UnitSize: addForm.unitSize ? parseFloat(addForm.unitSize) : 0,    // ← NEW
-        Incentive: addForm.incentive ? parseFloat(addForm.incentive) : 0,  // ← NEW
+        sizeGroupId: addForm.sizeGroupId || undefined,
+        UnitSize: addForm.unitSize ? parseFloat(addForm.unitSize) : 0,
+        Incentive: addForm.incentive ? parseFloat(addForm.incentive) : 0,
       });
       setShowAdd(false);
       setAddForm(emptyForm);
@@ -78497,7 +78355,7 @@ export function AdminProducts() {
       setError('Fill all required fields.');
       return;
     }
-    // ── Base Price field is authoritative — see note in handleAdd above. ──
+    // ── Base Price field is authoritative ──
     let parsedPrice = parseFloat(editForm.basePrice);
     if (isNaN(parsedPrice) || parsedPrice < 0) {
       parsedPrice = parsePriceFromItemCode(editForm.itemCode) ?? NaN;
@@ -78510,7 +78368,11 @@ export function AdminProducts() {
     const prefix = editForm.itemCode && editForm.itemCode.includes('-') 
       ? extractItemCodePrefix(editForm.itemCode) 
       : DEFAULT_ITEM_CODE_PREFIX;
-    const finalItemCode = generateItemCode(prefix, parsedPrice);
+    // Pass the raw basePrice string to generateItemCode
+    const finalItemCode = generateItemCode(prefix, editForm.basePrice);
+    
+    // ── Use default unit if none selected ──
+    const unitIdToSend = editForm.unitId || defaultUnitId;
     
     setSaving(true);
     setError('');
@@ -78521,12 +78383,12 @@ export function AdminProducts() {
         nameEnglish: editForm.name,
         nameMalayalam: editForm.nameMl || undefined,
         productGroupId: editForm.productGroupId,
-        productUnitId: editForm.unitId || undefined,
+        productUnitId: unitIdToSend || undefined,  // ← Use default if empty
         basePrice: parsedPrice,
         itemCode: finalItemCode,
-        sizeGroupId: editForm.sizeGroupId || undefined,  // ── NEW ──
-        UnitSize: editForm.unitSize ? parseFloat(editForm.unitSize) : 0,    // ← NEW
-        Incentive: editForm.incentive ? parseFloat(editForm.incentive) : 0,  // ← NEW
+        sizeGroupId: editForm.sizeGroupId || undefined,
+        UnitSize: editForm.unitSize ? parseFloat(editForm.unitSize) : 0,
+        Incentive: editForm.incentive ? parseFloat(editForm.incentive) : 0,
       });
       setEditModal(null);
       loadAll();
@@ -78569,7 +78431,6 @@ export function AdminProducts() {
     <div style={{ minHeight: '100vh', background: D.bg, padding: '20px 16px 100px' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
-        {/* ── Back Button ────────────────────────────────────────────────────── */}
         <button
           onClick={() => navigate('/admin/dashboard')}
           style={{
@@ -78590,7 +78451,6 @@ export function AdminProducts() {
           Back to Dashboard
         </button>
 
-        {/* Top bar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
           <div style={{ flex: 1 }}>
             <h1 style={{ fontSize: 24, fontWeight: 900, margin: 0, color: D.text, letterSpacing: '-0.03em' }}>Products</h1>
@@ -78599,7 +78459,6 @@ export function AdminProducts() {
             </p>
           </div>
           
-          {/* ── Catalog Config Link ── */}
           <Link
             to={user?.role === 'Admin' || user?.role === 'SuperAdmin' ? '/admin/catalog' : '#'}
             style={{
@@ -78655,7 +78514,6 @@ export function AdminProducts() {
 
         {error && <Alert variant="error">{error}</Alert>}
 
-        {/* Filters */}
         <div style={{
           background: D.surface, borderRadius: 12,
           border: `1px solid ${D.border}`,
@@ -78693,13 +78551,12 @@ export function AdminProducts() {
               onFocus={e => { e.target.style.borderColor = D.accent; e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`; }}
               onBlur={e => { e.target.style.borderColor = D.border; e.target.style.boxShadow = 'none'; }}
             >
-              <option value="">All Groups</option>
+              <option value="">All Item Groups</option>
               {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
             </select>
           </div>
         </div>
 
-        {/* Inline Add card */}
         {showAdd && (
           <div ref={addCardRef} style={{
             background: D.surface,
@@ -78721,7 +78578,6 @@ export function AdminProducts() {
               form={addForm} 
               setForm={setAddForm} 
               groups={groups} 
-              units={units} 
               sizeGroups={sizeGroups}
               autoFocus 
             />
@@ -78743,222 +78599,204 @@ export function AdminProducts() {
           </div>
         )}
 
-        {/* Product grid */}
-       {/* Product Table */}
-{filtered.length === 0 ? (
-  <div style={{
-    textAlign: 'center', padding: '60px 20px',
-    background: D.surface, borderRadius: 14,
-    border: `1px solid ${D.border}`,
-  }}>
-    <Package size={48} color={D.border} style={{ marginBottom: 12 }} />
-    <div style={{ fontSize: 16, fontWeight: 800, color: D.text, marginBottom: 6 }}>
-      {products.length === 0 ? 'No products yet' : 'No products match your filters'}
-    </div>
-    <div style={{ fontSize: 13, color: D.sub }}>
-      {products.length === 0 ? 'Click "+ Add Product" to register your first item.' : 'Try clearing your filters.'}
-    </div>
-  </div>
-) : (
-  <div style={{
-    background: D.surface,
-    borderRadius: 14,
-    border: `1px solid ${D.border}`,
-    overflow: 'hidden',
-  }}>
-    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-      <table style={{
-        width: '100%',
-        minWidth: 900,
-        borderCollapse: 'collapse',
-        fontSize: 13,
-        background: D.surface,
-      }}>
-        <thead>
-          <tr>
-            <th style={{
-              background: D.bg,
-              color: D.muted,
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              padding: '12px 16px',
-              borderBottom: `1px solid ${D.border}`,
-              textAlign: 'left',
-              whiteSpace: 'nowrap',
-            }}>Product Name</th>
-            <th style={{
-              background: D.bg,
-              color: D.muted,
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              padding: '12px 16px',
-              borderBottom: `1px solid ${D.border}`,
-              textAlign: 'left',
-              whiteSpace: 'nowrap',
-            }}>Malayalam Name</th>
-            <th style={{
-              background: D.bg,
-              color: D.muted,
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              padding: '12px 16px',
-              borderBottom: `1px solid ${D.border}`,
-              textAlign: 'right',
-              whiteSpace: 'nowrap',
-            }}>Base Price</th>
-            <th style={{
-              background: D.bg,
-              color: D.muted,
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              padding: '12px 16px',
-              borderBottom: `1px solid ${D.border}`,
-              textAlign: 'left',
-              whiteSpace: 'nowrap',
-            }}>Item Group</th>
-            <th style={{
-              background: D.bg,
-              color: D.muted,
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              padding: '12px 16px',
-              borderBottom: `1px solid ${D.border}`,
-              textAlign: 'right',
-              whiteSpace: 'nowrap',
-            }}>Unit Size</th>
-            <th style={{
-              background: D.bg,
-              color: D.muted,
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              padding: '12px 16px',
-              borderBottom: `1px solid ${D.border}`,
-              textAlign: 'left',
-              whiteSpace: 'nowrap',
-            }}>Packing Category</th>
-            <th style={{
-              background: D.bg,
-              color: D.muted,
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              padding: '12px 16px',
-              borderBottom: `1px solid ${D.border}`,
-              textAlign: 'right',
-              whiteSpace: 'nowrap',
-            }}>Incentive</th>
-            <th style={{
-              background: D.bg,
-              color: D.muted,
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              padding: '12px 16px',
-              borderBottom: `1px solid ${D.border}`,
-              textAlign: 'center',
-              whiteSpace: 'nowrap',
-            }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map(p => (
-            <tr
-              key={p.id}
-              style={{
-                borderBottom: `1px solid ${D.border}`,
-                transition: 'background 0.12s',
-              }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-            >
-              <td style={{ padding: '12px 16px', fontWeight: 600, color: D.text }}>
-                {p.nameEnglish}
-              </td>
-              <td style={{ padding: '12px 16px', color: D.sub }}>
-                {p.nameMalayalam || '—'}
-              </td>
-              <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: D.accent }}>
-                ₹{fmt(p.basePrice)}
-              </td>
-              <td style={{ padding: '12px 16px', color: D.muted }}>
-                {p.productGroupName || '—'}
-              </td>
-              <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
-                {(p as any).unitSize || '—'}
-              </td>
-              <td style={{ padding: '12px 16px', color: D.muted }}>
-                {p.productUnitName || '—'}
-              </td>
-              <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
-                {(p as any).incentive ? `₹${(p as any).incentive}` : '—'}
-              </td>
-              <td style={{ padding: '8px 16px', textAlign: 'center' }}>
-                <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => openEdit(p)}
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: 6,
-                      border: `1px solid ${D.border}`,
+        {filtered.length === 0 ? (
+          <div style={{
+            textAlign: 'center', padding: '60px 20px',
+            background: D.surface, borderRadius: 14,
+            border: `1px solid ${D.border}`,
+          }}>
+            <Package size={48} color={D.border} style={{ marginBottom: 12 }} />
+            <div style={{ fontSize: 16, fontWeight: 800, color: D.text, marginBottom: 6 }}>
+              {products.length === 0 ? 'No products yet' : 'No products match your filters'}
+            </div>
+            <div style={{ fontSize: 13, color: D.sub }}>
+              {products.length === 0 ? 'Click "+ Add Product" to register your first item.' : 'Try clearing your filters.'}
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            background: D.surface,
+            borderRadius: 14,
+            border: `1px solid ${D.border}`,
+            overflow: 'hidden',
+          }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{
+                width: '100%',
+                minWidth: 900,
+                borderCollapse: 'collapse',
+                fontSize: 13,
+                background: D.surface,
+              }}>
+                <thead>
+                  <tr>
+                    <th style={{
                       background: D.bg,
                       color: D.muted,
                       fontSize: 11,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      transition: 'all 0.12s',
-                    }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.accent; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
-                    title="Edit"
-                  >
-                    <Edit2 size={12} />
-                  </button>
-                  <button
-                    onClick={() => setConfirm(p.id)}
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: 6,
-                      border: `1px solid ${D.border}`,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
+                    }}>Product Name</th>
+                    <th style={{
                       background: D.bg,
                       color: D.muted,
                       fontSize: 11,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      transition: 'all 0.12s',
-                    }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.red; (e.currentTarget as HTMLElement).style.color = D.red; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
-                    title="Delete"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-)}
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
+                    }}>Malayalam Name</th>
+                    <th style={{
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'right',
+                      whiteSpace: 'nowrap',
+                    }}>Base Price</th>
+                    <th style={{
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
+                    }}>Item Group</th>
+                    <th style={{
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'right',
+                      whiteSpace: 'nowrap',
+                    }}>Unit Size</th>
+                    <th style={{
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'right',
+                      whiteSpace: 'nowrap',
+                    }}>Incentive</th>
+                    <th style={{
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap',
+                    }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(p => (
+                    <tr
+                      key={p.id}
+                      style={{
+                        borderBottom: `1px solid ${D.border}`,
+                        transition: 'background 0.12s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                    >
+                      <td style={{ padding: '12px 16px', fontWeight: 600, color: D.text }}>
+                        {p.nameEnglish}
+                      </td>
+                      <td style={{ padding: '12px 16px', color: D.sub }}>
+                        {p.nameMalayalam || '—'}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: D.accent }}>
+                        ₹{fmt(p.basePrice)}
+                      </td>
+                      <td style={{ padding: '12px 16px', color: D.muted }}>
+                        {p.productGroupName || '—'}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
+                        {(p as any).unitSize || '—'}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
+                        {(p as any).incentive ? `₹${(p as any).incentive}` : '—'}
+                      </td>
+                      <td style={{ padding: '8px 16px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
+                          <button
+                            onClick={() => openEdit(p)}
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: 6,
+                              border: `1px solid ${D.border}`,
+                              background: D.bg,
+                              color: D.muted,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              fontFamily: 'inherit',
+                              transition: 'all 0.12s',
+                            }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.accent; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
+                            title="Edit"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button
+                            onClick={() => setConfirm(p.id)}
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: 6,
+                              border: `1px solid ${D.border}`,
+                              background: D.bg,
+                              color: D.muted,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              fontFamily: 'inherit',
+                              transition: 'all 0.12s',
+                            }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.red; (e.currentTarget as HTMLElement).style.color = D.red; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
+                            title="Delete"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
-        {/* ── Unit Price Manager Modal ──────────────────────────────────────── */}
         {unitPriceModal && (
           <ProductUnitPriceManager
             product={unitPriceModal}
@@ -78967,7 +78805,6 @@ export function AdminProducts() {
           />
         )}
 
-        {/* ── Edit slide panel ─────────────────────────────────── */}
         {editModal && (
           <>
             <div onClick={() => setEditModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.60)', zIndex: 200, backdropFilter: 'blur(4px)' }} />
@@ -78995,7 +78832,6 @@ export function AdminProducts() {
                   form={editForm} 
                   setForm={setEditForm} 
                   groups={groups} 
-                  units={units} 
                   sizeGroups={sizeGroups}
                   isEdit={true} 
                 />
@@ -79019,7 +78855,6 @@ export function AdminProducts() {
           </>
         )}
 
-        {/* ── Price update modal ───────────────────────────────── */}
         {priceModal && (
           <>
             <div onClick={() => setPriceModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.60)', zIndex: 200, backdropFilter: 'blur(4px)' }} />
@@ -79083,7 +78918,6 @@ export function AdminProducts() {
           </>
         )}
 
-        {/* ── Price history modal ──────────────────────────────── */}
         {historyModal && (
           <>
             <div onClick={() => setHistoryModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.60)', zIndex: 200, backdropFilter: 'blur(4px)' }} />
@@ -83125,12 +82959,11 @@ const ROLE_BADGE: Record<string, 'primary' | 'blue' | 'green' | 'muted' | 'amber
   SuperAdmin: 'primary',
   Admin:      'primary',
   Salesman:   'green',
-  Accounts:   'blue',
-  Warehouse:  'blue',
+ 
 };
 
-type RoleFilter = 'All' | 'Salesman' | 'Admin' | 'Accounts' | 'Warehouse';
-const ROLE_FILTERS: RoleFilter[] = ['All', 'Salesman', 'Admin', 'Accounts', 'Warehouse'];
+type RoleFilter = 'All' | 'Salesman' | 'Admin' ;
+const ROLE_FILTERS: RoleFilter[] = ['All', 'Salesman', 'Admin'];
 
 // ─── Create Salesman Modal ──────────────────────────────────────────────
 function CreateSalesmanModal({ isOpen, onClose, onSuccess }: {
@@ -85528,6 +85361,7 @@ export default function UpdatePinPage() {
 // PATH: src/pages/Dashboard/HomeHub.tsx
 // UPDATED: Removed Record Payment, Scan Product, Daily Settlement from Quick Actions
 //          Removed Analytics - View Insights from main page
+// FIX: Combined primary admin cards into one uniform 3×2 grid
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -85793,15 +85627,19 @@ export function HomeHub() {
   const isAdmin      = role === 'Admin' || role === 'SuperAdmin';
 
   const blocks       = NAV_BLOCKS.filter(b => b.roles.includes(role));
-  // REMOVED: statCards filter for Analytics
   const quickActions = QUICK_ACTIONS.filter(a => a.roles.includes(role));
 
-  // Filter blocks: main blocks (Route Hub, Customers)
-  const mainBlocks   = isAdmin ? blocks.filter(b => ['admin-routes','customers'].includes(b.id)) : blocks;
-  // Filter large blocks: Products, Users, Reports, Catalog
-  const largeBlocks  = isAdmin ? blocks.filter(b => ['products','users','reports','catalog'].includes(b.id)) : [];
+  // ── All primary admin cards now render at the same uniform size, in one
+  // grid, in this fixed order. "large" sizing is no longer used — every
+  // card gets identical padding/height via NavBlockCard. ──
+  const primaryBlockIds = ['admin-routes', 'customers', 'products', 'catalog', 'users', 'reports'];
+  const primaryBlocks = isAdmin
+    ? primaryBlockIds
+        .map(id => blocks.find(b => b.id === id))
+        .filter((b): b is NavBlock => !!b)
+    : blocks;
   // Everything else goes to more tools
-  const moreTools    = isAdmin ? blocks.filter(b => !['admin-routes','customers','products','users','reports','catalog'].includes(b.id)) : [];
+  const moreTools = isAdmin ? blocks.filter(b => !primaryBlockIds.includes(b.id)) : [];
 
   function liveBadge(blockId: string): string | undefined {
     if (blockId === 'admin-routes') return liveStats.routesCount !== undefined ? `${liveStats.routesCount} Routes` : undefined;
@@ -85908,35 +85746,25 @@ export function HomeHub() {
           </div>
         </div>
 
-        {/* ── Main Nav Grid (Route Hub, Customers) ── */}
+        {/* ── Primary Nav Grid — every card the same size, 3 per row ── */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : mainBlocks.length >= 3 ? 'repeat(3,1fr)' : mainBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)',
           gap: 14,
           marginBottom: 14,
           opacity: mounted ? 1 : 0,
           transition: 'all 0.42s 0.12s cubic-bezier(0.34,1.2,0.64,1)',
         }}>
-          {mainBlocks.map((block, idx) => (
-            <NavBlockCard key={block.id} block={block} delay={idx * 0.05} fullWidth={false} badgeOverride={liveBadge(block.id)} />
+          {primaryBlocks.map((block, idx) => (
+            <NavBlockCard
+              key={block.id}
+              block={block}
+              delay={idx * 0.05}
+              fullWidth={false}
+              badgeOverride={liveBadge(block.id)}
+            />
           ))}
         </div>
-
-        {/* ── Admin Large Cards: Products, Users, Reports, Catalog ── */}
-        {isAdmin && largeBlocks.length > 0 && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : largeBlocks.length === 4 ? 'repeat(4,1fr)' : largeBlocks.length === 3 ? 'repeat(3,1fr)' : largeBlocks.length === 2 ? 'repeat(2,1fr)' : '1fr',
-            gap: 14,
-            marginBottom: 14,
-            opacity: mounted ? 1 : 0,
-            transition: 'all 0.42s 0.18s cubic-bezier(0.34,1.2,0.64,1)',
-          }}>
-            {largeBlocks.map((block, idx) => (
-              <NavBlockCard key={block.id} block={block} delay={idx * 0.05} fullWidth={false} isLarge={true} />
-            ))}
-          </div>
-        )}
 
         {/* ── More Tools (everything else) ────── */}
         {isAdmin && moreTools.length > 0 && (
@@ -86132,30 +85960,28 @@ export function HomeHub() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-function NavBlockCard({ block, delay, fullWidth, badgeOverride, isLarge }: { 
+function NavBlockCard({ block, delay, fullWidth, badgeOverride }: { 
   block: NavBlock; 
   delay: number; 
   fullWidth: boolean; 
   badgeOverride?: string;
-  isLarge?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
   const badgeStyle = block.badgeColor ? BADGE_STYLES[block.badgeColor] : BADGE_STYLES.blue;
   const badgeText = badgeOverride ?? block.badge;
-  const large = isLarge || block.size === 'large';
 
   return (
     <Link to={block.to} style={{
       gridColumn: fullWidth ? '1 / -1' : undefined,
       display: 'flex', flexDirection: 'column',
-      padding: large ? '24px 22px' : '20px 18px',
+      padding: '20px 18px',
       borderRadius: 16,
       border: `1px solid ${hovered ? `${block.accentText}44` : 'rgba(255,255,255,0.06)'}`,
       background: hovered ? `${block.accentText}10` : D.surface,
       textDecoration: 'none', cursor: 'pointer',
       transition: 'all 0.25s cubic-bezier(0.34,1.2,0.64,1)',
       transform: hovered ? 'translateY(-3px)' : 'translateY(0)',
-      minHeight: large ? 170 : 140,
+      minHeight: 140,
       position: 'relative', overflow: 'hidden',
       boxShadow: hovered ? `0 8px 32px rgba(0,0,0,0.4)` : 'none',
     }}
@@ -86177,15 +86003,15 @@ function NavBlockCard({ block, delay, fullWidth, badgeOverride, isLarge }: {
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 'auto' }}>
         <div style={{
-          width: large ? 52 : 44,
-          height: large ? 52 : 44,
+          width: 44,
+          height: 44,
           borderRadius: 14,
           background: hovered ? `${block.accentText}18` : 'rgba(255,255,255,0.04)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           transition: 'all 0.25s',
           border: hovered ? `1px solid ${block.accentText}22` : '1px solid rgba(255,255,255,0.04)',
         }}>
-          <block.icon size={large ? 24 : 20} style={{ color: block.accentText }} strokeWidth={hovered ? 2.2 : 1.8} />
+          <block.icon size={20} style={{ color: block.accentText }} strokeWidth={hovered ? 2.2 : 1.8} />
         </div>
 
         {badgeText && (
@@ -86203,10 +86029,10 @@ function NavBlockCard({ block, delay, fullWidth, badgeOverride, isLarge }: {
         )}
       </div>
 
-      <div style={{ marginTop: large ? 20 : 16 }}>
+      <div style={{ marginTop: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
           <h3 style={{
-            fontSize: large ? 17 : 14,
+            fontSize: 14,
             fontWeight: 800,
             color: D.text,
             margin: 0,
@@ -86215,14 +86041,14 @@ function NavBlockCard({ block, delay, fullWidth, badgeOverride, isLarge }: {
           }}>
             {block.label}
           </h3>
-          <ChevronRight size={large ? 15 : 13} style={{
+          <ChevronRight size={13} style={{
             transition: 'transform 0.2s,color 0.15s',
             transform: hovered ? 'translateX(4px)' : 'translateX(0)',
             color: hovered ? block.accentText : D.muted,
           }} />
         </div>
         <p style={{
-          fontSize: large ? 13 : 12,
+          fontSize: 12,
           color: D.muted,
           margin: 0,
           lineHeight: 1.5,
@@ -86230,38 +86056,6 @@ function NavBlockCard({ block, delay, fullWidth, badgeOverride, isLarge }: {
         }}>
           {block.description}
         </p>
-
-        {/* Large card extra info */}
-        {large && block.id === 'users' && (
-          <div style={{ marginTop: 12, display: 'flex', gap: 14 }}>
-            <span style={{ fontSize: 11, color: D.green, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: D.green }} /> 12 Active
-            </span>
-            <span style={{ fontSize: 11, color: D.amber, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: D.amber }} /> 6 Pending
-            </span>
-          </div>
-        )}
-        {large && block.id === 'reports' && (
-          <div style={{ marginTop: 12, display: 'flex', gap: 14 }}>
-            <span style={{ fontSize: 11, color: D.accent, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <FileText size={11} /> 5 New Reports
-            </span>
-            <span style={{ fontSize: 11, color: D.green, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <ArrowUpRight size={11} /> +12% This Week
-            </span>
-          </div>
-        )}
-        {large && block.id === 'catalog' && (
-          <div style={{ marginTop: 12, display: 'flex', gap: 14 }}>
-            <span style={{ fontSize: 11, color: D.purple, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Settings size={11} /> Groups & Units
-            </span>
-            <span style={{ fontSize: 11, color: D.green, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Boxes size={11} /> Manage Catalog
-            </span>
-          </div>
-        )}
       </div>
     </Link>
   );
