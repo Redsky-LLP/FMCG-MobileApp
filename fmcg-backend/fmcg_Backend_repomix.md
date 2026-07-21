@@ -338576,14 +338576,19 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                 RouteName = g.Key.Name,
                 Orders = g
                     .OrderBy(o => o.Customer?.SequenceOrder ?? 0)
-                    .Select(o => new BillingSheetOrderDto
+                    // ── FIX: number stops by their position within THIS route's sorted list,
+                    // not by the customer's raw (global) SequenceOrder field. The old code used
+                    // o.Customer.SequenceOrder directly, which can have gaps/duplicates across
+                    // customers (e.g. 3, 7, 12...). Using the loop index guarantees a clean,
+                    // contiguous 1, 2, 3, 4, 5, 6... sequence per route, matching the loading sheet. ──
+                    .Select((o, idx) => new BillingSheetOrderDto
                     {
                         OrderId = o.Id,
                         OrderNumber = o.OrderNumber,
                         CustomerName = o.Customer?.NameEnglish ?? string.Empty,
                         CustomerNameMalayalam = o.Customer?.NameMalayalam,
                         OrderDate = o.OrderDate,
-                        SequenceOrder = o.Customer?.SequenceOrder ?? 0,
+                        SequenceOrder = idx,
                         Remarks = string.IsNullOrWhiteSpace(o.Remarks) ? null : o.Remarks,
                         Items = o.Items!.Select(i => new BillingSheetItemDto
                         {
@@ -338662,6 +338667,8 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                 routeCol.Item().PaddingTop(8).ShowEntire().Column(stopCol =>
                                 {
                                     // Customer header with number and name centered
+                                    // order.SequenceOrder is now a contiguous, per-route index (see Handle() above),
+                                    // so "+ 1" always produces 1, 2, 3, 4, 5, 6... in delivery order.
                                     stopCol.Item().Background(Colors.Grey.Lighten3)
                                         .Padding(4)
                                         .Row(r =>
@@ -338686,52 +338693,54 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                             table.Header(header =>
                                             {
                                                 header.Cell().BorderBottom(1)
-                                                    .PaddingVertical(3)
+                                                    .PaddingVertical(4)
                                                     .PaddingLeft(5)
                                                     .Text("PRODUCT")
                                                     .Bold()
-                                                    .FontSize(9);
+                                                    .FontSize(11);
 
                                                 header.Cell().BorderBottom(1)
-                                                    .PaddingVertical(3)
+                                                    .PaddingVertical(4)
                                                     .AlignCenter()
                                                     .Text("QTY")
                                                     .Bold()
-                                                    .FontSize(9);
+                                                    .FontSize(11);
 
                                                 header.Cell().BorderBottom(1)
-                                                    .PaddingVertical(3)
+                                                    .PaddingVertical(4)
                                                     .PaddingRight(5)
                                                     .AlignRight()
                                                     .Text("PRICE")
                                                     .Bold()
-                                                    .FontSize(9);
+                                                    .FontSize(11);
                                             });
 
                                             foreach (var item in order.Items)
                                             {
-                                                // Product name - left aligned
+                                                // Product name - left aligned, bold, larger
                                                 table.Cell().BorderBottom(0.5f)
-                                                    .PaddingVertical(2)
+                                                    .PaddingVertical(3)
                                                     .PaddingLeft(5)
                                                     .Text(item.ProductName)
-                                                    .FontSize(10);
-
-                                                // Quantity - centered
-                                                table.Cell().BorderBottom(0.5f)
-                                                    .PaddingVertical(2)
-                                                    .AlignCenter()
-                                                    .Text($"{item.Quantity:N0} {item.UnitSymbol}")
-                                                    .FontSize(10)
+                                                    .FontSize(13)
                                                     .Bold();
 
-                                                // Price - right aligned
+                                                // Quantity - centered, bold, larger
                                                 table.Cell().BorderBottom(0.5f)
-                                                    .PaddingVertical(2)
+                                                    .PaddingVertical(3)
+                                                    .AlignCenter()
+                                                    .Text($"{item.Quantity:N0} {item.UnitSymbol}")
+                                                    .FontSize(13)
+                                                    .Bold();
+
+                                                // Price - right aligned, bold, larger
+                                                table.Cell().BorderBottom(0.5f)
+                                                    .PaddingVertical(3)
                                                     .PaddingRight(5)
                                                     .AlignRight()
                                                     .Text($"₹{item.SellingPrice:N2}")
-                                                    .FontSize(10);
+                                                    .FontSize(12)
+                                                    .Bold();
                                             }
                                         });
                                     }
@@ -338741,10 +338750,12 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                     }
 
                                     // ── Remarks - plain black text, no background shade ──
+                                    // Font size bumped 10 → 13 (matches product/qty row size) so remarks
+                                    // are as readable as the rest of the stop block.
                                     if (order.Remarks != null)
                                     {
                                         stopCol.Item().PaddingLeft(20).PaddingTop(4)
-                                            .Text(order.Remarks).FontSize(10).Bold().FontColor(Colors.Black);
+                                            .Text(order.Remarks).FontSize(13).Bold().FontColor(Colors.Black);
                                     }
                                 });
                             }
@@ -340163,64 +340174,71 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
 
                                         if (stop.Items.Count > 0)
                                         {
-                                            stopCol.Item().PaddingLeft(15).PaddingRight(15).PaddingTop(4).Table(table =>
+                                            // Narrower, centered table: capping the width closes the visual gap
+                                            // between PRODUCT and QTY and pushes the leftover space out to equal
+                                            // left/right margins instead of sitting between the two columns.
+                                            stopCol.Item().AlignCenter().Width(380).PaddingTop(4).Table(table =>
                                             {
-                                                // Equal margins on both sides (15 points each)
-                                                // Available width: A4 (595) - margins (28.35*2) - padding (15*2) ≈ 508 points
                                                 table.ColumnsDefinition(columns =>
                                                 {
-                                                    columns.RelativeColumn(4);  // Product takes 80% (≈406 points)
-                                                    columns.RelativeColumn(1);  // Qty takes 20% (≈102 points)
+                                                    columns.RelativeColumn(3);  // Product ≈ 75%
+                                                    columns.RelativeColumn(1);  // Qty ≈ 25%
                                                 });
 
                                                 table.Header(header =>
                                                 {
                                                     header.Cell().BorderBottom(1)
-                                                        .PaddingVertical(3)
+                                                        .PaddingVertical(4)
                                                         .PaddingLeft(5)
                                                         .Text("PRODUCT")
                                                         .Bold()
-                                                        .FontSize(9);
+                                                        .FontSize(11);
 
                                                     header.Cell().BorderBottom(1)
-                                                        .PaddingVertical(3)
+                                                        .PaddingVertical(4)
                                                         .PaddingRight(5)
                                                         .AlignRight()
                                                         .Text("QTY")
                                                         .Bold()
-                                                        .FontSize(9);
+                                                        .FontSize(11);
                                                 });
 
                                                 foreach (var item in stop.Items)
                                                 {
-                                                    // Keep product name left aligned
+                                                    // Product name - left aligned, bold, larger
                                                     table.Cell().BorderBottom(0.5f)
-                                                        .PaddingVertical(2)
+                                                        .PaddingVertical(3)
                                                         .PaddingLeft(5)
                                                         .Text($"{item.ProductName}{(string.IsNullOrEmpty(item.SizeGroupName) ? "" : $" ({item.SizeGroupName})")}")
-                                                        .FontSize(10);
+                                                        .FontSize(13)
+                                                        .Bold();
 
-                                                    // Quantity right aligned with consistent right padding
+                                                    // Quantity right aligned, bold, larger
                                                     table.Cell().BorderBottom(0.5f)
-                                                        .PaddingVertical(2)
+                                                        .PaddingVertical(3)
                                                         .PaddingRight(5)
                                                         .AlignRight()
                                                         .Text($"{item.TotalQuantity:N0} {item.UnitSymbol}")
-                                                        .FontSize(10)
+                                                        .FontSize(13)
                                                         .Bold();
                                                 }
                                             });
                                         }
                                         else if (stop.Remarks == null)
                                         {
-                                            stopCol.Item().PaddingLeft(20).Padding(3).Text("—").FontSize(10);
+                                            stopCol.Item().AlignCenter().Width(380).PaddingLeft(5).Padding(3).Text("—").FontSize(10);
                                         }
 
                                         // ── Retail items / remarks — plain black text, no background shade, no "RETAIL / WEIGH" label ──
+                                        // Wrapped with the same AlignCenter().Width(380) + PaddingLeft(5) as the
+                                        // product table above, so remarks line up directly under the PRODUCT column
+                                        // instead of sitting further left than the table.
                                         if (stop.Remarks != null)
                                         {
-                                            stopCol.Item().PaddingLeft(20).PaddingTop(4)
-                                                .Text(stop.Remarks).FontSize(10).Bold().FontColor(Colors.Black);
+                                            // Font size bumped 10 → 13 (matches product/qty row size) so remarks
+                                            // are as readable as the rest of the stop block.
+                                            stopCol.Item().AlignCenter().Width(380).PaddingLeft(5).PaddingTop(4)
+                                                .Text(stop.Remarks).FontSize(13).Bold().FontColor(Colors.Black);
                                         }
                                     });
 
@@ -379112,12 +379130,37 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         Console.WriteLine($"[ReopenRoute] Unlocked {ordersToUnlock.Count} orders for {route.Name}");
 
         // ── Reopen the execution(s) this closure completed ──
-        var executionsToReopen = await context.RouteExecutions
+        // BUG FIX: this used to require `e.ExecutionDate.Date == closureDate.Date`.
+        // But CloseDayCommandHandler (which completes the execution when the route
+        // is closed) has NO date filter at all — it just completes whatever is
+        // currently InProgress for the route. ExecutionDate is stamped from
+        // DateTime.UtcNow.Date when the salesman started the route, which can land
+        // on a different calendar date than the admin's closureDate (UTC vs local
+        // day rollover, or the route being closed some time after it was started).
+        // When that happened, this query silently found nothing, the real
+        // completed execution (with all its OrderPlaced visits) stayed Completed
+        // forever, and the next time the salesman opened the route the app found
+        // no active execution and started a BRAND NEW one — fresh Pending visits
+        // for every stop, even though the underlying orders (and their items)
+        // were still sitting there untouched. "Take Order" showed instead of
+        // "View Order" because the salesman was really looking at a new,
+        // unrelated execution, not the one that was just reopened.
+        //
+        // Fix: mirror CloseDayCommandHandler's own logic — reopen the most
+        // recently-completed execution for this route per ExecutionType (order
+        // taking and delivery are tracked separately), with no date constraint.
+        // A route only ever has one outstanding "needs reopen" cycle per type at
+        // a time, so grabbing the latest Completed one per type is always correct.
+        var completedExecutions = await context.RouteExecutions
             .Where(e => !e.IsDeleted
                 && e.RouteId == routeId
-                && e.Status == ExecutionStatus.Completed
-                && e.ExecutionDate.Date == closureDate.Date)
+                && e.Status == ExecutionStatus.Completed)
             .ToListAsync(cancellationToken);
+
+        var executionsToReopen = completedExecutions
+            .GroupBy(e => e.ExecutionType)
+            .Select(g => g.OrderByDescending(e => e.CompletedAt).First())
+            .ToList();
 
         foreach (var execution in executionsToReopen)
         {
