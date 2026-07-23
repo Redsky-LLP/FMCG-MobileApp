@@ -125,6 +125,7 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                 page.Margin(0.5f, PdfUnit.Centimetre);
                 page.DefaultTextStyle(x => x.FontSize(7).FontFamily("Arial"));
 
+                // ─── Header ───
                 page.Header()
                     .BorderBottom(0.5f)
                     .PaddingBottom(5)
@@ -142,8 +143,10 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                         //});
                     });
 
+                // ─── Content ───
                 page.Content().Column(col =>
                 {
+                    // ─── Summary Cards ───
                     col.Item().PaddingTop(8).PaddingBottom(8).Row(summaryRow =>
                     {
                         summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
@@ -164,16 +167,24 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                         });
                     });
 
+                    // ─── Group by Salesman ───
+                    var groupedBySalesman = data.Incentives
+                        .GroupBy(i => i.SalesmanName)
+                        .OrderBy(g => g.Key)
+                        .ToList();
+
+                    // ─── Table ───
                     col.Item().Table(table =>
                     {
                         table.ColumnsDefinition(columns =>
                         {
-                            columns.RelativeColumn(3);
-                            columns.RelativeColumn(3);
-                            columns.RelativeColumn(1);
-                            columns.RelativeColumn(2);
+                            columns.RelativeColumn(3);  // Salesman
+                            columns.RelativeColumn(3);  // Product
+                            columns.RelativeColumn(1);  // Quantity
+                            columns.RelativeColumn(2);  // Incentive
                         });
 
+                        // ─── Table Header ───
                         table.Header(header =>
                         {
                             header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("SALESMAN").Bold();
@@ -182,15 +193,45 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                             header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("INCENTIVE").Bold();
                         });
 
-                        foreach (var item in data.Incentives)
+                        // ─── Table Rows ───
+                        bool isFirstRow = true;
+
+                        foreach (var salesmanGroup in groupedBySalesman)
                         {
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.SalesmanName);
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName);
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.Quantity:N0}");
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.IncentiveEarned:N2}")
+                            var salesmanName = salesmanGroup.Key;
+                            var salesmenTotal = salesmanGroup.Sum(i => i.IncentiveEarned);
+
+                            foreach (var item in salesmanGroup)
+                            {
+                                // ─── Show salesman name only once ───
+                                if (isFirstRow)
+                                {
+                                    table.Cell().BorderBottom(0.5f).Padding(3).Text(salesmanName);
+                                    isFirstRow = false;
+                                }
+                                else
+                                {
+                                    table.Cell().BorderBottom(0.5f).Padding(3).Text("");
+                                }
+
+                                table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName);
+                                table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.Quantity:N0}");
+                                table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.IncentiveEarned:N2}")
+                                    .FontColor(Colors.Green.Medium);
+                            }
+
+                            // ─── Subtotal for this salesman ───
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text("").Bold();
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text($"Subtotal - {salesmanName}").Bold();
+                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text("").Bold();
+                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{salesmenTotal:N2}").Bold()
                                 .FontColor(Colors.Green.Medium);
+
+                            // ─── Reset for next salesman ───
+                            isFirstRow = true;
                         }
 
+                        // ─── Grand Total Row ───
                         if (data.Incentives.Count > 0)
                         {
                             table.Cell().BorderTop(0.5f).Padding(3).Text("TOTAL").Bold();
@@ -202,6 +243,7 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                     });
                 });
 
+                // ─── Footer ───
                 page.Footer()
                     .BorderTop(0.5f)
                     .PaddingTop(5)

@@ -459,7 +459,7 @@ export function AdminReports() {
   const [prodGroup, setProdGroup]   = useState('');
   const [prodFrom,  setProdFrom]    = useState(thirtyDaysAgo);
   const [prodTo,    setProdTo]      = useState(today);
-  const [dailyDate, setDailyDate]   = useState(today);
+  // const [dailyDate, setDailyDate]   = useState(today);
 
   useEffect(() => {
     Promise.all([routesApi.getAll(), productGroupsApi.getAll()])
@@ -736,29 +736,29 @@ export function AdminReports() {
     previewReport('additionalRevenue', `Additional Revenue Report - ${additionalRevenueFrom} to ${additionalRevenueTo}`, fn, downloadFn);
   },
 },
-    {
-      key: 'daily',
-      title: 'Daily Summary Report',
-      desc: 'Full operational day summary',
-      icon: '📋',
-      color: '#14B8A6',
-      roles: 'Admin / Accounts',
-      filters: (
-        <input 
-          className="input" 
-          type="date" 
-          value={dailyDate} 
-          onChange={(e) => setDailyDate(e.target.value)} 
-          style={dateInputStyle(isMobile)}
-        />
-      ),
-      onDownload: () => download('daily', () => reportsApi.downloadDailySummary(dailyDate), `DailySummary_${dailyDate}.pdf`),
-      onPreview: () => {
-        const fn = () => reportsApi.downloadDailySummary(dailyDate);
-        const downloadFn = () => download('daily', fn, `DailySummary_${dailyDate}.pdf`);
-        previewReport('daily', `Daily Summary - ${dailyDate}`, fn, downloadFn);
-      },
-    },
+    // {
+    //   key: 'daily',
+    //   title: 'Daily Summary Report',
+    //   desc: 'Full operational day summary',
+    //   icon: '📋',
+    //   color: '#14B8A6',
+    //   roles: 'Admin / Accounts',
+    //   filters: (
+    //     <input 
+    //       className="input" 
+    //       type="date" 
+    //       value={dailyDate} 
+    //       onChange={(e) => setDailyDate(e.target.value)} 
+    //       style={dateInputStyle(isMobile)}
+    //     />
+    //   ),
+    //   onDownload: () => download('daily', () => reportsApi.downloadDailySummary(dailyDate), `DailySummary_${dailyDate}.pdf`),
+    //   onPreview: () => {
+    //     const fn = () => reportsApi.downloadDailySummary(dailyDate);
+    //     const downloadFn = () => download('daily', fn, `DailySummary_${dailyDate}.pdf`);
+    //     previewReport('daily', `Daily Summary - ${dailyDate}`, fn, downloadFn);
+    //   },
+    // },
   ];
 
   if (loading) return (
