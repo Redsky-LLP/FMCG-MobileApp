@@ -450,8 +450,12 @@ export function AdminReports() {
   // const [routeRptRoute, setRouteRptRoute] = useState('');
   // const [routeFrom, setRouteFrom]  = useState(thirtyDaysAgo);
   // const [routeTo,   setRouteTo]    = useState(today);
+  const [summaryFrom, setSummaryFrom] = useState(thirtyDaysAgo);
+  const [summaryTo, setSummaryTo] = useState(today);
   const [incentiveFrom, setIncentiveFrom] = useState(thirtyDaysAgo);
   const [incentiveTo, setIncentiveTo] = useState(today);
+  const [additionalRevenueFrom, setAdditionalRevenueFrom] = useState(thirtyDaysAgo);
+  const [additionalRevenueTo, setAdditionalRevenueTo] = useState(today);
   const [prodGroup, setProdGroup]   = useState('');
   const [prodFrom,  setProdFrom]    = useState(thirtyDaysAgo);
   const [prodTo,    setProdTo]      = useState(today);
@@ -633,47 +637,37 @@ export function AdminReports() {
     //     previewReport('routeSummary', `Route Summary - ${routeFrom} to ${routeTo} (${routeName})`, fn, downloadFn);
     //   },
     // },
-    {
-  key: 'summaryReport',
-  title: 'Summary Report',  // ← CHANGED
-  desc: 'Product-wise summary with packing category & size group',
+{
+  key: 'summary',
+  title: 'Summary Report',
+  desc: 'Item Group & Size Group wise quantity summary',
   icon: '📊',
-  color: '#8B5CF6',
+  color: '#3B82F6',
   roles: 'Admin',
   filters: (
-    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-      <select 
-        className="input" 
-        value={prodGroup} 
-        onChange={(e) => setProdGroup(e.target.value)} 
-        style={selectStyle(isMobile)}
-      >
-        <option value="">📦 All Groups</option>
-        {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-      </select>
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
       <input 
         className="input" 
         type="date" 
-        value={prodFrom} 
-        onChange={(e) => setProdFrom(e.target.value)} 
+        value={summaryFrom} 
+        onChange={(e) => setSummaryFrom(e.target.value)} 
         style={dateInputStyle(isMobile)}
       />
       <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
       <input 
         className="input" 
         type="date" 
-        value={prodTo} 
-        onChange={(e) => setProdTo(e.target.value)} 
+        value={summaryTo} 
+        onChange={(e) => setSummaryTo(e.target.value)} 
         style={dateInputStyle(isMobile)}
       />
     </div>
   ),
-  onDownload: () => download('summaryReport', () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo), `SummaryReport_${prodFrom}_${prodTo}.pdf`),
+  onDownload: () => download('summary', () => reportsApi.downloadSummaryReport(summaryFrom, summaryTo), `SummaryReport_${summaryFrom}.pdf`),
   onPreview: () => {
-    const fn = () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo);
-    const downloadFn = () => download('summaryReport', fn, `SummaryReport_${prodFrom}_${prodTo}.pdf`);
-    const groupName = prodGroup ? groups.find(g => g.id === prodGroup)?.name : 'All Groups';
-    previewReport('summaryReport', `Summary Report - ${prodFrom} to ${prodTo} (${groupName})`, fn, downloadFn);
+    const fn = () => reportsApi.downloadSummaryReport(summaryFrom, summaryTo);
+    const downloadFn = () => download('summary', fn, `SummaryReport_${summaryFrom}.pdf`);
+    previewReport('summary', `Summary Report - ${summaryFrom} to ${summaryTo}`, fn, downloadFn);
   },
 },
 {
@@ -707,6 +701,39 @@ export function AdminReports() {
     const fn = () => reportsApi.downloadIncentiveReport(incentiveFrom, incentiveTo);
     const downloadFn = () => download('incentive', fn, `IncentiveReport_${incentiveFrom}.pdf`);
     previewReport('incentive', `Incentive Report - ${incentiveFrom} to ${incentiveTo}`, fn, downloadFn);
+  },
+},
+{
+  key: 'additionalRevenue',
+  title: 'Additional Revenue Report',
+  desc: '(Selling Price - Base Price) × Unit Size × Quantity',
+  icon: '💰',
+  color: '#F59E0B',
+  roles: 'Admin',
+  filters: (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+      <input 
+        className="input" 
+        type="date" 
+        value={additionalRevenueFrom} 
+        onChange={(e) => setAdditionalRevenueFrom(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+      <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
+      <input 
+        className="input" 
+        type="date" 
+        value={additionalRevenueTo} 
+        onChange={(e) => setAdditionalRevenueTo(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+    </div>
+  ),
+  onDownload: () => download('additionalRevenue', () => reportsApi.downloadAdditionalRevenueReport(additionalRevenueFrom, additionalRevenueTo), `AdditionalRevenueReport_${additionalRevenueFrom}.pdf`),
+  onPreview: () => {
+    const fn = () => reportsApi.downloadAdditionalRevenueReport(additionalRevenueFrom, additionalRevenueTo);
+    const downloadFn = () => download('additionalRevenue', fn, `AdditionalRevenueReport_${additionalRevenueFrom}.pdf`);
+    previewReport('additionalRevenue', `Additional Revenue Report - ${additionalRevenueFrom} to ${additionalRevenueTo}`, fn, downloadFn);
   },
 },
     {

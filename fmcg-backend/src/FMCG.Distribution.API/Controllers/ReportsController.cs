@@ -115,18 +115,19 @@ public class ReportsController(IMediator mediator) : ControllerBase
     // GET /api/v1/reports/product-summary
     // Roles: Admin, SuperAdmin
     // ─────────────────────────────────────────────────────────────────────────
-    [HttpGet("product-summary")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<IActionResult> GetProductSummary(
-        [FromQuery] Guid? productGroupId,
-        [FromQuery] DateTime? fromDate,
-        [FromQuery] DateTime? toDate)
+    [HttpGet("summary-report")]
+    public async Task<IActionResult> GetSummaryReport(
+     [FromQuery] string? fromDate,
+     [FromQuery] string? toDate)
     {
-        var query = new GetProductSummaryReportQuery
+        Console.WriteLine("🔵🔵🔵 SUMMARY REPORT ENDPOINT CALLED! 🔵🔵🔵");
+        Console.WriteLine($"fromDate: {fromDate}");
+        Console.WriteLine($"toDate: {toDate}");
+
+        var query = new GetSummaryReportQuery
         {
-            ProductGroupId = productGroupId,
-            FromDate = fromDate,
-            ToDate = toDate
+            FromDate = fromDate != null ? DateTime.Parse(fromDate) : null,
+            ToDate = toDate != null ? DateTime.Parse(toDate) : null
         };
 
         var result = await mediator.Send(query);
@@ -136,16 +137,7 @@ public class ReportsController(IMediator mediator) : ControllerBase
             return BadRequest(new { error = result.Error });
         }
 
-        var fromDateStr = fromDate?.ToString("yyyyMMdd") ?? "30days";
-        var toDateStr = toDate?.ToString("yyyyMMdd") ?? DateTime.UtcNow.ToString("yyyyMMdd");
-        var fileName = $"ProductSummary_{fromDateStr}_to_{toDateStr}.pdf";
-
-        if (productGroupId.HasValue)
-        {
-            fileName = $"ProductSummary_Group{productGroupId}_{fromDateStr}_to_{toDateStr}.pdf";
-        }
-
-        return File(result.Data!, "application/pdf", fileName);
+        return File(result.Data!, "application/pdf", $"SummaryReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
     }
 
     [HttpGet("incentive-report")]
@@ -218,5 +210,29 @@ public async Task<IActionResult> GetIncentiveReport(
 
         var fileName = $"LoadingSheet_AllRoutes_{date:yyyyMMdd}.pdf";
         return File(result.Data!, "application/pdf", fileName);
+    }
+    [HttpGet("additional-revenue")]
+    public async Task<IActionResult> GetAdditionalRevenueReport(
+    [FromQuery] string? fromDate,
+    [FromQuery] string? toDate)
+    {
+        Console.WriteLine("🔵🔵🔵 ADDITIONAL REVENUE ENDPOINT CALLED! 🔵🔵🔵");
+        Console.WriteLine($"fromDate: {fromDate}");
+        Console.WriteLine($"toDate: {toDate}");
+
+        var query = new GetAdditionalRevenueReportQuery
+        {
+            FromDate = fromDate != null ? DateTime.Parse(fromDate) : null,
+            ToDate = toDate != null ? DateTime.Parse(toDate) : null
+        };
+
+        var result = await mediator.Send(query);
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error });
+        }
+
+        return File(result.Data!, "application/pdf", $"AdditionalRevenueReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
     }
 }

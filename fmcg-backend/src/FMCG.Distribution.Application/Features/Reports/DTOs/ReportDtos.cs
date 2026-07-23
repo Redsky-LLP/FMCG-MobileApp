@@ -215,34 +215,29 @@ public class RouteSummaryReportDataDto
 // Product Summary Report DTOs
 // ─────────────────────────────────────────────────────────────────────────────
 
-public class ProductSummaryItemDto
+// ─────────────────────────────────────────────────────────────────────────────
+// Summary Report DTOs (Item Group + Size Group)
+// ─────────────────────────────────────────────────────────────────────────────
+
+public class SummaryReportItemDto
 {
-    public Guid ProductId { get; set; }
-    public string ProductName { get; set; } = string.Empty;
-    public string? ProductNameMalayalam { get; set; }
-    public string ProductGroupName { get; set; } = string.Empty;
-    public string UnitSymbol { get; set; } = string.Empty;
-    public string? PackingCategory { get; set; }    // ← ADD THIS
-    public string? SizeGroup { get; set; }          // ← ADD THIS
+    public string ItemGroupName { get; set; } = string.Empty;
+    public string SizeGroupName { get; set; } = string.Empty;
     public decimal TotalQuantity { get; set; }
-    public decimal TotalSales { get; set; }
-    public decimal TotalVariance { get; set; }
-    public int OrderCount { get; set; }
-    public decimal MarginPercentage { get; set; }
+    //public int OrderCount { get; set; }
+    //public decimal TotalRevenue { get; set; }
 }
 
-public class ProductSummaryReportDataDto
+public class SummaryReportDataDto
 {
     public DateTime FromDate { get; set; }
     public DateTime ToDate { get; set; }
     public DateTime GeneratedAt { get; set; }
-    public List<ProductSummaryItemDto> Products { get; set; } = [];
-    public decimal OverallSales { get; set; }
-    public decimal OverallVariance { get; set; }
-    public decimal OverallMarginPercentage { get; set; }
-    public int TotalProductCount { get; set; }
+    public List<SummaryReportItemDto> Items { get; set; } = new();
+    public decimal GrandTotalQuantity { get; set; }
+    public decimal GrandTotalRevenue { get; set; }
+    public int TotalEntries { get; set; }
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Daily Summary Report DTOs
 // ─────────────────────────────────────────────────────────────────────────────
@@ -273,13 +268,17 @@ public class DailySummaryReportDataDto
 // Incentive Report DTOs
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Incentive Report DTOs
+// ─────────────────────────────────────────────────────────────────────────────
+
 public class IncentiveReportItemDto
 {
     public Guid SalesmanId { get; set; }
     public string SalesmanName { get; set; } = string.Empty;
-    public int TotalOrders { get; set; }
-    public decimal TotalSales { get; set; }
-    public decimal TotalIncentive { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal IncentiveEarned { get; set; }
 }
 
 public class IncentiveReportDataDto
@@ -287,8 +286,33 @@ public class IncentiveReportDataDto
     public DateTime FromDate { get; set; }
     public DateTime ToDate { get; set; }
     public DateTime GeneratedAt { get; set; }
-    public List<IncentiveReportItemDto> Salesmen { get; set; } = new();
+    public List<IncentiveReportItemDto> Incentives { get; set; } = new();
     public decimal GrandTotalIncentive { get; set; }
-    public decimal GrandTotalSales { get; set; }
+    public int TotalSalesmen { get; set; }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+// Additional Revenue Report DTOs
+// ─────────────────────────────────────────────────────────────────────────────
+
+public class AdditionalRevenueReportItemDto
+{
+    public Guid SalesmanId { get; set; }
+    public string SalesmanName { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal BasePrice { get; set; }
+    public decimal SellingPrice { get; set; }
+    public decimal UnitSize { get; set; }
+    public decimal AdditionalRevenue { get; set; }
+}
+
+public class AdditionalRevenueReportDataDto
+{
+    public DateTime FromDate { get; set; }
+    public DateTime ToDate { get; set; }
+    public DateTime GeneratedAt { get; set; }
+    public List<AdditionalRevenueReportItemDto> Items { get; set; } = new();
+    public decimal GrandTotalAdditionalRevenue { get; set; }
     public int TotalSalesmen { get; set; }
 }
