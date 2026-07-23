@@ -334,7 +334,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                 routeCol.Item().Background(Colors.Grey.Lighten2)
                                     .Padding(6)
                                     .AlignCenter()
-                                    .Text($"{route.RouteName}").FontSize(14).Bold();
+                                    .Text($"{route.RouteName}").FontSize(18).Bold();
 
                                 // ── One block per customer stop (numbering stays left, name centered & large) ──
                                 // ShowEntire() keeps a stop's header + product table + remarks together as one
@@ -342,79 +342,91 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                 // the next page instead of splitting a customer's products across pages.
                                 foreach (var stop in route.Stops)
                                 {
-                                    routeCol.Item().PaddingTop(8).ShowEntire().Column(stopCol =>
+                                    // Increased padding between customer blocks from 8 to 14 for better spacing
+                                    routeCol.Item().PaddingTop(30).ShowEntire().Column(stopCol =>
                                     {
                                         stopCol.Item().Background(Colors.Grey.Lighten3)
                                             .Padding(4)
                                             .Row(r =>
                                             {
-                                                r.ConstantItem(30).AlignLeft().Text($"{stop.SequenceOrder}.").FontSize(12).Bold();
-                                                r.RelativeItem().AlignCenter().Text(stop.CustomerName).FontSize(16).Bold();
-                                                r.ConstantItem(30);
+                                                // Number and name sit right next to each other as one group,
+                                                // with equal flexible spacers on either side centering that
+                                                // group across the row — closes the gap between "1." and the
+                                                // customer name instead of pinning the number to the far left.
+                                                r.RelativeItem();
+                                                r.AutoItem().Text($"{stop.SequenceOrder}.").FontSize(18).Bold();
+                                                r.AutoItem().PaddingLeft(6).Text(stop.CustomerName).FontSize(18).Bold();
+                                                r.RelativeItem();
                                             });
-
-                                        // Replace the table definition section (around line 260-280) with:
 
                                         if (stop.Items.Count > 0)
                                         {
-                                            stopCol.Item().PaddingLeft(15).PaddingRight(15).PaddingTop(4).Table(table =>
+                                            // Narrower, centered table: capping the width tightens the gap between
+                                            // the PRODUCT and QTY columns further, pushing the leftover space out
+                                            // to equal left/right margins instead of sitting between the columns.
+                                            stopCol.Item().AlignCenter().Width(360).PaddingTop(4).Table(table =>
                                             {
-                                                // Equal margins on both sides (15 points each)
-                                                // Available width: A4 (595) - margins (28.35*2) - padding (15*2) ≈ 508 points
                                                 table.ColumnsDefinition(columns =>
                                                 {
-                                                    columns.RelativeColumn(4);  // Product takes 80% (≈406 points)
-                                                    columns.RelativeColumn(1);  // Qty takes 20% (≈102 points)
+                                                    columns.RelativeColumn(3);  // Product ≈ 75%
+                                                    columns.RelativeColumn(1);  // Qty ≈ 25%
                                                 });
 
                                                 table.Header(header =>
                                                 {
+                                                    // "PRODUCT" label intentionally omitted on the loading sheet —
+                                                    // item names are self-explanatory and the label just adds
+                                                    // noise. The cell (and its bottom border) stays so column
+                                                    // widths and the underline still line up with the QTY header.
                                                     header.Cell().BorderBottom(1)
-                                                        .PaddingVertical(3)
+                                                        .PaddingVertical(4)
                                                         .PaddingLeft(5)
-                                                        .Text("PRODUCT")
-                                                        .Bold()
-                                                        .FontSize(9);
+                                                        .Text("");
 
                                                     header.Cell().BorderBottom(1)
-                                                        .PaddingVertical(3)
+                                                        .PaddingVertical(4)
                                                         .PaddingRight(5)
                                                         .AlignRight()
                                                         .Text("QTY")
                                                         .Bold()
-                                                        .FontSize(9);
+                                                        .FontSize(18);
                                                 });
 
                                                 foreach (var item in stop.Items)
                                                 {
-                                                    // Keep product name left aligned
+                                                    // Product name - left aligned, extra bold and larger for readability
                                                     table.Cell().BorderBottom(0.5f)
-                                                        .PaddingVertical(2)
+                                                        .PaddingVertical(3)
                                                         .PaddingLeft(5)
                                                         .Text($"{item.ProductName}{(string.IsNullOrEmpty(item.SizeGroupName) ? "" : $" ({item.SizeGroupName})")}")
-                                                        .FontSize(10);
+                                                        .FontSize(18)
+                                                        .ExtraBold();
 
-                                                    // Quantity right aligned with consistent right padding
+                                                    // Quantity right aligned, extra bold and larger for readability
                                                     table.Cell().BorderBottom(0.5f)
-                                                        .PaddingVertical(2)
+                                                        .PaddingVertical(3)
                                                         .PaddingRight(5)
                                                         .AlignRight()
                                                         .Text($"{item.TotalQuantity:N0} {item.UnitSymbol}")
-                                                        .FontSize(10)
-                                                        .Bold();
+                                                        .FontSize(18)
+                                                        .ExtraBold();
                                                 }
                                             });
                                         }
                                         else if (stop.Remarks == null)
                                         {
-                                            stopCol.Item().PaddingLeft(20).Padding(3).Text("—").FontSize(10);
+                                            stopCol.Item().AlignCenter().Width(360).PaddingLeft(5).Padding(3).Text("—").FontSize(10);
                                         }
 
                                         // ── Retail items / remarks — plain black text, no background shade, no "RETAIL / WEIGH" label ──
+                                        // Wrapped with the same AlignCenter().Width(360) + PaddingLeft(5) as the
+                                        // product table above, so remarks line up directly under the PRODUCT column
+                                        // instead of sitting further left than the table.
                                         if (stop.Remarks != null)
                                         {
-                                            stopCol.Item().PaddingLeft(20).PaddingTop(4)
-                                                .Text(stop.Remarks).FontSize(10).Bold().FontColor(Colors.Black);
+                                            // Extra bold + 13pt for stronger readability, matching the product/qty rows.
+                                            stopCol.Item().AlignCenter().Width(360).PaddingLeft(5).PaddingTop(4)
+                                                .Text(stop.Remarks).FontSize(18).ExtraBold().FontColor(Colors.Black);
                                         }
                                     });
 
@@ -425,7 +437,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                         routeCol.Item().PaddingTop(6)
                                             .Background(Colors.Red.Lighten3).Padding(6)
                                             .Text($"⚠ ALERT: 50 KG BAGS HAVE REACHED {milestone}+ (RUNNING TOTAL: {stop.RunningFiftyKgBagTotal}) — AFTER \"{stop.CustomerName}\" — VERIFY LOADING CAPACITY")
-                                            .Bold().FontSize(11).FontColor(Colors.Red.Darken2);
+                                            .Bold().FontSize(18).FontColor(Colors.Red.Darken2);
                                     }
                                 }
 
@@ -437,11 +449,11 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                         .Padding(8)
                                         .Column(sgCol =>
                                         {
-                                            sgCol.Item().Text("📦 SIZE GROUP SUMMARY").FontSize(11).Bold();
+                                            sgCol.Item().Text("📦 SIZE GROUP SUMMARY").FontSize(18).Bold();
                                             var i = 1;
                                             foreach (var sg in route.SizeGroupSummary)
                                             {
-                                                sgCol.Item().PaddingTop(2).Text($"{i}. {sg.SizeGroupName} — {sg.TotalQuantity:N0} {sg.UnitTypeLabel}").FontSize(11).Bold();
+                                                sgCol.Item().PaddingTop(2).Text($"{i}. {sg.SizeGroupName} — {sg.TotalQuantity:N0} {sg.UnitTypeLabel}").FontSize(18).Bold();
                                                 i++;
                                             }
                                         });

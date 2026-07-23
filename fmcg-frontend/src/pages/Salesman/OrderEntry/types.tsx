@@ -10,17 +10,30 @@ export interface LineItem {
   productId: string;
 }
 
+// ── Selling price must stay within ±10% of the product's base price.
+// Below base*0.9 → "less than 10%" warning. Above base*1.1 → "greater than
+// 10%" warning. Inside that band, nothing is shown. ──
 export function PriceVarianceBadge({ base, selling }: { base: number; selling: number }) {
   if (!base || !selling) return null;
-  const diff = ((selling - base) / base) * 100;
-  const abs = Math.abs(diff).toFixed(1);
-  if (Math.abs(diff) < 0.1) return <span className="text-xs text-emerald-600">✓ At base price</span>;
-  if (diff < 0) {
+
+  const lowerBound = base * 0.9;
+  const upperBound = base * 1.1;
+
+  if (selling < lowerBound) {
     return (
-      <span className="text-xs text-red-500 flex items-center gap-1">
-        <AlertTriangle size={11} /> {abs}% below base
-      </span>
+      <p style={{ margin: '6px 0 0', fontSize: 11, fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <AlertTriangle size={12} /> Price is less than 10% of base price (min ₹{lowerBound.toFixed(2)})
+      </p>
     );
   }
-  return <span className="text-xs text-emerald-600">▲ +{abs}% above base</span>;
+
+  if (selling > upperBound) {
+    return (
+      <p style={{ margin: '6px 0 0', fontSize: 11, fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <AlertTriangle size={12} /> Price is greater than 10% of base price (max ₹{upperBound.toFixed(2)})
+      </p>
+    );
+  }
+
+  return null;
 }

@@ -425,12 +425,37 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         Console.WriteLine($"[ReopenRoute] Unlocked {ordersToUnlock.Count} orders for {route.Name}");
 
         // ── Reopen the execution(s) this closure completed ──
-        var executionsToReopen = await context.RouteExecutions
+        // BUG FIX: this used to require `e.ExecutionDate.Date == closureDate.Date`.
+        // But CloseDayCommandHandler (which completes the execution when the route
+        // is closed) has NO date filter at all — it just completes whatever is
+        // currently InProgress for the route. ExecutionDate is stamped from
+        // DateTime.UtcNow.Date when the salesman started the route, which can land
+        // on a different calendar date than the admin's closureDate (UTC vs local
+        // day rollover, or the route being closed some time after it was started).
+        // When that happened, this query silently found nothing, the real
+        // completed execution (with all its OrderPlaced visits) stayed Completed
+        // forever, and the next time the salesman opened the route the app found
+        // no active execution and started a BRAND NEW one — fresh Pending visits
+        // for every stop, even though the underlying orders (and their items)
+        // were still sitting there untouched. "Take Order" showed instead of
+        // "View Order" because the salesman was really looking at a new,
+        // unrelated execution, not the one that was just reopened.
+        //
+        // Fix: mirror CloseDayCommandHandler's own logic — reopen the most
+        // recently-completed execution for this route per ExecutionType (order
+        // taking and delivery are tracked separately), with no date constraint.
+        // A route only ever has one outstanding "needs reopen" cycle per type at
+        // a time, so grabbing the latest Completed one per type is always correct.
+        var completedExecutions = await context.RouteExecutions
             .Where(e => !e.IsDeleted
                 && e.RouteId == routeId
-                && e.Status == ExecutionStatus.Completed
-                && e.ExecutionDate.Date == closureDate.Date)
+                && e.Status == ExecutionStatus.Completed)
             .ToListAsync(cancellationToken);
+
+        var executionsToReopen = completedExecutions
+            .GroupBy(e => e.ExecutionType)
+            .Select(g => g.OrderByDescending(e => e.CompletedAt).First())
+            .ToList();
 
         foreach (var execution in executionsToReopen)
         {

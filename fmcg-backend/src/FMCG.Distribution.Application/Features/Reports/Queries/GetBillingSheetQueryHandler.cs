@@ -56,14 +56,19 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                 RouteName = g.Key.Name,
                 Orders = g
                     .OrderBy(o => o.Customer?.SequenceOrder ?? 0)
-                    .Select(o => new BillingSheetOrderDto
+                    // ── FIX: number stops by their position within THIS route's sorted list,
+                    // not by the customer's raw (global) SequenceOrder field. The old code used
+                    // o.Customer.SequenceOrder directly, which can have gaps/duplicates across
+                    // customers (e.g. 3, 7, 12...). Using the loop index guarantees a clean,
+                    // contiguous 1, 2, 3, 4, 5, 6... sequence per route, matching the loading sheet. ──
+                    .Select((o, idx) => new BillingSheetOrderDto
                     {
                         OrderId = o.Id,
                         OrderNumber = o.OrderNumber,
                         CustomerName = o.Customer?.NameEnglish ?? string.Empty,
                         CustomerNameMalayalam = o.Customer?.NameMalayalam,
                         OrderDate = o.OrderDate,
-                        SequenceOrder = o.Customer?.SequenceOrder ?? 0,
+                        SequenceOrder = idx,
                         Remarks = string.IsNullOrWhiteSpace(o.Remarks) ? null : o.Remarks,
                         Items = o.Items!.Select(i => new BillingSheetItemDto
                         {
@@ -134,26 +139,36 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                             routeCol.Item().Background(Colors.Grey.Lighten2)
                                 .Padding(6)
                                 .AlignCenter()
-                                .Text($"{route.RouteName}").FontSize(14).Bold();
+                                .Text($"{route.RouteName}").FontSize(18).Bold();
 
                             // ── One block per customer stop ──
                             foreach (var order in route.Orders)
                             {
-                                routeCol.Item().PaddingTop(8).ShowEntire().Column(stopCol =>
+                                routeCol.Item().PaddingTop(30).ShowEntire().Column(stopCol =>
                                 {
                                     // Customer header with number and name centered
+                                    // order.SequenceOrder is now a contiguous, per-route index (see Handle() above),
+                                    // so "+ 1" always produces 1, 2, 3, 4, 5, 6... in delivery order.
                                     stopCol.Item().Background(Colors.Grey.Lighten3)
                                         .Padding(4)
                                         .Row(r =>
                                         {
-                                            r.ConstantItem(30).AlignLeft().Text($"{order.SequenceOrder + 1}.").FontSize(12).Bold();
-                                            r.RelativeItem().AlignCenter().Text(order.CustomerName).FontSize(16).Bold();
-                                            r.ConstantItem(30);
+                                            // Number and name sit right next to each other as one group,
+                                            // with equal flexible spacers on either side centering that
+                                            // group across the row — closes the gap between "1." and the
+                                            // customer name instead of pinning the number to the far left.
+                                            r.RelativeItem();
+                                            r.AutoItem().Text($"{order.SequenceOrder + 1}.").FontSize(18).Bold();
+                                            r.AutoItem().PaddingLeft(6).Text(order.CustomerName).FontSize(18).Bold();
+                                            r.RelativeItem();
                                         });
 
                                     if (order.Items.Count > 0)
                                     {
-                                        stopCol.Item().PaddingLeft(15).PaddingRight(15).PaddingTop(4).Table(table =>
+                                        // Narrower, centered table: capping the width tightens the gap between
+                                        // PRODUCT/QTY/PRICE columns and pushes the leftover space out to equal
+                                        // left/right margins instead of sitting between the columns.
+                                        stopCol.Item().AlignCenter().Width(420).PaddingTop(4).Table(table =>
                                         {
                                             // Three columns: Product (40%), Qty (20%), Price (40%)
                                             table.ColumnsDefinition(columns =>
@@ -166,65 +181,70 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                             table.Header(header =>
                                             {
                                                 header.Cell().BorderBottom(1)
-                                                    .PaddingVertical(3)
+                                                    .PaddingVertical(4)
                                                     .PaddingLeft(5)
                                                     .Text("PRODUCT")
                                                     .Bold()
-                                                    .FontSize(9);
+                                                    .FontSize(18);
 
                                                 header.Cell().BorderBottom(1)
-                                                    .PaddingVertical(3)
+                                                    .PaddingVertical(4)
                                                     .AlignCenter()
                                                     .Text("QTY")
                                                     .Bold()
-                                                    .FontSize(9);
+                                                    .FontSize(18);
 
                                                 header.Cell().BorderBottom(1)
-                                                    .PaddingVertical(3)
+                                                    .PaddingVertical(4)
                                                     .PaddingRight(5)
                                                     .AlignRight()
                                                     .Text("PRICE")
                                                     .Bold()
-                                                    .FontSize(9);
+                                                    .FontSize(18);
                                             });
 
                                             foreach (var item in order.Items)
                                             {
-                                                // Product name - left aligned
+                                                // Product name - left aligned, extra bold and larger for readability
                                                 table.Cell().BorderBottom(0.5f)
-                                                    .PaddingVertical(2)
+                                                    .PaddingVertical(3)
                                                     .PaddingLeft(5)
                                                     .Text(item.ProductName)
-                                                    .FontSize(10);
+                                                    .FontSize(18)
+                                                    .ExtraBold();
 
-                                                // Quantity - centered
+                                                // Quantity - centered, extra bold and larger for readability
                                                 table.Cell().BorderBottom(0.5f)
-                                                    .PaddingVertical(2)
+                                                    .PaddingVertical(3)
                                                     .AlignCenter()
                                                     .Text($"{item.Quantity:N0} {item.UnitSymbol}")
-                                                    .FontSize(10)
-                                                    .Bold();
+                                                    .FontSize(18)
+                                                    .ExtraBold();
 
-                                                // Price - right aligned
+                                                // Price - right aligned, extra bold and larger for readability
                                                 table.Cell().BorderBottom(0.5f)
-                                                    .PaddingVertical(2)
+                                                    .PaddingVertical(3)
                                                     .PaddingRight(5)
                                                     .AlignRight()
                                                     .Text($"₹{item.SellingPrice:N2}")
-                                                    .FontSize(10);
+                                                    .FontSize(18)
+                                                    .ExtraBold();
                                             }
                                         });
                                     }
                                     else if (order.Remarks == null)
                                     {
-                                        stopCol.Item().PaddingLeft(20).Padding(3).Text("—").FontSize(10);
+                                        stopCol.Item().AlignCenter().Width(420).PaddingLeft(5).Padding(3).Text("—").FontSize(10);
                                     }
 
                                     // ── Remarks - plain black text, no background shade ──
+                                    // Extra bold + 18pt for stronger readability, matching the product/qty/price rows.
+                                    // Wrapped with the same AlignCenter().Width(420) + PaddingLeft(5) as the table
+                                    // above so remarks line up directly under the PRODUCT column.
                                     if (order.Remarks != null)
                                     {
-                                        stopCol.Item().PaddingLeft(20).PaddingTop(4)
-                                            .Text(order.Remarks).FontSize(10).Bold().FontColor(Colors.Black);
+                                        stopCol.Item().AlignCenter().Width(420).PaddingLeft(5).PaddingTop(4)
+                                            .Text(order.Remarks).FontSize(18).ExtraBold().FontColor(Colors.Black);
                                     }
                                 });
                             }

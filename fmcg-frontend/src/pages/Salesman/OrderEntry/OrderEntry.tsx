@@ -221,6 +221,30 @@ export default function OrderEntry() {
     return tmp !== undefined ? tmp : price === 0 ? '' : String(price);
   };
 
+  // ── Live (not-yet-blurred) selling price for a line. While the salesman is
+  // still typing, `line.sellingPrice` hasn't been committed yet (that only
+  // happens on blur) — but the ±10% warning needs to react on every
+  // keystroke, not just when the field loses focus. This reads straight from
+  // tempPrices so the warning is instant. ──
+  const getEffectivePrice = (productId: string, committed: number): number => {
+    const tmp = tempPrices[productId];
+    if (tmp === undefined) return committed;
+    const n = parseFloat(tmp);
+    return isNaN(n) ? committed : n;
+  };
+
+  // ── Selling price must stay within ±10% of the product's base price.
+  // Returns the allowed [min, max] band when the given price falls outside
+  // it, or null when the price is fine. Shared by the live warning badge and
+  // the hard save-block in handleSave below, so both always agree. ──
+  const getPriceRangeIssue = (basePrice: number, sellingPrice: number): { min: number; max: number } | null => {
+    if (!basePrice || !sellingPrice) return null;
+    const min = basePrice * 0.9;
+    const max = basePrice * 1.1;
+    if (sellingPrice < min || sellingPrice > max) return { min, max };
+    return null;
+  };
+
   const removeItem = (productId: string) => {
     if (!canEdit) return;
     setLines(prev => prev.filter(l => l.product.id !== productId));
@@ -263,7 +287,19 @@ export default function OrderEntry() {
     setError(`Enter quantity and price for "${incomplete.product.nameEnglish}" before saving.`);
     return;
   }
-  
+
+  // ── Hard block: no line's price may sit outside ±10% of its base price.
+  // Re-checks against the live (not-yet-blurred) value too, in case Save is
+  // clicked while a price field still has focus. ──
+  const outOfRange = lines
+    .map(l => ({ line: l, issue: getPriceRangeIssue(l.product.basePrice, getEffectivePrice(l.product.id, l.sellingPrice)) }))
+    .find(x => x.issue !== null);
+  if (outOfRange) {
+    const { line, issue } = outOfRange;
+    setError(`"${line.product.nameEnglish}" price must be between ₹${issue!.min.toFixed(2)} and ₹${issue!.max.toFixed(2)} (±10% of base price). The order cannot be saved until this is corrected.`);
+    return;
+  }
+
   setSaving(true); 
   setError(''); 
   setSuccessMsg('');
@@ -485,7 +521,6 @@ export default function OrderEntry() {
                     {line.product.nameMalayalam && (
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: D.muted }} lang="ml">{line.product.nameMalayalam}</p>
                     )}
-                    {/* <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} /> */}
                   </div>
 
                   {/* Fields row */}
@@ -534,6 +569,12 @@ export default function OrderEntry() {
                       </button>
                     )}
                   </div>
+
+                  {/* ── Price must stay within ±10% of the product's base price. When the
+                      salesman-entered selling price falls outside that band, a warning shows
+                      up right under the Price field so it's caught before the order is saved.
+                      Uses the live (not-yet-blurred) value so it updates on every keystroke. ── */}
+                  <PriceVarianceBadge base={line.product.basePrice} selling={getEffectivePrice(line.product.id, line.sellingPrice)} />
                 </div>
               ))}
             </div>
