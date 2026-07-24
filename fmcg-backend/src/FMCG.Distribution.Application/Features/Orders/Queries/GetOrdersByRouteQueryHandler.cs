@@ -1,5 +1,8 @@
 ﻿// PATH: src/FMCG.Distribution.Application/Features/Orders/Queries/GetOrdersByRouteQueryHandler.cs
 // FIXED: Use the correct DTO structure
+// FIXED: ProductName/ProductNameMalayalam now prefer the ProductNameAtTime/ProductNameMalayalamAtTime
+//        snapshot captured at order-creation time, same fix as GetOrderByIdQueryHandler — this
+//        handler powers order lists by route and had the identical live-join bug.
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -62,8 +65,10 @@ public class GetOrdersByRouteQueryHandler(IApplicationDbContext context)
             {
                 Id = i.Id,
                 ProductId = i.ProductId,
-                ProductName = i.Product?.NameEnglish ?? string.Empty,
-                ProductNameMalayalam = i.Product?.NameMalayalam,
+                // ── Snapshot-first: shows what was actually on the order at the time it
+                // was placed, not whatever the product happens to be named right now. ──
+                ProductName = i.ProductNameAtTime ?? i.Product?.NameEnglish ?? string.Empty,
+                ProductNameMalayalam = i.ProductNameMalayalamAtTime ?? i.Product?.NameMalayalam,
                 Quantity = i.Quantity,
                 UnitId = i.UnitId,
                 UnitName = i.Unit?.Name ?? string.Empty,

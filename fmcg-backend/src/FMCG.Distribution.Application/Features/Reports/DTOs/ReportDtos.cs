@@ -46,6 +46,13 @@ public class LoadingSheetStopDto
     // more than one multiple at once. Empty if no milestone crossed at this stop. ──
     public List<int> FiftyKgThresholdMilestonesCrossed { get; set; } = new();
     public int RunningFiftyKgBagTotal { get; set; }
+
+    // ── NEW: running bag totals for the other size groups, carried alongside the
+    // 50kg alert purely for the loader's situational awareness (no threshold logic
+    // for these — just "where things stand" at the point the 50kg alert fires). ──
+    public int RunningThirtyKgBagTotal { get; set; }
+    public int RunningTwentySixKgBagTotal { get; set; }
+    public int RunningTwentyKgBagTotal { get; set; }
 }
 
 public class LoadingSheetSizeGroupSummaryDto
@@ -141,6 +148,7 @@ public class BillingSheetItemDto
 {
     public string ProductName { get; set; } = string.Empty;
     public string? ProductNameMalayalam { get; set; }
+    public string? SizeGroupName { get; set; }          // NEW — drives client-specified size-group display order
     public string UnitSymbol { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public decimal SellingPrice { get; set; }

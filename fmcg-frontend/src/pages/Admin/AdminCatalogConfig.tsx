@@ -8,7 +8,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   Settings, Plus, Edit2, Trash2, X, Save,
   Boxes, ArrowLeft, RefreshCw,
-  Layers, Package,
+  Layers, Package, ChevronUp, ChevronDown,
 } from 'lucide-react';
 import { productGroupsApi, unitsApi, sizeGroupsApi } from '../../api/services';
 import type { ProductGroupDto, UnitDto, UnitPriorityDto, SizeGroupDto } from '../../types';
@@ -690,6 +690,7 @@ export function AdminCatalogConfig() {
   // ── State for Size Groups ──
   const [sizeGroups, setSizeGroups] = useState<SizeGroupDto[]>([]);
   const [sizeGroupsLoading, setSizeGroupsLoading] = useState(true);
+  const [reorderingSizeGroupId, setReorderingSizeGroupId] = useState<string | null>(null);
 
   // ── State for Packing Categories (replaces Priorities) ──
   const [packingCategories, setPackingCategories] = useState<{ id: string; name: string; priority: number }[]>([]);
@@ -880,6 +881,32 @@ export function AdminCatalogConfig() {
       setError(err.message || 'Failed to delete size group');
     } finally {
       setDeleteConfirm(null);
+    }
+  }
+
+  // ── Reorder a size group up/down — this is what controls the order items are
+  // listed in on the Loading Sheet / Billing Sheet / Size Group Summary. The list
+  // here is already sorted by SortOrder (backend returns it that way), so "up" and
+  // "down" just swap the current group's SortOrder with its neighbor's. ──
+  async function handleMoveSizeGroup(index: number, direction: 'up' | 'down') {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= sizeGroups.length) return;
+
+    const current = sizeGroups[index];
+    const neighbor = sizeGroups[targetIndex];
+
+    setReorderingSizeGroupId(current.id);
+    setError('');
+    try {
+      await Promise.all([
+        sizeGroupsApi.updatePriority(current.id, neighbor.sortOrder ?? 0),
+        sizeGroupsApi.updatePriority(neighbor.id, current.sortOrder ?? 0),
+      ]);
+      await loadSizeGroups();
+    } catch (err: any) {
+      setError(err.message || 'Failed to reorder size groups');
+    } finally {
+      setReorderingSizeGroupId(null);
     }
   }
 
@@ -1232,7 +1259,7 @@ export function AdminCatalogConfig() {
                   No size groups yet
                 </div>
               ) : (
-                sizeGroups.map(group => (
+                sizeGroups.map((group, index) => (
                   <div
                     key={group.id}
                     style={{
@@ -1244,8 +1271,45 @@ export function AdminCatalogConfig() {
                       borderRadius: 8,
                       background: D.bg,
                       border: `1px solid ${D.border}`,
+                      opacity: reorderingSizeGroupId === group.id ? 0.5 : 1,
                     }}
                   >
+                    {/* ── Reorder arrows: controls the order this group appears in on the
+                        Loading Sheet / Billing Sheet / Size Group Summary. Swaps this
+                        group's SortOrder with its neighbor's. ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginRight: 6 }}>
+                      <button
+                        onClick={() => handleMoveSizeGroup(index, 'up')}
+                        disabled={index === 0 || reorderingSizeGroupId !== null}
+                        title="Move up"
+                        style={{
+                          padding: 1,
+                          borderRadius: 3,
+                          border: 'none',
+                          background: 'transparent',
+                          color: index === 0 ? D.border : D.sub,
+                          cursor: index === 0 ? 'default' : 'pointer',
+                        }}
+                      >
+                        <ChevronUp size={13} />
+                      </button>
+                      <button
+                        onClick={() => handleMoveSizeGroup(index, 'down')}
+                        disabled={index === sizeGroups.length - 1 || reorderingSizeGroupId !== null}
+                        title="Move down"
+                        style={{
+                          padding: 1,
+                          borderRadius: 3,
+                          border: 'none',
+                          background: 'transparent',
+                          color: index === sizeGroups.length - 1 ? D.border : D.sub,
+                          cursor: index === sizeGroups.length - 1 ? 'default' : 'pointer',
+                        }}
+                      >
+                        <ChevronDown size={13} />
+                      </button>
+                    </div>
+
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, color: D.text, fontSize: 13 }}>
                         {group.name}

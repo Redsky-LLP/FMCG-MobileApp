@@ -1,5 +1,11 @@
 ﻿// PATH: src/FMCG.Distribution.Application/Features/Orders/Queries/GetOrderByIdQueryHandler.cs
 // FIXED: Use primary constructor
+// FIXED: ProductName/ProductNameMalayalam now prefer the ProductNameAtTime/ProductNameMalayalamAtTime
+//        snapshot captured at order-creation time, falling back to the live Product row only for
+//        older rows that predate this field. This is what powers the "Review Order" popup, and it
+//        was previously always live-joining — so renaming a product (even after an order was closed,
+//        reopened, and re-closed) would silently change what this popup showed for old orders, even
+//        though the Billing Sheet / Loading Sheet already correctly kept the original name frozen.
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -46,8 +52,10 @@ public class GetOrderByIdQueryHandler(IApplicationDbContext context)
             {
                 Id = item.Id,
                 ProductId = item.ProductId,
-                ProductName = product?.NameEnglish ?? string.Empty,
-                ProductNameMalayalam = product?.NameMalayalam,
+                // ── Snapshot-first: shows what was actually on the order at the time it
+                // was placed, not whatever the product happens to be named right now. ──
+                ProductName = item.ProductNameAtTime ?? product?.NameEnglish ?? string.Empty,
+                ProductNameMalayalam = item.ProductNameMalayalamAtTime ?? product?.NameMalayalam,
                 Quantity = item.Quantity,
                 UnitId = item.UnitId,
                 UnitName = unit?.Name ?? string.Empty,

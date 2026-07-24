@@ -1423,7 +1423,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.sb0ue1jo61"
+    "revision": "0.n88ao5vcb6o"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -67016,6 +67016,11 @@ export const sizeGroupsApi = {
   update: (id: string, data: { name?: string; nameMl?: string; description?: string; isActive?: boolean }) =>
     put<SizeGroupDto>(`/api/v1/sizegroups/${id}`, { ...data, id }),
 
+  // ── NEW: updates a size group's report display order (SortOrder). Used by the
+  // Size Groups admin screen's up/down arrows to swap two groups' positions. ──
+  updatePriority: (id: string, priority: number) =>
+    put<boolean>(`/api/v1/sizegroups/${id}/priority`, { priority }),
+
   delete: (id: string) =>
     del<boolean>(`/api/v1/sizegroups/${id}`),
 };
@@ -72265,7 +72270,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   Settings, Plus, Edit2, Trash2, X, Save,
   Boxes, ArrowLeft, RefreshCw,
-  Layers, Package,
+  Layers, Package, ChevronUp, ChevronDown,
 } from 'lucide-react';
 import { productGroupsApi, unitsApi, sizeGroupsApi } from '../../api/services';
 import type { ProductGroupDto, UnitDto, UnitPriorityDto, SizeGroupDto } from '../../types';
@@ -72947,6 +72952,7 @@ export function AdminCatalogConfig() {
   // ── State for Size Groups ──
   const [sizeGroups, setSizeGroups] = useState<SizeGroupDto[]>([]);
   const [sizeGroupsLoading, setSizeGroupsLoading] = useState(true);
+  const [reorderingSizeGroupId, setReorderingSizeGroupId] = useState<string | null>(null);
 
   // ── State for Packing Categories (replaces Priorities) ──
   const [packingCategories, setPackingCategories] = useState<{ id: string; name: string; priority: number }[]>([]);
@@ -73137,6 +73143,32 @@ export function AdminCatalogConfig() {
       setError(err.message || 'Failed to delete size group');
     } finally {
       setDeleteConfirm(null);
+    }
+  }
+
+  // ── Reorder a size group up/down — this is what controls the order items are
+  // listed in on the Loading Sheet / Billing Sheet / Size Group Summary. The list
+  // here is already sorted by SortOrder (backend returns it that way), so "up" and
+  // "down" just swap the current group's SortOrder with its neighbor's. ──
+  async function handleMoveSizeGroup(index: number, direction: 'up' | 'down') {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= sizeGroups.length) return;
+
+    const current = sizeGroups[index];
+    const neighbor = sizeGroups[targetIndex];
+
+    setReorderingSizeGroupId(current.id);
+    setError('');
+    try {
+      await Promise.all([
+        sizeGroupsApi.updatePriority(current.id, neighbor.sortOrder ?? 0),
+        sizeGroupsApi.updatePriority(neighbor.id, current.sortOrder ?? 0),
+      ]);
+      await loadSizeGroups();
+    } catch (err: any) {
+      setError(err.message || 'Failed to reorder size groups');
+    } finally {
+      setReorderingSizeGroupId(null);
     }
   }
 
@@ -73489,7 +73521,7 @@ export function AdminCatalogConfig() {
                   No size groups yet
                 </div>
               ) : (
-                sizeGroups.map(group => (
+                sizeGroups.map((group, index) => (
                   <div
                     key={group.id}
                     style={{
@@ -73501,8 +73533,45 @@ export function AdminCatalogConfig() {
                       borderRadius: 8,
                       background: D.bg,
                       border: `1px solid ${D.border}`,
+                      opacity: reorderingSizeGroupId === group.id ? 0.5 : 1,
                     }}
                   >
+                    {/* ── Reorder arrows: controls the order this group appears in on the
+                        Loading Sheet / Billing Sheet / Size Group Summary. Swaps this
+                        group's SortOrder with its neighbor's. ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginRight: 6 }}>
+                      <button
+                        onClick={() => handleMoveSizeGroup(index, 'up')}
+                        disabled={index === 0 || reorderingSizeGroupId !== null}
+                        title="Move up"
+                        style={{
+                          padding: 1,
+                          borderRadius: 3,
+                          border: 'none',
+                          background: 'transparent',
+                          color: index === 0 ? D.border : D.sub,
+                          cursor: index === 0 ? 'default' : 'pointer',
+                        }}
+                      >
+                        <ChevronUp size={13} />
+                      </button>
+                      <button
+                        onClick={() => handleMoveSizeGroup(index, 'down')}
+                        disabled={index === sizeGroups.length - 1 || reorderingSizeGroupId !== null}
+                        title="Move down"
+                        style={{
+                          padding: 1,
+                          borderRadius: 3,
+                          border: 'none',
+                          background: 'transparent',
+                          color: index === sizeGroups.length - 1 ? D.border : D.sub,
+                          cursor: index === sizeGroups.length - 1 ? 'default' : 'pointer',
+                        }}
+                      >
+                        <ChevronDown size={13} />
+                      </button>
+                    </div>
+
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, color: D.text, fontSize: 13 }}>
                         {group.name}
@@ -87150,21 +87219,35 @@ export function PreviousOrdersModal({ isOpen, onClose, previousOrders, onUseOrde
 
 ## File: src/pages/Salesman/OrderEntry/components/PriceVarianceBadge.tsx
 ``````typescript
+// PATH: src/pages/Salesman/OrderEntry/components/PriceVarianceBadge.tsx
 import { AlertTriangle } from 'lucide-react';
 
+// ── Kept in sync with the copy of this component in ../types.tsx (the one
+// OrderEntry.tsx actually imports). Selling price must stay within ±10% of
+// base price; outside that band, a warning is shown. ──
 export function PriceVarianceBadge({ base, selling }: { base: number; selling: number }) {
   if (!base || !selling) return null;
-  const diff = ((selling - base) / base) * 100;
-  const abs = Math.abs(diff).toFixed(1);
-  if (Math.abs(diff) < 0.1) return <span className="text-xs text-emerald-600">✓ At base price</span>;
-  if (diff < 0) {
+
+  const lowerBound = base * 0.9;
+  const upperBound = base * 1.1;
+
+  if (selling < lowerBound) {
     return (
-      <span className="text-xs text-red-500 flex items-center gap-1">
-        <AlertTriangle size={11} /> {abs}% below base
-      </span>
+      <p style={{ margin: '6px 0 0', fontSize: 11, fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <AlertTriangle size={12} /> Price is less than 10% of base price (min ₹{lowerBound.toFixed(2)})
+      </p>
     );
   }
-  return <span className="text-xs text-emerald-600">▲ +{abs}% above base</span>;
+
+  if (selling > upperBound) {
+    return (
+      <p style={{ margin: '6px 0 0', fontSize: 11, fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <AlertTriangle size={12} /> Price is greater than 10% of base price (max ₹{upperBound.toFixed(2)})
+      </p>
+    );
+  }
+
+  return null;
 }
 ``````
 
@@ -87399,6 +87482,30 @@ export default function OrderEntry() {
     return tmp !== undefined ? tmp : price === 0 ? '' : String(price);
   };
 
+  // ── Live (not-yet-blurred) selling price for a line. While the salesman is
+  // still typing, `line.sellingPrice` hasn't been committed yet (that only
+  // happens on blur) — but the ±10% warning needs to react on every
+  // keystroke, not just when the field loses focus. This reads straight from
+  // tempPrices so the warning is instant. ──
+  const getEffectivePrice = (productId: string, committed: number): number => {
+    const tmp = tempPrices[productId];
+    if (tmp === undefined) return committed;
+    const n = parseFloat(tmp);
+    return isNaN(n) ? committed : n;
+  };
+
+  // ── Selling price must stay within ±10% of the product's base price.
+  // Returns the allowed [min, max] band when the given price falls outside
+  // it, or null when the price is fine. Shared by the live warning badge and
+  // the hard save-block in handleSave below, so both always agree. ──
+  const getPriceRangeIssue = (basePrice: number, sellingPrice: number): { min: number; max: number } | null => {
+    if (!basePrice || !sellingPrice) return null;
+    const min = basePrice * 0.9;
+    const max = basePrice * 1.1;
+    if (sellingPrice < min || sellingPrice > max) return { min, max };
+    return null;
+  };
+
   const removeItem = (productId: string) => {
     if (!canEdit) return;
     setLines(prev => prev.filter(l => l.product.id !== productId));
@@ -87441,7 +87548,19 @@ export default function OrderEntry() {
     setError(`Enter quantity and price for "${incomplete.product.nameEnglish}" before saving.`);
     return;
   }
-  
+
+  // ── Hard block: no line's price may sit outside ±10% of its base price.
+  // Re-checks against the live (not-yet-blurred) value too, in case Save is
+  // clicked while a price field still has focus. ──
+  const outOfRange = lines
+    .map(l => ({ line: l, issue: getPriceRangeIssue(l.product.basePrice, getEffectivePrice(l.product.id, l.sellingPrice)) }))
+    .find(x => x.issue !== null);
+  if (outOfRange) {
+    const { line, issue } = outOfRange;
+    setError(`"${line.product.nameEnglish}" price must be between ₹${issue!.min.toFixed(2)} and ₹${issue!.max.toFixed(2)} (±10% of base price). The order cannot be saved until this is corrected.`);
+    return;
+  }
+
   setSaving(true); 
   setError(''); 
   setSuccessMsg('');
@@ -87663,7 +87782,6 @@ export default function OrderEntry() {
                     {line.product.nameMalayalam && (
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: D.muted }} lang="ml">{line.product.nameMalayalam}</p>
                     )}
-                    {/* <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} /> */}
                   </div>
 
                   {/* Fields row */}
@@ -87712,6 +87830,12 @@ export default function OrderEntry() {
                       </button>
                     )}
                   </div>
+
+                  {/* ── Price must stay within ±10% of the product's base price. When the
+                      salesman-entered selling price falls outside that band, a warning shows
+                      up right under the Price field so it's caught before the order is saved.
+                      Uses the live (not-yet-blurred) value so it updates on every keystroke. ── */}
+                  <PriceVarianceBadge base={line.product.basePrice} selling={getEffectivePrice(line.product.id, line.sellingPrice)} />
                 </div>
               ))}
             </div>
@@ -87991,19 +88115,32 @@ export interface LineItem {
   productId: string;
 }
 
+// ── Selling price must stay within ±10% of the product's base price.
+// Below base*0.9 → "less than 10%" warning. Above base*1.1 → "greater than
+// 10%" warning. Inside that band, nothing is shown. ──
 export function PriceVarianceBadge({ base, selling }: { base: number; selling: number }) {
   if (!base || !selling) return null;
-  const diff = ((selling - base) / base) * 100;
-  const abs = Math.abs(diff).toFixed(1);
-  if (Math.abs(diff) < 0.1) return <span className="text-xs text-emerald-600">✓ At base price</span>;
-  if (diff < 0) {
+
+  const lowerBound = base * 0.9;
+  const upperBound = base * 1.1;
+
+  if (selling < lowerBound) {
     return (
-      <span className="text-xs text-red-500 flex items-center gap-1">
-        <AlertTriangle size={11} /> {abs}% below base
-      </span>
+      <p style={{ margin: '6px 0 0', fontSize: 11, fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <AlertTriangle size={12} /> Price is less than 10% of base price (min ₹{lowerBound.toFixed(2)})
+      </p>
     );
   }
-  return <span className="text-xs text-emerald-600">▲ +{abs}% above base</span>;
+
+  if (selling > upperBound) {
+    return (
+      <p style={{ margin: '6px 0 0', fontSize: 11, fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <AlertTriangle size={12} /> Price is greater than 10% of base price (max ₹{upperBound.toFixed(2)})
+      </p>
+    );
+  }
+
+  return null;
 }
 ``````
 
@@ -92096,6 +92233,7 @@ export interface SizeGroupDto {
   nameMl?: string;
   description?: string;
   isActive: boolean;
+  sortOrder?: number;      // NEW — report display order (Loading Sheet / Billing Sheet / Size Group Summary); -1 = not yet assigned
   productCount?: number;
   createdDate?: string;
 }

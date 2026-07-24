@@ -214,6 +214,7 @@ export interface SizeGroupDto {
   nameMl?: string;
   description?: string;
   isActive: boolean;
+  sortOrder?: number;      // NEW — report display order (Loading Sheet / Billing Sheet / Size Group Summary); -1 = not yet assigned
   productCount?: number;
   createdDate?: string;
 }
