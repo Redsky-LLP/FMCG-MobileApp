@@ -3,6 +3,7 @@ using System;
 using FMCG.Distribution.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FMCG.Distribution.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260723071459_AddSortOrderToSizeGroups")]
+    partial class AddSortOrderToSizeGroups
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -386,12 +389,6 @@ namespace FMCG.Distribution.Infrastructure.Migrations
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("ProductNameAtTime")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ProductNameMalayalamAtTime")
-                        .HasColumnType("text");
-
                     b.Property<decimal>("Quantity")
                         .HasPrecision(18, 3)
                         .HasColumnType("numeric(18,3)");
@@ -407,9 +404,6 @@ namespace FMCG.Distribution.Infrastructure.Migrations
 
                     b.Property<decimal>("SellingPrice")
                         .HasColumnType("numeric");
-
-                    b.Property<string>("SizeGroupNameAtTime")
-                        .HasColumnType("text");
 
                     b.Property<Guid>("UnitId")
                         .HasColumnType("uuid");
@@ -576,9 +570,6 @@ namespace FMCG.Distribution.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("IsOutOfStock")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("ItemCode")
                         .HasColumnType("text");
 
@@ -597,12 +588,6 @@ namespace FMCG.Distribution.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime?>("OutOfStockMarkedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("OutOfStockReason")
-                        .HasColumnType("text");
 
                     b.Property<Guid>("ProductGroupId")
                         .HasColumnType("uuid");
@@ -1179,9 +1164,6 @@ namespace FMCG.Distribution.Infrastructure.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
-
-                    b.Property<string>("MasterAccessPinHash")
-                        .HasColumnType("text");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()

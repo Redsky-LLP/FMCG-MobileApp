@@ -100,6 +100,12 @@ export const authApi = {
   // Admin only — session history for one user or all users
   getSessions: (userId?: string, limit = 100) =>
     get<any[]>(`/api/v1/auth/sessions?${userId ? `userId=${userId}&` : ''}limit=${limit}`),
+
+  // ── NEW: Master Access PIN — lets the admin act as any salesman ──────────
+  setMasterPin: (pin: string) =>
+    post<boolean>('/api/v1/auth/set-master-pin', { pin }),
+  adminOverrideLogin: (salesmanId: string, masterPin: string) =>
+    post<LoginResponse>('/api/v1/auth/admin-override-login', { salesmanId, masterPin }),
 };
 
 // ── NEW: Admin creates salesman ──
@@ -197,6 +203,11 @@ export const sizeGroupsApi = {
   update: (id: string, data: { name?: string; nameMl?: string; description?: string; isActive?: boolean }) =>
     put<SizeGroupDto>(`/api/v1/sizegroups/${id}`, { ...data, id }),
 
+  // ── NEW: updates a size group's report display order (SortOrder). Used by the
+  // Size Groups admin screen's up/down arrows to swap two groups' positions. ──
+  updatePriority: (id: string, priority: number) =>
+    put<boolean>(`/api/v1/sizegroups/${id}/priority`, { priority }),
+
   delete: (id: string) =>
     del<boolean>(`/api/v1/sizegroups/${id}`),
 };
@@ -260,6 +271,10 @@ export const productsApi = {
     put<{ id: string }>(`/api/v1/products/${id}/base-price`, { productId: id, newPrice, reason }),
   getPriceHistory: (id: string, limit?: number) =>
     get<PriceHistoryDto[]>(`/api/v1/products/${id}/price-history`, limit ? { limit } : undefined),
+
+  // ── NEW: Out of Stock toggle — manual on/off, no predicted return date ──
+  updateStockStatus: (id: string, isOutOfStock: boolean, reason?: string) =>
+    put<boolean>(`/api/v1/products/${id}/stock-status`, { isOutOfStock, reason }),
 
   // ── Per-Unit Pricing endpoints ──────────────────────────────────────────
   getUnitPrices: (productId: string) =>

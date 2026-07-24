@@ -1,4 +1,11 @@
-﻿using MediatR;
+﻿// PATH: src/FMCG.Distribution.Application/Features/Orders/Queries/GetCustomerOrderHistoryQueryHandler.cs
+// FIXED: ProductName/ProductNameMalayalam now prefer the ProductNameAtTime/ProductNameMalayalamAtTime
+//        snapshot captured at order-creation time, same fix as GetOrderByIdQueryHandler and
+//        GetOrdersByRouteQueryHandler — this handler had the identical live-join bug, so a
+//        customer's order history would silently show a renamed product's current name instead
+//        of what was actually ordered that day.
+
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
@@ -64,8 +71,10 @@ public class GetCustomerOrderHistoryQueryHandler : IRequestHandler<GetCustomerOr
                 itemDtos.Add(new OrderHistoryItemDto
                 {
                     ProductId = item.ProductId,
-                    ProductName = product?.NameEnglish ?? "Unknown",
-                    ProductNameMalayalam = product?.NameMalayalam,
+                    // ── Snapshot-first: shows what was actually on the order at the time it
+                    // was placed, not whatever the product happens to be named right now. ──
+                    ProductName = item.ProductNameAtTime ?? product?.NameEnglish ?? "Unknown",
+                    ProductNameMalayalam = item.ProductNameMalayalamAtTime ?? product?.NameMalayalam,
                     Quantity = item.Quantity,
                     UnitSymbol = unit?.Symbol ?? "",
                     // ── new fields ────────────────────────────────────────────

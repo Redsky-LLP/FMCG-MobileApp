@@ -117,6 +117,45 @@ public class ProductsController(IMediator mediator, IApplicationDbContext contex
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
+    // ── NEW: Out of Stock toggle ─────────────────────────────────────────────
+    // PUT /api/v1/products/{id}/stock-status
+    // Simple manual on/off — no predicted return date, since admins can't know
+    // exactly when stock will arrive. They flip this back off the moment it does.
+    [HttpPut("{id}/stock-status")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<Result<bool>>> UpdateStockStatus(
+        Guid id,
+        [FromBody] UpdateStockStatusRequest request)
+    {
+        var product = await context.Products
+            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+
+        if (product == null)
+            return NotFound(Result<bool>.Failure("Product not found."));
+
+        product.IsOutOfStock = request.IsOutOfStock;
+        product.OutOfStockReason = request.IsOutOfStock ? request.Reason : null;
+        // ── Only stamp/clear the timestamp on an actual state change, so re-saving
+        // the same reason text later doesn't reset "out of stock since". ──
+        if (request.IsOutOfStock && !product.OutOfStockMarkedAt.HasValue)
+        {
+            product.OutOfStockMarkedAt = DateTime.UtcNow;
+        }
+        else if (!request.IsOutOfStock)
+        {
+            product.OutOfStockMarkedAt = null;
+        }
+
+        product.UpdateTimestamp(GetCurrentUserId().ToString());
+        await context.SaveChangesAsync();
+
+        var message = request.IsOutOfStock
+            ? $"'{product.NameEnglish}' marked out of stock."
+            : $"'{product.NameEnglish}' marked back in stock.";
+
+        return Ok(Result<bool>.Success(true, message));
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Per-Unit Pricing Endpoints - Salesman can view unit prices for orders
     // ─────────────────────────────────────────────────────────────────────────
@@ -354,4 +393,11 @@ public class ProductsController(IMediator mediator, IApplicationDbContext contex
 
         return Ok(Result<bool>.Success(true, "Unit price deleted successfully."));
     }
+}
+
+// ── NEW: Out of Stock DTO ──
+public class UpdateStockStatusRequest
+{
+    public bool IsOutOfStock { get; set; }
+    public string? Reason { get; set; }
 }

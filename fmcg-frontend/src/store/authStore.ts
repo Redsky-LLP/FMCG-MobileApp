@@ -11,6 +11,14 @@ interface AuthState {
   setUser:         (user: AuthUser) => void;
   logout:          () => Promise<void>;
   loadFromStorage: () => void;
+
+  // ── NEW: Admin Override ("Act as Salesman") ──────────────────────────────
+  // While acting as a salesman, the admin's own session is tucked aside here
+  // rather than discarded, so "Return to Admin" can restore it instantly
+  // without asking the admin to log in again with their own PIN.
+  adminBackup:     AuthUser | null;
+  actAsSalesman:   (salesmanUser: AuthUser) => void;
+  returnToAdmin:   () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -19,6 +27,7 @@ export const useAuthStore = create<AuthState>()(
       user:            null,
       token:           null,
       isAuthenticated: false,
+      adminBackup:     null,
 
       setUser: (user) => set({ user, token: user.token, isAuthenticated: true }),
 
@@ -26,7 +35,30 @@ export const useAuthStore = create<AuthState>()(
         const sessionId = get().user?.sessionId;
         // Fire-and-forget — record logout time even if it fails
         authApi.logout(sessionId).catch(() => {});
-        set({ user: null, token: null, isAuthenticated: false });
+        set({ user: null, token: null, isAuthenticated: false, adminBackup: null });
+      },
+
+      // ── NEW: stash the admin's current session, then switch to the salesman's ──
+      actAsSalesman: (salesmanUser) => {
+        const currentAdmin = get().user;
+        set({
+          adminBackup: currentAdmin,
+          user: salesmanUser,
+          token: salesmanUser.token,
+          isAuthenticated: true,
+        });
+      },
+
+      // ── NEW: restore the stashed admin session, no re-login needed ──
+      returnToAdmin: () => {
+        const backup = get().adminBackup;
+        if (!backup) return;
+        set({
+          user: backup,
+          token: backup.token,
+          isAuthenticated: true,
+          adminBackup: null,
+        });
       },
 
       loadFromStorage: () => {
@@ -35,7 +67,7 @@ export const useAuthStore = create<AuthState>()(
           try {
             const parsed = JSON.parse(stored);
             const { state } = parsed;
-            if (state?.user) set({ user: state.user, token: state.token ?? state.user.token ?? null, isAuthenticated: true });
+            if (state?.user) set({ user: state.user, token: state.token ?? state.user.token ?? null, isAuthenticated: true, adminBackup: state.adminBackup ?? null });
           } catch {
             localStorage.removeItem('fmcg_auth');
           }
@@ -44,10 +76,19 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name:       'fmcg_auth',
-      partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated }),
+      partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated, adminBackup: state.adminBackup }),
     },
   ),
 );
+
+// ── NEW: is the current session an admin acting as a salesman? ──────────────
+export function useIsActingAsSalesman(): boolean {
+  return useAuthStore((s) => s.adminBackup !== null);
+}
+
+export function useAdminBackupName(): string | null {
+  return useAuthStore((s) => s.adminBackup?.name ?? null);
+}
 
 // ── Hydration guard ────────────────────────────────────────────────────────────
 export function useHasHydrated(): boolean {

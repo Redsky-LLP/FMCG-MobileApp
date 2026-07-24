@@ -7,8 +7,8 @@
 // No new dependencies, no hooks needed.
 
 import { Suspense, lazy, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAuthStore, useIsAdmin, useIsSalesman, useIsAccounts, useIsWarehouse } from './store/authStore';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useAuthStore, useIsAdmin, useIsSalesman, useIsAccounts, useIsWarehouse, useIsActingAsSalesman, useAdminBackupName } from './store/authStore';
 import { setupProactiveTokenRefresh } from './api/tokenRefresh';
 import { Navbar } from './components/layout/Navbar';
 import { PageLoader } from './components/ui';
@@ -139,6 +139,82 @@ function RootRoute() {
   return <Navigate to="/pin-login" replace />;
 }
 
+// ── NEW: Return to Admin banner ──────────────────────────────────────────────
+// Shown persistently (both mobile and desktop layouts) whenever the current
+// session is an admin acting as a salesman via the Master PIN override. One
+// tap restores the admin's own stashed session instantly — no re-login,
+// no re-entering the admin's PIN.
+function ReturnToAdminBanner() {
+  const isActingAsSalesman = useIsActingAsSalesman();
+  const adminName = useAdminBackupName();
+  const returnToAdmin = useAuthStore((s) => s.returnToAdmin);
+  const navigate = useNavigate();
+
+  // ── Publishes the banner's actual height as a CSS variable on <html> whenever
+  // it's showing, so any other fixed-to-bottom bar in the app (e.g. OrderEntry's
+  // "Update Order" bar) can position itself as `bottom: var(--acting-banner-h, 0px)`
+  // instead of a hardcoded `bottom: 0` — automatically shifting up to sit above
+  // this banner instead of being painted over by it, and returning to normal the
+  // moment the admin returns to their own session. ──
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isActingAsSalesman) {
+      root.style.setProperty('--acting-banner-h', '52px');
+    } else {
+      root.style.setProperty('--acting-banner-h', '0px');
+    }
+    return () => { root.style.setProperty('--acting-banner-h', '0px'); };
+  }, [isActingAsSalesman]);
+
+  if (!isActingAsSalesman) return null;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 9999,
+        background: '#f59e0b',
+        color: '#1a1a1a',
+        padding: '10px 16px',
+        fontSize: 13,
+        fontWeight: 700,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        flexWrap: 'wrap',
+        textAlign: 'center',
+        boxShadow: '0 -2px 10px rgba(0,0,0,0.25)',
+      }}
+    >
+      <span>⚠ Acting as a salesman{adminName ? ` (logged in as ${adminName})` : ''} — orders placed here go on their route.</span>
+      <button
+        onClick={() => {
+          returnToAdmin();
+          navigate('/admin/dashboard', { replace: true });
+        }}
+        style={{
+          padding: '4px 12px',
+          borderRadius: 999,
+          border: '1px solid #1a1a1a',
+          background: 'transparent',
+          color: '#1a1a1a',
+          fontSize: 12,
+          fontWeight: 700,
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        Return to Admin
+      </button>
+    </div>
+  );
+}
+
 // ── Shell ───────────────────────────────────────────────────────────────────
 function AppShell() {
   const isMobile = useIsMobile();
@@ -149,6 +225,7 @@ function AppShell() {
   if (isMobile) {
     return (
       <div className="min-h-screen bg-[var(--bg)]">
+        <ReturnToAdminBanner />
         <main>
           <Suspense fallback={<PageLoader />}>
             <MobileLayout>
@@ -164,6 +241,7 @@ function AppShell() {
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
+      <ReturnToAdminBanner />
       <Navbar />
       <main style={{ paddingTop: 'var(--nav-h)' }}>
         <Suspense fallback={<PageLoader />}>

@@ -4,6 +4,7 @@
 // REMOVED: Packing Category (units) from product form UI (merged from develop)
 // FIX: Kept unitId in state (hidden) to satisfy backend requirement
 // FIX: Added default unit ID to resolve 400 error when creating products
+// FIX: Added Out of Stock toggle functionality
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -11,6 +12,7 @@ import {
   Plus, Edit2, Trash2, Package, Search, RefreshCw,
   IndianRupee, History, X, Save, TrendingUp, TrendingDown, DollarSign,
   Settings, Ruler, Boxes, ChevronRight, ArrowUp, ArrowDown, ArrowLeft,
+  PackageX, PackageCheck,
 } from 'lucide-react';
 import { productsApi, productGroupsApi, unitsApi, sizeGroupsApi } from '../../api/services';
 import type { ProductDto, ProductGroupDto, UnitDto, UnitPriorityDto, PriceHistoryDto, SizeGroupDto } from '../../types';
@@ -426,6 +428,7 @@ export function AdminProducts() {
   const [confirm, setConfirm] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [togglingStockId, setTogglingStockId] = useState<string | null>(null);
   const [newPrice, setNewPrice] = useState('');
   const [priceReason, setPriceReason] = useState('');
   const addCardRef = useRef<HTMLDivElement>(null);
@@ -625,6 +628,35 @@ export function AdminProducts() {
     try { await productsApi.delete(confirm); setConfirm(null); loadAll(); }
     catch (err: unknown) { setError(err instanceof Error ? err.message : 'Delete failed'); }
     finally { setDeleting(false); }
+  }
+
+  // ── NEW: Out of Stock toggle — a simple manual on/off, no predicted return date
+  // (the admin can't know exactly when stock will arrive, so they just flip this back
+  // off the moment it does). Marking OUT asks for an optional one-line reason via a
+  // plain prompt — kept lightweight rather than a full modal, since this is meant to
+  // be a quick, frequent action. Marking back IN is instant, no prompt at all. ──
+  async function handleToggleStock(p: ProductDto) {
+    const goingOut = !p.isOutOfStock;
+    let reason: string | undefined;
+
+    if (goingOut) {
+      const entered = window.prompt(
+        `Mark "${p.nameEnglish}" as out of stock. Optional reason (e.g. "Supplier delay"):`,
+        ''
+      );
+      if (entered === null) return; // cancelled
+      reason = entered.trim() || undefined;
+    }
+
+    setTogglingStockId(p.id);
+    try {
+      await productsApi.updateStockStatus(p.id, goingOut, reason);
+      loadAll();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to update stock status');
+    } finally {
+      setTogglingStockId(null);
+    }
   }
 
   const filtered = products.filter(p => {
@@ -993,6 +1025,30 @@ export function AdminProducts() {
                             title="Edit"
                           >
                             <Edit2 size={12} />
+                          </button>
+                          <button
+                            onClick={() => handleToggleStock(p)}
+                            disabled={togglingStockId === p.id}
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: 6,
+                              border: `1px solid ${p.isOutOfStock ? D.red : D.border}`,
+                              background: D.bg,
+                              color: p.isOutOfStock ? D.red : D.muted,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: togglingStockId === p.id ? 'default' : 'pointer',
+                              fontFamily: 'inherit',
+                              transition: 'all 0.12s',
+                              opacity: togglingStockId === p.id ? 0.5 : 1,
+                            }}
+                            onMouseEnter={e => { if (togglingStockId !== p.id) { (e.currentTarget as HTMLElement).style.borderColor = D.amber; (e.currentTarget as HTMLElement).style.color = D.amber; } }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = p.isOutOfStock ? D.red : D.border; (e.currentTarget as HTMLElement).style.color = p.isOutOfStock ? D.red : D.muted; }}
+                            title={p.isOutOfStock ? 'Mark back in stock' : 'Mark out of stock'}
+                          >
+                            {togglingStockId === p.id
+                              ? <Spinner size={12} />
+                              : p.isOutOfStock ? <PackageCheck size={12} /> : <PackageX size={12} />}
                           </button>
                           <button
                             onClick={() => setConfirm(p.id)}

@@ -27,7 +27,17 @@ public class GetAllProductsQueryHandler(IApplicationDbContext context)
         }
 
         var products = await query
+            // ── Item group grouping/order unchanged (still by ProductGroupId, as before).
+            // NEW secondary sort: within each item group, products now follow the same
+            // size-group priority order used by the Loading Sheet / Billing Sheet reports
+            // (SizeGroup.SortOrder — 50 KG BAG, 30 KG BAG, 26 KG BAG, 20 KG BAG, 20 LTR CASE,
+            // 10 LTR CASE, 15 LTR TIN, 5 LTR CAN, in that order, same as the reorder-able
+            // priority set from the Size Groups admin screen). A product whose size group has
+            // no priority assigned yet (SortOrder = -1, or no size group at all) sorts to the
+            // end of its item group instead of interleaving randomly. Name is still the final
+            // tie-breaker for products that land on the same priority. ──
             .OrderBy(p => p.ProductGroupId)
+            .ThenBy(p => (p.SizeGroup != null && p.SizeGroup.SortOrder >= 0) ? p.SizeGroup.SortOrder : int.MaxValue)
             .ThenBy(p => p.NameEnglish)
             .Select(p => new ProductDto
             {
@@ -56,6 +66,10 @@ public class GetAllProductsQueryHandler(IApplicationDbContext context)
                 UQC = p.DefaultUnit != null ? p.DefaultUnit.UQC : null,
                 UnitSize = p.UnitSize,
                 Incentive = p.Incentive,
+                // ── NEW: Out of Stock ──
+                IsOutOfStock = p.IsOutOfStock,
+                OutOfStockReason = p.OutOfStockReason,
+                OutOfStockMarkedAt = p.OutOfStockMarkedAt,
             })
             .ToListAsync(cancellationToken);
 

@@ -1423,7 +1423,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.sb0ue1jo61"
+    "revision": "0.ikat9gnrdso"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -67016,6 +67016,11 @@ export const sizeGroupsApi = {
   update: (id: string, data: { name?: string; nameMl?: string; description?: string; isActive?: boolean }) =>
     put<SizeGroupDto>(`/api/v1/sizegroups/${id}`, { ...data, id }),
 
+  // ── NEW: updates a size group's report display order (SortOrder). Used by the
+  // Size Groups admin screen's up/down arrows to swap two groups' positions. ──
+  updatePriority: (id: string, priority: number) =>
+    put<boolean>(`/api/v1/sizegroups/${id}/priority`, { priority }),
+
   delete: (id: string) =>
     del<boolean>(`/api/v1/sizegroups/${id}`),
 };
@@ -67216,21 +67221,36 @@ export const reportsApi = {
     });
     return res.data as Blob;
   },
-  productSummary: async (fromDate: string, toDate: string, productGroupId?: string) => {
-    const params: Record<string, string> = { fromDate, toDate };
-    if (productGroupId) params.productGroupId = productGroupId;
-    const res = await apiClient.get('/api/v1/reports/product-summary', {
-      params,
-      responseType: 'blob',
-    });
-    return res.data as Blob;
-  },
+  downloadSummaryReport: async (fromDate?: string, toDate?: string) => {
+  const params: Record<string, string> = {};
+  if (fromDate) params.fromDate = fromDate;
+  if (toDate) params.toDate = toDate;
+  const res = await apiClient.get('/api/v1/reports/summary-report', {
+    params,
+    responseType: 'blob',
+  });
+  return res.data as Blob;
+},
   // ── Incentive Report ──
 downloadIncentiveReport: async (fromDate?: string, toDate?: string) => {
   const params: Record<string, string> = {};
   if (fromDate) params.fromDate = fromDate;
   if (toDate) params.toDate = toDate;
   const res = await apiClient.get('/api/v1/reports/incentive-report', {
+    params,
+    responseType: 'blob',
+  });
+  return res.data as Blob;
+},
+downloadAdditionalRevenueReport: async (fromDate?: string, toDate?: string) => {
+  console.log('🔵 downloadAdditionalRevenueReport called!');
+  console.log('fromDate:', fromDate);
+  console.log('toDate:', toDate);
+  
+  const params: Record<string, string> = {};
+  if (fromDate) params.fromDate = fromDate;
+  if (toDate) params.toDate = toDate;
+  const res = await apiClient.get('/api/v1/reports/additional-revenue', {
     params,
     responseType: 'blob',
   });
@@ -72265,7 +72285,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   Settings, Plus, Edit2, Trash2, X, Save,
   Boxes, ArrowLeft, RefreshCw,
-  Layers, Package,
+  Layers, Package, ChevronUp, ChevronDown,
 } from 'lucide-react';
 import { productGroupsApi, unitsApi, sizeGroupsApi } from '../../api/services';
 import type { ProductGroupDto, UnitDto, UnitPriorityDto, SizeGroupDto } from '../../types';
@@ -72947,6 +72967,7 @@ export function AdminCatalogConfig() {
   // ── State for Size Groups ──
   const [sizeGroups, setSizeGroups] = useState<SizeGroupDto[]>([]);
   const [sizeGroupsLoading, setSizeGroupsLoading] = useState(true);
+  const [reorderingSizeGroupId, setReorderingSizeGroupId] = useState<string | null>(null);
 
   // ── State for Packing Categories (replaces Priorities) ──
   const [packingCategories, setPackingCategories] = useState<{ id: string; name: string; priority: number }[]>([]);
@@ -73137,6 +73158,32 @@ export function AdminCatalogConfig() {
       setError(err.message || 'Failed to delete size group');
     } finally {
       setDeleteConfirm(null);
+    }
+  }
+
+  // ── Reorder a size group up/down — this is what controls the order items are
+  // listed in on the Loading Sheet / Billing Sheet / Size Group Summary. The list
+  // here is already sorted by SortOrder (backend returns it that way), so "up" and
+  // "down" just swap the current group's SortOrder with its neighbor's. ──
+  async function handleMoveSizeGroup(index: number, direction: 'up' | 'down') {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= sizeGroups.length) return;
+
+    const current = sizeGroups[index];
+    const neighbor = sizeGroups[targetIndex];
+
+    setReorderingSizeGroupId(current.id);
+    setError('');
+    try {
+      await Promise.all([
+        sizeGroupsApi.updatePriority(current.id, neighbor.sortOrder ?? 0),
+        sizeGroupsApi.updatePriority(neighbor.id, current.sortOrder ?? 0),
+      ]);
+      await loadSizeGroups();
+    } catch (err: any) {
+      setError(err.message || 'Failed to reorder size groups');
+    } finally {
+      setReorderingSizeGroupId(null);
     }
   }
 
@@ -73489,7 +73536,7 @@ export function AdminCatalogConfig() {
                   No size groups yet
                 </div>
               ) : (
-                sizeGroups.map(group => (
+                sizeGroups.map((group, index) => (
                   <div
                     key={group.id}
                     style={{
@@ -73501,8 +73548,45 @@ export function AdminCatalogConfig() {
                       borderRadius: 8,
                       background: D.bg,
                       border: `1px solid ${D.border}`,
+                      opacity: reorderingSizeGroupId === group.id ? 0.5 : 1,
                     }}
                   >
+                    {/* ── Reorder arrows: controls the order this group appears in on the
+                        Loading Sheet / Billing Sheet / Size Group Summary. Swaps this
+                        group's SortOrder with its neighbor's. ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginRight: 6 }}>
+                      <button
+                        onClick={() => handleMoveSizeGroup(index, 'up')}
+                        disabled={index === 0 || reorderingSizeGroupId !== null}
+                        title="Move up"
+                        style={{
+                          padding: 1,
+                          borderRadius: 3,
+                          border: 'none',
+                          background: 'transparent',
+                          color: index === 0 ? D.border : D.sub,
+                          cursor: index === 0 ? 'default' : 'pointer',
+                        }}
+                      >
+                        <ChevronUp size={13} />
+                      </button>
+                      <button
+                        onClick={() => handleMoveSizeGroup(index, 'down')}
+                        disabled={index === sizeGroups.length - 1 || reorderingSizeGroupId !== null}
+                        title="Move down"
+                        style={{
+                          padding: 1,
+                          borderRadius: 3,
+                          border: 'none',
+                          background: 'transparent',
+                          color: index === sizeGroups.length - 1 ? D.border : D.sub,
+                          cursor: index === sizeGroups.length - 1 ? 'default' : 'pointer',
+                        }}
+                      >
+                        <ChevronDown size={13} />
+                      </button>
+                    </div>
+
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, color: D.text, fontSize: 13 }}>
                         {group.name}
@@ -78615,125 +78699,140 @@ export function AdminProducts() {
                 fontSize: 13,
                 background: D.surface,
               }}>
-                <thead>
-                  <tr>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'left',
-                      whiteSpace: 'nowrap',
-                    }}>Product Name</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'left',
-                      whiteSpace: 'nowrap',
-                    }}>Malayalam Name</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'right',
-                      whiteSpace: 'nowrap',
-                    }}>Base Price</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'left',
-                      whiteSpace: 'nowrap',
-                    }}>Item Group</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'right',
-                      whiteSpace: 'nowrap',
-                    }}>Unit Size</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'right',
-                      whiteSpace: 'nowrap',
-                    }}>Incentive</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'center',
-                      whiteSpace: 'nowrap',
-                    }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(p => (
-                    <tr
-                      key={p.id}
-                      style={{
-                        borderBottom: `1px solid ${D.border}`,
-                        transition: 'background 0.12s',
-                      }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-                    >
-                      <td style={{ padding: '12px 16px', fontWeight: 600, color: D.text }}>
-                        {p.nameEnglish}
-                      </td>
-                      <td style={{ padding: '12px 16px', color: D.sub }}>
-                        {p.nameMalayalam || '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: D.accent }}>
-                        ₹{fmt(p.basePrice)}
-                      </td>
-                      <td style={{ padding: '12px 16px', color: D.muted }}>
-                        {p.productGroupName || '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
-                        {(p as any).unitSize || '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
-                        {(p as any).incentive ? `₹${(p as any).incentive}` : '—'}
-                      </td>
-                      <td style={{ padding: '8px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
+           <thead>
+  <tr>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',
+      whiteSpace: 'nowrap',
+    }}>Product Name</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',
+      whiteSpace: 'nowrap',
+    }}>Malayalam Name</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'right',
+      whiteSpace: 'nowrap',
+    }}>Base Price</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',
+      whiteSpace: 'nowrap',
+    }}>Item Group</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',  // ← left alignment
+      whiteSpace: 'nowrap',
+    }}>Size Group</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'right',
+      whiteSpace: 'nowrap',
+    }}>Unit Size</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'right',
+      whiteSpace: 'nowrap',
+    }}>Incentive</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'center',
+      whiteSpace: 'nowrap',
+    }}>Actions</th>
+  </tr>
+</thead>
+<tbody>
+  {filtered.map(p => (
+    <tr
+      key={p.id}
+      style={{
+        borderBottom: `1px solid ${D.border}`,
+        transition: 'background 0.12s',
+      }}
+      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
+      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+    >
+      <td style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: D.text }}>
+        {p.nameEnglish}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.sub }}>
+        {p.nameMalayalam || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: D.accent }}>
+        ₹{fmt(p.basePrice)}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
+        {p.productGroupName || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
+        {p.sizeGroupName || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
+        {(p as any).unitSize || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
+        {(p as any).incentive ? `₹${(p as any).incentive}` : '—'}
+      </td>
+      <td style={{ padding: '8px 16px', textAlign: 'center' }}>
+        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
                           <button
                             onClick={() => openEdit(p)}
                             style={{
@@ -79429,12 +79528,16 @@ export function AdminReports() {
   // const [routeRptRoute, setRouteRptRoute] = useState('');
   // const [routeFrom, setRouteFrom]  = useState(thirtyDaysAgo);
   // const [routeTo,   setRouteTo]    = useState(today);
+  const [summaryFrom, setSummaryFrom] = useState(thirtyDaysAgo);
+  const [summaryTo, setSummaryTo] = useState(today);
   const [incentiveFrom, setIncentiveFrom] = useState(thirtyDaysAgo);
   const [incentiveTo, setIncentiveTo] = useState(today);
+  const [additionalRevenueFrom, setAdditionalRevenueFrom] = useState(thirtyDaysAgo);
+  const [additionalRevenueTo, setAdditionalRevenueTo] = useState(today);
   const [prodGroup, setProdGroup]   = useState('');
   const [prodFrom,  setProdFrom]    = useState(thirtyDaysAgo);
   const [prodTo,    setProdTo]      = useState(today);
-  const [dailyDate, setDailyDate]   = useState(today);
+  // const [dailyDate, setDailyDate]   = useState(today);
 
   useEffect(() => {
     Promise.all([routesApi.getAll(), productGroupsApi.getAll()])
@@ -79612,47 +79715,37 @@ export function AdminReports() {
     //     previewReport('routeSummary', `Route Summary - ${routeFrom} to ${routeTo} (${routeName})`, fn, downloadFn);
     //   },
     // },
-    {
-  key: 'summaryReport',
-  title: 'Summary Report',  // ← CHANGED
-  desc: 'Product-wise summary with packing category & size group',
+{
+  key: 'summary',
+  title: 'Summary Report',
+  desc: 'Item Group & Size Group wise quantity summary',
   icon: '📊',
-  color: '#8B5CF6',
+  color: '#3B82F6',
   roles: 'Admin',
   filters: (
-    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-      <select 
-        className="input" 
-        value={prodGroup} 
-        onChange={(e) => setProdGroup(e.target.value)} 
-        style={selectStyle(isMobile)}
-      >
-        <option value="">📦 All Groups</option>
-        {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-      </select>
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
       <input 
         className="input" 
         type="date" 
-        value={prodFrom} 
-        onChange={(e) => setProdFrom(e.target.value)} 
+        value={summaryFrom} 
+        onChange={(e) => setSummaryFrom(e.target.value)} 
         style={dateInputStyle(isMobile)}
       />
       <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
       <input 
         className="input" 
         type="date" 
-        value={prodTo} 
-        onChange={(e) => setProdTo(e.target.value)} 
+        value={summaryTo} 
+        onChange={(e) => setSummaryTo(e.target.value)} 
         style={dateInputStyle(isMobile)}
       />
     </div>
   ),
-  onDownload: () => download('summaryReport', () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo), `SummaryReport_${prodFrom}_${prodTo}.pdf`),
+  onDownload: () => download('summary', () => reportsApi.downloadSummaryReport(summaryFrom, summaryTo), `SummaryReport_${summaryFrom}.pdf`),
   onPreview: () => {
-    const fn = () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo);
-    const downloadFn = () => download('summaryReport', fn, `SummaryReport_${prodFrom}_${prodTo}.pdf`);
-    const groupName = prodGroup ? groups.find(g => g.id === prodGroup)?.name : 'All Groups';
-    previewReport('summaryReport', `Summary Report - ${prodFrom} to ${prodTo} (${groupName})`, fn, downloadFn);
+    const fn = () => reportsApi.downloadSummaryReport(summaryFrom, summaryTo);
+    const downloadFn = () => download('summary', fn, `SummaryReport_${summaryFrom}.pdf`);
+    previewReport('summary', `Summary Report - ${summaryFrom} to ${summaryTo}`, fn, downloadFn);
   },
 },
 {
@@ -79688,29 +79781,62 @@ export function AdminReports() {
     previewReport('incentive', `Incentive Report - ${incentiveFrom} to ${incentiveTo}`, fn, downloadFn);
   },
 },
-    {
-      key: 'daily',
-      title: 'Daily Summary Report',
-      desc: 'Full operational day summary',
-      icon: '📋',
-      color: '#14B8A6',
-      roles: 'Admin / Accounts',
-      filters: (
-        <input 
-          className="input" 
-          type="date" 
-          value={dailyDate} 
-          onChange={(e) => setDailyDate(e.target.value)} 
-          style={dateInputStyle(isMobile)}
-        />
-      ),
-      onDownload: () => download('daily', () => reportsApi.downloadDailySummary(dailyDate), `DailySummary_${dailyDate}.pdf`),
-      onPreview: () => {
-        const fn = () => reportsApi.downloadDailySummary(dailyDate);
-        const downloadFn = () => download('daily', fn, `DailySummary_${dailyDate}.pdf`);
-        previewReport('daily', `Daily Summary - ${dailyDate}`, fn, downloadFn);
-      },
-    },
+{
+  key: 'additionalRevenue',
+  title: 'Additional Revenue Report',
+  desc: '(Selling Price - Base Price) × Unit Size × Quantity',
+  icon: '💰',
+  color: '#F59E0B',
+  roles: 'Admin',
+  filters: (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+      <input 
+        className="input" 
+        type="date" 
+        value={additionalRevenueFrom} 
+        onChange={(e) => setAdditionalRevenueFrom(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+      <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
+      <input 
+        className="input" 
+        type="date" 
+        value={additionalRevenueTo} 
+        onChange={(e) => setAdditionalRevenueTo(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+    </div>
+  ),
+  onDownload: () => download('additionalRevenue', () => reportsApi.downloadAdditionalRevenueReport(additionalRevenueFrom, additionalRevenueTo), `AdditionalRevenueReport_${additionalRevenueFrom}.pdf`),
+  onPreview: () => {
+    const fn = () => reportsApi.downloadAdditionalRevenueReport(additionalRevenueFrom, additionalRevenueTo);
+    const downloadFn = () => download('additionalRevenue', fn, `AdditionalRevenueReport_${additionalRevenueFrom}.pdf`);
+    previewReport('additionalRevenue', `Additional Revenue Report - ${additionalRevenueFrom} to ${additionalRevenueTo}`, fn, downloadFn);
+  },
+},
+    // {
+    //   key: 'daily',
+    //   title: 'Daily Summary Report',
+    //   desc: 'Full operational day summary',
+    //   icon: '📋',
+    //   color: '#14B8A6',
+    //   roles: 'Admin / Accounts',
+    //   filters: (
+    //     <input 
+    //       className="input" 
+    //       type="date" 
+    //       value={dailyDate} 
+    //       onChange={(e) => setDailyDate(e.target.value)} 
+    //       style={dateInputStyle(isMobile)}
+    //     />
+    //   ),
+    //   onDownload: () => download('daily', () => reportsApi.downloadDailySummary(dailyDate), `DailySummary_${dailyDate}.pdf`),
+    //   onPreview: () => {
+    //     const fn = () => reportsApi.downloadDailySummary(dailyDate);
+    //     const downloadFn = () => download('daily', fn, `DailySummary_${dailyDate}.pdf`);
+    //     previewReport('daily', `Daily Summary - ${dailyDate}`, fn, downloadFn);
+    //   },
+    // },
   ];
 
   if (loading) return (
@@ -87150,21 +87276,35 @@ export function PreviousOrdersModal({ isOpen, onClose, previousOrders, onUseOrde
 
 ## File: src/pages/Salesman/OrderEntry/components/PriceVarianceBadge.tsx
 ``````typescript
+// PATH: src/pages/Salesman/OrderEntry/components/PriceVarianceBadge.tsx
 import { AlertTriangle } from 'lucide-react';
 
+// ── Kept in sync with the copy of this component in ../types.tsx (the one
+// OrderEntry.tsx actually imports). Selling price must stay within ±10% of
+// base price; outside that band, a warning is shown. ──
 export function PriceVarianceBadge({ base, selling }: { base: number; selling: number }) {
   if (!base || !selling) return null;
-  const diff = ((selling - base) / base) * 100;
-  const abs = Math.abs(diff).toFixed(1);
-  if (Math.abs(diff) < 0.1) return <span className="text-xs text-emerald-600">✓ At base price</span>;
-  if (diff < 0) {
+
+  const lowerBound = base * 0.9;
+  const upperBound = base * 1.1;
+
+  if (selling < lowerBound) {
     return (
-      <span className="text-xs text-red-500 flex items-center gap-1">
-        <AlertTriangle size={11} /> {abs}% below base
-      </span>
+      <p style={{ margin: '6px 0 0', fontSize: 11, fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <AlertTriangle size={12} /> Price is less than 10% of base price (min ₹{lowerBound.toFixed(2)})
+      </p>
     );
   }
-  return <span className="text-xs text-emerald-600">▲ +{abs}% above base</span>;
+
+  if (selling > upperBound) {
+    return (
+      <p style={{ margin: '6px 0 0', fontSize: 11, fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <AlertTriangle size={12} /> Price is greater than 10% of base price (max ₹{upperBound.toFixed(2)})
+      </p>
+    );
+  }
+
+  return null;
 }
 ``````
 
@@ -87293,9 +87433,17 @@ export default function OrderEntry() {
 
         try {
           const allOrders = await ordersApi.listByRoute(routeId);
-          const today     = new Date().toISOString().slice(0, 10);
+          // ── FIX: this used to only count an order as "the one to edit" if its
+          // orderDate matched today's calendar date. But a Draft order is meant to
+          // stay open and editable across day boundaries until the admin actually
+          // closes it — so filtering by date silently lost yesterday's still-open
+          // order the moment the calendar rolled over, showing an empty "New" order
+          // instead of the real Draft one with items already on it. Filtering by
+          // status (not yet Closed, not locked) instead of date fixes this — the
+          // most recent still-open order for this customer is always found,
+          // regardless of which day it was originally created on. ──
           const existing  = allOrders
-            .filter(o => String(o.customerId) === cid && o.orderDate?.startsWith(today))
+            .filter(o => String(o.customerId) === cid && o.status !== 'Closed' && !o.isLocked)
             .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())[0];
 
           if (existing) {
@@ -87307,7 +87455,18 @@ export default function OrderEntry() {
               if (!prod) return null;
               const up = priceMap[prod.id];
               return {
-                product:      prod,
+                // ── FIX: keep the frozen name from the order itself (item.productName /
+                // item.productNameMalayalam — already correctly snapshot-preferred by the
+                // backend) instead of the live product's current name. Everything else
+                // about `prod` (unit info, base price for lookups, etc.) still comes from
+                // the live product record, since that's needed for editing — only the
+                // display name was wrong, because it was silently overwritten by whichever
+                // name the product currently has, even after a rename. ──
+                product: {
+                  ...prod,
+                  nameEnglish: item.productName || prod.nameEnglish,
+                  nameMalayalam: item.productNameMalayalam || prod.nameMalayalam,
+                },
                 productId:    String(prod.id),
                 qty:          item.quantity,
                 sellingPrice: item.sellingPrice || (up?.salePrice ?? prod.basePrice),
@@ -87888,24 +88047,35 @@ export default function OrderEntry() {
                 filteredProducts.map((product: any) => {
                   const isInBill  = lines.some(l => l.product.id === product.id);
                   const billQty   = lines.find(l => l.product.id === product.id)?.qty ?? 0;
+                  // ── NEW: Out of Stock — faded, disabled, can't add a new one. An item
+                  // already sitting in this draft bill from before it went out of stock
+                  // is left alone (that's handled elsewhere, not by this picker button). ──
+                  const outOfStock = !!product.isOutOfStock;
 
                   return (
                     <button
                       key={product.id}
-                      onClick={() => addProduct(product)}
+                      onClick={() => { if (!outOfStock) addProduct(product); }}
+                      disabled={outOfStock}
                       style={{
                         width: '100%', textAlign: 'left',
                         padding: '13px 14px', marginBottom: 6, borderRadius: 10,
-                        background: isInBill ? '#f0fdf4' : '#ffffff',
-                        border: `1px solid ${isInBill ? 'rgba(34,197,94,0.35)' : '#e2e8f0'}`,
-                        cursor: 'pointer', fontFamily: 'inherit',
+                        background: outOfStock ? '#f8fafc' : (isInBill ? '#f0fdf4' : '#ffffff'),
+                        border: `1px solid ${outOfStock ? '#e2e8f0' : (isInBill ? 'rgba(34,197,94,0.35)' : '#e2e8f0')}`,
+                        cursor: outOfStock ? 'not-allowed' : 'pointer',
+                        opacity: outOfStock ? 0.5 : 1,
+                        fontFamily: 'inherit',
                         display: 'block',
                         touchAction: 'manipulation',
                       }}
                     >
                       <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#000000', fontFamily: "'Calibri', 'Segoe UI', sans-serif" }}>{product.nameEnglish}</p>
                       {product.nameMalayalam && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#334155', fontFamily: "'Calibri', 'Segoe UI', sans-serif" }} lang="ml">{product.nameMalayalam}</p>}
-                      {isInBill && (
+                      {outOfStock ? (
+                        <span style={{ display: 'inline-block', marginTop: 4, fontSize: 10, padding: '2px 7px', borderRadius: 8, background: 'rgba(239,68,68,0.15)', color: '#b91c1c', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                          Out of Stock
+                        </span>
+                      ) : isInBill && (
                         <span style={{ display: 'inline-block', marginTop: 4, fontSize: 10, padding: '2px 7px', borderRadius: 8, background: 'rgba(34,197,94,0.15)', color: '#15803d', fontWeight: 700 }}>
                           {billQty} in bill
                         </span>
@@ -87991,19 +88161,32 @@ export interface LineItem {
   productId: string;
 }
 
+// ── Selling price must stay within ±10% of the product's base price.
+// Below base*0.9 → "less than 10%" warning. Above base*1.1 → "greater than
+// 10%" warning. Inside that band, nothing is shown. ──
 export function PriceVarianceBadge({ base, selling }: { base: number; selling: number }) {
   if (!base || !selling) return null;
-  const diff = ((selling - base) / base) * 100;
-  const abs = Math.abs(diff).toFixed(1);
-  if (Math.abs(diff) < 0.1) return <span className="text-xs text-emerald-600">✓ At base price</span>;
-  if (diff < 0) {
+
+  const lowerBound = base * 0.9;
+  const upperBound = base * 1.1;
+
+  if (selling < lowerBound) {
     return (
-      <span className="text-xs text-red-500 flex items-center gap-1">
-        <AlertTriangle size={11} /> {abs}% below base
-      </span>
+      <p style={{ margin: '6px 0 0', fontSize: 11, fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <AlertTriangle size={12} /> Price is less than 10% of base price (min ₹{lowerBound.toFixed(2)})
+      </p>
     );
   }
-  return <span className="text-xs text-emerald-600">▲ +{abs}% above base</span>;
+
+  if (selling > upperBound) {
+    return (
+      <p style={{ margin: '6px 0 0', fontSize: 11, fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <AlertTriangle size={12} /> Price is greater than 10% of base price (max ₹{upperBound.toFixed(2)})
+      </p>
+    );
+  }
+
+  return null;
 }
 ``````
 
@@ -92096,6 +92279,7 @@ export interface SizeGroupDto {
   nameMl?: string;
   description?: string;
   isActive: boolean;
+  sortOrder?: number;      // NEW — report display order (Loading Sheet / Billing Sheet / Size Group Summary); -1 = not yet assigned
   productCount?: number;
   createdDate?: string;
 }

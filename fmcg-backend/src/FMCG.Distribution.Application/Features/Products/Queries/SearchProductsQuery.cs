@@ -24,4 +24,8 @@ public class ProductSearchDto
     public decimal BasePrice { get; set; }
     public bool IsActive { get; set; }
     public string? ItemCode { get; set; }
+
+    // ── NEW: Out of Stock ──
+    public bool IsOutOfStock { get; set; }
+    public string? OutOfStockReason { get; set; }
 }

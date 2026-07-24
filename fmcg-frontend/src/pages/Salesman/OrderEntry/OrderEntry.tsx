@@ -115,9 +115,17 @@ export default function OrderEntry() {
 
         try {
           const allOrders = await ordersApi.listByRoute(routeId);
-          const today     = new Date().toISOString().slice(0, 10);
+          // ── FIX: this used to only count an order as "the one to edit" if its
+          // orderDate matched today's calendar date. But a Draft order is meant to
+          // stay open and editable across day boundaries until the admin actually
+          // closes it — so filtering by date silently lost yesterday's still-open
+          // order the moment the calendar rolled over, showing an empty "New" order
+          // instead of the real Draft one with items already on it. Filtering by
+          // status (not yet Closed, not locked) instead of date fixes this — the
+          // most recent still-open order for this customer is always found,
+          // regardless of which day it was originally created on. ──
           const existing  = allOrders
-            .filter(o => String(o.customerId) === cid && o.orderDate?.startsWith(today))
+            .filter(o => String(o.customerId) === cid && o.status !== 'Closed' && !o.isLocked)
             .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())[0];
 
           if (existing) {
@@ -129,7 +137,18 @@ export default function OrderEntry() {
               if (!prod) return null;
               const up = priceMap[prod.id];
               return {
-                product:      prod,
+                // ── FIX: keep the frozen name from the order itself (item.productName /
+                // item.productNameMalayalam — already correctly snapshot-preferred by the
+                // backend) instead of the live product's current name. Everything else
+                // about `prod` (unit info, base price for lookups, etc.) still comes from
+                // the live product record, since that's needed for editing — only the
+                // display name was wrong, because it was silently overwritten by whichever
+                // name the product currently has, even after a rename. ──
+                product: {
+                  ...prod,
+                  nameEnglish: item.productName || prod.nameEnglish,
+                  nameMalayalam: item.productNameMalayalam || prod.nameMalayalam,
+                },
                 productId:    String(prod.id),
                 qty:          item.quantity,
                 sellingPrice: item.sellingPrice || (up?.salePrice ?? prod.basePrice),
@@ -221,30 +240,6 @@ export default function OrderEntry() {
     return tmp !== undefined ? tmp : price === 0 ? '' : String(price);
   };
 
-  // ── Live (not-yet-blurred) selling price for a line. While the salesman is
-  // still typing, `line.sellingPrice` hasn't been committed yet (that only
-  // happens on blur) — but the ±10% warning needs to react on every
-  // keystroke, not just when the field loses focus. This reads straight from
-  // tempPrices so the warning is instant. ──
-  const getEffectivePrice = (productId: string, committed: number): number => {
-    const tmp = tempPrices[productId];
-    if (tmp === undefined) return committed;
-    const n = parseFloat(tmp);
-    return isNaN(n) ? committed : n;
-  };
-
-  // ── Selling price must stay within ±10% of the product's base price.
-  // Returns the allowed [min, max] band when the given price falls outside
-  // it, or null when the price is fine. Shared by the live warning badge and
-  // the hard save-block in handleSave below, so both always agree. ──
-  const getPriceRangeIssue = (basePrice: number, sellingPrice: number): { min: number; max: number } | null => {
-    if (!basePrice || !sellingPrice) return null;
-    const min = basePrice * 0.9;
-    const max = basePrice * 1.1;
-    if (sellingPrice < min || sellingPrice > max) return { min, max };
-    return null;
-  };
-
   const removeItem = (productId: string) => {
     if (!canEdit) return;
     setLines(prev => prev.filter(l => l.product.id !== productId));
@@ -287,19 +282,7 @@ export default function OrderEntry() {
     setError(`Enter quantity and price for "${incomplete.product.nameEnglish}" before saving.`);
     return;
   }
-
-  // ── Hard block: no line's price may sit outside ±10% of its base price.
-  // Re-checks against the live (not-yet-blurred) value too, in case Save is
-  // clicked while a price field still has focus. ──
-  const outOfRange = lines
-    .map(l => ({ line: l, issue: getPriceRangeIssue(l.product.basePrice, getEffectivePrice(l.product.id, l.sellingPrice)) }))
-    .find(x => x.issue !== null);
-  if (outOfRange) {
-    const { line, issue } = outOfRange;
-    setError(`"${line.product.nameEnglish}" price must be between ₹${issue!.min.toFixed(2)} and ₹${issue!.max.toFixed(2)} (±10% of base price). The order cannot be saved until this is corrected.`);
-    return;
-  }
-
+  
   setSaving(true); 
   setError(''); 
   setSuccessMsg('');
@@ -521,6 +504,7 @@ export default function OrderEntry() {
                     {line.product.nameMalayalam && (
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: D.muted }} lang="ml">{line.product.nameMalayalam}</p>
                     )}
+                    {/* <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} /> */}
                   </div>
 
                   {/* Fields row */}
@@ -569,12 +553,6 @@ export default function OrderEntry() {
                       </button>
                     )}
                   </div>
-
-                  {/* ── Price must stay within ±10% of the product's base price. When the
-                      salesman-entered selling price falls outside that band, a warning shows
-                      up right under the Price field so it's caught before the order is saved.
-                      Uses the live (not-yet-blurred) value so it updates on every keystroke. ── */}
-                  <PriceVarianceBadge base={line.product.basePrice} selling={getEffectivePrice(line.product.id, line.sellingPrice)} />
                 </div>
               ))}
             </div>
@@ -661,7 +639,10 @@ export default function OrderEntry() {
       {canEdit && (lines.length > 0 || remarks.trim()) && (
         <div style={{
           position: 'fixed', 
-          bottom: 0, 
+          // ── Shifts up automatically when the "Acting as a salesman" banner is
+          // showing (see ReturnToAdminBanner in App.tsx), instead of sitting at a
+          // hardcoded bottom:0 and getting painted over by that banner. ──
+          bottom: 'var(--acting-banner-h, 0px)', 
           left: 0, 
           right: 0, 
           zIndex: 45,
@@ -708,7 +689,7 @@ export default function OrderEntry() {
         <>
           <div onClick={() => setShowProducts(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 60 }} />
           <div style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 70,
+            position: 'fixed', bottom: 'var(--acting-banner-h, 0px)', left: 0, right: 0, zIndex: 70,
             background: D.card, borderRadius: '20px 20px 0 0',
             boxShadow: '0 -8px 40px rgba(0,0,0,0.40)',
             display: 'flex', flexDirection: 'column',
@@ -751,24 +732,35 @@ export default function OrderEntry() {
                 filteredProducts.map((product: any) => {
                   const isInBill  = lines.some(l => l.product.id === product.id);
                   const billQty   = lines.find(l => l.product.id === product.id)?.qty ?? 0;
+                  // ── NEW: Out of Stock — faded, disabled, can't add a new one. An item
+                  // already sitting in this draft bill from before it went out of stock
+                  // is left alone (that's handled elsewhere, not by this picker button). ──
+                  const outOfStock = !!product.isOutOfStock;
 
                   return (
                     <button
                       key={product.id}
-                      onClick={() => addProduct(product)}
+                      onClick={() => { if (!outOfStock) addProduct(product); }}
+                      disabled={outOfStock}
                       style={{
                         width: '100%', textAlign: 'left',
                         padding: '13px 14px', marginBottom: 6, borderRadius: 10,
-                        background: isInBill ? '#f0fdf4' : '#ffffff',
-                        border: `1px solid ${isInBill ? 'rgba(34,197,94,0.35)' : '#e2e8f0'}`,
-                        cursor: 'pointer', fontFamily: 'inherit',
+                        background: outOfStock ? '#f8fafc' : (isInBill ? '#f0fdf4' : '#ffffff'),
+                        border: `1px solid ${outOfStock ? '#e2e8f0' : (isInBill ? 'rgba(34,197,94,0.35)' : '#e2e8f0')}`,
+                        cursor: outOfStock ? 'not-allowed' : 'pointer',
+                        opacity: outOfStock ? 0.5 : 1,
+                        fontFamily: 'inherit',
                         display: 'block',
                         touchAction: 'manipulation',
                       }}
                     >
                       <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#000000', fontFamily: "'Calibri', 'Segoe UI', sans-serif" }}>{product.nameEnglish}</p>
                       {product.nameMalayalam && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#334155', fontFamily: "'Calibri', 'Segoe UI', sans-serif" }} lang="ml">{product.nameMalayalam}</p>}
-                      {isInBill && (
+                      {outOfStock ? (
+                        <span style={{ display: 'inline-block', marginTop: 4, fontSize: 10, padding: '2px 7px', borderRadius: 8, background: 'rgba(239,68,68,0.15)', color: '#b91c1c', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                          Out of Stock
+                        </span>
+                      ) : isInBill && (
                         <span style={{ display: 'inline-block', marginTop: 4, fontSize: 10, padding: '2px 7px', borderRadius: 8, background: 'rgba(34,197,94,0.15)', color: '#15803d', fontWeight: 700 }}>
                           {billQty} in bill
                         </span>
