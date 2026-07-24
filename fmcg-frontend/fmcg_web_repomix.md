@@ -1423,7 +1423,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.ikat9gnrdso"
+    "revision": "0.97sbu146l9"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -66919,6 +66919,12 @@ export const authApi = {
   // Admin only — session history for one user or all users
   getSessions: (userId?: string, limit = 100) =>
     get<any[]>(`/api/v1/auth/sessions?${userId ? `userId=${userId}&` : ''}limit=${limit}`),
+
+  // ── NEW: Master Access PIN — lets the admin act as any salesman ──────────
+  setMasterPin: (pin: string) =>
+    post<boolean>('/api/v1/auth/set-master-pin', { pin }),
+  adminOverrideLogin: (salesmanId: string, masterPin: string) =>
+    post<LoginResponse>('/api/v1/auth/admin-override-login', { salesmanId, masterPin }),
 };
 
 // ── NEW: Admin creates salesman ──
@@ -67085,6 +67091,10 @@ export const productsApi = {
   getPriceHistory: (id: string, limit?: number) =>
     get<PriceHistoryDto[]>(`/api/v1/products/${id}/price-history`, limit ? { limit } : undefined),
 
+  // ── NEW: Out of Stock toggle — manual on/off, no predicted return date ──
+  updateStockStatus: (id: string, isOutOfStock: boolean, reason?: string) =>
+    put<boolean>(`/api/v1/products/${id}/stock-status`, { isOutOfStock, reason }),
+
   // ── Per-Unit Pricing endpoints ──────────────────────────────────────────
   getUnitPrices: (productId: string) =>
     get<ProductUnitPriceDto[]>(`/api/v1/products/${productId}/unit-prices`),
@@ -67221,36 +67231,21 @@ export const reportsApi = {
     });
     return res.data as Blob;
   },
-  downloadSummaryReport: async (fromDate?: string, toDate?: string) => {
-  const params: Record<string, string> = {};
-  if (fromDate) params.fromDate = fromDate;
-  if (toDate) params.toDate = toDate;
-  const res = await apiClient.get('/api/v1/reports/summary-report', {
-    params,
-    responseType: 'blob',
-  });
-  return res.data as Blob;
-},
+  productSummary: async (fromDate: string, toDate: string, productGroupId?: string) => {
+    const params: Record<string, string> = { fromDate, toDate };
+    if (productGroupId) params.productGroupId = productGroupId;
+    const res = await apiClient.get('/api/v1/reports/product-summary', {
+      params,
+      responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
   // ── Incentive Report ──
 downloadIncentiveReport: async (fromDate?: string, toDate?: string) => {
   const params: Record<string, string> = {};
   if (fromDate) params.fromDate = fromDate;
   if (toDate) params.toDate = toDate;
   const res = await apiClient.get('/api/v1/reports/incentive-report', {
-    params,
-    responseType: 'blob',
-  });
-  return res.data as Blob;
-},
-downloadAdditionalRevenueReport: async (fromDate?: string, toDate?: string) => {
-  console.log('🔵 downloadAdditionalRevenueReport called!');
-  console.log('fromDate:', fromDate);
-  console.log('toDate:', toDate);
-  
-  const params: Record<string, string> = {};
-  if (fromDate) params.fromDate = fromDate;
-  if (toDate) params.toDate = toDate;
-  const res = await apiClient.get('/api/v1/reports/additional-revenue', {
     params,
     responseType: 'blob',
   });
@@ -67545,8 +67540,8 @@ export function setupProactiveTokenRefresh() {
 // No new dependencies, no hooks needed.
 
 import { Suspense, lazy, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAuthStore, useIsAdmin, useIsSalesman, useIsAccounts, useIsWarehouse } from './store/authStore';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useAuthStore, useIsAdmin, useIsSalesman, useIsAccounts, useIsWarehouse, useIsActingAsSalesman, useAdminBackupName } from './store/authStore';
 import { setupProactiveTokenRefresh } from './api/tokenRefresh';
 import { Navbar } from './components/layout/Navbar';
 import { PageLoader } from './components/ui';
@@ -67677,6 +67672,82 @@ function RootRoute() {
   return <Navigate to="/pin-login" replace />;
 }
 
+// ── NEW: Return to Admin banner ──────────────────────────────────────────────
+// Shown persistently (both mobile and desktop layouts) whenever the current
+// session is an admin acting as a salesman via the Master PIN override. One
+// tap restores the admin's own stashed session instantly — no re-login,
+// no re-entering the admin's PIN.
+function ReturnToAdminBanner() {
+  const isActingAsSalesman = useIsActingAsSalesman();
+  const adminName = useAdminBackupName();
+  const returnToAdmin = useAuthStore((s) => s.returnToAdmin);
+  const navigate = useNavigate();
+
+  // ── Publishes the banner's actual height as a CSS variable on <html> whenever
+  // it's showing, so any other fixed-to-bottom bar in the app (e.g. OrderEntry's
+  // "Update Order" bar) can position itself as `bottom: var(--acting-banner-h, 0px)`
+  // instead of a hardcoded `bottom: 0` — automatically shifting up to sit above
+  // this banner instead of being painted over by it, and returning to normal the
+  // moment the admin returns to their own session. ──
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isActingAsSalesman) {
+      root.style.setProperty('--acting-banner-h', '52px');
+    } else {
+      root.style.setProperty('--acting-banner-h', '0px');
+    }
+    return () => { root.style.setProperty('--acting-banner-h', '0px'); };
+  }, [isActingAsSalesman]);
+
+  if (!isActingAsSalesman) return null;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 9999,
+        background: '#f59e0b',
+        color: '#1a1a1a',
+        padding: '10px 16px',
+        fontSize: 13,
+        fontWeight: 700,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        flexWrap: 'wrap',
+        textAlign: 'center',
+        boxShadow: '0 -2px 10px rgba(0,0,0,0.25)',
+      }}
+    >
+      <span>⚠ Acting as a salesman{adminName ? ` (logged in as ${adminName})` : ''} — orders placed here go on their route.</span>
+      <button
+        onClick={() => {
+          returnToAdmin();
+          navigate('/admin/dashboard', { replace: true });
+        }}
+        style={{
+          padding: '4px 12px',
+          borderRadius: 999,
+          border: '1px solid #1a1a1a',
+          background: 'transparent',
+          color: '#1a1a1a',
+          fontSize: 12,
+          fontWeight: 700,
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        Return to Admin
+      </button>
+    </div>
+  );
+}
+
 // ── Shell ───────────────────────────────────────────────────────────────────
 function AppShell() {
   const isMobile = useIsMobile();
@@ -67687,6 +67758,7 @@ function AppShell() {
   if (isMobile) {
     return (
       <div className="min-h-screen bg-[var(--bg)]">
+        <ReturnToAdminBanner />
         <main>
           <Suspense fallback={<PageLoader />}>
             <MobileLayout>
@@ -67702,6 +67774,7 @@ function AppShell() {
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
+      <ReturnToAdminBanner />
       <Navbar />
       <main style={{ paddingTop: 'var(--nav-h)' }}>
         <Suspense fallback={<PageLoader />}>
@@ -77863,6 +77936,7 @@ function actionBtn(bg: string, color: string, strong = false): React.CSSProperti
 // REMOVED: Packing Category (units) from product form UI (merged from develop)
 // FIX: Kept unitId in state (hidden) to satisfy backend requirement
 // FIX: Added default unit ID to resolve 400 error when creating products
+// FIX: Added Out of Stock toggle functionality
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -77870,6 +77944,7 @@ import {
   Plus, Edit2, Trash2, Package, Search, RefreshCw,
   IndianRupee, History, X, Save, TrendingUp, TrendingDown, DollarSign,
   Settings, Ruler, Boxes, ChevronRight, ArrowUp, ArrowDown, ArrowLeft,
+  PackageX, PackageCheck,
 } from 'lucide-react';
 import { productsApi, productGroupsApi, unitsApi, sizeGroupsApi } from '../../api/services';
 import type { ProductDto, ProductGroupDto, UnitDto, UnitPriorityDto, PriceHistoryDto, SizeGroupDto } from '../../types';
@@ -78285,6 +78360,7 @@ export function AdminProducts() {
   const [confirm, setConfirm] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [togglingStockId, setTogglingStockId] = useState<string | null>(null);
   const [newPrice, setNewPrice] = useState('');
   const [priceReason, setPriceReason] = useState('');
   const addCardRef = useRef<HTMLDivElement>(null);
@@ -78484,6 +78560,35 @@ export function AdminProducts() {
     try { await productsApi.delete(confirm); setConfirm(null); loadAll(); }
     catch (err: unknown) { setError(err instanceof Error ? err.message : 'Delete failed'); }
     finally { setDeleting(false); }
+  }
+
+  // ── NEW: Out of Stock toggle — a simple manual on/off, no predicted return date
+  // (the admin can't know exactly when stock will arrive, so they just flip this back
+  // off the moment it does). Marking OUT asks for an optional one-line reason via a
+  // plain prompt — kept lightweight rather than a full modal, since this is meant to
+  // be a quick, frequent action. Marking back IN is instant, no prompt at all. ──
+  async function handleToggleStock(p: ProductDto) {
+    const goingOut = !p.isOutOfStock;
+    let reason: string | undefined;
+
+    if (goingOut) {
+      const entered = window.prompt(
+        `Mark "${p.nameEnglish}" as out of stock. Optional reason (e.g. "Supplier delay"):`,
+        ''
+      );
+      if (entered === null) return; // cancelled
+      reason = entered.trim() || undefined;
+    }
+
+    setTogglingStockId(p.id);
+    try {
+      await productsApi.updateStockStatus(p.id, goingOut, reason);
+      loadAll();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to update stock status');
+    } finally {
+      setTogglingStockId(null);
+    }
   }
 
   const filtered = products.filter(p => {
@@ -78699,140 +78804,178 @@ export function AdminProducts() {
                 fontSize: 13,
                 background: D.surface,
               }}>
-           <thead>
-  <tr>
-    <th style={{
-      background: D.bg,
-      color: D.muted,
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: '0.06em',
-      textTransform: 'uppercase',
-      padding: '12px 16px',
-      borderBottom: `1px solid ${D.border}`,
-      textAlign: 'left',
-      whiteSpace: 'nowrap',
-    }}>Product Name</th>
-    <th style={{
-      background: D.bg,
-      color: D.muted,
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: '0.06em',
-      textTransform: 'uppercase',
-      padding: '12px 16px',
-      borderBottom: `1px solid ${D.border}`,
-      textAlign: 'left',
-      whiteSpace: 'nowrap',
-    }}>Malayalam Name</th>
-    <th style={{
-      background: D.bg,
-      color: D.muted,
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: '0.06em',
-      textTransform: 'uppercase',
-      padding: '12px 16px',
-      borderBottom: `1px solid ${D.border}`,
-      textAlign: 'right',
-      whiteSpace: 'nowrap',
-    }}>Base Price</th>
-    <th style={{
-      background: D.bg,
-      color: D.muted,
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: '0.06em',
-      textTransform: 'uppercase',
-      padding: '12px 16px',
-      borderBottom: `1px solid ${D.border}`,
-      textAlign: 'left',
-      whiteSpace: 'nowrap',
-    }}>Item Group</th>
-    <th style={{
-      background: D.bg,
-      color: D.muted,
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: '0.06em',
-      textTransform: 'uppercase',
-      padding: '12px 16px',
-      borderBottom: `1px solid ${D.border}`,
-      textAlign: 'left',  // ← left alignment
-      whiteSpace: 'nowrap',
-    }}>Size Group</th>
-    <th style={{
-      background: D.bg,
-      color: D.muted,
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: '0.06em',
-      textTransform: 'uppercase',
-      padding: '12px 16px',
-      borderBottom: `1px solid ${D.border}`,
-      textAlign: 'right',
-      whiteSpace: 'nowrap',
-    }}>Unit Size</th>
-    <th style={{
-      background: D.bg,
-      color: D.muted,
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: '0.06em',
-      textTransform: 'uppercase',
-      padding: '12px 16px',
-      borderBottom: `1px solid ${D.border}`,
-      textAlign: 'right',
-      whiteSpace: 'nowrap',
-    }}>Incentive</th>
-    <th style={{
-      background: D.bg,
-      color: D.muted,
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: '0.06em',
-      textTransform: 'uppercase',
-      padding: '12px 16px',
-      borderBottom: `1px solid ${D.border}`,
-      textAlign: 'center',
-      whiteSpace: 'nowrap',
-    }}>Actions</th>
-  </tr>
-</thead>
-<tbody>
-  {filtered.map(p => (
-    <tr
-      key={p.id}
-      style={{
-        borderBottom: `1px solid ${D.border}`,
-        transition: 'background 0.12s',
-      }}
-      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
-      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-    >
-      <td style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: D.text }}>
-        {p.nameEnglish}
-      </td>
-      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.sub }}>
-        {p.nameMalayalam || '—'}
-      </td>
-      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: D.accent }}>
-        ₹{fmt(p.basePrice)}
-      </td>
-      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
-        {p.productGroupName || '—'}
-      </td>
-      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
-        {p.sizeGroupName || '—'}
-      </td>
-      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
-        {(p as any).unitSize || '—'}
-      </td>
-      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
-        {(p as any).incentive ? `₹${(p as any).incentive}` : '—'}
-      </td>
-      <td style={{ padding: '8px 16px', textAlign: 'center' }}>
-        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <thead>
+                  <tr>
+                    <th style={{
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
+                    }}>Product Name</th>
+                    <th style={{
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
+                    }}>Malayalam Name</th>
+                    <th style={{
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'right',
+                      whiteSpace: 'nowrap',
+                    }}>Base Price</th>
+                    <th style={{
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
+                    }}>Item Group</th>
+                    <th style={{
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap',
+                    }}>Stock Status</th>
+                    <th style={{
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
+                    }}>Size Group</th>
+                    <th style={{
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'right',
+                      whiteSpace: 'nowrap',
+                    }}>Unit Size</th>
+                    <th style={{
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'right',
+                      whiteSpace: 'nowrap',
+                    }}>Incentive</th>
+                    <th style={{
+                      background: D.bg,
+                      color: D.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${D.border}`,
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap',
+                    }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(p => (
+                    <tr
+                      key={p.id}
+                      style={{
+                        borderBottom: `1px solid ${D.border}`,
+                        transition: 'background 0.12s, opacity 0.12s',
+                        // ── Fade the whole row when out of stock, so it's visually clear at a
+                        // glance without needing to read the badge text. ──
+                        opacity: p.isOutOfStock ? 0.5 : 1,
+                      }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                    >
+                      <td style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: D.text }}>
+                        {p.nameEnglish}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.sub }}>
+                        {p.nameMalayalam || '—'}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: D.accent }}>
+                        ₹{fmt(p.basePrice)}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
+                        {p.productGroupName || '—'}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        {p.isOutOfStock ? (
+                          <span
+                            title={p.outOfStockReason || undefined}
+                            style={{
+                              display: 'inline-block',
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              letterSpacing: '0.03em',
+                              textTransform: 'uppercase',
+                              background: 'rgba(239,68,68,0.15)',
+                              color: D.red,
+                              cursor: p.outOfStockReason ? 'help' : 'default',
+                            }}
+                          >
+                            Out of Stock
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 11, color: D.muted }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
+                        {p.sizeGroupName || '—'}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
+                        {(p as any).unitSize || '—'}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
+                        {(p as any).incentive ? `₹${(p as any).incentive}` : '—'}
+                      </td>
+                      <td style={{ padding: '8px 16px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
                           <button
                             onClick={() => openEdit(p)}
                             style={{
@@ -78852,6 +78995,30 @@ export function AdminProducts() {
                             title="Edit"
                           >
                             <Edit2 size={12} />
+                          </button>
+                          <button
+                            onClick={() => handleToggleStock(p)}
+                            disabled={togglingStockId === p.id}
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: 6,
+                              border: `1px solid ${p.isOutOfStock ? D.red : D.border}`,
+                              background: D.bg,
+                              color: p.isOutOfStock ? D.red : D.muted,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: togglingStockId === p.id ? 'default' : 'pointer',
+                              fontFamily: 'inherit',
+                              transition: 'all 0.12s',
+                              opacity: togglingStockId === p.id ? 0.5 : 1,
+                            }}
+                            onMouseEnter={e => { if (togglingStockId !== p.id) { (e.currentTarget as HTMLElement).style.borderColor = D.amber; (e.currentTarget as HTMLElement).style.color = D.amber; } }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = p.isOutOfStock ? D.red : D.border; (e.currentTarget as HTMLElement).style.color = p.isOutOfStock ? D.red : D.muted; }}
+                            title={p.isOutOfStock ? 'Mark back in stock' : 'Mark out of stock'}
+                          >
+                            {togglingStockId === p.id
+                              ? <Spinner size={12} />
+                              : p.isOutOfStock ? <PackageCheck size={12} /> : <PackageX size={12} />}
                           </button>
                           <button
                             onClick={() => setConfirm(p.id)}
@@ -79528,16 +79695,12 @@ export function AdminReports() {
   // const [routeRptRoute, setRouteRptRoute] = useState('');
   // const [routeFrom, setRouteFrom]  = useState(thirtyDaysAgo);
   // const [routeTo,   setRouteTo]    = useState(today);
-  const [summaryFrom, setSummaryFrom] = useState(thirtyDaysAgo);
-  const [summaryTo, setSummaryTo] = useState(today);
   const [incentiveFrom, setIncentiveFrom] = useState(thirtyDaysAgo);
   const [incentiveTo, setIncentiveTo] = useState(today);
-  const [additionalRevenueFrom, setAdditionalRevenueFrom] = useState(thirtyDaysAgo);
-  const [additionalRevenueTo, setAdditionalRevenueTo] = useState(today);
   const [prodGroup, setProdGroup]   = useState('');
   const [prodFrom,  setProdFrom]    = useState(thirtyDaysAgo);
   const [prodTo,    setProdTo]      = useState(today);
-  // const [dailyDate, setDailyDate]   = useState(today);
+  const [dailyDate, setDailyDate]   = useState(today);
 
   useEffect(() => {
     Promise.all([routesApi.getAll(), productGroupsApi.getAll()])
@@ -79715,37 +79878,47 @@ export function AdminReports() {
     //     previewReport('routeSummary', `Route Summary - ${routeFrom} to ${routeTo} (${routeName})`, fn, downloadFn);
     //   },
     // },
-{
-  key: 'summary',
-  title: 'Summary Report',
-  desc: 'Item Group & Size Group wise quantity summary',
+    {
+  key: 'summaryReport',
+  title: 'Summary Report',  // ← CHANGED
+  desc: 'Product-wise summary with packing category & size group',
   icon: '📊',
-  color: '#3B82F6',
+  color: '#8B5CF6',
   roles: 'Admin',
   filters: (
-    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      <select 
+        className="input" 
+        value={prodGroup} 
+        onChange={(e) => setProdGroup(e.target.value)} 
+        style={selectStyle(isMobile)}
+      >
+        <option value="">📦 All Groups</option>
+        {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+      </select>
       <input 
         className="input" 
         type="date" 
-        value={summaryFrom} 
-        onChange={(e) => setSummaryFrom(e.target.value)} 
+        value={prodFrom} 
+        onChange={(e) => setProdFrom(e.target.value)} 
         style={dateInputStyle(isMobile)}
       />
       <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
       <input 
         className="input" 
         type="date" 
-        value={summaryTo} 
-        onChange={(e) => setSummaryTo(e.target.value)} 
+        value={prodTo} 
+        onChange={(e) => setProdTo(e.target.value)} 
         style={dateInputStyle(isMobile)}
       />
     </div>
   ),
-  onDownload: () => download('summary', () => reportsApi.downloadSummaryReport(summaryFrom, summaryTo), `SummaryReport_${summaryFrom}.pdf`),
+  onDownload: () => download('summaryReport', () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo), `SummaryReport_${prodFrom}_${prodTo}.pdf`),
   onPreview: () => {
-    const fn = () => reportsApi.downloadSummaryReport(summaryFrom, summaryTo);
-    const downloadFn = () => download('summary', fn, `SummaryReport_${summaryFrom}.pdf`);
-    previewReport('summary', `Summary Report - ${summaryFrom} to ${summaryTo}`, fn, downloadFn);
+    const fn = () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo);
+    const downloadFn = () => download('summaryReport', fn, `SummaryReport_${prodFrom}_${prodTo}.pdf`);
+    const groupName = prodGroup ? groups.find(g => g.id === prodGroup)?.name : 'All Groups';
+    previewReport('summaryReport', `Summary Report - ${prodFrom} to ${prodTo} (${groupName})`, fn, downloadFn);
   },
 },
 {
@@ -79781,62 +79954,29 @@ export function AdminReports() {
     previewReport('incentive', `Incentive Report - ${incentiveFrom} to ${incentiveTo}`, fn, downloadFn);
   },
 },
-{
-  key: 'additionalRevenue',
-  title: 'Additional Revenue Report',
-  desc: '(Selling Price - Base Price) × Unit Size × Quantity',
-  icon: '💰',
-  color: '#F59E0B',
-  roles: 'Admin',
-  filters: (
-    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-      <input 
-        className="input" 
-        type="date" 
-        value={additionalRevenueFrom} 
-        onChange={(e) => setAdditionalRevenueFrom(e.target.value)} 
-        style={dateInputStyle(isMobile)}
-      />
-      <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
-      <input 
-        className="input" 
-        type="date" 
-        value={additionalRevenueTo} 
-        onChange={(e) => setAdditionalRevenueTo(e.target.value)} 
-        style={dateInputStyle(isMobile)}
-      />
-    </div>
-  ),
-  onDownload: () => download('additionalRevenue', () => reportsApi.downloadAdditionalRevenueReport(additionalRevenueFrom, additionalRevenueTo), `AdditionalRevenueReport_${additionalRevenueFrom}.pdf`),
-  onPreview: () => {
-    const fn = () => reportsApi.downloadAdditionalRevenueReport(additionalRevenueFrom, additionalRevenueTo);
-    const downloadFn = () => download('additionalRevenue', fn, `AdditionalRevenueReport_${additionalRevenueFrom}.pdf`);
-    previewReport('additionalRevenue', `Additional Revenue Report - ${additionalRevenueFrom} to ${additionalRevenueTo}`, fn, downloadFn);
-  },
-},
-    // {
-    //   key: 'daily',
-    //   title: 'Daily Summary Report',
-    //   desc: 'Full operational day summary',
-    //   icon: '📋',
-    //   color: '#14B8A6',
-    //   roles: 'Admin / Accounts',
-    //   filters: (
-    //     <input 
-    //       className="input" 
-    //       type="date" 
-    //       value={dailyDate} 
-    //       onChange={(e) => setDailyDate(e.target.value)} 
-    //       style={dateInputStyle(isMobile)}
-    //     />
-    //   ),
-    //   onDownload: () => download('daily', () => reportsApi.downloadDailySummary(dailyDate), `DailySummary_${dailyDate}.pdf`),
-    //   onPreview: () => {
-    //     const fn = () => reportsApi.downloadDailySummary(dailyDate);
-    //     const downloadFn = () => download('daily', fn, `DailySummary_${dailyDate}.pdf`);
-    //     previewReport('daily', `Daily Summary - ${dailyDate}`, fn, downloadFn);
-    //   },
-    // },
+    {
+      key: 'daily',
+      title: 'Daily Summary Report',
+      desc: 'Full operational day summary',
+      icon: '📋',
+      color: '#14B8A6',
+      roles: 'Admin / Accounts',
+      filters: (
+        <input 
+          className="input" 
+          type="date" 
+          value={dailyDate} 
+          onChange={(e) => setDailyDate(e.target.value)} 
+          style={dateInputStyle(isMobile)}
+        />
+      ),
+      onDownload: () => download('daily', () => reportsApi.downloadDailySummary(dailyDate), `DailySummary_${dailyDate}.pdf`),
+      onPreview: () => {
+        const fn = () => reportsApi.downloadDailySummary(dailyDate);
+        const downloadFn = () => download('daily', fn, `DailySummary_${dailyDate}.pdf`);
+        previewReport('daily', `Daily Summary - ${dailyDate}`, fn, downloadFn);
+      },
+    },
   ];
 
   if (loading) return (
@@ -83039,16 +83179,16 @@ function SummCard({ label, value, icon: Icon, color }: { label: string; value: s
 // UPDATED: PIN Reminder as a button that opens a modal with a list, added Back to Dashboard button
 
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   RefreshCw, UserCheck, UserX, KeyRound, Search, UserPlus, X, Eye, EyeOff, 
-  StickyNote, Edit3, Plus, Trash2, Save, ArrowLeft
+  StickyNote, Edit3, Plus, Trash2, Save, ArrowLeft, LogIn
 } from 'lucide-react';
 import { usersApi, authApi } from '../../api/services';
-import type { UserDto } from '../../types';
+import type { UserDto, UserRole } from '../../types';
 import { PageLoader, Spinner, Alert, Badge, EmptyState, ConfirmModal } from '../../components/ui';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { useAuthStore } from '../../store/authStore';
+import { useAuthStore, getRoleHome } from '../../store/authStore';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -83518,7 +83658,8 @@ function PinReminderModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
 // ─── Main AdminUsers Component ──────────────────────────────────────────────
 
 export function AdminUsers() {
-  const { user } = useAuthStore();
+  const { user, actAsSalesman } = useAuthStore();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [users,        setUsers]        = useState<UserDto[]>([]);
   const [loading,      setLoading]      = useState(true);
@@ -83531,6 +83672,21 @@ export function AdminUsers() {
 
   const [toggling,     setToggling]     = useState<string | null>(null);
   const [toggleTarget, setToggleTarget] = useState<UserDto | null>(null);
+
+  // ── NEW: Act as Salesman (Admin Override via Master PIN) ──
+  const [overrideModal,   setOverrideModal]   = useState<UserDto | null>(null);
+  const [overridePin,     setOverridePin]     = useState('');
+  const [showOverridePin, setShowOverridePin] = useState(false);
+  const [overrideSaving,  setOverrideSaving]  = useState(false);
+  const [overrideError,   setOverrideError]   = useState('');
+
+  // ── NEW: Set/Change the admin's own Master Access PIN ──
+  const [masterPinModal,   setMasterPinModal]   = useState(false);
+  const [masterPinValue,   setMasterPinValue]   = useState('');
+  const [showMasterPin,    setShowMasterPin]    = useState(false);
+  const [masterPinSaving,  setMasterPinSaving]  = useState(false);
+  const [masterPinError,   setMasterPinError]   = useState('');
+  const [masterPinSuccess, setMasterPinSuccess] = useState(false);
 
   const [pinModal,     setPinModal]     = useState<UserDto | null>(null);
   const [pinValue,     setPinValue]     = useState('');
@@ -83578,6 +83734,76 @@ export function AdminUsers() {
     setShowPinValue(false);
     setPinAvailability('idle');
     setPinConflictName('');
+  }
+
+  // ── NEW: Act as Salesman ──
+  function openOverrideModal(u: UserDto) {
+    setOverrideModal(u);
+    setOverridePin('');
+    setOverrideError('');
+    setShowOverridePin(false);
+  }
+
+  async function handleOverrideSubmit() {
+    if (!overrideModal) return;
+    if (overridePin.length !== 6) {
+      setOverrideError('Master PIN must be 6 digits.');
+      return;
+    }
+    setOverrideSaving(true);
+    setOverrideError('');
+    try {
+      const res = await authApi.adminOverrideLogin(overrideModal.id, overridePin);
+      // ── Stash the admin's own session and switch into the salesman's —
+      // the "Return to Admin" banner (shown globally while acting as a
+      // salesman) restores it instantly, no re-login needed. ──
+      actAsSalesman({
+        id:           res.userId,
+        email:        res.email,
+        name:         res.fullName,
+        role:         res.role as UserRole,
+        token:        res.token,
+        refreshToken: res.refreshToken,
+        sessionId:    res.sessionId,
+        requiresPinUpdate: false,
+      });
+      setOverrideModal(null);
+      setTimeout(() => {
+        navigate(getRoleHome('Salesman'), { replace: true });
+      }, 0);      
+    } catch (err: unknown) {
+      setOverrideError(err instanceof Error ? err.message : 'Invalid Master PIN.');
+    } finally {
+      setOverrideSaving(false);
+    }
+  }
+
+  // ── NEW: Set/Change Master Access PIN ──
+  function openMasterPinModal() {
+    setMasterPinModal(true);
+    setMasterPinValue('');
+    setMasterPinError('');
+    setShowMasterPin(false);
+    setMasterPinSuccess(false);
+  }
+
+  async function handleSetMasterPin() {
+    if (masterPinValue.length !== 6) {
+      setMasterPinError('PIN must be exactly 6 digits.');
+      return;
+    }
+    setMasterPinSaving(true);
+    setMasterPinError('');
+    try {
+      await authApi.setMasterPin(masterPinValue);
+      setMasterPinSuccess(true);
+      setMasterPinValue('');
+      setTimeout(() => setMasterPinModal(false), 1500);
+    } catch (err: unknown) {
+      setMasterPinError(err instanceof Error ? err.message : 'Failed to set Master PIN.');
+    } finally {
+      setMasterPinSaving(false);
+    }
   }
 
   useEffect(() => {
@@ -83762,6 +83988,22 @@ export function AdminUsers() {
             >
               <UserPlus size={16} /> Create Salesman
             </button>
+            <button
+              onClick={openMasterPinModal}
+              title="Set the PIN that lets you act as any salesman"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '9px 18px', borderRadius: 9,
+                border: `1px solid ${D.amber}`,
+                background: 'transparent',
+                color: D.amber,
+                fontSize: 13, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'all 0.15s',
+              }}
+            >
+              <LogIn size={16} /> Master PIN
+            </button>
           </div>
         </div>
 
@@ -83882,6 +84124,28 @@ export function AdminUsers() {
                       <KeyRound size={13} /> Set PIN
                     </button>
                   )}
+                  {u.role === 'Salesman' && u.isActive && (
+                    <button
+                      onClick={() => openOverrideModal(u)}
+                      title="Act as this salesman using the Master Access PIN"
+                      style={{
+                        flex: 1, justifyContent: 'center', minWidth: 100,
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        border: `1px solid ${D.border}`,
+                        background: D.bg,
+                        color: D.muted,
+                        fontSize: 12, fontWeight: 600,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        transition: 'all 0.12s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = D.amber}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+                    >
+                      <LogIn size={13} /> Act As
+                    </button>
+                  )}
                   <button
                     onClick={() => setToggleTarget(u)}
                     disabled={toggling === u.id}
@@ -83994,6 +84258,27 @@ export function AdminUsers() {
                               onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
                             >
                               <KeyRound size={12} /> Set PIN
+                            </button>
+                          )}
+                          {u.role === 'Salesman' && u.isActive && (
+                            <button
+                              onClick={() => openOverrideModal(u)}
+                              title="Act as this salesman using the Master Access PIN"
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: 7,
+                                border: `1px solid ${D.border}`,
+                                background: D.bg,
+                                color: D.muted,
+                                fontSize: 12, fontWeight: 600,
+                                cursor: 'pointer', fontFamily: 'inherit',
+                                display: 'flex', alignItems: 'center', gap: 4,
+                                transition: 'all 0.12s',
+                              }}
+                              onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = D.amber}
+                              onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+                            >
+                              <LogIn size={12} /> Act As
                             </button>
                           )}
                           <button
@@ -84155,6 +84440,219 @@ export function AdminUsers() {
                   {pinSaving ? <Spinner size={16} /> : 'Set PIN'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* NEW: Act as Salesman Modal — Master PIN entry */}
+        {overrideModal && (
+          <div className="modal-overlay" onClick={() => setOverrideModal(null)}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380, background: D.surface, border: `1px solid ${D.border}` }}>
+              <h3 style={{ marginTop: 0, fontWeight: 700, color: D.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <LogIn size={18} color={D.amber} /> Act as {overrideModal.fullName}
+              </h3>
+              <p style={{ fontSize: 13, color: D.muted, marginBottom: 16 }}>
+                Enter the Master Access PIN to act as <strong style={{ color: D.text }}>{overrideModal.fullName}</strong> —
+                you'll be able to take or edit orders on their routes directly. Use "Return to Admin" at any time to switch back.
+              </p>
+
+              {overrideError && (
+                <div style={{
+                  background: 'rgba(239,68,68,0.10)',
+                  border: `1px solid rgba(239,68,68,0.30)`,
+                  borderRadius: 8, padding: '8px 12px',
+                  color: D.red, fontSize: 13, marginBottom: 12,
+                }}>
+                  {overrideError}
+                </div>
+              )}
+
+              <label style={{ fontSize: 12, color: D.muted, display: 'block', marginBottom: 6 }}>
+                Master Access PIN (6 digits) *
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  className="input"
+                  type={showOverridePin ? 'text' : 'password'}
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="e.g. 123456"
+                  value={overridePin}
+                  onChange={e => setOverridePin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  autoFocus
+                  onKeyDown={e => e.key === 'Enter' && handleOverrideSubmit()}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    background: D.bg,
+                    border: `1px solid ${D.border}`,
+                    borderRadius: 10,
+                    fontSize: 20,
+                    color: D.text,
+                    textAlign: 'center',
+                    letterSpacing: 8,
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                    transition: 'border-color 0.15s',
+                  }}
+                  onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.amber}
+                  onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOverridePin(v => !v)}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer', padding: 4, display: 'flex' }}
+                  title={showOverridePin ? 'Hide PIN' : 'Show PIN'}
+                >
+                  {showOverridePin ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+                <button
+                  onClick={() => setOverrideModal(null)}
+                  disabled={overrideSaving}
+                  style={{
+                    flex: 1, padding: '10px 14px', borderRadius: 10,
+                    border: `1px solid ${D.border}`, background: 'transparent',
+                    color: D.muted, fontSize: 14, fontWeight: 600,
+                    cursor: overrideSaving ? 'default' : 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleOverrideSubmit}
+                  disabled={overrideSaving || overridePin.length !== 6}
+                  style={{
+                    flex: 1, padding: '10px 14px', borderRadius: 10,
+                    border: 'none',
+                    background: overridePin.length === 6 ? D.amber : D.border,
+                    color: overridePin.length === 6 ? '#1a1a1a' : D.sub,
+                    fontSize: 14, fontWeight: 700,
+                    cursor: overrideSaving || overridePin.length !== 6 ? 'default' : 'pointer',
+                    fontFamily: 'inherit',
+                    boxShadow: overridePin.length === 6 ? '0 4px 14px rgba(245,158,11,0.25)' : 'none',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {overrideSaving ? <Spinner size={16} /> : 'Act as Salesman'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* NEW: Set/Change Master Access PIN Modal */}
+        {masterPinModal && (
+          <div className="modal-overlay" onClick={() => !masterPinSaving && setMasterPinModal(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380, background: D.surface, border: `1px solid ${D.border}` }}>
+              <h3 style={{ marginTop: 0, fontWeight: 700, color: D.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <LogIn size={18} color={D.amber} /> Master Access PIN
+              </h3>
+              <p style={{ fontSize: 13, color: D.muted, marginBottom: 16 }}>
+                This single PIN lets you act as any active salesman — useful when a customer calls
+                in outside working hours and the salesman isn't reachable. Setting a new PIN replaces
+                any previous one.
+              </p>
+
+              {masterPinSuccess ? (
+                <div style={{
+                  background: 'rgba(34,197,94,0.10)',
+                  border: `1px solid rgba(34,197,94,0.30)`,
+                  borderRadius: 8, padding: '10px 12px',
+                  color: D.green, fontSize: 13, fontWeight: 600,
+                  display: 'flex', alignItems: 'center', gap: 8,
+                }}>
+                  ✓ Master PIN saved successfully.
+                </div>
+              ) : (
+                <>
+                  {masterPinError && (
+                    <div style={{
+                      background: 'rgba(239,68,68,0.10)',
+                      border: `1px solid rgba(239,68,68,0.30)`,
+                      borderRadius: 8, padding: '8px 12px',
+                      color: D.red, fontSize: 13, marginBottom: 12,
+                    }}>
+                      {masterPinError}
+                    </div>
+                  )}
+
+                  <label style={{ fontSize: 12, color: D.muted, display: 'block', marginBottom: 6 }}>
+                    New Master PIN (6 digits) *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      className="input"
+                      type={showMasterPin ? 'text' : 'password'}
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="e.g. 998877"
+                      value={masterPinValue}
+                      onChange={e => setMasterPinValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      autoFocus
+                      onKeyDown={e => e.key === 'Enter' && handleSetMasterPin()}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        background: D.bg,
+                        border: `1px solid ${D.border}`,
+                        borderRadius: 10,
+                        fontSize: 20,
+                        color: D.text,
+                        textAlign: 'center',
+                        letterSpacing: 8,
+                        outline: 'none',
+                        fontFamily: 'inherit',
+                        transition: 'border-color 0.15s',
+                      }}
+                      onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.amber}
+                      onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowMasterPin(v => !v)}
+                      style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer', padding: 4, display: 'flex' }}
+                      title={showMasterPin ? 'Hide PIN' : 'Show PIN'}
+                    >
+                      {showMasterPin ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+                    <button
+                      onClick={() => setMasterPinModal(false)}
+                      disabled={masterPinSaving}
+                      style={{
+                        flex: 1, padding: '10px 14px', borderRadius: 10,
+                        border: `1px solid ${D.border}`, background: 'transparent',
+                        color: D.muted, fontSize: 14, fontWeight: 600,
+                        cursor: masterPinSaving ? 'default' : 'pointer', fontFamily: 'inherit',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSetMasterPin}
+                      disabled={masterPinSaving || masterPinValue.length !== 6}
+                      style={{
+                        flex: 1, padding: '10px 14px', borderRadius: 10,
+                        border: 'none',
+                        background: masterPinValue.length === 6 ? D.amber : D.border,
+                        color: masterPinValue.length === 6 ? '#1a1a1a' : D.sub,
+                        fontSize: 14, fontWeight: 700,
+                        cursor: masterPinSaving || masterPinValue.length !== 6 ? 'default' : 'pointer',
+                        fontFamily: 'inherit',
+                        boxShadow: masterPinValue.length === 6 ? '0 4px 14px rgba(245,158,11,0.25)' : 'none',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {masterPinSaving ? <Spinner size={16} /> : 'Save Master PIN'}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -87957,7 +88455,10 @@ export default function OrderEntry() {
       {canEdit && (lines.length > 0 || remarks.trim()) && (
         <div style={{
           position: 'fixed', 
-          bottom: 0, 
+          // ── Shifts up automatically when the "Acting as a salesman" banner is
+          // showing (see ReturnToAdminBanner in App.tsx), instead of sitting at a
+          // hardcoded bottom:0 and getting painted over by that banner. ──
+          bottom: 'var(--acting-banner-h, 0px)', 
           left: 0, 
           right: 0, 
           zIndex: 45,
@@ -88004,7 +88505,7 @@ export default function OrderEntry() {
         <>
           <div onClick={() => setShowProducts(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 60 }} />
           <div style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 70,
+            position: 'fixed', bottom: 'var(--acting-banner-h, 0px)', left: 0, right: 0, zIndex: 70,
             background: D.card, borderRadius: '20px 20px 0 0',
             boxShadow: '0 -8px 40px rgba(0,0,0,0.40)',
             display: 'flex', flexDirection: 'column',
@@ -91965,6 +92466,14 @@ interface AuthState {
   setUser:         (user: AuthUser) => void;
   logout:          () => Promise<void>;
   loadFromStorage: () => void;
+
+  // ── NEW: Admin Override ("Act as Salesman") ──────────────────────────────
+  // While acting as a salesman, the admin's own session is tucked aside here
+  // rather than discarded, so "Return to Admin" can restore it instantly
+  // without asking the admin to log in again with their own PIN.
+  adminBackup:     AuthUser | null;
+  actAsSalesman:   (salesmanUser: AuthUser) => void;
+  returnToAdmin:   () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -91973,6 +92482,7 @@ export const useAuthStore = create<AuthState>()(
       user:            null,
       token:           null,
       isAuthenticated: false,
+      adminBackup:     null,
 
       setUser: (user) => set({ user, token: user.token, isAuthenticated: true }),
 
@@ -91980,7 +92490,30 @@ export const useAuthStore = create<AuthState>()(
         const sessionId = get().user?.sessionId;
         // Fire-and-forget — record logout time even if it fails
         authApi.logout(sessionId).catch(() => {});
-        set({ user: null, token: null, isAuthenticated: false });
+        set({ user: null, token: null, isAuthenticated: false, adminBackup: null });
+      },
+
+      // ── NEW: stash the admin's current session, then switch to the salesman's ──
+      actAsSalesman: (salesmanUser) => {
+        const currentAdmin = get().user;
+        set({
+          adminBackup: currentAdmin,
+          user: salesmanUser,
+          token: salesmanUser.token,
+          isAuthenticated: true,
+        });
+      },
+
+      // ── NEW: restore the stashed admin session, no re-login needed ──
+      returnToAdmin: () => {
+        const backup = get().adminBackup;
+        if (!backup) return;
+        set({
+          user: backup,
+          token: backup.token,
+          isAuthenticated: true,
+          adminBackup: null,
+        });
       },
 
       loadFromStorage: () => {
@@ -91989,7 +92522,7 @@ export const useAuthStore = create<AuthState>()(
           try {
             const parsed = JSON.parse(stored);
             const { state } = parsed;
-            if (state?.user) set({ user: state.user, token: state.token ?? state.user.token ?? null, isAuthenticated: true });
+            if (state?.user) set({ user: state.user, token: state.token ?? state.user.token ?? null, isAuthenticated: true, adminBackup: state.adminBackup ?? null });
           } catch {
             localStorage.removeItem('fmcg_auth');
           }
@@ -91998,10 +92531,19 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name:       'fmcg_auth',
-      partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated }),
+      partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated, adminBackup: state.adminBackup }),
     },
   ),
 );
+
+// ── NEW: is the current session an admin acting as a salesman? ──────────────
+export function useIsActingAsSalesman(): boolean {
+  return useAuthStore((s) => s.adminBackup !== null);
+}
+
+export function useAdminBackupName(): string | null {
+  return useAuthStore((s) => s.adminBackup?.name ?? null);
+}
 
 // ── Hydration guard ────────────────────────────────────────────────────────────
 export function useHasHydrated(): boolean {
@@ -92315,6 +92857,11 @@ export interface ProductDto {
     uqc?: string;
     unitSize?: number;    // ← NEW
     incentive?: number;   // ← NEW
+
+    // ── NEW: Out of Stock ──
+    isOutOfStock?: boolean;
+    outOfStockReason?: string;
+    outOfStockMarkedAt?: string;
 }
 
 export interface ProductDetailDto extends ProductDto {
@@ -92338,6 +92885,8 @@ export interface ProductSearchDto {
   sizeGroupId?:     string;
   sizeGroupName?:   string;
   uqc?:             string;
+  isOutOfStock?:    boolean;
+  outOfStockReason?: string;
 }
 
 // ── Product Unit Price Types ────────────────────────────────────────────────
