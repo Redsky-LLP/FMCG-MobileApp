@@ -11,6 +11,11 @@
 // 9. FIX: Save Draft button centered in bottom bar
 // 10. FIX: hasExistingOrder declared before use
 // 11. FIX: Content no longer hidden behind bottom navigation bar
+// 12. RESTORED: Price Variance Badge + ±10% range validation (was accidentally
+//     dropped from this file at some point — restoring it here, layered on top
+//     of the order-lookup-by-status fix, frozen name snapshot, out-of-stock
+//     picker handling, and acting-as-admin banner-aware positioning, none of
+//     which are touched by this restoration).
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -240,6 +245,29 @@ export default function OrderEntry() {
     return tmp !== undefined ? tmp : price === 0 ? '' : String(price);
   };
 
+  // ── RESTORED: reads the live typed price (before blur commits it to `lines`)
+  // so the variance badge and save-validation react immediately as the
+  // salesman types, not only after they tab/click away from the field. Falls
+  // back to the committed sellingPrice when nothing's actively being typed. ──
+  const getEffectivePrice = (productId: string, committedPrice: number): number => {
+    const tmp = tempPrices[productId];
+    if (tmp !== undefined) {
+      const n = parseFloat(tmp);
+      if (!isNaN(n) && n >= 0) return n;
+    }
+    return committedPrice;
+  };
+
+  // ── RESTORED: selling price must stay within ±10% of base price. Returns
+  // true when it's outside that band — used both to show the warning badge
+  // and to block Save until it's corrected. ──
+  const getPriceRangeIssue = (base: number, selling: number): boolean => {
+    if (!base || !selling) return false;
+    const lower = base * 0.9;
+    const upper = base * 1.1;
+    return selling < lower || selling > upper;
+  };
+
   const removeItem = (productId: string) => {
     if (!canEdit) return;
     setLines(prev => prev.filter(l => l.product.id !== productId));
@@ -280,6 +308,22 @@ export default function OrderEntry() {
   const incomplete = lines.find(l => !l.qty || !l.sellingPrice);
   if (incomplete) {
     setError(`Enter quantity and price for "${incomplete.product.nameEnglish}" before saving.`);
+    return;
+  }
+
+  // ── RESTORED: block save if any line's price is outside ±10% of its
+  // product's base price. Checked against the EFFECTIVE price (live typed
+  // value if present) so a field still mid-edit but out of range is caught
+  // too, not just already-blurred/committed values. ──
+  const outOfRange = lines.find(l =>
+    getPriceRangeIssue(l.product.basePrice, getEffectivePrice(l.product.id, l.sellingPrice))
+  );
+  if (outOfRange) {
+    const base = outOfRange.product.basePrice;
+    setError(
+      `Price for "${outOfRange.product.nameEnglish}" must be within ±10% of the base price ` +
+      `(₹${(base * 0.9).toFixed(2)} – ₹${(base * 1.1).toFixed(2)}).`
+    );
     return;
   }
   
@@ -504,7 +548,12 @@ export default function OrderEntry() {
                     {line.product.nameMalayalam && (
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: D.muted }} lang="ml">{line.product.nameMalayalam}</p>
                     )}
-                    {/* <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} /> */}
+                    {/* ── RESTORED: variance badge, driven by the live-typed effective
+                    price so it updates as the salesman types, before blur commits it. ── */}
+                    <PriceVarianceBadge
+                      base={line.product.basePrice}
+                      selling={getEffectivePrice(line.product.id, line.sellingPrice)}
+                    />
                   </div>
 
                   {/* Fields row */}
