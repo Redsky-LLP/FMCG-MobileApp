@@ -412,21 +412,36 @@ export const reportsApi = {
     });
     return res.data as Blob;
   },
-  productSummary: async (fromDate: string, toDate: string, productGroupId?: string) => {
-    const params: Record<string, string> = { fromDate, toDate };
-    if (productGroupId) params.productGroupId = productGroupId;
-    const res = await apiClient.get('/api/v1/reports/product-summary', {
-      params,
-      responseType: 'blob',
-    });
-    return res.data as Blob;
-  },
+  downloadSummaryReport: async (fromDate?: string, toDate?: string) => {
+  const params: Record<string, string> = {};
+  if (fromDate) params.fromDate = fromDate;
+  if (toDate) params.toDate = toDate;
+  const res = await apiClient.get('/api/v1/reports/summary-report', {
+    params,
+    responseType: 'blob',
+  });
+  return res.data as Blob;
+},
   // ── Incentive Report ──
 downloadIncentiveReport: async (fromDate?: string, toDate?: string) => {
   const params: Record<string, string> = {};
   if (fromDate) params.fromDate = fromDate;
   if (toDate) params.toDate = toDate;
   const res = await apiClient.get('/api/v1/reports/incentive-report', {
+    params,
+    responseType: 'blob',
+  });
+  return res.data as Blob;
+},
+downloadAdditionalRevenueReport: async (fromDate?: string, toDate?: string) => {
+  console.log('🔵 downloadAdditionalRevenueReport called!');
+  console.log('fromDate:', fromDate);
+  console.log('toDate:', toDate);
+  
+  const params: Record<string, string> = {};
+  if (fromDate) params.fromDate = fromDate;
+  if (toDate) params.toDate = toDate;
+  const res = await apiClient.get('/api/v1/reports/additional-revenue', {
     params,
     responseType: 'blob',
   });

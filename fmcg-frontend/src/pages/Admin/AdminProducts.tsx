@@ -872,178 +872,140 @@ export function AdminProducts() {
                 fontSize: 13,
                 background: D.surface,
               }}>
-                <thead>
-                  <tr>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'left',
-                      whiteSpace: 'nowrap',
-                    }}>Product Name</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'left',
-                      whiteSpace: 'nowrap',
-                    }}>Malayalam Name</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'right',
-                      whiteSpace: 'nowrap',
-                    }}>Base Price</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'left',
-                      whiteSpace: 'nowrap',
-                    }}>Item Group</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'center',
-                      whiteSpace: 'nowrap',
-                    }}>Stock Status</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'left',
-                      whiteSpace: 'nowrap',
-                    }}>Size Group</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'right',
-                      whiteSpace: 'nowrap',
-                    }}>Unit Size</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'right',
-                      whiteSpace: 'nowrap',
-                    }}>Incentive</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'center',
-                      whiteSpace: 'nowrap',
-                    }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(p => (
-                    <tr
-                      key={p.id}
-                      style={{
-                        borderBottom: `1px solid ${D.border}`,
-                        transition: 'background 0.12s, opacity 0.12s',
-                        // ── Fade the whole row when out of stock, so it's visually clear at a
-                        // glance without needing to read the badge text. ──
-                        opacity: p.isOutOfStock ? 0.5 : 1,
-                      }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-                    >
-                      <td style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: D.text }}>
-                        {p.nameEnglish}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.sub }}>
-                        {p.nameMalayalam || '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: D.accent }}>
-                        ₹{fmt(p.basePrice)}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
-                        {p.productGroupName || '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        {p.isOutOfStock ? (
-                          <span
-                            title={p.outOfStockReason || undefined}
-                            style={{
-                              display: 'inline-block',
-                              padding: '3px 8px',
-                              borderRadius: 6,
-                              fontSize: 10,
-                              fontWeight: 700,
-                              letterSpacing: '0.03em',
-                              textTransform: 'uppercase',
-                              background: 'rgba(239,68,68,0.15)',
-                              color: D.red,
-                              cursor: p.outOfStockReason ? 'help' : 'default',
-                            }}
-                          >
-                            Out of Stock
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: 11, color: D.muted }}>—</span>
-                        )}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
-                        {p.sizeGroupName || '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
-                        {(p as any).unitSize || '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
-                        {(p as any).incentive ? `₹${(p as any).incentive}` : '—'}
-                      </td>
-                      <td style={{ padding: '8px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
+           <thead>
+  <tr>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',
+      whiteSpace: 'nowrap',
+    }}>Product Name</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',
+      whiteSpace: 'nowrap',
+    }}>Malayalam Name</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'right',
+      whiteSpace: 'nowrap',
+    }}>Base Price</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',
+      whiteSpace: 'nowrap',
+    }}>Item Group</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',  // ← left alignment
+      whiteSpace: 'nowrap',
+    }}>Size Group</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'right',
+      whiteSpace: 'nowrap',
+    }}>Unit Size</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'right',
+      whiteSpace: 'nowrap',
+    }}>Incentive</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'center',
+      whiteSpace: 'nowrap',
+    }}>Actions</th>
+  </tr>
+</thead>
+<tbody>
+  {filtered.map(p => (
+    <tr
+      key={p.id}
+      style={{
+        borderBottom: `1px solid ${D.border}`,
+        transition: 'background 0.12s',
+      }}
+      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
+      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+    >
+      <td style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: D.text }}>
+        {p.nameEnglish}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.sub }}>
+        {p.nameMalayalam || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: D.accent }}>
+        ₹{fmt(p.basePrice)}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
+        {p.productGroupName || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
+        {p.sizeGroupName || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
+        {(p as any).unitSize || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
+        {(p as any).incentive ? `₹${(p as any).incentive}` : '—'}
+      </td>
+      <td style={{ padding: '8px 16px', textAlign: 'center' }}>
+        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
                           <button
                             onClick={() => openEdit(p)}
                             style={{

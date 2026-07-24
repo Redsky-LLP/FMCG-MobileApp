@@ -22,13 +22,10 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
 
     public async Task<Result<byte[]>> Handle(GetIncentiveReportQuery request, CancellationToken cancellationToken)
     {
-        // ─── Step 1: Get date range ───
         var fromDate = request.FromDate ?? DateTime.UtcNow.Date.AddDays(-30);
         var toDate = request.ToDate ?? DateTime.UtcNow.Date;
 
-        Console.WriteLine($"🔵 Incentive Report: {fromDate:yyyy-MM-dd} to {toDate:yyyy-MM-dd}");
-
-        // ─── Step 2: Get all active salesmen ───
+        // Get all active salesmen
         var salesmen = await _context.Users
             .Where(u => u.Role == UserRole.Salesman && u.IsActive && !u.IsDeleted)
             .ToListAsync(cancellationToken);
@@ -38,78 +35,83 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
             return Result<byte[]>.Failure("No salesmen found.");
         }
 
-        // ─── Step 3: Get CLOSED orders with items and products ───
+        var salesmanIds = salesmen.Select(s => s.Id).ToList();
+
+        // Get closed orders within date range with product details
         var orders = await _context.Orders
             .Include(o => o.Items)
                 .ThenInclude(i => i.Product)
             .Where(o => !o.IsDeleted
                 && o.SalesmanId != null
-                && o.Status == OrderStatus.Closed
+                && salesmanIds.Contains(o.SalesmanId)
                 && o.OrderDate.Date >= fromDate.Date
-                && o.OrderDate.Date <= toDate.Date)
+                && o.OrderDate.Date <= toDate.Date
+                && o.Status == OrderStatus.Closed)
             .ToListAsync(cancellationToken);
 
-        Console.WriteLine($"🔵 Orders found: {orders.Count}");
-
-        // ─── Step 4: Prepare report data ───
         var reportData = new IncentiveReportDataDto
         {
             FromDate = fromDate,
             ToDate = toDate,
             GeneratedAt = DateTime.UtcNow,
-            Salesmen = new List<IncentiveReportItemDto>(),
+            Incentives = new List<IncentiveReportItemDto>(),
             GrandTotalIncentive = 0,
-            GrandTotalSales = 0,
             TotalSalesmen = salesmen.Count
         };
 
-        // ─── Step 5: Calculate per salesman ───
+        // ─── Group by Salesman + Product ───
+        var groupedIncentives = new Dictionary<(Guid SalesmanId, Guid ProductId), IncentiveReportItemDto>();
+
         foreach (var salesman in salesmen)
         {
             var salesmanOrders = orders.Where(o => o.SalesmanId == salesman.Id).ToList();
-            var totalSales = salesmanOrders.Sum(o => o.Items.Sum(i => i.SellingPrice * i.Quantity));
-            var totalIncentive = 0m;
 
             foreach (var order in salesmanOrders)
             {
                 foreach (var item in order.Items)
                 {
-                    if (item.ProductId == Guid.Empty || item.Product == null) continue;
+                    if (item.ProductId == Guid.Empty) continue;
+                    if (item.Product == null) continue;
 
-                    // ─── GET INCENTIVE FROM PRODUCT ───
                     var incentive = item.Product.Incentive;
 
-                    // ─── ONLY COUNT IF INCENTIVE > 0 ───
                     if (incentive.HasValue && incentive.Value > 0)
                     {
-                        totalIncentive += item.Quantity * incentive.Value;
+                        var key = (SalesmanId: salesman.Id, ProductId: item.ProductId);
+                        var earned = item.Quantity * incentive.Value;
+
+                        if (groupedIncentives.ContainsKey(key))
+                        {
+                            // ── Add to existing entry ──
+                            groupedIncentives[key].Quantity += item.Quantity;
+                            groupedIncentives[key].IncentiveEarned += earned;
+                        }
+                        else
+                        {
+                            // ── Create new entry ──
+                            groupedIncentives[key] = new IncentiveReportItemDto
+                            {
+                                SalesmanId = salesman.Id,
+                                SalesmanName = salesman.FullName,
+                                ProductName = item.Product.NameEnglish,
+                                Quantity = item.Quantity,
+                                IncentiveEarned = earned
+                            };
+                        }
+
+                        reportData.GrandTotalIncentive += earned;
                     }
                 }
             }
-
-            reportData.Salesmen.Add(new IncentiveReportItemDto
-            {
-                SalesmanId = salesman.Id,
-                SalesmanName = salesman.FullName,
-                TotalOrders = salesmanOrders.Count,
-                TotalSales = totalSales,
-                TotalIncentive = totalIncentive
-            });
-
-            reportData.GrandTotalIncentive += totalIncentive;
-            reportData.GrandTotalSales += totalSales;
         }
 
-        // ─── Step 6: Sort by highest incentive ───
-        reportData.Salesmen = reportData.Salesmen
-            .OrderByDescending(s => s.TotalIncentive)
+        // Convert to list and sort
+        reportData.Incentives = groupedIncentives.Values
+            .OrderBy(i => i.SalesmanName)
+            .ThenBy(i => i.ProductName)
             .ToList();
 
-        Console.WriteLine($"🔵 Total Incentive: {reportData.GrandTotalIncentive}");
-
-        // ─── Step 7: Generate PDF ───
         var pdfBytes = GenerateIncentiveReportPdf(reportData);
-
         return Result<byte[]>.Success(pdfBytes);
     }
 
@@ -134,11 +136,11 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                             col.Item().Text("INCENTIVE REPORT").FontSize(14).Bold();
                             col.Item().Text($"Period: {data.FromDate:dd-MM-yyyy} to {data.ToDate:dd-MM-yyyy}");
                         });
-                        row.RelativeItem().AlignRight().Column(col =>
-                        {
-                            col.Item().Text($"Generated: {data.GeneratedAt:dd-MM-yyyy HH:mm}");
-                            col.Item().Text($"Total Incentive: ₹{data.GrandTotalIncentive:N2}");
-                        });
+                        //row.RelativeItem().AlignRight().Column(col =>
+                        //{
+                        //    col.Item().Text($"Generated: {data.GeneratedAt:dd-MM-yyyy HH:mm}");
+                        //    col.Item().Text($"Total Incentive: ₹{data.GrandTotalIncentive:N2}");
+                        //});
                     });
 
                 // ─── Content ───
@@ -160,19 +162,25 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                         });
                         summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
                         {
-                            c.Item().Text("TOTAL SALES").FontSize(7).FontColor(Colors.Grey.Medium);
-                            c.Item().Text($"₹{data.GrandTotalSales:N2}").FontSize(12).Bold();
+                            c.Item().Text("PRODUCTS").FontSize(7).FontColor(Colors.Grey.Medium);
+                            c.Item().Text($"{data.Incentives.Count}").FontSize(12).Bold();
                         });
                     });
 
-                    // ─── Salesmen Table ───
+                    // ─── Group by Salesman ───
+                    var groupedBySalesman = data.Incentives
+                        .GroupBy(i => i.SalesmanName)
+                        .OrderBy(g => g.Key)
+                        .ToList();
+
+                    // ─── Table ───
                     col.Item().Table(table =>
                     {
                         table.ColumnsDefinition(columns =>
                         {
                             columns.RelativeColumn(3);  // Salesman
-                            columns.RelativeColumn(1);  // Orders
-                            columns.RelativeColumn(2);  // Total Sales
+                            columns.RelativeColumn(3);  // Product
+                            columns.RelativeColumn(1);  // Quantity
                             columns.RelativeColumn(2);  // Incentive
                         });
 
@@ -180,27 +188,58 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                         table.Header(header =>
                         {
                             header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("SALESMAN").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("ORDERS").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("TOTAL SALES").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("PRODUCT").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("QTY").Bold();
                             header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("INCENTIVE").Bold();
                         });
 
                         // ─── Table Rows ───
-                        foreach (var salesman in data.Salesmen)
+                        bool isFirstRow = true;
+
+                        foreach (var salesmanGroup in groupedBySalesman)
                         {
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(salesman.SalesmanName);
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{salesman.TotalOrders}");
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{salesman.TotalSales:N2}");
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{salesman.TotalIncentive:N2}")
-                                .FontColor(salesman.TotalIncentive > 0 ? Colors.Green.Medium : Colors.Grey.Medium);
+                            var salesmanName = salesmanGroup.Key;
+                            var salesmenTotal = salesmanGroup.Sum(i => i.IncentiveEarned);
+
+                            foreach (var item in salesmanGroup)
+                            {
+                                // ─── Show salesman name only once ───
+                                if (isFirstRow)
+                                {
+                                    table.Cell().BorderBottom(0.5f).Padding(3).Text(salesmanName);
+                                    isFirstRow = false;
+                                }
+                                else
+                                {
+                                    table.Cell().BorderBottom(0.5f).Padding(3).Text("");
+                                }
+
+                                table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName);
+                                table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.Quantity:N0}");
+                                table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.IncentiveEarned:N2}")
+                                    .FontColor(Colors.Green.Medium);
+                            }
+
+                            // ─── Subtotal for this salesman ───
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text("").Bold();
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text($"Subtotal - {salesmanName}").Bold();
+                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text("").Bold();
+                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{salesmenTotal:N2}").Bold()
+                                .FontColor(Colors.Green.Medium);
+
+                            // ─── Reset for next salesman ───
+                            isFirstRow = true;
                         }
 
-                        // ─── Total Row ───
-                        table.Cell().BorderTop(0.5f).Padding(3).Text("TOTAL").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Salesmen.Sum(s => s.TotalOrders)}").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"₹{data.GrandTotalSales:N2}").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"₹{data.GrandTotalIncentive:N2}").Bold()
-                            .FontColor(Colors.Green.Medium);
+                        // ─── Grand Total Row ───
+                        if (data.Incentives.Count > 0)
+                        {
+                            table.Cell().BorderTop(0.5f).Padding(3).Text("TOTAL").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Incentives.Sum(i => i.Quantity):N0}").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"₹{data.GrandTotalIncentive:N2}").Bold()
+                                .FontColor(Colors.Green.Medium);
+                        }
                     });
                 });
 
