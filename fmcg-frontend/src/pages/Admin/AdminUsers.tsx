@@ -2,16 +2,16 @@
 // UPDATED: PIN Reminder as a button that opens a modal with a list, added Back to Dashboard button
 
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   RefreshCw, UserCheck, UserX, KeyRound, Search, UserPlus, X, Eye, EyeOff, 
-  StickyNote, Edit3, Plus, Trash2, Save, ArrowLeft
+  StickyNote, Edit3, Plus, Trash2, Save, ArrowLeft, LogIn
 } from 'lucide-react';
 import { usersApi, authApi } from '../../api/services';
-import type { UserDto } from '../../types';
+import type { UserDto, UserRole } from '../../types';
 import { PageLoader, Spinner, Alert, Badge, EmptyState, ConfirmModal } from '../../components/ui';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { useAuthStore } from '../../store/authStore';
+import { useAuthStore, getRoleHome } from '../../store/authStore';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -481,7 +481,8 @@ function PinReminderModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
 // ─── Main AdminUsers Component ──────────────────────────────────────────────
 
 export function AdminUsers() {
-  const { user } = useAuthStore();
+  const { user, actAsSalesman } = useAuthStore();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [users,        setUsers]        = useState<UserDto[]>([]);
   const [loading,      setLoading]      = useState(true);
@@ -494,6 +495,21 @@ export function AdminUsers() {
 
   const [toggling,     setToggling]     = useState<string | null>(null);
   const [toggleTarget, setToggleTarget] = useState<UserDto | null>(null);
+
+  // ── NEW: Act as Salesman (Admin Override via Master PIN) ──
+  const [overrideModal,   setOverrideModal]   = useState<UserDto | null>(null);
+  const [overridePin,     setOverridePin]     = useState('');
+  const [showOverridePin, setShowOverridePin] = useState(false);
+  const [overrideSaving,  setOverrideSaving]  = useState(false);
+  const [overrideError,   setOverrideError]   = useState('');
+
+  // ── NEW: Set/Change the admin's own Master Access PIN ──
+  const [masterPinModal,   setMasterPinModal]   = useState(false);
+  const [masterPinValue,   setMasterPinValue]   = useState('');
+  const [showMasterPin,    setShowMasterPin]    = useState(false);
+  const [masterPinSaving,  setMasterPinSaving]  = useState(false);
+  const [masterPinError,   setMasterPinError]   = useState('');
+  const [masterPinSuccess, setMasterPinSuccess] = useState(false);
 
   const [pinModal,     setPinModal]     = useState<UserDto | null>(null);
   const [pinValue,     setPinValue]     = useState('');
@@ -541,6 +557,76 @@ export function AdminUsers() {
     setShowPinValue(false);
     setPinAvailability('idle');
     setPinConflictName('');
+  }
+
+  // ── NEW: Act as Salesman ──
+  function openOverrideModal(u: UserDto) {
+    setOverrideModal(u);
+    setOverridePin('');
+    setOverrideError('');
+    setShowOverridePin(false);
+  }
+
+  async function handleOverrideSubmit() {
+    if (!overrideModal) return;
+    if (overridePin.length !== 6) {
+      setOverrideError('Master PIN must be 6 digits.');
+      return;
+    }
+    setOverrideSaving(true);
+    setOverrideError('');
+    try {
+      const res = await authApi.adminOverrideLogin(overrideModal.id, overridePin);
+      // ── Stash the admin's own session and switch into the salesman's —
+      // the "Return to Admin" banner (shown globally while acting as a
+      // salesman) restores it instantly, no re-login needed. ──
+      actAsSalesman({
+        id:           res.userId,
+        email:        res.email,
+        name:         res.fullName,
+        role:         res.role as UserRole,
+        token:        res.token,
+        refreshToken: res.refreshToken,
+        sessionId:    res.sessionId,
+        requiresPinUpdate: false,
+      });
+      setOverrideModal(null);
+      setTimeout(() => {
+        navigate(getRoleHome('Salesman'), { replace: true });
+      }, 0);      
+    } catch (err: unknown) {
+      setOverrideError(err instanceof Error ? err.message : 'Invalid Master PIN.');
+    } finally {
+      setOverrideSaving(false);
+    }
+  }
+
+  // ── NEW: Set/Change Master Access PIN ──
+  function openMasterPinModal() {
+    setMasterPinModal(true);
+    setMasterPinValue('');
+    setMasterPinError('');
+    setShowMasterPin(false);
+    setMasterPinSuccess(false);
+  }
+
+  async function handleSetMasterPin() {
+    if (masterPinValue.length !== 6) {
+      setMasterPinError('PIN must be exactly 6 digits.');
+      return;
+    }
+    setMasterPinSaving(true);
+    setMasterPinError('');
+    try {
+      await authApi.setMasterPin(masterPinValue);
+      setMasterPinSuccess(true);
+      setMasterPinValue('');
+      setTimeout(() => setMasterPinModal(false), 1500);
+    } catch (err: unknown) {
+      setMasterPinError(err instanceof Error ? err.message : 'Failed to set Master PIN.');
+    } finally {
+      setMasterPinSaving(false);
+    }
   }
 
   useEffect(() => {
@@ -725,6 +811,22 @@ export function AdminUsers() {
             >
               <UserPlus size={16} /> Create Salesman
             </button>
+            <button
+              onClick={openMasterPinModal}
+              title="Set the PIN that lets you act as any salesman"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '9px 18px', borderRadius: 9,
+                border: `1px solid ${D.amber}`,
+                background: 'transparent',
+                color: D.amber,
+                fontSize: 13, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'all 0.15s',
+              }}
+            >
+              <LogIn size={16} /> Master PIN
+            </button>
           </div>
         </div>
 
@@ -845,6 +947,28 @@ export function AdminUsers() {
                       <KeyRound size={13} /> Set PIN
                     </button>
                   )}
+                  {u.role === 'Salesman' && u.isActive && (
+                    <button
+                      onClick={() => openOverrideModal(u)}
+                      title="Act as this salesman using the Master Access PIN"
+                      style={{
+                        flex: 1, justifyContent: 'center', minWidth: 100,
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        border: `1px solid ${D.border}`,
+                        background: D.bg,
+                        color: D.muted,
+                        fontSize: 12, fontWeight: 600,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        transition: 'all 0.12s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = D.amber}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+                    >
+                      <LogIn size={13} /> Act As
+                    </button>
+                  )}
                   <button
                     onClick={() => setToggleTarget(u)}
                     disabled={toggling === u.id}
@@ -957,6 +1081,27 @@ export function AdminUsers() {
                               onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
                             >
                               <KeyRound size={12} /> Set PIN
+                            </button>
+                          )}
+                          {u.role === 'Salesman' && u.isActive && (
+                            <button
+                              onClick={() => openOverrideModal(u)}
+                              title="Act as this salesman using the Master Access PIN"
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: 7,
+                                border: `1px solid ${D.border}`,
+                                background: D.bg,
+                                color: D.muted,
+                                fontSize: 12, fontWeight: 600,
+                                cursor: 'pointer', fontFamily: 'inherit',
+                                display: 'flex', alignItems: 'center', gap: 4,
+                                transition: 'all 0.12s',
+                              }}
+                              onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = D.amber}
+                              onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+                            >
+                              <LogIn size={12} /> Act As
                             </button>
                           )}
                           <button
@@ -1118,6 +1263,219 @@ export function AdminUsers() {
                   {pinSaving ? <Spinner size={16} /> : 'Set PIN'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* NEW: Act as Salesman Modal — Master PIN entry */}
+        {overrideModal && (
+          <div className="modal-overlay" onClick={() => setOverrideModal(null)}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380, background: D.surface, border: `1px solid ${D.border}` }}>
+              <h3 style={{ marginTop: 0, fontWeight: 700, color: D.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <LogIn size={18} color={D.amber} /> Act as {overrideModal.fullName}
+              </h3>
+              <p style={{ fontSize: 13, color: D.muted, marginBottom: 16 }}>
+                Enter the Master Access PIN to act as <strong style={{ color: D.text }}>{overrideModal.fullName}</strong> —
+                you'll be able to take or edit orders on their routes directly. Use "Return to Admin" at any time to switch back.
+              </p>
+
+              {overrideError && (
+                <div style={{
+                  background: 'rgba(239,68,68,0.10)',
+                  border: `1px solid rgba(239,68,68,0.30)`,
+                  borderRadius: 8, padding: '8px 12px',
+                  color: D.red, fontSize: 13, marginBottom: 12,
+                }}>
+                  {overrideError}
+                </div>
+              )}
+
+              <label style={{ fontSize: 12, color: D.muted, display: 'block', marginBottom: 6 }}>
+                Master Access PIN (6 digits) *
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  className="input"
+                  type={showOverridePin ? 'text' : 'password'}
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="e.g. 123456"
+                  value={overridePin}
+                  onChange={e => setOverridePin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  autoFocus
+                  onKeyDown={e => e.key === 'Enter' && handleOverrideSubmit()}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    background: D.bg,
+                    border: `1px solid ${D.border}`,
+                    borderRadius: 10,
+                    fontSize: 20,
+                    color: D.text,
+                    textAlign: 'center',
+                    letterSpacing: 8,
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                    transition: 'border-color 0.15s',
+                  }}
+                  onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.amber}
+                  onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOverridePin(v => !v)}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer', padding: 4, display: 'flex' }}
+                  title={showOverridePin ? 'Hide PIN' : 'Show PIN'}
+                >
+                  {showOverridePin ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+                <button
+                  onClick={() => setOverrideModal(null)}
+                  disabled={overrideSaving}
+                  style={{
+                    flex: 1, padding: '10px 14px', borderRadius: 10,
+                    border: `1px solid ${D.border}`, background: 'transparent',
+                    color: D.muted, fontSize: 14, fontWeight: 600,
+                    cursor: overrideSaving ? 'default' : 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleOverrideSubmit}
+                  disabled={overrideSaving || overridePin.length !== 6}
+                  style={{
+                    flex: 1, padding: '10px 14px', borderRadius: 10,
+                    border: 'none',
+                    background: overridePin.length === 6 ? D.amber : D.border,
+                    color: overridePin.length === 6 ? '#1a1a1a' : D.sub,
+                    fontSize: 14, fontWeight: 700,
+                    cursor: overrideSaving || overridePin.length !== 6 ? 'default' : 'pointer',
+                    fontFamily: 'inherit',
+                    boxShadow: overridePin.length === 6 ? '0 4px 14px rgba(245,158,11,0.25)' : 'none',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {overrideSaving ? <Spinner size={16} /> : 'Act as Salesman'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* NEW: Set/Change Master Access PIN Modal */}
+        {masterPinModal && (
+          <div className="modal-overlay" onClick={() => !masterPinSaving && setMasterPinModal(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380, background: D.surface, border: `1px solid ${D.border}` }}>
+              <h3 style={{ marginTop: 0, fontWeight: 700, color: D.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <LogIn size={18} color={D.amber} /> Master Access PIN
+              </h3>
+              <p style={{ fontSize: 13, color: D.muted, marginBottom: 16 }}>
+                This single PIN lets you act as any active salesman — useful when a customer calls
+                in outside working hours and the salesman isn't reachable. Setting a new PIN replaces
+                any previous one.
+              </p>
+
+              {masterPinSuccess ? (
+                <div style={{
+                  background: 'rgba(34,197,94,0.10)',
+                  border: `1px solid rgba(34,197,94,0.30)`,
+                  borderRadius: 8, padding: '10px 12px',
+                  color: D.green, fontSize: 13, fontWeight: 600,
+                  display: 'flex', alignItems: 'center', gap: 8,
+                }}>
+                  ✓ Master PIN saved successfully.
+                </div>
+              ) : (
+                <>
+                  {masterPinError && (
+                    <div style={{
+                      background: 'rgba(239,68,68,0.10)',
+                      border: `1px solid rgba(239,68,68,0.30)`,
+                      borderRadius: 8, padding: '8px 12px',
+                      color: D.red, fontSize: 13, marginBottom: 12,
+                    }}>
+                      {masterPinError}
+                    </div>
+                  )}
+
+                  <label style={{ fontSize: 12, color: D.muted, display: 'block', marginBottom: 6 }}>
+                    New Master PIN (6 digits) *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      className="input"
+                      type={showMasterPin ? 'text' : 'password'}
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="e.g. 998877"
+                      value={masterPinValue}
+                      onChange={e => setMasterPinValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      autoFocus
+                      onKeyDown={e => e.key === 'Enter' && handleSetMasterPin()}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        background: D.bg,
+                        border: `1px solid ${D.border}`,
+                        borderRadius: 10,
+                        fontSize: 20,
+                        color: D.text,
+                        textAlign: 'center',
+                        letterSpacing: 8,
+                        outline: 'none',
+                        fontFamily: 'inherit',
+                        transition: 'border-color 0.15s',
+                      }}
+                      onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = D.amber}
+                      onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = D.border}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowMasterPin(v => !v)}
+                      style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer', padding: 4, display: 'flex' }}
+                      title={showMasterPin ? 'Hide PIN' : 'Show PIN'}
+                    >
+                      {showMasterPin ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+                    <button
+                      onClick={() => setMasterPinModal(false)}
+                      disabled={masterPinSaving}
+                      style={{
+                        flex: 1, padding: '10px 14px', borderRadius: 10,
+                        border: `1px solid ${D.border}`, background: 'transparent',
+                        color: D.muted, fontSize: 14, fontWeight: 600,
+                        cursor: masterPinSaving ? 'default' : 'pointer', fontFamily: 'inherit',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSetMasterPin}
+                      disabled={masterPinSaving || masterPinValue.length !== 6}
+                      style={{
+                        flex: 1, padding: '10px 14px', borderRadius: 10,
+                        border: 'none',
+                        background: masterPinValue.length === 6 ? D.amber : D.border,
+                        color: masterPinValue.length === 6 ? '#1a1a1a' : D.sub,
+                        fontSize: 14, fontWeight: 700,
+                        cursor: masterPinSaving || masterPinValue.length !== 6 ? 'default' : 'pointer',
+                        fontFamily: 'inherit',
+                        boxShadow: masterPinValue.length === 6 ? '0 4px 14px rgba(245,158,11,0.25)' : 'none',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {masterPinSaving ? <Spinner size={16} /> : 'Save Master PIN'}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

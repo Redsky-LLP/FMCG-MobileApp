@@ -92,6 +92,45 @@ public class AuthController(IMediator mediator) : ControllerBase
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
+    // ── NEW: Set/Change the admin's own Master Access PIN ──
+    // POST /api/v1/auth/set-master-pin
+    // Authenticated Admin/SuperAdmin only — AdminId comes from the JWT claim,
+    // same pattern as SetPin, so an admin can only ever set their own.
+    [HttpPost("set-master-pin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<Result<bool>>> SetMasterPin([FromBody] SetMasterPinCommand command)
+    {
+        var callerIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(callerIdStr, out var callerId))
+            return BadRequest(Result<bool>.Failure("User not authenticated."));
+
+        command.AdminId = callerId;
+
+        var result = await mediator.Send(command);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    // ── NEW: Admin Override Login — act as a chosen salesman via the Master PIN ──
+    // POST /api/v1/auth/admin-override-login
+    // Requires the caller to already hold a valid Admin/SuperAdmin session —
+    // the Master PIN is a second, additional gate on top of that, not a
+    // replacement for normal login. Returns a LoginResponse for the TARGET
+    // SALESMAN, which the frontend handles exactly like any other login.
+    [HttpPost("admin-override-login")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<Result<LoginResponse>>> AdminOverrideLogin(
+        [FromBody] AdminOverrideLoginCommand command)
+    {
+        var callerIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(callerIdStr, out var callerId))
+            return BadRequest(Result<LoginResponse>.Failure("User not authenticated."));
+
+        command.AdminId = callerId;
+
+        var result = await mediator.Send(command);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
     // ── Logout — records the logout time for the session ──
     // POST /api/v1/auth/logout
     // No [Authorize] — deliberately. If the access token has already expired

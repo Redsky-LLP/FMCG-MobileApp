@@ -151,6 +151,14 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
                 if (product == null)
                     return Result<OrderDetailDto>.Failure("Product not found or inactive.");
 
+                // ── NEW: Out of Stock guard — only for genuinely new items being added
+                // to this order. An item that was already on the order before it went
+                // out of stock is left alone here (existingItem branch above doesn't
+                // re-check this at all), matching the same "don't touch what's already
+                // there" philosophy as the name/price snapshot fields. ──
+                if (product.IsOutOfStock)
+                    return Result<OrderDetailDto>.Failure($"'{product.NameEnglish}' is currently out of stock.");
+
                 var qty = ResolveQuantity(itemDto.Quantity, itemDto.QuantityBags, itemDto.QuantityBoxes, itemDto.QuantityTins);
                 if (qty <= 0) return Result<OrderDetailDto>.Failure("Quantity must be > 0.");
 

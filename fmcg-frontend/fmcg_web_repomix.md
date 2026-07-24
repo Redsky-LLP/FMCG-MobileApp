@@ -1423,7 +1423,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.n88ao5vcb6o"
+    "revision": "0.ikat9gnrdso"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -67221,21 +67221,36 @@ export const reportsApi = {
     });
     return res.data as Blob;
   },
-  productSummary: async (fromDate: string, toDate: string, productGroupId?: string) => {
-    const params: Record<string, string> = { fromDate, toDate };
-    if (productGroupId) params.productGroupId = productGroupId;
-    const res = await apiClient.get('/api/v1/reports/product-summary', {
-      params,
-      responseType: 'blob',
-    });
-    return res.data as Blob;
-  },
+  downloadSummaryReport: async (fromDate?: string, toDate?: string) => {
+  const params: Record<string, string> = {};
+  if (fromDate) params.fromDate = fromDate;
+  if (toDate) params.toDate = toDate;
+  const res = await apiClient.get('/api/v1/reports/summary-report', {
+    params,
+    responseType: 'blob',
+  });
+  return res.data as Blob;
+},
   // ── Incentive Report ──
 downloadIncentiveReport: async (fromDate?: string, toDate?: string) => {
   const params: Record<string, string> = {};
   if (fromDate) params.fromDate = fromDate;
   if (toDate) params.toDate = toDate;
   const res = await apiClient.get('/api/v1/reports/incentive-report', {
+    params,
+    responseType: 'blob',
+  });
+  return res.data as Blob;
+},
+downloadAdditionalRevenueReport: async (fromDate?: string, toDate?: string) => {
+  console.log('🔵 downloadAdditionalRevenueReport called!');
+  console.log('fromDate:', fromDate);
+  console.log('toDate:', toDate);
+  
+  const params: Record<string, string> = {};
+  if (fromDate) params.fromDate = fromDate;
+  if (toDate) params.toDate = toDate;
+  const res = await apiClient.get('/api/v1/reports/additional-revenue', {
     params,
     responseType: 'blob',
   });
@@ -78684,125 +78699,140 @@ export function AdminProducts() {
                 fontSize: 13,
                 background: D.surface,
               }}>
-                <thead>
-                  <tr>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'left',
-                      whiteSpace: 'nowrap',
-                    }}>Product Name</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'left',
-                      whiteSpace: 'nowrap',
-                    }}>Malayalam Name</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'right',
-                      whiteSpace: 'nowrap',
-                    }}>Base Price</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'left',
-                      whiteSpace: 'nowrap',
-                    }}>Item Group</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'right',
-                      whiteSpace: 'nowrap',
-                    }}>Unit Size</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'right',
-                      whiteSpace: 'nowrap',
-                    }}>Incentive</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'center',
-                      whiteSpace: 'nowrap',
-                    }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(p => (
-                    <tr
-                      key={p.id}
-                      style={{
-                        borderBottom: `1px solid ${D.border}`,
-                        transition: 'background 0.12s',
-                      }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-                    >
-                      <td style={{ padding: '12px 16px', fontWeight: 600, color: D.text }}>
-                        {p.nameEnglish}
-                      </td>
-                      <td style={{ padding: '12px 16px', color: D.sub }}>
-                        {p.nameMalayalam || '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: D.accent }}>
-                        ₹{fmt(p.basePrice)}
-                      </td>
-                      <td style={{ padding: '12px 16px', color: D.muted }}>
-                        {p.productGroupName || '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
-                        {(p as any).unitSize || '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
-                        {(p as any).incentive ? `₹${(p as any).incentive}` : '—'}
-                      </td>
-                      <td style={{ padding: '8px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
+           <thead>
+  <tr>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',
+      whiteSpace: 'nowrap',
+    }}>Product Name</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',
+      whiteSpace: 'nowrap',
+    }}>Malayalam Name</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'right',
+      whiteSpace: 'nowrap',
+    }}>Base Price</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',
+      whiteSpace: 'nowrap',
+    }}>Item Group</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',  // ← left alignment
+      whiteSpace: 'nowrap',
+    }}>Size Group</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'right',
+      whiteSpace: 'nowrap',
+    }}>Unit Size</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'right',
+      whiteSpace: 'nowrap',
+    }}>Incentive</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'center',
+      whiteSpace: 'nowrap',
+    }}>Actions</th>
+  </tr>
+</thead>
+<tbody>
+  {filtered.map(p => (
+    <tr
+      key={p.id}
+      style={{
+        borderBottom: `1px solid ${D.border}`,
+        transition: 'background 0.12s',
+      }}
+      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
+      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+    >
+      <td style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: D.text }}>
+        {p.nameEnglish}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.sub }}>
+        {p.nameMalayalam || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: D.accent }}>
+        ₹{fmt(p.basePrice)}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
+        {p.productGroupName || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
+        {p.sizeGroupName || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
+        {(p as any).unitSize || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
+        {(p as any).incentive ? `₹${(p as any).incentive}` : '—'}
+      </td>
+      <td style={{ padding: '8px 16px', textAlign: 'center' }}>
+        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
                           <button
                             onClick={() => openEdit(p)}
                             style={{
@@ -79498,12 +79528,16 @@ export function AdminReports() {
   // const [routeRptRoute, setRouteRptRoute] = useState('');
   // const [routeFrom, setRouteFrom]  = useState(thirtyDaysAgo);
   // const [routeTo,   setRouteTo]    = useState(today);
+  const [summaryFrom, setSummaryFrom] = useState(thirtyDaysAgo);
+  const [summaryTo, setSummaryTo] = useState(today);
   const [incentiveFrom, setIncentiveFrom] = useState(thirtyDaysAgo);
   const [incentiveTo, setIncentiveTo] = useState(today);
+  const [additionalRevenueFrom, setAdditionalRevenueFrom] = useState(thirtyDaysAgo);
+  const [additionalRevenueTo, setAdditionalRevenueTo] = useState(today);
   const [prodGroup, setProdGroup]   = useState('');
   const [prodFrom,  setProdFrom]    = useState(thirtyDaysAgo);
   const [prodTo,    setProdTo]      = useState(today);
-  const [dailyDate, setDailyDate]   = useState(today);
+  // const [dailyDate, setDailyDate]   = useState(today);
 
   useEffect(() => {
     Promise.all([routesApi.getAll(), productGroupsApi.getAll()])
@@ -79681,47 +79715,37 @@ export function AdminReports() {
     //     previewReport('routeSummary', `Route Summary - ${routeFrom} to ${routeTo} (${routeName})`, fn, downloadFn);
     //   },
     // },
-    {
-  key: 'summaryReport',
-  title: 'Summary Report',  // ← CHANGED
-  desc: 'Product-wise summary with packing category & size group',
+{
+  key: 'summary',
+  title: 'Summary Report',
+  desc: 'Item Group & Size Group wise quantity summary',
   icon: '📊',
-  color: '#8B5CF6',
+  color: '#3B82F6',
   roles: 'Admin',
   filters: (
-    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-      <select 
-        className="input" 
-        value={prodGroup} 
-        onChange={(e) => setProdGroup(e.target.value)} 
-        style={selectStyle(isMobile)}
-      >
-        <option value="">📦 All Groups</option>
-        {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-      </select>
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
       <input 
         className="input" 
         type="date" 
-        value={prodFrom} 
-        onChange={(e) => setProdFrom(e.target.value)} 
+        value={summaryFrom} 
+        onChange={(e) => setSummaryFrom(e.target.value)} 
         style={dateInputStyle(isMobile)}
       />
       <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
       <input 
         className="input" 
         type="date" 
-        value={prodTo} 
-        onChange={(e) => setProdTo(e.target.value)} 
+        value={summaryTo} 
+        onChange={(e) => setSummaryTo(e.target.value)} 
         style={dateInputStyle(isMobile)}
       />
     </div>
   ),
-  onDownload: () => download('summaryReport', () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo), `SummaryReport_${prodFrom}_${prodTo}.pdf`),
+  onDownload: () => download('summary', () => reportsApi.downloadSummaryReport(summaryFrom, summaryTo), `SummaryReport_${summaryFrom}.pdf`),
   onPreview: () => {
-    const fn = () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo);
-    const downloadFn = () => download('summaryReport', fn, `SummaryReport_${prodFrom}_${prodTo}.pdf`);
-    const groupName = prodGroup ? groups.find(g => g.id === prodGroup)?.name : 'All Groups';
-    previewReport('summaryReport', `Summary Report - ${prodFrom} to ${prodTo} (${groupName})`, fn, downloadFn);
+    const fn = () => reportsApi.downloadSummaryReport(summaryFrom, summaryTo);
+    const downloadFn = () => download('summary', fn, `SummaryReport_${summaryFrom}.pdf`);
+    previewReport('summary', `Summary Report - ${summaryFrom} to ${summaryTo}`, fn, downloadFn);
   },
 },
 {
@@ -79757,29 +79781,62 @@ export function AdminReports() {
     previewReport('incentive', `Incentive Report - ${incentiveFrom} to ${incentiveTo}`, fn, downloadFn);
   },
 },
-    {
-      key: 'daily',
-      title: 'Daily Summary Report',
-      desc: 'Full operational day summary',
-      icon: '📋',
-      color: '#14B8A6',
-      roles: 'Admin / Accounts',
-      filters: (
-        <input 
-          className="input" 
-          type="date" 
-          value={dailyDate} 
-          onChange={(e) => setDailyDate(e.target.value)} 
-          style={dateInputStyle(isMobile)}
-        />
-      ),
-      onDownload: () => download('daily', () => reportsApi.downloadDailySummary(dailyDate), `DailySummary_${dailyDate}.pdf`),
-      onPreview: () => {
-        const fn = () => reportsApi.downloadDailySummary(dailyDate);
-        const downloadFn = () => download('daily', fn, `DailySummary_${dailyDate}.pdf`);
-        previewReport('daily', `Daily Summary - ${dailyDate}`, fn, downloadFn);
-      },
-    },
+{
+  key: 'additionalRevenue',
+  title: 'Additional Revenue Report',
+  desc: '(Selling Price - Base Price) × Unit Size × Quantity',
+  icon: '💰',
+  color: '#F59E0B',
+  roles: 'Admin',
+  filters: (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+      <input 
+        className="input" 
+        type="date" 
+        value={additionalRevenueFrom} 
+        onChange={(e) => setAdditionalRevenueFrom(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+      <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
+      <input 
+        className="input" 
+        type="date" 
+        value={additionalRevenueTo} 
+        onChange={(e) => setAdditionalRevenueTo(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+    </div>
+  ),
+  onDownload: () => download('additionalRevenue', () => reportsApi.downloadAdditionalRevenueReport(additionalRevenueFrom, additionalRevenueTo), `AdditionalRevenueReport_${additionalRevenueFrom}.pdf`),
+  onPreview: () => {
+    const fn = () => reportsApi.downloadAdditionalRevenueReport(additionalRevenueFrom, additionalRevenueTo);
+    const downloadFn = () => download('additionalRevenue', fn, `AdditionalRevenueReport_${additionalRevenueFrom}.pdf`);
+    previewReport('additionalRevenue', `Additional Revenue Report - ${additionalRevenueFrom} to ${additionalRevenueTo}`, fn, downloadFn);
+  },
+},
+    // {
+    //   key: 'daily',
+    //   title: 'Daily Summary Report',
+    //   desc: 'Full operational day summary',
+    //   icon: '📋',
+    //   color: '#14B8A6',
+    //   roles: 'Admin / Accounts',
+    //   filters: (
+    //     <input 
+    //       className="input" 
+    //       type="date" 
+    //       value={dailyDate} 
+    //       onChange={(e) => setDailyDate(e.target.value)} 
+    //       style={dateInputStyle(isMobile)}
+    //     />
+    //   ),
+    //   onDownload: () => download('daily', () => reportsApi.downloadDailySummary(dailyDate), `DailySummary_${dailyDate}.pdf`),
+    //   onPreview: () => {
+    //     const fn = () => reportsApi.downloadDailySummary(dailyDate);
+    //     const downloadFn = () => download('daily', fn, `DailySummary_${dailyDate}.pdf`);
+    //     previewReport('daily', `Daily Summary - ${dailyDate}`, fn, downloadFn);
+    //   },
+    // },
   ];
 
   if (loading) return (
@@ -87376,9 +87433,17 @@ export default function OrderEntry() {
 
         try {
           const allOrders = await ordersApi.listByRoute(routeId);
-          const today     = new Date().toISOString().slice(0, 10);
+          // ── FIX: this used to only count an order as "the one to edit" if its
+          // orderDate matched today's calendar date. But a Draft order is meant to
+          // stay open and editable across day boundaries until the admin actually
+          // closes it — so filtering by date silently lost yesterday's still-open
+          // order the moment the calendar rolled over, showing an empty "New" order
+          // instead of the real Draft one with items already on it. Filtering by
+          // status (not yet Closed, not locked) instead of date fixes this — the
+          // most recent still-open order for this customer is always found,
+          // regardless of which day it was originally created on. ──
           const existing  = allOrders
-            .filter(o => String(o.customerId) === cid && o.orderDate?.startsWith(today))
+            .filter(o => String(o.customerId) === cid && o.status !== 'Closed' && !o.isLocked)
             .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())[0];
 
           if (existing) {
@@ -87390,7 +87455,18 @@ export default function OrderEntry() {
               if (!prod) return null;
               const up = priceMap[prod.id];
               return {
-                product:      prod,
+                // ── FIX: keep the frozen name from the order itself (item.productName /
+                // item.productNameMalayalam — already correctly snapshot-preferred by the
+                // backend) instead of the live product's current name. Everything else
+                // about `prod` (unit info, base price for lookups, etc.) still comes from
+                // the live product record, since that's needed for editing — only the
+                // display name was wrong, because it was silently overwritten by whichever
+                // name the product currently has, even after a rename. ──
+                product: {
+                  ...prod,
+                  nameEnglish: item.productName || prod.nameEnglish,
+                  nameMalayalam: item.productNameMalayalam || prod.nameMalayalam,
+                },
                 productId:    String(prod.id),
                 qty:          item.quantity,
                 sellingPrice: item.sellingPrice || (up?.salePrice ?? prod.basePrice),
@@ -87482,30 +87558,6 @@ export default function OrderEntry() {
     return tmp !== undefined ? tmp : price === 0 ? '' : String(price);
   };
 
-  // ── Live (not-yet-blurred) selling price for a line. While the salesman is
-  // still typing, `line.sellingPrice` hasn't been committed yet (that only
-  // happens on blur) — but the ±10% warning needs to react on every
-  // keystroke, not just when the field loses focus. This reads straight from
-  // tempPrices so the warning is instant. ──
-  const getEffectivePrice = (productId: string, committed: number): number => {
-    const tmp = tempPrices[productId];
-    if (tmp === undefined) return committed;
-    const n = parseFloat(tmp);
-    return isNaN(n) ? committed : n;
-  };
-
-  // ── Selling price must stay within ±10% of the product's base price.
-  // Returns the allowed [min, max] band when the given price falls outside
-  // it, or null when the price is fine. Shared by the live warning badge and
-  // the hard save-block in handleSave below, so both always agree. ──
-  const getPriceRangeIssue = (basePrice: number, sellingPrice: number): { min: number; max: number } | null => {
-    if (!basePrice || !sellingPrice) return null;
-    const min = basePrice * 0.9;
-    const max = basePrice * 1.1;
-    if (sellingPrice < min || sellingPrice > max) return { min, max };
-    return null;
-  };
-
   const removeItem = (productId: string) => {
     if (!canEdit) return;
     setLines(prev => prev.filter(l => l.product.id !== productId));
@@ -87548,19 +87600,7 @@ export default function OrderEntry() {
     setError(`Enter quantity and price for "${incomplete.product.nameEnglish}" before saving.`);
     return;
   }
-
-  // ── Hard block: no line's price may sit outside ±10% of its base price.
-  // Re-checks against the live (not-yet-blurred) value too, in case Save is
-  // clicked while a price field still has focus. ──
-  const outOfRange = lines
-    .map(l => ({ line: l, issue: getPriceRangeIssue(l.product.basePrice, getEffectivePrice(l.product.id, l.sellingPrice)) }))
-    .find(x => x.issue !== null);
-  if (outOfRange) {
-    const { line, issue } = outOfRange;
-    setError(`"${line.product.nameEnglish}" price must be between ₹${issue!.min.toFixed(2)} and ₹${issue!.max.toFixed(2)} (±10% of base price). The order cannot be saved until this is corrected.`);
-    return;
-  }
-
+  
   setSaving(true); 
   setError(''); 
   setSuccessMsg('');
@@ -87782,6 +87822,7 @@ export default function OrderEntry() {
                     {line.product.nameMalayalam && (
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: D.muted }} lang="ml">{line.product.nameMalayalam}</p>
                     )}
+                    {/* <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} /> */}
                   </div>
 
                   {/* Fields row */}
@@ -87830,12 +87871,6 @@ export default function OrderEntry() {
                       </button>
                     )}
                   </div>
-
-                  {/* ── Price must stay within ±10% of the product's base price. When the
-                      salesman-entered selling price falls outside that band, a warning shows
-                      up right under the Price field so it's caught before the order is saved.
-                      Uses the live (not-yet-blurred) value so it updates on every keystroke. ── */}
-                  <PriceVarianceBadge base={line.product.basePrice} selling={getEffectivePrice(line.product.id, line.sellingPrice)} />
                 </div>
               ))}
             </div>
@@ -88012,24 +88047,35 @@ export default function OrderEntry() {
                 filteredProducts.map((product: any) => {
                   const isInBill  = lines.some(l => l.product.id === product.id);
                   const billQty   = lines.find(l => l.product.id === product.id)?.qty ?? 0;
+                  // ── NEW: Out of Stock — faded, disabled, can't add a new one. An item
+                  // already sitting in this draft bill from before it went out of stock
+                  // is left alone (that's handled elsewhere, not by this picker button). ──
+                  const outOfStock = !!product.isOutOfStock;
 
                   return (
                     <button
                       key={product.id}
-                      onClick={() => addProduct(product)}
+                      onClick={() => { if (!outOfStock) addProduct(product); }}
+                      disabled={outOfStock}
                       style={{
                         width: '100%', textAlign: 'left',
                         padding: '13px 14px', marginBottom: 6, borderRadius: 10,
-                        background: isInBill ? '#f0fdf4' : '#ffffff',
-                        border: `1px solid ${isInBill ? 'rgba(34,197,94,0.35)' : '#e2e8f0'}`,
-                        cursor: 'pointer', fontFamily: 'inherit',
+                        background: outOfStock ? '#f8fafc' : (isInBill ? '#f0fdf4' : '#ffffff'),
+                        border: `1px solid ${outOfStock ? '#e2e8f0' : (isInBill ? 'rgba(34,197,94,0.35)' : '#e2e8f0')}`,
+                        cursor: outOfStock ? 'not-allowed' : 'pointer',
+                        opacity: outOfStock ? 0.5 : 1,
+                        fontFamily: 'inherit',
                         display: 'block',
                         touchAction: 'manipulation',
                       }}
                     >
                       <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#000000', fontFamily: "'Calibri', 'Segoe UI', sans-serif" }}>{product.nameEnglish}</p>
                       {product.nameMalayalam && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#334155', fontFamily: "'Calibri', 'Segoe UI', sans-serif" }} lang="ml">{product.nameMalayalam}</p>}
-                      {isInBill && (
+                      {outOfStock ? (
+                        <span style={{ display: 'inline-block', marginTop: 4, fontSize: 10, padding: '2px 7px', borderRadius: 8, background: 'rgba(239,68,68,0.15)', color: '#b91c1c', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                          Out of Stock
+                        </span>
+                      ) : isInBill && (
                         <span style={{ display: 'inline-block', marginTop: 4, fontSize: 10, padding: '2px 7px', borderRadius: 8, background: 'rgba(34,197,94,0.15)', color: '#15803d', fontWeight: 700 }}>
                           {billQty} in bill
                         </span>

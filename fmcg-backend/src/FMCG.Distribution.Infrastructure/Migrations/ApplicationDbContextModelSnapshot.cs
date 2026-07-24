@@ -576,6 +576,9 @@ namespace FMCG.Distribution.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsOutOfStock")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("ItemCode")
                         .HasColumnType("text");
 
@@ -594,6 +597,12 @@ namespace FMCG.Distribution.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("OutOfStockMarkedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("OutOfStockReason")
+                        .HasColumnType("text");
 
                     b.Property<Guid>("ProductGroupId")
                         .HasColumnType("uuid");
@@ -1170,6 +1179,9 @@ namespace FMCG.Distribution.Infrastructure.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("MasterAccessPinHash")
+                        .HasColumnType("text");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()

@@ -33,6 +33,14 @@ public class Product : BaseEntity
     public decimal? UnitSize { get; set; }    // ← ADD THIS
     public decimal? Incentive { get; set; }   // ← ADD THIS
 
+    // ── NEW: Out of Stock — manual toggle only. The admin can't predict a restock date,
+    // so there is deliberately no "back in stock on X" field: they mark it out when it
+    // runs out, and mark it back in the moment new stock actually arrives. Reason and
+    // timestamp are purely informational, shown to admins so there's context for why/when
+    // something went out, without implying an ETA. ──
+    public bool IsOutOfStock { get; set; }
+    public string? OutOfStockReason { get; set; }
+    public DateTime? OutOfStockMarkedAt { get; set; }
 
     public bool IsActive { get; set; } = true;
 

@@ -66,6 +66,10 @@ public class GetAllProductsQueryHandler(IApplicationDbContext context)
                 UQC = p.DefaultUnit != null ? p.DefaultUnit.UQC : null,
                 UnitSize = p.UnitSize,
                 Incentive = p.Incentive,
+                // ── NEW: Out of Stock ──
+                IsOutOfStock = p.IsOutOfStock,
+                OutOfStockReason = p.OutOfStockReason,
+                OutOfStockMarkedAt = p.OutOfStockMarkedAt,
             })
             .ToListAsync(cancellationToken);
 

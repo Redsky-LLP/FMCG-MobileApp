@@ -52,7 +52,10 @@ public class SearchProductsQueryHandler(IApplicationDbContext context)
                 UnitSymbol = p.DefaultUnit != null ? p.DefaultUnit.Symbol : string.Empty,  // ← CHANGE THIS
                 BasePrice = p.BasePrice,
                 IsActive = p.IsActive,
-                ItemCode = p.ItemCode
+                ItemCode = p.ItemCode,
+                // ── NEW: Out of Stock ──
+                IsOutOfStock = p.IsOutOfStock,
+                OutOfStockReason = p.OutOfStockReason,
             })
             .ToListAsync(cancellationToken);
 

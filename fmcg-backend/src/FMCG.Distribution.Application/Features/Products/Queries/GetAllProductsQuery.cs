@@ -43,4 +43,9 @@ public class ProductDto
 
     // ── NEW: UQC (Unit Quantity Code) ──
     public string? UQC { get; set; }
+
+    // ── NEW: Out of Stock ──
+    public bool IsOutOfStock { get; set; }
+    public string? OutOfStockReason { get; set; }
+    public DateTime? OutOfStockMarkedAt { get; set; }
 }

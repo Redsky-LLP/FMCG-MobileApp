@@ -32,6 +32,14 @@ public class User : BaseEntity
     // ── NEW: Username for Salesman ──
     public string? UserName { get; set; }
 
+    // ── NEW: Admin Master Access PIN — a single admin-known PIN that lets the
+    // admin act as any salesman (see AdminOverrideLoginCommandHandler), for
+    // cases like a customer calling in after hours when the salesman isn't
+    // available. Only ever meaningful on an Admin/SuperAdmin account. Hashed
+    // the same way as every other PIN in the system (BCrypt) — this is not a
+    // per-salesman value, it's set once by the admin for their own account. ──
+    public string? MasterAccessPinHash { get; set; }
+
     // Navigation property
     public virtual ICollection<Route>? AssignedRoutes { get; set; }
 }

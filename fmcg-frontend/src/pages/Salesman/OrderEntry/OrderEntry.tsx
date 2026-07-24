@@ -639,7 +639,10 @@ export default function OrderEntry() {
       {canEdit && (lines.length > 0 || remarks.trim()) && (
         <div style={{
           position: 'fixed', 
-          bottom: 0, 
+          // ── Shifts up automatically when the "Acting as a salesman" banner is
+          // showing (see ReturnToAdminBanner in App.tsx), instead of sitting at a
+          // hardcoded bottom:0 and getting painted over by that banner. ──
+          bottom: 'var(--acting-banner-h, 0px)', 
           left: 0, 
           right: 0, 
           zIndex: 45,
@@ -686,7 +689,7 @@ export default function OrderEntry() {
         <>
           <div onClick={() => setShowProducts(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 60 }} />
           <div style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 70,
+            position: 'fixed', bottom: 'var(--acting-banner-h, 0px)', left: 0, right: 0, zIndex: 70,
             background: D.card, borderRadius: '20px 20px 0 0',
             boxShadow: '0 -8px 40px rgba(0,0,0,0.40)',
             display: 'flex', flexDirection: 'column',
