@@ -197,6 +197,11 @@ export const sizeGroupsApi = {
   update: (id: string, data: { name?: string; nameMl?: string; description?: string; isActive?: boolean }) =>
     put<SizeGroupDto>(`/api/v1/sizegroups/${id}`, { ...data, id }),
 
+  // ── NEW: updates a size group's report display order (SortOrder). Used by the
+  // Size Groups admin screen's up/down arrows to swap two groups' positions. ──
+  updatePriority: (id: string, priority: number) =>
+    put<boolean>(`/api/v1/sizegroups/${id}/priority`, { priority }),
+
   delete: (id: string) =>
     del<boolean>(`/api/v1/sizegroups/${id}`),
 };

@@ -4,6 +4,12 @@
 //      PostgreSQL sequences are atomic at the database level — no duplicate keys possible,
 //      no race conditions, works correctly across multiple server instances.
 // FIX: Unit lookup no longer requires IsActive - only checks IsDeleted
+// NEW: Captures ProductNameAtTime / ProductNameMalayalamAtTime / SizeGroupNameAtTime on each
+//      OrderItem at creation, mirroring the existing BasePriceAtTime snapshot pattern. This
+//      is what keeps historical reports (Billing Sheet / Loading Sheet) showing the name and
+//      size group that were actually on the order that day, even if the product gets renamed
+//      or moved to a different size group later — including through a reopen + re-close cycle,
+//      since this value is only ever set here at creation and never overwritten afterwards.
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -47,8 +53,11 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
 
         foreach (var item in request.Items)
         {
+            // ── Include SizeGroup so we can snapshot its name below, alongside the
+            // product's own name — same query, no extra round-trip. ──
             var product = await context.Products
                 .Include(p => p.DefaultUnit)
+                .Include(p => p.SizeGroup)
                 .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.IsActive && !p.IsDeleted, cancellationToken);
 
             if (product == null)
@@ -80,6 +89,10 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
                 UnitId = item.UnitId,
                 SellingPrice = item.SellingPrice,
                 BasePriceAtTime = product.BasePrice,
+                // ── NEW: name/size-group snapshot, captured once, right here ──
+                ProductNameAtTime = product.NameEnglish,
+                ProductNameMalayalamAtTime = product.NameMalayalam,
+                SizeGroupNameAtTime = product.SizeGroup?.Name,
                 QuantityBags = item.QuantityBags,
                 QuantityBoxes = item.QuantityBoxes,
                 QuantityTins = item.QuantityTins,

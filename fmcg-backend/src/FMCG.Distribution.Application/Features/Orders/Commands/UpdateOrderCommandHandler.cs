@@ -2,6 +2,12 @@
 // UPDATED: Allow Admin to edit Approved orders (not just Draft/PendingApproval)
 // FIXED: New items added to existing orders now use product.BasePrice for BasePriceAtTime
 //        instead of incorrectly using SellingPrice.
+// NEW: New items added to existing orders also capture ProductNameAtTime /
+//      ProductNameMalayalamAtTime / SizeGroupNameAtTime, same as CreateOrderCommandHandler.
+//      Existing items are deliberately left untouched — the whole point of this snapshot
+//      is that it's set once, at the moment an OrderItem row is first created, and never
+//      overwritten afterwards, including through edits, reopen, or re-close. This mirrors
+//      exactly how BasePriceAtTime already behaves for existingItem below.
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -126,13 +132,21 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
                     existingItem.QuantityBags = itemDto.QuantityBags;
                     existingItem.QuantityBoxes = itemDto.QuantityBoxes;
                     existingItem.QuantityTins = itemDto.QuantityTins;
+                    // ── NOTE: BasePriceAtTime, ProductNameAtTime, ProductNameMalayalamAtTime,
+                    // and SizeGroupNameAtTime are deliberately NOT touched here — they were
+                    // set once when this item was first created and stay frozen through any
+                    // number of edits, reopens, or re-closes. Only genuinely new items (below)
+                    // get a fresh snapshot. ──
                     existingItem.UpdateTimestamp(request.SalesmanId.ToString());
                     updatedItemIds.Add(existingItem.Id);
                 }
             }
             else
             {
+                // ── Include SizeGroup so we can snapshot its name below, same as
+                // CreateOrderCommandHandler does for brand-new orders. ──
                 var product = await context.Products
+                    .Include(p => p.SizeGroup)
                     .FirstOrDefaultAsync(p => p.Id == itemDto.ProductId && p.IsActive && !p.IsDeleted, cancellationToken);
                 if (product == null)
                     return Result<OrderDetailDto>.Failure("Product not found or inactive.");
@@ -149,6 +163,10 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
                     UnitId = itemDto.UnitId,
                     SellingPrice = itemDto.SellingPrice,
                     BasePriceAtTime = product.BasePrice,  // ← FIXED: Use product's current base price, not SellingPrice
+                    // ── NEW: name/size-group snapshot for this newly-added item ──
+                    ProductNameAtTime = product.NameEnglish,
+                    ProductNameMalayalamAtTime = product.NameMalayalam,
+                    SizeGroupNameAtTime = product.SizeGroup?.Name,
                     QuantityBags = itemDto.QuantityBags,
                     QuantityBoxes = itemDto.QuantityBoxes,
                     QuantityTins = itemDto.QuantityTins,
