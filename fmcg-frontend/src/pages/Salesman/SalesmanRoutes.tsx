@@ -1,4 +1,14 @@
 // PATH: src/pages/Salesman/SalesmanRoutes.tsx
+//
+// "My Routes" — the single canonical route list, used on both desktop and mobile.
+//
+// IMPORTANT: routes are NOT gated behind a formal daily admin-assignment step.
+// All active routes are visible to every salesman (admin coordinates who takes
+// what informally, e.g. over WhatsApp/call) — the system's job is just to show
+// what's available vs. already started by someone else today, and to lock a
+// route to whoever starts it first. See routesApi.getActiveRoutes() / the
+// backend's GetActiveRoutesQueryHandler + StartRouteExecutionCommandHandler for
+// the actual locking logic.
 
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -61,6 +71,10 @@ export function SalesmanRoutes() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const isMobile = useIsMobile();
+  
+  // ─── Confirmation modal state ───
+  const [confirmRoute, setConfirmRoute] = useState<string | null>(null);
+  const [confirmRouteName, setConfirmRouteName] = useState<string>('');
 
   async function load() {
     setLoading(true); setError('');
@@ -136,7 +150,6 @@ export function SalesmanRoutes() {
 
   useEffect(() => { load(); }, []);
   useEffect(() => { load(); }, [location.key]);
-
   useEffect(() => {
     function onVisible() { if (document.visibilityState === 'visible') load(); }
     document.addEventListener('visibilitychange', onVisible);
@@ -161,26 +174,62 @@ export function SalesmanRoutes() {
 
   const activeRoute = routes.find(r => isGenuinelyInProgress(r));
 
+  // ─── Show confirmation popup instead of starting directly ───
   async function handleStartOrderTaking(routeId: string) {
-  if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
-    setError('Invalid route selected.'); 
-    return;
+    if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
+      setError('Invalid route selected.'); return;
+    }
+
+    if (isRouteAlreadyCompleted(routeId)) {
+      setError('This route is already completed for today.');
+      await load();
+      return;
+    }
+
+    // ─── Find the route name ───
+    const route = routes.find(r => r.routeId === routeId);
+    const routeName = route?.routeName || 'this route';
+
+    // ─── Show confirmation popup ───
+    setConfirmRoute(routeId);
+    setConfirmRouteName(routeName);
   }
 
-  setStarting(routeId);
+  // ─── Actually start the route after confirmation ───
+  async function confirmAndStartRoute() {
+    if (!confirmRoute) return;
+    
+    const routeId = confirmRoute;
+    setConfirmRoute(null);
+    setConfirmRouteName('');
+    
+    setStarting(routeId); 
+    setActiveMode('order');
+    
+    try {
+      const existing = await routesApi.getCurrentExecution(routeId).catch(() => null);
 
-  try {
-    await routesApi.startOrderTaking(routeId);
-  } catch (err) {
-    console.log('Starting execution failed, might already exist');
+      if (existing?.executionId && existing.status === 'Completed') {
+        setError('This route is already completed for today.');
+        await load();
+        return;
+      }
+
+      if (existing?.executionId && existing.status === 'InProgress') {
+        navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'order-taking' } });
+        return;
+      }
+
+      await routesApi.startOrderTaking(routeId);
+      navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'order-taking' } });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to start order taking');
+      await load();
+    } finally { 
+      setStarting(null); 
+      setActiveMode(null); 
+    }
   }
-
-  navigate(`/salesman/routes/${routeId}/execute`, { 
-    state: { mode: 'order-taking' } 
-  });
-
-  setStarting(null);
-}
 
   if (loading) return <PageLoader />;
 
@@ -191,217 +240,345 @@ export function SalesmanRoutes() {
     ? routes.filter(r => r.routeName?.toLowerCase().includes(search.trim().toLowerCase()))
     : routes;
 
+  // ── Determine if any route is in progress ──
+  const hasActiveRoute = routes.some(r => isGenuinelyInProgress(r));
+
   return (
     <div style={{ 
-      background: D.bg,
+      background: D.bg, 
       minHeight: '100vh',
-      padding: '16px',
-      maxWidth: '100%',
-      overflowX: 'hidden',
+      width: '100%',
+      position: 'relative',
     }}>
+      {/* ── Header ── */}
       <div style={{
-        maxWidth: 1200,
-        margin: '0 auto',
-        width: '100%',
+        padding: '6px 20px 10px',
+        borderBottom: `1px solid ${D.border}`,
+        marginBottom: 10,
+        background: D.bg,
       }}>
-        <div style={{
-          padding: '6px 0 10px',
-          borderBottom: `1px solid ${D.border}`,
-          marginBottom: 10,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-              }}>
-                {firstName.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h1 style={{ fontSize: 13, fontWeight: 800, color: D.text, margin: 0 }}>
-                    {firstName} 👋
-                </h1>
-                <p style={{ fontSize: 10, color: D.muted, margin: '1px 0 0' }}>
-                  {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-                </p>
-              </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+            }}>
+              {firstName.charAt(0).toUpperCase()}
             </div>
-            <button
-              onClick={load}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 3,
-                padding: '4px 10px',
-                borderRadius: 6,
-                border: `1px solid ${D.border}`,
-                background: D.surface,
-                color: D.muted,
-                fontSize: 10,
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
-            >
-              <RefreshCw size={12} /> Refresh
-            </button>
+            <div>
+              <h1 style={{ fontSize: 13, fontWeight: 800, color: D.text, margin: 0 }}>
+                {firstName} 👋
+              </h1>
+              <p style={{ fontSize: 10, color: D.muted, margin: '1px 0 0' }}>
+                {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+              </p>
+            </div>
           </div>
+          <button onClick={load} style={{
+            display: 'flex', alignItems: 'center', gap: 3,
+            padding: '4px 10px',
+            borderRadius: 6,
+            border: `1px solid ${D.border}`,
+            background: D.surface,
+            color: D.muted,
+            fontSize: 10,
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}>
+            <RefreshCw size={12} /> Refresh
+          </button>
+        </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 3,
+            fontSize: 9, fontWeight: 600, padding: '2px 8px',
+            borderRadius: 12,
+            background: isDayClosed ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
+            border: `1px solid ${isDayClosed ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
+            color: isDayClosed ? D.green : D.amber,
+          }}>
+            {isDayClosed ? <CheckCircle2 size={9} /> : <Lock size={9} />}
+            {isDayClosed ? 'Day closed' : 'Day open'}
+          </span>
+
+          {completedCount > 0 && (
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 3,
               fontSize: 9, fontWeight: 600, padding: '2px 8px',
               borderRadius: 12,
-              background: isDayClosed ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
-              border: `1px solid ${isDayClosed ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
-              color: isDayClosed ? D.green : D.amber,
+              background: 'rgba(59,130,246,0.12)',
+              border: '1px solid rgba(59,130,246,0.25)',
+              color: '#3B82F6',
             }}>
-              {isDayClosed ? <CheckCircle2 size={9} /> : <Lock size={9} />}
-              {isDayClosed ? 'Day closed' : 'Day open'}
+              <CheckCircle2 size={9} /> {completedCount}/{routes.length} done
             </span>
+          )}
 
-            {completedCount > 0 && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 3,
-                fontSize: 9, fontWeight: 600, padding: '2px 8px',
-                borderRadius: 12,
-                background: 'rgba(59,130,246,0.12)',
-                border: '1px solid rgba(59,130,246,0.25)',
-                color: '#3B82F6',
-              }}>
-                <CheckCircle2 size={9} /> {completedCount}/{routes.length} done
-              </span>
-            )}
-
-            {activeRoute && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 3,
-                fontSize: 9, fontWeight: 600, padding: '2px 8px',
-                borderRadius: 12,
-                background: 'rgba(245,158,11,0.12)',
-                border: '1px solid rgba(245,158,11,0.25)',
-                color: D.amber,
-              }}>
-                <AlertTriangle size={9} /> Complete {activeRoute.routeName}
-              </span>
-            )}
-          </div>
-
-          {showRouteSearch && (
-            <div style={{ position: 'relative', marginTop: 8 }}>
-              <Search size={12} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: D.sub }} />
-              <input
-                type="text"
-                placeholder="Search routes..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '4px 28px 4px 28px',
-                  fontSize: 11,
-                  border: `1px solid ${D.border}`,
-                  borderRadius: 6,
-                  background: D.surface,
-                  color: D.text,
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                }}
-              />
-              {search && (
-                <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer' }}>
-                  <X size={12} />
-                </button>
-              )}
-            </div>
+          {activeRoute && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 9, fontWeight: 600, padding: '2px 8px',
+              borderRadius: 12,
+              background: 'rgba(245,158,11,0.12)',
+              border: '1px solid rgba(245,158,11,0.25)',
+              color: D.amber,
+            }}>
+              <AlertTriangle size={9} /> Complete {activeRoute.routeName}
+            </span>
           )}
         </div>
 
-        {error && (
-          <div style={{
-            margin: '12px 0 0',
-            background: 'rgba(239,68,68,0.10)',
-            border: `1px solid rgba(239,68,68,0.25)`,
-            borderRadius: 10,
-            padding: '12px 16px',
-            color: D.red,
-            fontSize: 13,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-            <span>{error}</span>
-            <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: D.red, cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>✕</button>
+        {showRouteSearch && (
+          <div style={{ position: 'relative', marginTop: 8 }}>
+            <Search size={12} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: D.sub }} />
+            <input
+              type="text"
+              placeholder="Search routes..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '4px 28px 4px 28px',
+                fontSize: 11,
+                border: `1px solid ${D.border}`,
+                borderRadius: 6,
+                background: D.surface,
+                color: D.text,
+                outline: 'none',
+                fontFamily: 'inherit',
+              }}
+            />
+            {search && (
+              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer' }}>
+                <X size={12} />
+              </button>
+            )}
           </div>
         )}
-
-        <div style={{ padding: '16px 0' }}>
-          {routes.length === 0 ? (
-            <div style={{
-              background: D.surface,
-              borderRadius: 16,
-              border: `1px solid ${D.border}`,
-              padding: '48px 24px',
-              textAlign: 'center',
-            }}>
-              <Route size={48} style={{ color: D.border, margin: '0 auto 16px' }} />
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: '0 0 8px' }}>No active routes</h3>
-              <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>Ask your admin to create a route — once it's active, it shows up here for every salesman.</p>
-            </div>
-          ) : visibleRoutes.length === 0 ? (
-            <div style={{
-              background: D.surface,
-              borderRadius: 16,
-              border: `1px solid ${D.border}`,
-              padding: '48px 24px',
-              textAlign: 'center',
-            }}>
-              <Search size={48} style={{ color: D.border, margin: '0 auto 16px' }} />
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: '0 0 8px' }}>No routes match your search</h3>
-              <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>Nothing found for "{search}".</p>
-            </div>
-          ) : (
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
-              gap: 16,
-              width: '100%',
-            }}>
-              {visibleRoutes.map(route => {
-                const completed   = isEffectivelyCompleted(route);
-                const inProgress  = isGenuinelyInProgress(route);
-                return (
-                  <RouteCard
-                    key={route.routeId}
-                    route={route}
-                    isCompleted={completed}
-                    isInProgress={inProgress}
-                    isDayClosed={isDayClosed}
-                    starting={starting === route.routeId}
-                    activeMode={activeMode}
-                    onStartOrderTaking={() => handleStartOrderTaking(route.routeId)}
-                    onContinueOrderTaking={() => {
-                      navigate(`/salesman/routes/${route.routeId}/execute`, { state: { mode: 'order-taking' } });
-                    }}
-                    onViewCustomers={() => navigate(`/salesman/routes/${route.routeId}/customers`)}
-                    onViewOrders={() => navigate(`/salesman/routes/${route.routeId}/orders`)}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </div>
       </div>
+
+      {error && (
+        <div style={{
+          margin: '12px 20px 0',
+          background: 'rgba(239,68,68,0.10)',
+          border: `1px solid rgba(239,68,68,0.25)`,
+          borderRadius: 10,
+          padding: '12px 16px',
+          color: D.red,
+          fontSize: 13,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <span>{error}</span>
+          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: D.red, cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>✕</button>
+        </div>
+      )}
+
+      <div style={{ 
+        maxWidth: 1200, 
+        margin: '0 auto', 
+        padding: '16px 20px',
+        background: D.bg,
+        minHeight: 'calc(100vh - 180px)',
+      }}>
+        {routes.length === 0 ? (
+          <div style={{
+            background: D.surface,
+            borderRadius: 16,
+            border: `1px solid ${D.border}`,
+            padding: '48px 24px',
+            textAlign: 'center',
+          }}>
+            <Route size={48} style={{ color: D.border, margin: '0 auto 16px' }} />
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: '0 0 8px' }}>No active routes</h3>
+            <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>Ask your admin to create a route — once it's active, it shows up here for every salesman.</p>
+          </div>
+        ) : visibleRoutes.length === 0 ? (
+          <div style={{
+            background: D.surface,
+            borderRadius: 16,
+            border: `1px solid ${D.border}`,
+            padding: '48px 24px',
+            textAlign: 'center',
+          }}>
+            <Search size={48} style={{ color: D.border, margin: '0 auto 16px' }} />
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: '0 0 8px' }}>No routes match your search</h3>
+            <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>Nothing found for "{search}".</p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
+            {visibleRoutes.map(route => {
+              const completed   = isEffectivelyCompleted(route);
+              const inProgress  = isGenuinelyInProgress(route);
+              
+              // ── Determine if this route should be faded ──
+              // Fade if: there is an active route AND this route is NOT the active one
+              const shouldFade = hasActiveRoute && !inProgress;
+
+              return (
+                <RouteCard
+                  key={route.routeId}
+                  route={route}
+                  isCompleted={completed}
+                  isInProgress={inProgress}
+                  isDayClosed={isDayClosed}
+                  starting={starting === route.routeId}
+                  activeMode={activeMode}
+                  shouldFade={shouldFade}
+                  onStartOrderTaking={() => handleStartOrderTaking(route.routeId)}
+                  onContinueOrderTaking={() => {
+                    navigate(`/salesman/routes/${route.routeId}/execute`, { state: { mode: 'order-taking' } });
+                  }}
+                  onViewCustomers={() => navigate(`/salesman/routes/${route.routeId}/customers`)}
+                  onViewOrders={() => navigate(`/salesman/routes/${route.routeId}/orders`)}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Confirmation Modal ── */}
+      {confirmRoute && (
+        <>
+          <div
+            onClick={() => {
+              setConfirmRoute(null);
+              setConfirmRouteName('');
+            }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 100,
+            }}
+          />
+          
+          <div
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: D.surface,
+              borderRadius: 16,
+              padding: '28px 32px',
+              maxWidth: 400,
+              width: '90%',
+              zIndex: 110,
+              border: `1px solid ${D.border}`,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            }}
+          >
+            <div style={{ textAlign: 'center' }}>
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  background: `${D.accent}22`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px',
+                  border: `1px solid ${D.accent}44`,
+                }}
+              >
+                <Route size={24} color={D.accent} />
+              </div>
+
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: D.text, margin: '0 0 8px' }}>
+                Confirm Route
+              </h3>
+              <p style={{ fontSize: 14, color: D.muted, margin: '0 0 4px' }}>
+                You are about to start:
+              </p>
+              <p style={{ fontSize: 18, fontWeight: 700, color: D.accent, margin: '0 0 16px' }}>
+                {confirmRouteName}
+              </p>
+              <p style={{ fontSize: 13, color: D.sub, margin: '0 0 20px' }}>
+                Are you sure this is the correct route?
+              </p>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => {
+                    setConfirmRoute(null);
+                    setConfirmRouteName('');
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: 10,
+                    border: `1px solid ${D.border}`,
+                    background: 'transparent',
+                    color: D.muted,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = D.text;
+                    e.currentTarget.style.color = D.text;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = D.border;
+                    e.currentTarget.style.color = D.muted;
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmAndStartRoute}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                    color: '#fff',
+                    fontSize: 14,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    boxShadow: `0 4px 14px ${D.accentGlow}`,
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                    e.currentTarget.style.boxShadow = `0 6px 20px ${D.accentGlow}`;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = `0 4px 14px ${D.accentGlow}`;
+                  }}
+                >
+                  Yes, Start Route
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 function RouteCard({
-  route, isCompleted, isInProgress,isDayClosed,
-  starting, activeMode,
-  onStartOrderTaking, onContinueOrderTaking, 
+  route, isCompleted, isInProgress, isDayClosed,
+  starting, activeMode, shouldFade,
+  onStartOrderTaking, onContinueOrderTaking,
   onViewCustomers, onViewOrders,
 }: {
   route: EnrichedRoute;
@@ -410,6 +587,7 @@ function RouteCard({
   isDayClosed: boolean;
   starting: boolean;
   activeMode: 'order' | 'delivery' | null;
+  shouldFade: boolean;
   onStartOrderTaking: () => void;
   onContinueOrderTaking: () => void;
   onViewCustomers: () => void;
@@ -417,14 +595,15 @@ function RouteCard({
 }) {
   const [expanded, setExpanded] = useState(false);
 
+  // ── TAKEN BY ANOTHER SALESMAN ──
   if (route.takenByOther) {
     return (
       <div style={{
-        background: D.surface,
+        background: 'transparent',
         borderRadius: 14,
         border: `1px solid ${D.amber}44`,
-        opacity: 0.8,
-        width: '100%',
+        opacity: shouldFade ? 0.5 : 0.8,
+        transition: 'opacity 0.3s ease',
       }}>
         <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{
@@ -458,14 +637,15 @@ function RouteCard({
     );
   }
 
+  // ── CLOSED BY ADMIN ──
   if (route.isAdminClosed) {
     return (
       <div style={{
-        background: D.surface,
+        background: 'transparent',
         borderRadius: 14,
         border: `1px solid ${D.border}`,
-        opacity: 0.7,
-        width: '100%',
+        opacity: shouldFade ? 0.5 : 0.7,
+        transition: 'opacity 0.3s ease',
       }}>
         <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{
@@ -501,25 +681,25 @@ function RouteCard({
           borderRadius: '0 0 14px 14px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: D.sub }}>
-            <Lock size={13} />
-            Closed by admin — fresh again tomorrow
+            <Lock size={13} /> Closed by admin — fresh again tomorrow
           </div>
         </div>
       </div>
     );
   }
 
+  // ── COMPLETED ──
   if (isCompleted) {
     return (
       <div
         onClick={onContinueOrderTaking}
         style={{
-          background: D.surface,
+          background: 'transparent',
           borderRadius: 14,
           border: `2px solid #4f46e5`,
           cursor: 'pointer',
           transition: 'all 0.15s',
-          width: '100%',
+          opacity: shouldFade ? 0.5 : 1,
         }}
         onMouseEnter={e => {
           (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
@@ -575,15 +755,15 @@ function RouteCard({
     );
   }
 
+  // ── ACTIVE or PENDING ──
   return (
     <div style={{
-      background: D.surface,
+      background: 'transparent',
       borderRadius: 14,
       border: `1px solid ${isInProgress ? D.accent : D.border}`,
       boxShadow: isInProgress ? `0 2px 12px ${D.accentGlow}` : 'none',
-      opacity: 1,
-      transition: 'all 0.15s',
-      width: '100%',
+      opacity: shouldFade ? 0.5 : 1,
+      transition: 'opacity 0.3s ease, all 0.15s',
     }}>
       <div style={{ padding: '16px 18px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -628,7 +808,7 @@ function RouteCard({
                 <Users size={13} /> {route.customerCount ?? 0} customers
               </span>
             </div>
-            {!isDayClosed && (
+            {!isDayClosed && !isInProgress && (
               <div style={{
                 marginTop: 6,
                 display: 'flex', alignItems: 'center', gap: 4,
@@ -659,6 +839,28 @@ function RouteCard({
                   transition: 'all 0.15s',
                   opacity: starting ? 0.6 : 1,
                 }}
+              >
+                <Play size={15} /> Continue
+              </button>
+            ) : (
+              <button
+                onClick={onStartOrderTaking}
+                disabled={starting}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 16px',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: starting ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: starting ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                  boxShadow: starting ? 'none' : `0 4px 14px ${D.accentGlow}`,
+                  transition: 'all 0.15s',
+                  opacity: starting ? 0.5 : 1,
+                }}
                 onMouseEnter={e => {
                   if (!starting) {
                     (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
@@ -672,44 +874,8 @@ function RouteCard({
                   }
                 }}
               >
-                <Play size={15} /> Continue
+                <ShoppingBag size={15} /> Take Orders
               </button>
-            ) : (
-              <>
-                <button
-                  onClick={onStartOrderTaking}
-                  disabled={starting}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '8px 16px',
-                    borderRadius: 10,
-                    border: 'none',
-                    background: starting ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-                    color: '#fff',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: starting ? 'not-allowed' : 'pointer',
-                    fontFamily: 'inherit',
-                    boxShadow: starting ? 'none' : `0 4px 14px ${D.accentGlow}`,
-                    transition: 'all 0.15s',
-                    opacity: starting ? 0.5 : 1,
-                  }}
-                  onMouseEnter={e => {
-                    if (!starting) {
-                      (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-                      (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${D.accentGlow}`;
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                    if (!starting) {
-                      (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${D.accentGlow}`;
-                    }
-                  }}
-                >
-                  <ShoppingBag size={15} /> Take Orders
-                </button>
-              </>
             )}
             <button
               onClick={() => setExpanded(!expanded)}
