@@ -63,6 +63,13 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             if (product == null)
                 return Result<OrderDetailDto>.Failure($"Product '{item.ProductId}' not found or inactive.");
 
+            // ── NEW: Out of Stock guard — a salesman shouldn't be able to place a fresh
+            // order for something the admin has marked as out of stock, even if a stale
+            // client screen still shows it. This mirrors the existing inactive/deleted
+            // checks above — same kind of "this can't be ordered right now" rule. ──
+            if (product.IsOutOfStock)
+                return Result<OrderDetailDto>.Failure($"'{product.NameEnglish}' is currently out of stock.");
+
             var resolvedQty = ResolveQuantity(item.Quantity, item.QuantityBags, item.QuantityBoxes, item.QuantityTins);
             if (resolvedQty <= 0)
                 return Result<OrderDetailDto>.Failure($"Quantity must be greater than zero for '{product.NameEnglish}'.");

@@ -181,6 +181,8 @@ src/FMCG.Distribution.Application/Features/ProductUnits/Commands/UpdateProductUn
 src/FMCG.Distribution.Application/Features/ProductUnits/Commands/UpdateProductUnitCommandHandler.cs
 src/FMCG.Distribution.Application/Features/ProductUnits/Queries/GetAllProductUnitsQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Reports/DTOs/ReportDtos.cs
+src/FMCG.Distribution.Application/Features/Reports/Queries/GetAdditionalRevenueReportQuery.cs
+src/FMCG.Distribution.Application/Features/Reports/Queries/GetAdditionalRevenueReportQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetBillingSheetQuery.cs
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetBillingSheetQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetDailySummaryReportQuery.cs
@@ -327,6 +329,8 @@ src/FMCG.Distribution.Infrastructure/Migrations/20260723072649_SeedSizeGroupSort
 src/FMCG.Distribution.Infrastructure/Migrations/20260723072649_SeedSizeGroupSortOrder.Designer.cs
 src/FMCG.Distribution.Infrastructure/Migrations/20260723103014_AddNameSnapshotToOrderItems.cs
 src/FMCG.Distribution.Infrastructure/Migrations/20260723103014_AddNameSnapshotToOrderItems.Designer.cs
+src/FMCG.Distribution.Infrastructure/Migrations/20260724073305_AddOutOfStockToProducts.cs
+src/FMCG.Distribution.Infrastructure/Migrations/20260724073305_AddOutOfStockToProducts.Designer.cs
 src/FMCG.Distribution.Infrastructure/Migrations/ApplicationDbContextModelSnapshot.cs
 src/FMCG.Distribution.Infrastructure/Persistence/ApplicationDbContext.cs
 src/FMCG.Distribution.Infrastructure/Persistence/DbInitializer.cs
@@ -332100,18 +332104,19 @@ public class ReportsController(IMediator mediator) : ControllerBase
     // GET /api/v1/reports/product-summary
     // Roles: Admin, SuperAdmin
     // ─────────────────────────────────────────────────────────────────────────
-    [HttpGet("product-summary")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<IActionResult> GetProductSummary(
-        [FromQuery] Guid? productGroupId,
-        [FromQuery] DateTime? fromDate,
-        [FromQuery] DateTime? toDate)
+    [HttpGet("summary-report")]
+    public async Task<IActionResult> GetSummaryReport(
+     [FromQuery] string? fromDate,
+     [FromQuery] string? toDate)
     {
-        var query = new GetProductSummaryReportQuery
+        Console.WriteLine("🔵🔵🔵 SUMMARY REPORT ENDPOINT CALLED! 🔵🔵🔵");
+        Console.WriteLine($"fromDate: {fromDate}");
+        Console.WriteLine($"toDate: {toDate}");
+
+        var query = new GetSummaryReportQuery
         {
-            ProductGroupId = productGroupId,
-            FromDate = fromDate,
-            ToDate = toDate
+            FromDate = fromDate != null ? DateTime.Parse(fromDate) : null,
+            ToDate = toDate != null ? DateTime.Parse(toDate) : null
         };
 
         var result = await mediator.Send(query);
@@ -332121,16 +332126,7 @@ public class ReportsController(IMediator mediator) : ControllerBase
             return BadRequest(new { error = result.Error });
         }
 
-        var fromDateStr = fromDate?.ToString("yyyyMMdd") ?? "30days";
-        var toDateStr = toDate?.ToString("yyyyMMdd") ?? DateTime.UtcNow.ToString("yyyyMMdd");
-        var fileName = $"ProductSummary_{fromDateStr}_to_{toDateStr}.pdf";
-
-        if (productGroupId.HasValue)
-        {
-            fileName = $"ProductSummary_Group{productGroupId}_{fromDateStr}_to_{toDateStr}.pdf";
-        }
-
-        return File(result.Data!, "application/pdf", fileName);
+        return File(result.Data!, "application/pdf", $"SummaryReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
     }
 
     [HttpGet("incentive-report")]
@@ -332203,6 +332199,30 @@ public async Task<IActionResult> GetIncentiveReport(
 
         var fileName = $"LoadingSheet_AllRoutes_{date:yyyyMMdd}.pdf";
         return File(result.Data!, "application/pdf", fileName);
+    }
+    [HttpGet("additional-revenue")]
+    public async Task<IActionResult> GetAdditionalRevenueReport(
+    [FromQuery] string? fromDate,
+    [FromQuery] string? toDate)
+    {
+        Console.WriteLine("🔵🔵🔵 ADDITIONAL REVENUE ENDPOINT CALLED! 🔵🔵🔵");
+        Console.WriteLine($"fromDate: {fromDate}");
+        Console.WriteLine($"toDate: {toDate}");
+
+        var query = new GetAdditionalRevenueReportQuery
+        {
+            FromDate = fromDate != null ? DateTime.Parse(fromDate) : null,
+            ToDate = toDate != null ? DateTime.Parse(toDate) : null
+        };
+
+        var result = await mediator.Send(query);
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error });
+        }
+
+        return File(result.Data!, "application/pdf", $"AdditionalRevenueReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
     }
 }
 ```````
@@ -340441,34 +340461,29 @@ public class RouteSummaryReportDataDto
 // Product Summary Report DTOs
 // ─────────────────────────────────────────────────────────────────────────────
 
-public class ProductSummaryItemDto
+// ─────────────────────────────────────────────────────────────────────────────
+// Summary Report DTOs (Item Group + Size Group)
+// ─────────────────────────────────────────────────────────────────────────────
+
+public class SummaryReportItemDto
 {
-    public Guid ProductId { get; set; }
-    public string ProductName { get; set; } = string.Empty;
-    public string? ProductNameMalayalam { get; set; }
-    public string ProductGroupName { get; set; } = string.Empty;
-    public string UnitSymbol { get; set; } = string.Empty;
-    public string? PackingCategory { get; set; }    // ← ADD THIS
-    public string? SizeGroup { get; set; }          // ← ADD THIS
+    public string ItemGroupName { get; set; } = string.Empty;
+    public string SizeGroupName { get; set; } = string.Empty;
     public decimal TotalQuantity { get; set; }
-    public decimal TotalSales { get; set; }
-    public decimal TotalVariance { get; set; }
-    public int OrderCount { get; set; }
-    public decimal MarginPercentage { get; set; }
+    //public int OrderCount { get; set; }
+    //public decimal TotalRevenue { get; set; }
 }
 
-public class ProductSummaryReportDataDto
+public class SummaryReportDataDto
 {
     public DateTime FromDate { get; set; }
     public DateTime ToDate { get; set; }
     public DateTime GeneratedAt { get; set; }
-    public List<ProductSummaryItemDto> Products { get; set; } = [];
-    public decimal OverallSales { get; set; }
-    public decimal OverallVariance { get; set; }
-    public decimal OverallMarginPercentage { get; set; }
-    public int TotalProductCount { get; set; }
+    public List<SummaryReportItemDto> Items { get; set; } = new();
+    public decimal GrandTotalQuantity { get; set; }
+    public decimal GrandTotalRevenue { get; set; }
+    public int TotalEntries { get; set; }
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Daily Summary Report DTOs
 // ─────────────────────────────────────────────────────────────────────────────
@@ -340499,13 +340514,17 @@ public class DailySummaryReportDataDto
 // Incentive Report DTOs
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Incentive Report DTOs
+// ─────────────────────────────────────────────────────────────────────────────
+
 public class IncentiveReportItemDto
 {
     public Guid SalesmanId { get; set; }
     public string SalesmanName { get; set; } = string.Empty;
-    public int TotalOrders { get; set; }
-    public decimal TotalSales { get; set; }
-    public decimal TotalIncentive { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal IncentiveEarned { get; set; }
 }
 
 public class IncentiveReportDataDto
@@ -340513,10 +340532,303 @@ public class IncentiveReportDataDto
     public DateTime FromDate { get; set; }
     public DateTime ToDate { get; set; }
     public DateTime GeneratedAt { get; set; }
-    public List<IncentiveReportItemDto> Salesmen { get; set; } = new();
+    public List<IncentiveReportItemDto> Incentives { get; set; } = new();
     public decimal GrandTotalIncentive { get; set; }
-    public decimal GrandTotalSales { get; set; }
     public int TotalSalesmen { get; set; }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+// Additional Revenue Report DTOs
+// ─────────────────────────────────────────────────────────────────────────────
+
+public class AdditionalRevenueReportItemDto
+{
+    public Guid SalesmanId { get; set; }
+    public string SalesmanName { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal BasePrice { get; set; }
+    public decimal SellingPrice { get; set; }
+    public decimal UnitSize { get; set; }
+    public decimal AdditionalRevenue { get; set; }
+}
+
+public class AdditionalRevenueReportDataDto
+{
+    public DateTime FromDate { get; set; }
+    public DateTime ToDate { get; set; }
+    public DateTime GeneratedAt { get; set; }
+    public List<AdditionalRevenueReportItemDto> Items { get; set; } = new();
+    public decimal GrandTotalAdditionalRevenue { get; set; }
+    public int TotalSalesmen { get; set; }
+}
+```````
+
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetAdditionalRevenueReportQuery.cs
+```````csharp
+using MediatR;
+using FMCG.Distribution.Application.Common;
+
+namespace FMCG.Distribution.Application.Features.Reports.Queries;
+
+public class GetAdditionalRevenueReportQuery : IRequest<Result<byte[]>>
+{
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
+}
+```````
+
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetAdditionalRevenueReportQueryHandler.cs
+```````csharp
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+using FMCG.Distribution.Application.Common;
+using FMCG.Distribution.Application.Common.Interfaces;
+using FMCG.Distribution.Application.Features.Reports.DTOs;
+using FMCG.Distribution.Domain.Enums;
+using PdfUnit = QuestPDF.Infrastructure.Unit;
+
+namespace FMCG.Distribution.Application.Features.Reports.Queries;
+
+public class GetAdditionalRevenueReportQueryHandler : IRequestHandler<GetAdditionalRevenueReportQuery, Result<byte[]>>
+{
+    private readonly IApplicationDbContext _context;
+
+    public GetAdditionalRevenueReportQueryHandler(IApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Result<byte[]>> Handle(GetAdditionalRevenueReportQuery request, CancellationToken cancellationToken)
+    {
+        var fromDate = request.FromDate ?? DateTime.UtcNow.Date.AddDays(-30);
+        var toDate = request.ToDate ?? DateTime.UtcNow.Date;
+
+        Console.WriteLine($"🔵 Additional Revenue Report: {fromDate:yyyy-MM-dd} to {toDate:yyyy-MM-dd}");
+
+        // Get all active salesmen
+        var salesmen = await _context.Users
+            .Where(u => u.Role == UserRole.Salesman && u.IsActive && !u.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        if (salesmen.Count == 0)
+        {
+            return Result<byte[]>.Failure("No salesmen found.");
+        }
+
+        var salesmanIds = salesmen.Select(s => s.Id).ToList();
+
+        // Get closed orders within date range with product and customer details
+        var orders = await _context.Orders
+            .Include(o => o.Customer)
+            .Include(o => o.Items)
+                .ThenInclude(i => i.Product)
+            .Where(o => !o.IsDeleted
+                && o.SalesmanId != null
+                && salesmanIds.Contains(o.SalesmanId)
+                && o.OrderDate.Date >= fromDate.Date
+                && o.OrderDate.Date <= toDate.Date
+                && o.Status == OrderStatus.Closed)
+            .ToListAsync(cancellationToken);
+
+        Console.WriteLine($"🔵 Orders found: {orders.Count}");
+
+        var reportData = new AdditionalRevenueReportDataDto
+        {
+            FromDate = fromDate,
+            ToDate = toDate,
+            GeneratedAt = DateTime.UtcNow,
+            Items = new List<AdditionalRevenueReportItemDto>(),
+            GrandTotalAdditionalRevenue = 0,
+            TotalSalesmen = salesmen.Count
+        };
+
+        // ─── Calculate additional revenue for each order item ───
+        foreach (var salesman in salesmen)
+        {
+            var salesmanOrders = orders.Where(o => o.SalesmanId == salesman.Id).ToList();
+
+            foreach (var order in salesmanOrders)
+            {
+                foreach (var item in order.Items)
+                {
+                    if (item.ProductId == Guid.Empty) continue;
+                    if (item.Product == null) continue;
+
+                    var product = item.Product;
+
+                    // ─── Get Unit Size from Product ───
+                    var unitSize = product.UnitSize ?? 1;
+
+                    // ─── Calculate Additional Revenue ───
+                    // (Selling Price - Base Price) × Unit Size × Quantity
+                    var priceDiff = item.SellingPrice - item.BasePriceAtTime;
+                    var additionalRevenue = priceDiff * unitSize * item.Quantity;
+
+                    // ─── Only include if additional revenue is not zero ───
+                    if (additionalRevenue != 0)
+                    {
+                        reportData.Items.Add(new AdditionalRevenueReportItemDto
+                        {
+                            SalesmanId = salesman.Id,
+                            SalesmanName = salesman.FullName,
+                            CustomerName = order.Customer?.NameEnglish ?? "Unknown",
+                            ProductName = product.NameEnglish,
+                            Quantity = item.Quantity,
+                            BasePrice = item.BasePriceAtTime,
+                            SellingPrice = item.SellingPrice,
+                            UnitSize = unitSize,
+                            AdditionalRevenue = additionalRevenue
+                        });
+
+                        reportData.GrandTotalAdditionalRevenue += additionalRevenue;
+                    }
+                }
+            }
+        }
+
+        // Sort by salesman name
+        reportData.Items = reportData.Items
+            .OrderBy(i => i.SalesmanName)
+            .ThenBy(i => i.ProductName)
+            .ToList();
+
+        Console.WriteLine($"🔵 Total Additional Revenue: {reportData.GrandTotalAdditionalRevenue}");
+
+        var pdfBytes = GenerateAdditionalRevenueReportPdf(reportData);
+        return Result<byte[]>.Success(pdfBytes);
+    }
+
+    private byte[] GenerateAdditionalRevenueReportPdf(AdditionalRevenueReportDataDto data)
+    {
+        return Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(0.5f, PdfUnit.Centimetre);
+                page.DefaultTextStyle(x => x.FontSize(7).FontFamily("Arial"));
+
+                // ─── Header ───
+                page.Header()
+                    .BorderBottom(0.5f)
+                    .PaddingBottom(5)
+                    .Row(row =>
+                    {
+                        row.RelativeItem().Column(col =>
+                        {
+                            col.Item().Text("ADDITIONAL REVENUE REPORT").FontSize(14).Bold();
+                            col.Item().Text($"Period: {data.FromDate:dd-MM-yyyy} to {data.ToDate:dd-MM-yyyy}");
+                        });
+                        //row.RelativeItem().AlignRight().Column(col =>
+                        //{
+                        //    col.Item().Text($"Generated: {data.GeneratedAt:dd-MM-yyyy HH:mm}");
+                        //    col.Item().Text($"Total Additional Revenue: ₹{data.GrandTotalAdditionalRevenue:N2}");
+                        //});
+                    });
+
+                // ─── Content ───
+                page.Content().Column(col =>
+                {
+                    // ─── Summary Cards ───
+                    col.Item().PaddingTop(8).PaddingBottom(8).Row(summaryRow =>
+                    {
+                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
+                        {
+                            c.Item().Text("SALESMEN").FontSize(7).FontColor(Colors.Grey.Medium);
+                            c.Item().Text($"{data.TotalSalesmen}").FontSize(12).Bold();
+                        });
+                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
+                        {
+                            c.Item().Text("TOTAL ADDITIONAL REVENUE").FontSize(7).FontColor(Colors.Grey.Medium);
+                            c.Item().Text($"₹{data.GrandTotalAdditionalRevenue:N2}").FontSize(12).Bold()
+                                .FontColor(data.GrandTotalAdditionalRevenue >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
+                        });
+                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
+                        {
+                            c.Item().Text("ITEMS").FontSize(7).FontColor(Colors.Grey.Medium);
+                            c.Item().Text($"{data.Items.Count}").FontSize(12).Bold();
+                        });
+                    });
+
+                    // ─── Main Table ───
+                    col.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn(2);  // Salesman
+                            columns.RelativeColumn(2);  // Customer
+                            columns.RelativeColumn(2);  // Product
+                            columns.RelativeColumn(1);  // Qty
+                            columns.RelativeColumn(1);  // Base Price
+                            columns.RelativeColumn(1);  // Selling Price
+                            columns.RelativeColumn(1);  // Unit Size
+                            columns.RelativeColumn(2);  // Additional Revenue
+                        });
+
+                        // ─── Table Header ───
+                        table.Header(header =>
+                        {
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("SALESMAN").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("CUSTOMER").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("PRODUCT").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("QTY").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("BASE").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("SELLING").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("UNIT SIZE").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("ADDITIONAL REVENUE").Bold();
+                        });
+
+                        // ─── Table Rows ───
+                        foreach (var item in data.Items)
+                        {
+                            var color = item.AdditionalRevenue >= 0 ? Colors.Green.Medium : Colors.Red.Medium;
+
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.SalesmanName);
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.CustomerName);
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName);
+                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.Quantity:N0}");
+                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.BasePrice:N2}");
+                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.SellingPrice:N2}");
+                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.UnitSize:N2}");
+                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.AdditionalRevenue:N2}")
+                                .FontColor(color);
+                        }
+
+                        // ─── Total Row ───
+                        if (data.Items.Count > 0)
+                        {
+                            table.Cell().BorderTop(0.5f).Padding(3).Text("TOTAL").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Items.Sum(i => i.Quantity):N0}").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"₹{data.GrandTotalAdditionalRevenue:N2}").Bold()
+                                .FontColor(data.GrandTotalAdditionalRevenue >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
+                        }
+                    });
+                });
+
+                // ─── Footer ───
+                page.Footer()
+                    .BorderTop(0.5f)
+                    .PaddingTop(5)
+                    .AlignCenter()
+                    .Text(x =>
+                    {
+                        x.Span("Page ");
+                        x.CurrentPageNumber();
+                        x.Span(" of ");
+                        x.TotalPages();
+                    });
+            });
+        }).GeneratePdf();
+    }
 }
 ```````
 
@@ -341212,13 +341524,10 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
 
     public async Task<Result<byte[]>> Handle(GetIncentiveReportQuery request, CancellationToken cancellationToken)
     {
-        // ─── Step 1: Get date range ───
         var fromDate = request.FromDate ?? DateTime.UtcNow.Date.AddDays(-30);
         var toDate = request.ToDate ?? DateTime.UtcNow.Date;
 
-        Console.WriteLine($"🔵 Incentive Report: {fromDate:yyyy-MM-dd} to {toDate:yyyy-MM-dd}");
-
-        // ─── Step 2: Get all active salesmen ───
+        // Get all active salesmen
         var salesmen = await _context.Users
             .Where(u => u.Role == UserRole.Salesman && u.IsActive && !u.IsDeleted)
             .ToListAsync(cancellationToken);
@@ -341228,78 +341537,83 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
             return Result<byte[]>.Failure("No salesmen found.");
         }
 
-        // ─── Step 3: Get CLOSED orders with items and products ───
+        var salesmanIds = salesmen.Select(s => s.Id).ToList();
+
+        // Get closed orders within date range with product details
         var orders = await _context.Orders
             .Include(o => o.Items)
                 .ThenInclude(i => i.Product)
             .Where(o => !o.IsDeleted
                 && o.SalesmanId != null
-                && o.Status == OrderStatus.Closed
+                && salesmanIds.Contains(o.SalesmanId)
                 && o.OrderDate.Date >= fromDate.Date
-                && o.OrderDate.Date <= toDate.Date)
+                && o.OrderDate.Date <= toDate.Date
+                && o.Status == OrderStatus.Closed)
             .ToListAsync(cancellationToken);
 
-        Console.WriteLine($"🔵 Orders found: {orders.Count}");
-
-        // ─── Step 4: Prepare report data ───
         var reportData = new IncentiveReportDataDto
         {
             FromDate = fromDate,
             ToDate = toDate,
             GeneratedAt = DateTime.UtcNow,
-            Salesmen = new List<IncentiveReportItemDto>(),
+            Incentives = new List<IncentiveReportItemDto>(),
             GrandTotalIncentive = 0,
-            GrandTotalSales = 0,
             TotalSalesmen = salesmen.Count
         };
 
-        // ─── Step 5: Calculate per salesman ───
+        // ─── Group by Salesman + Product ───
+        var groupedIncentives = new Dictionary<(Guid SalesmanId, Guid ProductId), IncentiveReportItemDto>();
+
         foreach (var salesman in salesmen)
         {
             var salesmanOrders = orders.Where(o => o.SalesmanId == salesman.Id).ToList();
-            var totalSales = salesmanOrders.Sum(o => o.Items.Sum(i => i.SellingPrice * i.Quantity));
-            var totalIncentive = 0m;
 
             foreach (var order in salesmanOrders)
             {
                 foreach (var item in order.Items)
                 {
-                    if (item.ProductId == Guid.Empty || item.Product == null) continue;
+                    if (item.ProductId == Guid.Empty) continue;
+                    if (item.Product == null) continue;
 
-                    // ─── GET INCENTIVE FROM PRODUCT ───
                     var incentive = item.Product.Incentive;
 
-                    // ─── ONLY COUNT IF INCENTIVE > 0 ───
                     if (incentive.HasValue && incentive.Value > 0)
                     {
-                        totalIncentive += item.Quantity * incentive.Value;
+                        var key = (SalesmanId: salesman.Id, ProductId: item.ProductId);
+                        var earned = item.Quantity * incentive.Value;
+
+                        if (groupedIncentives.ContainsKey(key))
+                        {
+                            // ── Add to existing entry ──
+                            groupedIncentives[key].Quantity += item.Quantity;
+                            groupedIncentives[key].IncentiveEarned += earned;
+                        }
+                        else
+                        {
+                            // ── Create new entry ──
+                            groupedIncentives[key] = new IncentiveReportItemDto
+                            {
+                                SalesmanId = salesman.Id,
+                                SalesmanName = salesman.FullName,
+                                ProductName = item.Product.NameEnglish,
+                                Quantity = item.Quantity,
+                                IncentiveEarned = earned
+                            };
+                        }
+
+                        reportData.GrandTotalIncentive += earned;
                     }
                 }
             }
-
-            reportData.Salesmen.Add(new IncentiveReportItemDto
-            {
-                SalesmanId = salesman.Id,
-                SalesmanName = salesman.FullName,
-                TotalOrders = salesmanOrders.Count,
-                TotalSales = totalSales,
-                TotalIncentive = totalIncentive
-            });
-
-            reportData.GrandTotalIncentive += totalIncentive;
-            reportData.GrandTotalSales += totalSales;
         }
 
-        // ─── Step 6: Sort by highest incentive ───
-        reportData.Salesmen = reportData.Salesmen
-            .OrderByDescending(s => s.TotalIncentive)
+        // Convert to list and sort
+        reportData.Incentives = groupedIncentives.Values
+            .OrderBy(i => i.SalesmanName)
+            .ThenBy(i => i.ProductName)
             .ToList();
 
-        Console.WriteLine($"🔵 Total Incentive: {reportData.GrandTotalIncentive}");
-
-        // ─── Step 7: Generate PDF ───
         var pdfBytes = GenerateIncentiveReportPdf(reportData);
-
         return Result<byte[]>.Success(pdfBytes);
     }
 
@@ -341324,11 +341638,11 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                             col.Item().Text("INCENTIVE REPORT").FontSize(14).Bold();
                             col.Item().Text($"Period: {data.FromDate:dd-MM-yyyy} to {data.ToDate:dd-MM-yyyy}");
                         });
-                        row.RelativeItem().AlignRight().Column(col =>
-                        {
-                            col.Item().Text($"Generated: {data.GeneratedAt:dd-MM-yyyy HH:mm}");
-                            col.Item().Text($"Total Incentive: ₹{data.GrandTotalIncentive:N2}");
-                        });
+                        //row.RelativeItem().AlignRight().Column(col =>
+                        //{
+                        //    col.Item().Text($"Generated: {data.GeneratedAt:dd-MM-yyyy HH:mm}");
+                        //    col.Item().Text($"Total Incentive: ₹{data.GrandTotalIncentive:N2}");
+                        //});
                     });
 
                 // ─── Content ───
@@ -341350,19 +341664,25 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                         });
                         summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
                         {
-                            c.Item().Text("TOTAL SALES").FontSize(7).FontColor(Colors.Grey.Medium);
-                            c.Item().Text($"₹{data.GrandTotalSales:N2}").FontSize(12).Bold();
+                            c.Item().Text("PRODUCTS").FontSize(7).FontColor(Colors.Grey.Medium);
+                            c.Item().Text($"{data.Incentives.Count}").FontSize(12).Bold();
                         });
                     });
 
-                    // ─── Salesmen Table ───
+                    // ─── Group by Salesman ───
+                    var groupedBySalesman = data.Incentives
+                        .GroupBy(i => i.SalesmanName)
+                        .OrderBy(g => g.Key)
+                        .ToList();
+
+                    // ─── Table ───
                     col.Item().Table(table =>
                     {
                         table.ColumnsDefinition(columns =>
                         {
                             columns.RelativeColumn(3);  // Salesman
-                            columns.RelativeColumn(1);  // Orders
-                            columns.RelativeColumn(2);  // Total Sales
+                            columns.RelativeColumn(3);  // Product
+                            columns.RelativeColumn(1);  // Quantity
                             columns.RelativeColumn(2);  // Incentive
                         });
 
@@ -341370,27 +341690,58 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                         table.Header(header =>
                         {
                             header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("SALESMAN").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("ORDERS").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("TOTAL SALES").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("PRODUCT").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("QTY").Bold();
                             header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("INCENTIVE").Bold();
                         });
 
                         // ─── Table Rows ───
-                        foreach (var salesman in data.Salesmen)
+                        bool isFirstRow = true;
+
+                        foreach (var salesmanGroup in groupedBySalesman)
                         {
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(salesman.SalesmanName);
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{salesman.TotalOrders}");
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{salesman.TotalSales:N2}");
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{salesman.TotalIncentive:N2}")
-                                .FontColor(salesman.TotalIncentive > 0 ? Colors.Green.Medium : Colors.Grey.Medium);
+                            var salesmanName = salesmanGroup.Key;
+                            var salesmenTotal = salesmanGroup.Sum(i => i.IncentiveEarned);
+
+                            foreach (var item in salesmanGroup)
+                            {
+                                // ─── Show salesman name only once ───
+                                if (isFirstRow)
+                                {
+                                    table.Cell().BorderBottom(0.5f).Padding(3).Text(salesmanName);
+                                    isFirstRow = false;
+                                }
+                                else
+                                {
+                                    table.Cell().BorderBottom(0.5f).Padding(3).Text("");
+                                }
+
+                                table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName);
+                                table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.Quantity:N0}");
+                                table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.IncentiveEarned:N2}")
+                                    .FontColor(Colors.Green.Medium);
+                            }
+
+                            // ─── Subtotal for this salesman ───
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text("").Bold();
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text($"Subtotal - {salesmanName}").Bold();
+                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text("").Bold();
+                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{salesmenTotal:N2}").Bold()
+                                .FontColor(Colors.Green.Medium);
+
+                            // ─── Reset for next salesman ───
+                            isFirstRow = true;
                         }
 
-                        // ─── Total Row ───
-                        table.Cell().BorderTop(0.5f).Padding(3).Text("TOTAL").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Salesmen.Sum(s => s.TotalOrders)}").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"₹{data.GrandTotalSales:N2}").Bold();
-                        table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"₹{data.GrandTotalIncentive:N2}").Bold()
-                            .FontColor(Colors.Green.Medium);
+                        // ─── Grand Total Row ───
+                        if (data.Incentives.Count > 0)
+                        {
+                            table.Cell().BorderTop(0.5f).Padding(3).Text("TOTAL").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Incentives.Sum(i => i.Quantity):N0}").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"₹{data.GrandTotalIncentive:N2}").Bold()
+                                .FontColor(Colors.Green.Medium);
+                        }
                     });
                 });
 
@@ -342618,13 +342969,11 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
 ```````csharp
 using MediatR;
 using FMCG.Distribution.Application.Common;
-using FMCG.Distribution.Application.Features.Reports.DTOs;
 
 namespace FMCG.Distribution.Application.Features.Reports.Queries;
 
-public class GetProductSummaryReportQuery : IRequest<Result<byte[]>>
+public class GetSummaryReportQuery : IRequest<Result<byte[]>>
 {
-    public Guid? ProductGroupId { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
 }
@@ -342641,107 +342990,95 @@ using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
 using FMCG.Distribution.Application.Features.Reports.DTOs;
 using FMCG.Distribution.Domain.Enums;
-
-// Alias to resolve ambiguity between QuestPDF.Unit and MediatR.Unit
 using PdfUnit = QuestPDF.Infrastructure.Unit;
 
 namespace FMCG.Distribution.Application.Features.Reports.Queries;
 
-public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
-    : IRequestHandler<GetProductSummaryReportQuery, Result<byte[]>>
+public class GetSummaryReportQueryHandler : IRequestHandler<GetSummaryReportQuery, Result<byte[]>>
 {
-    public async Task<Result<byte[]>> Handle(GetProductSummaryReportQuery request, CancellationToken cancellationToken)
+    private readonly IApplicationDbContext _context;
+
+    public GetSummaryReportQueryHandler(IApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Result<byte[]>> Handle(GetSummaryReportQuery request, CancellationToken cancellationToken)
     {
         var fromDate = request.FromDate ?? DateTime.UtcNow.Date.AddDays(-30);
         var toDate = request.ToDate ?? DateTime.UtcNow.Date;
 
-        // Query orders within date range (submitted or closed, not draft)
-        var ordersQuery = context.Orders
-        .Where(o => !o.IsDeleted
-            && o.OrderDate.Date >= fromDate.Date
-            && o.OrderDate.Date <= toDate.Date);   // Draft/Submitted/Closed all included
+        Console.WriteLine($"🔵 Summary Report: {fromDate:yyyy-MM-dd} to {toDate:yyyy-MM-dd}");
 
-        var orderIds = await ordersQuery.Select(o => o.Id).ToListAsync(cancellationToken);
+        // Get closed orders with items, product groups, and size groups
+        var orders = await _context.Orders
+            .Include(o => o.Items)
+                .ThenInclude(i => i.Product)
+                    .ThenInclude(p => p!.ProductGroup)
+            .Include(o => o.Items)
+                .ThenInclude(i => i.Product)
+                    .ThenInclude(p => p!.SizeGroup)
+            .Where(o => !o.IsDeleted
+                && o.OrderDate.Date >= fromDate.Date
+                && o.OrderDate.Date <= toDate.Date
+                && o.Status == OrderStatus.Closed)
+            .ToListAsync(cancellationToken);
 
-        // Query order items with product details
-        var orderItemsQuery = context.OrderItems
-            .Include(i => i.Product!)
-        .ThenInclude(p => p!.ProductGroup)
-    .Include(i => i.Product!)
-        .ThenInclude(p => p!.DefaultUnit)    // ← ADD THIS for Packing Category
-    .Include(i => i.Product!)
-        .ThenInclude(p => p!.SizeGroup)      // ← ADD THIS for Size Group
-            .Include(i => i.Unit)
-            .Where(i => orderIds.Contains(i.OrderId) && !i.IsDeleted);
+        Console.WriteLine($"🔵 Orders found: {orders.Count}");
 
-        if (request.ProductGroupId.HasValue)
+        // Group by Item Group + Size Group
+        var groupedData = new Dictionary<(string ItemGroup, string SizeGroup), SummaryReportItemDto>();
+
+        foreach (var order in orders)
         {
-            orderItemsQuery = orderItemsQuery.Where(i => i.Product != null && i.Product.ProductGroupId == request.ProductGroupId.Value);
-        }
-
-        var orderItems = await orderItemsQuery.ToListAsync(cancellationToken);
-
-        if (orderItems.Count == 0)
-        {
-            return Result<byte[]>.Failure($"No product sales found between {fromDate:yyyy-MM-dd} and {toDate:yyyy-MM-dd}.");
-        }
-
-        // Group by product
-        var productSummaries = orderItems
-            .GroupBy(i => new { i.ProductId, i.Product!.NameEnglish, i.Product.NameMalayalam, i.Product!.ProductGroup!.Name, i.Unit!.Symbol,
-                PackingCategory = i.Product.DefaultUnit != null ? i.Product.DefaultUnit.Name : "—",
-                SizeGroup = i.Product.SizeGroup != null ? i.Product.SizeGroup.Name : "—"
-            })
-            .Select(g => new ProductSummaryItemDto
+            foreach (var item in order.Items)
             {
-                ProductId = g.Key.ProductId,
-                ProductName = g.Key.NameEnglish,
-                ProductNameMalayalam = g.Key.NameMalayalam,
-                ProductGroupName = g.Key.Name,
-                UnitSymbol = g.Key.Symbol,
-                PackingCategory = g.Key.PackingCategory,    // ← ADD THIS
-                SizeGroup = g.Key.SizeGroup,                // ← ADD THIS
-                TotalQuantity = g.Sum(i => i.Quantity),
-                TotalSales = g.Sum(i => i.SellingPrice * i.Quantity),
-                TotalVariance = g.Sum(i => (i.SellingPrice - i.BasePriceAtTime) * i.Quantity),
-                OrderCount = g.Select(i => i.OrderId).Distinct().Count()
-            })
-            .OrderBy(p => p.ProductName)
-            .ToList();
+                if (item.ProductId == Guid.Empty) continue;
+                if (item.Product == null) continue;
 
-        // Calculate margin percentages
-        foreach (var product in productSummaries)
-        {
-            if (product.TotalSales > 0)
-            {
-                product.MarginPercentage = (product.TotalVariance / product.TotalSales) * 100;
+                var product = item.Product;
+                var itemGroupName = product.ProductGroup?.Name ?? "Uncategorized";
+                var sizeGroupName = product.SizeGroup?.Name ?? "No Size Group";
+
+                var key = (ItemGroup: itemGroupName, SizeGroup: sizeGroupName);
+
+                if (groupedData.ContainsKey(key))
+                {
+                    groupedData[key].TotalQuantity += item.Quantity;
+                }
+                else
+                {
+                    groupedData[key] = new SummaryReportItemDto
+                    {
+                        ItemGroupName = itemGroupName,
+                        SizeGroupName = sizeGroupName,
+                        TotalQuantity = item.Quantity
+                    };
+                }
             }
         }
 
-        var overallSales = productSummaries.Sum(p => p.TotalSales);
-        var overallVariance = productSummaries.Sum(p => p.TotalVariance);
-        var overallMarginPercentage = overallSales > 0 ? (overallVariance / overallSales) * 100 : 0;
-
-        var data = new ProductSummaryReportDataDto
+        var reportData = new SummaryReportDataDto
         {
             FromDate = fromDate,
             ToDate = toDate,
             GeneratedAt = DateTime.UtcNow,
-            Products = productSummaries,
-            OverallSales = overallSales,
-            OverallVariance = overallVariance,
-            OverallMarginPercentage = overallMarginPercentage,
-            TotalProductCount = productSummaries.Count
+            Items = groupedData.Values
+                .OrderBy(i => i.ItemGroupName)
+                .ThenBy(i => i.SizeGroupName)
+                .ToList(),
+            GrandTotalQuantity = groupedData.Values.Sum(i => i.TotalQuantity),
+            TotalEntries = groupedData.Count
         };
 
-        // Generate PDF
-        var pdfBytes = GenerateProductSummaryPdf(data);
+        Console.WriteLine($"🔵 Total entries: {reportData.TotalEntries}");
+        Console.WriteLine($"🔵 Grand Total Quantity: {reportData.GrandTotalQuantity}");
 
+        var pdfBytes = GenerateSummaryReportPdf(reportData);
         return Result<byte[]>.Success(pdfBytes);
     }
 
-    private static byte[] GenerateProductSummaryPdf(ProductSummaryReportDataDto data)
-
+    private byte[] GenerateSummaryReportPdf(SummaryReportDataDto data)
     {
         return Document.Create(container =>
         {
@@ -342751,7 +343088,7 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
                 page.Margin(0.5f, PdfUnit.Centimetre);
                 page.DefaultTextStyle(x => x.FontSize(7).FontFamily("Arial"));
 
-                // Header
+                // ─── Header ───
                 page.Header()
                     .BorderBottom(0.5f)
                     .PaddingBottom(5)
@@ -342762,108 +343099,68 @@ public class GetProductSummaryReportQueryHandler(IApplicationDbContext context)
                             col.Item().Text("SUMMARY REPORT").FontSize(14).Bold();
                             col.Item().Text($"Period: {data.FromDate:dd-MM-yyyy} to {data.ToDate:dd-MM-yyyy}");
                         });
-                        row.RelativeItem().AlignRight().Column(col =>
+                        //row.RelativeItem().AlignRight().Column(col =>
+                        //{
+                        //    col.Item().Text($"Generated: {data.GeneratedAt:dd-MM-yyyy HH:mm}");
+                        //    col.Item().Text($"Total Quantity: {data.GrandTotalQuantity:N0}");
+                        //});
+                    });
+
+                // ─── Content ───
+                page.Content().Column(col =>
+                {
+                    // ─── Summary Cards ───
+                    col.Item().PaddingTop(8).PaddingBottom(8).Row(summaryRow =>
+                    {
+                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
                         {
-                            col.Item().Text($"Generated: {data.GeneratedAt:dd-MM-yyyy HH:mm}");
-                            col.Item().Text($"Products: {data.TotalProductCount}");
+                            c.Item().Text("TOTAL QUANTITY").FontSize(7).FontColor(Colors.Grey.Medium);
+                            c.Item().Text($"{data.GrandTotalQuantity:N0}").FontSize(12).Bold();
+                        });
+                        summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
+                        {
+                            c.Item().Text("ENTRIES").FontSize(7).FontColor(Colors.Grey.Medium);
+                            c.Item().Text($"{data.TotalEntries}").FontSize(12).Bold();
                         });
                     });
 
-                // Content
-                page.Content().Column(col =>
-                {
-                    // Summary statistics
-                    //col.Item().PaddingTop(8).PaddingBottom(8).Row(summaryRow =>
-                    //{
-                    //    summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
-                    //    {
-                    //        c.Item().Text("TOTAL SALES").FontSize(7).FontColor(Colors.Grey.Medium);
-                    //        c.Item().Text($"{data.OverallSales:N2}").FontSize(12).Bold();
-                    //    });
-                    //    summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
-                    //    {
-                    //        c.Item().Text("TOTAL VARIANCE").FontSize(7).FontColor(Colors.Grey.Medium);
-                    //        c.Item().Text($"{data.OverallVariance:N2}").FontSize(12).Bold()
-                    //            .FontColor(data.OverallVariance >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
-                    //    });
-                    //    summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
-                    //    {
-                    //        c.Item().Text("MARGIN %").FontSize(7).FontColor(Colors.Grey.Medium);
-                    //        c.Item().Text($"{data.OverallMarginPercentage:N2}%").FontSize(12).Bold()
-                    //            .FontColor(data.OverallMarginPercentage >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
-                    //    });
-                    //    summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
-                    //    {
-                    //        c.Item().Text("PRODUCTS").FontSize(7).FontColor(Colors.Grey.Medium);
-                    //        c.Item().Text($"{data.TotalProductCount}").FontSize(12).Bold();
-                    //    });
-                    //});
-
-                    // Products table
+                    // ─── Main Table ───
                     col.Item().Table(table =>
                     {
                         table.ColumnsDefinition(columns =>
                         {
-                            columns.RelativeColumn(3);  // Product Name
-                            columns.RelativeColumn(1);  // Packing Category  ← NEW
-                            columns.RelativeColumn(1);  // Size Group        ← NEW
-                            //columns.RelativeColumn(1);  // Group
-                            //columns.RelativeColumn(1);  // Unit
-                            //columns.RelativeColumn(1);  // Qty
-                            //columns.RelativeColumn(1);  // Orders
-                            //columns.RelativeColumn(2);  // Sales
-                            //columns.RelativeColumn(2);  // Variance
-                            //columns.RelativeColumn(1);  // Margin %
+                            columns.RelativeColumn(3);  // Item Group
+                            columns.RelativeColumn(3);  // Size Group
+                            columns.RelativeColumn(2);  // Quantity
                         });
 
-                        // Table header
+                        // ─── Table Header ───
                         table.Header(header =>
                         {
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("PRODUCT").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("PACKING Category").Bold();      // ← NEW
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("SIZE GROUP").Bold();   // ← NEW
-                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("GROUP").Bold();
-                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("UNIT").Bold();
-                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("QTY").Bold();
-                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("ORDERS").Bold();
-                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("SALES").Bold();
-                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("VARIANCE").Bold();
-                            //header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("MARGIN %").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("ITEM GROUP").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("SIZE GROUP").Bold();
+                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("QUANTITY").Bold();
                         });
 
-                        // Table rows
-                        foreach (var product in data.Products)
+                        // ─── Table Rows ───
+                        foreach (var item in data.Items)
                         {
-                            var marginColor = product.MarginPercentage >= 0 ? Colors.Green.Medium : Colors.Red.Medium;
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(product.ProductName);
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(product.PackingCategory ?? "—");    // ← NEW
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(product.SizeGroup ?? "—");          // ← NEW
-                            //table.Cell().BorderBottom(0.5f).Padding(3).Text(product.ProductGroupName);
-                            //table.Cell().BorderBottom(0.5f).Padding(3).Text(product.UnitSymbol);
-                            //table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.TotalQuantity:N0}");
-                            //table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.OrderCount}");
-                            //table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.TotalSales:N2}");
-                            //table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.TotalVariance:N2}")
-                            //    .FontColor(product.TotalVariance >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
-                            //table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{product.MarginPercentage:N2}%")
-                            //    .FontColor(marginColor);
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ItemGroupName);
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.SizeGroupName);
+                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.TotalQuantity:N0}");
                         }
 
-                        // Total row
-                        //table.Cell().BorderTop(0.5f).Padding(3).Text("TOTAL").Bold();
-                        //table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
-                        //table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
-                        //table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Products.Sum(p => p.TotalQuantity):N0}").Bold();
-                        //table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Products.Sum(p => p.OrderCount)}").Bold();
-                        //table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.OverallSales:N2}").Bold();
-                        //table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.OverallVariance:N2}").Bold()
-                        //    .FontColor(data.OverallVariance >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
-                        //table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.OverallMarginPercentage:N2}%").Bold()
-                        //    .FontColor(data.OverallMarginPercentage >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
+                        // ─── Total Row ───
+                        if (data.Items.Count > 0)
+                        {
+                            table.Cell().BorderTop(0.5f).Padding(3).Text("TOTAL").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
+                            table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.GrandTotalQuantity:N0}").Bold();
+                        }
                     });
                 });
 
-                // Footer
+                // ─── Footer ───
                 page.Footer()
                     .BorderTop(0.5f)
                     .PaddingTop(5)
@@ -382409,6 +382706,1667 @@ namespace FMCG.Distribution.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("ProductGroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SizeGroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Sku")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Supplier")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("UnitSize")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DefaultUnitId");
+
+                    b.HasIndex("NameMalayalam");
+
+                    b.HasIndex("ProductGroupId");
+
+                    b.HasIndex("SizeGroupId");
+
+                    b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NameMl")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ProductGroups");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductIncentive", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("EffectiveDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("IncentiveType")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("IncentiveValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EffectiveDate");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductId", "EffectiveDate");
+
+                    b.HasIndex("ProductId", "IsActive");
+
+                    b.ToTable("ProductIncentives");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Abbreviation")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BaseUnitName")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("BaseUnitValue")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("LoadingPriority")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MeasurementType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Symbol")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("UQC")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ProductUnits");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnitPrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Discount1")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Discount2")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Discount3")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Discount4")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("FloodCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("LandingCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("MOP")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("MRP")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PurchaseRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice2")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice3")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice4")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("UnitSize")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<string>("UnitSizeLabel")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("VAT")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDefault");
+
+                    b.HasIndex("ProductUnitId");
+
+                    b.HasIndex("ProductId", "ProductUnitId");
+
+                    b.ToTable("ProductUnitPrices");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Route", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AssignedSalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SequenceOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedSalesmanId");
+
+                    b.ToTable("Routes");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AssignmentDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsOverride")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SalesmanId");
+
+                    b.HasIndex("RouteId", "AssignmentDate")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("RouteAssignments");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteExecution", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExecutionDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("ExecutionType")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SalesmanId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("RouteId", "ExecutionDate");
+
+                    b.ToTable("RouteExecutions");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.SettlementPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("PaymentMode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PaymentReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("RecordedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("PaymentDate");
+
+                    b.HasIndex("RecordedByUserId");
+
+                    b.ToTable("SettlementPayments");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.SizeGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NameMl")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SizeGroups");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("PinFailCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PinHash")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PinLockedUntil")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("PinRequiresUpdate")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RefreshToken")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("RefreshTokenExpiry")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("UserName")
+                        .IsUnique()
+                        .HasFilter("\"UserName\" IS NOT NULL");
+
+                    b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.UserSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceHint")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LoginAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("LoginMethod")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LogoutAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserSessions");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.BasePrice", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Customer", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany("Customers")
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Route");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.CustomerVisit", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.RouteExecution", "RouteExecution")
+                        .WithMany("Visits")
+                        .HasForeignKey("RouteExecutionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("RouteExecution");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.DailyClosure", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "ClosedByUser")
+                        .WithMany()
+                        .HasForeignKey("ClosedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ClosedByUser");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Order", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.CustomerVisit", "CustomerVisit")
+                        .WithMany()
+                        .HasForeignKey("CustomerVisitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany()
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "Salesman")
+                        .WithMany()
+                        .HasForeignKey("SalesmanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("CustomerVisit");
+
+                    b.Navigation("Route");
+
+                    b.Navigation("Salesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.OrderItem", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Order", "Order")
+                        .WithMany("Items")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductUnit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Outstanding", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.PricingAuditLog", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Product", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductUnit", "DefaultUnit")
+                        .WithMany("Products")
+                        .HasForeignKey("DefaultUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductGroup", "ProductGroup")
+                        .WithMany("Products")
+                        .HasForeignKey("ProductGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.SizeGroup", "SizeGroup")
+                        .WithMany("Products")
+                        .HasForeignKey("SizeGroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DefaultUnit");
+
+                    b.Navigation("ProductGroup");
+
+                    b.Navigation("SizeGroup");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductIncentive", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnitPrice", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany("UnitPrices")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductUnit", "ProductUnit")
+                        .WithMany()
+                        .HasForeignKey("ProductUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ProductUnit");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Route", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "AssignedSalesman")
+                        .WithMany("AssignedRoutes")
+                        .HasForeignKey("AssignedSalesmanId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("AssignedSalesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteAssignment", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany()
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "Salesman")
+                        .WithMany()
+                        .HasForeignKey("SalesmanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Route");
+
+                    b.Navigation("Salesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteExecution", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany()
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "Salesman")
+                        .WithMany()
+                        .HasForeignKey("SalesmanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Route");
+
+                    b.Navigation("Salesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.SettlementPayment", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "RecordedByUser")
+                        .WithMany()
+                        .HasForeignKey("RecordedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("RecordedByUser");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.UserSession", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Order", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Product", b =>
+                {
+                    b.Navigation("UnitPrices");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductGroup", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnit", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Route", b =>
+                {
+                    b.Navigation("Customers");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteExecution", b =>
+                {
+                    b.Navigation("Visits");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.SizeGroup", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.User", b =>
+                {
+                    b.Navigation("AssignedRoutes");
+                });
+#pragma warning restore 612, 618
+        }
+    }
+}
+```````
+
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260724073305_AddOutOfStockToProducts.cs
+```````csharp
+using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace FMCG.Distribution.Infrastructure.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddOutOfStockToProducts : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.AddColumn<bool>(
+                name: "IsOutOfStock",
+                table: "Products",
+                type: "boolean",
+                nullable: false,
+                defaultValue: false);
+
+            migrationBuilder.AddColumn<DateTime>(
+                name: "OutOfStockMarkedAt",
+                table: "Products",
+                type: "timestamp without time zone",
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "OutOfStockReason",
+                table: "Products",
+                type: "text",
+                nullable: true);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropColumn(
+                name: "IsOutOfStock",
+                table: "Products");
+
+            migrationBuilder.DropColumn(
+                name: "OutOfStockMarkedAt",
+                table: "Products");
+
+            migrationBuilder.DropColumn(
+                name: "OutOfStockReason",
+                table: "Products");
+        }
+    }
+}
+```````
+
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260724073305_AddOutOfStockToProducts.Designer.cs
+```````csharp
+// <auto-generated />
+using System;
+using FMCG.Distribution.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+
+#nullable disable
+
+namespace FMCG.Distribution.Infrastructure.Migrations
+{
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260724073305_AddOutOfStockToProducts")]
+    partial class AddOutOfStockToProducts
+    {
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        {
+#pragma warning disable 612, 618
+            modelBuilder
+                .HasAnnotation("ProductVersion", "8.0.0")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.BasePrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("EffectiveDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EffectiveDate");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductId", "IsActive");
+
+                    b.ToTable("BasePrices");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Customer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NameEnglish")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NameMalayalam")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SequenceOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NameMalayalam");
+
+                    b.HasIndex("RouteId", "SequenceOrder");
+
+                    b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.CustomerVisit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RouteExecutionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SequenceOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SkipReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("VisitedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("RouteExecutionId");
+
+                    b.HasIndex("RouteExecutionId", "SequenceOrder");
+
+                    b.ToTable("CustomerVisits");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.DailyClosure", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ClosedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("ClosedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ClosureDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("ExpectedCash")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RouteName")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("TotalOutstanding")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalSales")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClosedByUserId");
+
+                    b.HasIndex("ClosureDate");
+
+                    b.ToTable("DailyClosures");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Order", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("ClosedByRouteClosure")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CustomerVisitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("ExpectedPaymentAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("PackedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("PackedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("PackingStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SettlementStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("CustomerVisitId");
+
+                    b.HasIndex("IsLocked");
+
+                    b.HasIndex("OrderNumber")
+                        .IsUnique();
+
+                    b.HasIndex("RouteId");
+
+                    b.HasIndex("SalesmanId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("CustomerId", "OrderDate");
+
+                    b.HasIndex("RouteId", "Status");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.OrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BasePriceAtTime")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProductNameAtTime")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProductNameMalayalamAtTime")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<int?>("QuantityBags")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("QuantityBoxes")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("QuantityTins")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("SellingPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("SizeGroupNameAtTime")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UnitId");
+
+                    b.ToTable("OrderItems");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Outstanding", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("OutstandingAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("SettledAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("SettlementReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SettlementStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("SettlementStatus");
+
+                    b.ToTable("Outstandings");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.PricingAuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Action")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("NewPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("OldPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Action");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("PricingAuditLogs");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Product", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BasePrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("ClosingStock")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("DefaultUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("HSNCode")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("Incentive")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsOutOfStock")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ItemCode")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("MaxOrderQty")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal?>("MinOrderQty")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("NameEnglish")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NameMalayalam")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("OutOfStockMarkedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("OutOfStockReason")
+                        .HasColumnType("text");
 
                     b.Property<Guid>("ProductGroupId")
                         .HasColumnType("uuid");

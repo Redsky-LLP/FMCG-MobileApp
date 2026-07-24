@@ -250,6 +250,11 @@ export interface ProductDto {
     uqc?: string;
     unitSize?: number;    // ← NEW
     incentive?: number;   // ← NEW
+
+    // ── NEW: Out of Stock ──
+    isOutOfStock?: boolean;
+    outOfStockReason?: string;
+    outOfStockMarkedAt?: string;
 }
 
 export interface ProductDetailDto extends ProductDto {
@@ -273,6 +278,8 @@ export interface ProductSearchDto {
   sizeGroupId?:     string;
   sizeGroupName?:   string;
   uqc?:             string;
+  isOutOfStock?:    boolean;
+  outOfStockReason?: string;
 }
 
 // ── Product Unit Price Types ────────────────────────────────────────────────
