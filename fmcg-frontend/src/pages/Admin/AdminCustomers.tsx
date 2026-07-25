@@ -1,6 +1,9 @@
 // PATH: src/pages/Admin/AdminCustomers.tsx
 // UPDATED: Removed "Set Sequence" text, added Back button, dark theme
 // FIXED: Toast messages shown in banner area
+// FIX: handleEdit() now includes sequenceOrder in the update payload — it was
+// being silently dropped, so editing a customer (even just the phone number)
+// reset their visit position back to 0/"No Sequence" every time.
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -685,6 +688,13 @@ export function AdminCustomers() {
         nameMalayalam: editForm.nameMl || undefined,
         phoneNumber: editForm.phone || undefined,
         routeId: editForm.routeId,
+        // ── FIX: sequenceOrder was missing from this payload entirely, so every
+        // edit — even something unrelated like the phone number — silently reset
+        // the customer's visit position back to 0/"No Sequence", forcing a manual
+        // Reorder every time. editForm.sequenceOrder already correctly carried
+        // the existing value forward from openEdit() above — it just wasn't
+        // being sent to the backend. ──
+        sequenceOrder: parseInt(editForm.sequenceOrder, 10) || 0,
         isActive: editModal.isActive,
       };
       await customersApi.update(editModal.id, updatePayload);
