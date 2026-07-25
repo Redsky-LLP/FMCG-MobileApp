@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -97,7 +95,6 @@ export function AdminOrders() {
   const [routes,         setRoutes]         = useState<RouteDto[]>([]);
   const [loading,        setLoading]        = useState(true);
   const [error,          setError]          = useState('');
-  const [success,        setSuccess]        = useState('');
   const [routeFilter,    setRouteFilter]    = useState('');
   const [statusFilter,   setStatusFilter]   = useState<string>('');
   const [dateFilter,     setDateFilter]     = useState('');
@@ -121,6 +118,15 @@ export function AdminOrders() {
   // ── Reopen Route state ──────────────────────────────────────────────────────
   const [reopeningRouteId, setReopeningRouteId] = useState<string | null>(null);
   const [reopening,        setReopening]        = useState(false);
+
+  // ─── BANNER TOAST STATE ────────────────────────────────────────────────────
+  const [bannerToast, setBannerToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // ─── Helper function to show banner toast ─────────────────────────────────
+  const showBannerToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setBannerToast({ message, type });
+    setTimeout(() => setBannerToast(null), 3000);
+  };
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -181,26 +187,39 @@ export function AdminOrders() {
     setStatusFilter('');
   }
 
+  // ─── handleApprove - ONLY BANNER TOAST ────────────────────────────────────
   async function handleApprove(orderId: string) {
     setApproving(orderId); setError('');
     try {
       await ordersApi.approve(orderId);
-      setSuccess('Order approved!'); setShowModal(false); setReviewOrder(null);
-      await load(); setTimeout(() => setSuccess(''), 3000);
-    } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Approve failed'); }
+      showBannerToast('✅ Order approved successfully', 'success');
+      setShowModal(false);
+      setReviewOrder(null);
+      await load();
+    } catch (err: unknown) { 
+      setError(err instanceof Error ? err.message : 'Approve failed');
+      showBannerToast('❌ Failed to approve order', 'error');
+    }
     finally { setApproving(null); }
   }
 
+  // ─── handleClose - ONLY BANNER TOAST ──────────────────────────────────────
   async function handleClose(orderId: string) {
     setClosing(orderId); setError('');
     try {
       await ordersApi.close(orderId);
-      setSuccess('Order closed!'); setShowModal(false); setReviewOrder(null);
-      await load(); setTimeout(() => setSuccess(''), 3000);
-    } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Close failed'); }
+      showBannerToast('✅ Order closed successfully', 'success');
+      setShowModal(false);
+      setReviewOrder(null);
+      await load();
+    } catch (err: unknown) { 
+      setError(err instanceof Error ? err.message : 'Close failed');
+      showBannerToast('❌ Failed to close order', 'error');
+    }
     finally { setClosing(null); }
   }
 
+  // ─── handleCloseRoute - ONLY BANNER TOAST ─────────────────────────────────
   async function handleCloseRoute(routeId: string) {
     const route = routes.find(r => String(r.id) === routeId);
     setClosingDay(true); setCloseDayError('');
@@ -208,41 +227,41 @@ export function AdminOrders() {
       const result = await settlementApi.closeDay(dateFilter || today, routeId, closeDayNotes || undefined);
       setClosingRouteId(null);
       setCloseDayNotes('');
-      setSuccess(`✅ ${route?.name ?? 'Route'} closed! ${result.message ?? ''}`);
+      
+      // ─── BANNER TOAST ───
+      showBannerToast(`✅ ${route?.name ?? 'Route'} closed successfully`, 'success');
 
-      // ── Flip the UI to "closed" immediately — don't wait on the
-      // getStatus() round-trip below to know which button to show ──
       setClosureStatus({ isClosed: true, closedAt: new Date().toISOString() });
 
-      // Then reconcile with the server's actual record (exact timestamp etc)
       const status = await settlementApi.getStatus(dateFilter || today, routeId);
       setClosureStatus(status);
 
       await load();
-      setTimeout(() => setSuccess(''), 5000);
     } catch (err: unknown) {
       setCloseDayError(err instanceof Error ? err.message : `Failed to close ${route?.name ?? 'the route'}`);
+      showBannerToast(`❌ Failed to close ${route?.name ?? 'route'}`, 'error');
     } finally {
       setClosingDay(false);
     }
   }
 
+  // ─── handleReopenRoute - ONLY BANNER TOAST ────────────────────────────────
   async function handleReopenRoute(routeId: string) {
     const route = routes.find(r => String(r.id) === routeId);
     setReopening(true); setCloseDayError('');
     try {
       const result = await settlementApi.reopenRoute(dateFilter || today, routeId);
       setReopeningRouteId(null);
-      setSuccess(`↩️ ${route?.name ?? 'Route'} reopened. ${result.ordersUnlocked} order(s) unlocked.`);
+      
+      // ─── BANNER TOAST ───
+      showBannerToast(`✅ ${route?.name ?? 'Route'} reopened successfully`, 'success');
 
-      // ── Flip the UI back to "open" immediately — this is what makes
-      // "Close Route" reappear right away instead of a beat later ──
       setClosureStatus({ isClosed: false });
 
       await load();
-      setTimeout(() => setSuccess(''), 5000);
     } catch (err: unknown) {
       setCloseDayError(err instanceof Error ? err.message : `Failed to reopen ${route?.name ?? 'the route'}`);
+      showBannerToast(`❌ Failed to reopen ${route?.name ?? 'route'}`, 'error');
     } finally {
       setReopening(false);
     }
@@ -416,13 +435,10 @@ export function AdminOrders() {
           {/* ── Spacer ── */}
           <div style={{ flex: 1 }} />
 
-          {/* ── Close / Reopen toggle — scoped to the currently selected route ──
-              Whichever action is actually available is the bright, primary
-              button. The other state is either hidden or shown as quiet text. ── */}
+          {/* ── Close / Reopen toggle ── */}
           {routeFilter && routeFilter !== 'all' ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               {!closureStatus?.isClosed ? (
-                // ── OPEN: "Close Route" is the highlighted action ──
                 <button
                   onClick={() => { setClosingRouteId(routeFilter); setCloseDayError(''); }}
                   style={{
@@ -455,7 +471,6 @@ export function AdminOrders() {
                   Close {selectedRouteName}
                 </button>
               ) : (
-                // ── CLOSED: "Reopen Route" is the highlighted action ──
                 <>
                   <span style={{ fontSize: 12, color: D.sub, fontWeight: 600, alignSelf: 'center' }}>
                     {selectedRouteName} closed at{' '}
@@ -498,7 +513,6 @@ export function AdminOrders() {
               )}
             </div>
           ) : (
-            // ── "All Routes" selected — no single close action anymore ──
             <span style={{ fontSize: 12, color: D.sub, alignSelf: 'center', fontStyle: 'italic' }}>
               Select a route above to close or reopen it
             </span>
@@ -507,8 +521,45 @@ export function AdminOrders() {
       </div>
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 20px' }}>
-        {error   && <Alert variant="error">{error}</Alert>}
-        {success && <Alert variant="success">{success}</Alert>}
+        {/* ─── BANNER TOAST ─── */}
+        {bannerToast && (
+          <div style={{
+            padding: '12px 16px',
+            borderRadius: 10,
+            marginBottom: 16,
+            background: bannerToast.type === 'success' 
+              ? 'rgba(34,197,94,0.15)' 
+              : 'rgba(239,68,68,0.15)',
+            border: bannerToast.type === 'success' 
+              ? '1px solid #22c55e' 
+              : '1px solid #ef4444',
+            color: bannerToast.type === 'success' ? '#22c55e' : '#ef4444',
+            fontSize: 14,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <span>{bannerToast.message}</span>
+            <button
+              onClick={() => setBannerToast(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: bannerToast.type === 'success' ? '#22c55e' : '#ef4444',
+                cursor: 'pointer',
+                fontSize: 18,
+                fontWeight: 700,
+                padding: '0 4px',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* ─── ERROR (only for other errors) ─── */}
+        {error && <Alert variant="error">{error}</Alert>}
 
         {/* ── Filters ── */}
         <div style={{
@@ -923,7 +974,7 @@ export function AdminOrders() {
               )}
             </div>
 
-            {/* ── Modal footer - NO Edit button ── */}
+            {/* ── Modal footer ── */}
             <div style={{ padding: '12px 18px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               {reviewOrder.status === OrderStatus.PendingApproval && (
                 <button

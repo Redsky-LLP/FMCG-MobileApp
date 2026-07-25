@@ -1,5 +1,6 @@
 // PATH: src/pages/Admin/AdminCustomers.tsx
 // UPDATED: Removed "Set Sequence" text, added Back button, dark theme
+// FIXED: Toast messages shown in banner area
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -400,7 +401,6 @@ function CustomerCard({
         )}
 
         <div style={{ display: 'flex', gap: 6 }}>
-          {/* Reorder button only - removed Set Sequence */}
           <button
             onClick={onReorder}
             style={{
@@ -452,7 +452,6 @@ interface FormFieldsProps {
     name: string;
     nameMl: string;
     phone: string;
-    // address: string;
     routeId: string;
     sequenceOrder: string;
   };
@@ -557,25 +556,11 @@ const FormFields = React.memo(({ form, setForm, routes, isEdit = false }: FormFi
           type="tel"
           value={form.phone}
           onChange={e => handleChange('phone', e.target.value)}
-          // placeholder="+91 9876543210"
           style={inputStyle}
           onFocus={e => { e.target.style.borderColor = D.accent; e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`; e.target.style.background = D.surface2; }}
           onBlur={e => { e.target.style.borderColor = D.border; e.target.style.boxShadow = 'none'; e.target.style.background = D.bg; }}
         />
       </div>
-
-      {/* <div>
-        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: D.muted, marginBottom: 6 }}>Address</label>
-        <input
-          type="text"
-          value={form.address}
-          onChange={e => handleChange('address', e.target.value)}
-          placeholder="Shop / locality"
-          style={inputStyle}
-          onFocus={e => { e.target.style.borderColor = D.accent; e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`; e.target.style.background = D.surface2; }}
-          onBlur={e => { e.target.style.borderColor = D.border; e.target.style.boxShadow = 'none'; e.target.style.background = D.bg; }}
-        />
-      </div> */}
     </div>
   );
 });
@@ -590,7 +575,6 @@ export function AdminCustomers() {
   const [routes,      setRoutes]      = useState<RouteDto[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState('');
-  const [success,     setSuccess]     = useState('');
   const [search,      setSearch]      = useState('');
   const [searchParams] = useSearchParams();
   const [routeFilter, setRouteFilter] = useState(() => searchParams.get('routeId') ?? '');
@@ -602,6 +586,15 @@ export function AdminCustomers() {
   const [deleting,    setDeleting]    = useState(false);
   const [reordering,  setReordering]  = useState(false);
   const addCardRef = useRef<HTMLDivElement>(null);
+
+  // ─── BANNER TOAST STATE ────────────────────────────────────────────────────
+  const [bannerToast, setBannerToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // ─── Helper function to show banner toast ─────────────────────────────────
+  const showBannerToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setBannerToast({ message, type });
+    setTimeout(() => setBannerToast(null), 3000);
+  };
 
   const emptyForm = { name: '', nameMl: '', phone: '', routeId: '', sequenceOrder: '1' };
   const [addForm,  setAddForm]  = useState(emptyForm);
@@ -651,12 +644,12 @@ export function AdminCustomers() {
     try {
       await customersApi.reorder(customer.routeId, customer.id, newSeq);
       setReorderPage(null);
-      setSuccess('Customer order updated successfully');
-      setTimeout(() => setSuccess(''), 3000);
+      showBannerToast('✅ Customer order updated successfully', 'success');
       await load();
     } catch (err) {
       console.error('Reorder error:', err);
       setError(err instanceof Error ? err.message : 'Reorder failed');
+      showBannerToast('❌ Failed to update customer order', 'error');
     } finally {
       setReordering(false);
     }
@@ -671,12 +664,13 @@ export function AdminCustomers() {
         phoneNumber: addForm.phone || undefined, 
         routeId: addForm.routeId,
       });
-      setShowAdd(false); setAddForm(emptyForm); load();
-      setSuccess('Customer added successfully');
-      setTimeout(() => setSuccess(''), 3000);
+      setShowAdd(false); setAddForm(emptyForm); 
+      await load();
+      showBannerToast('✅ Customer added successfully', 'success');
     } catch (err: unknown) { 
       console.error('Add error:', err);
-      setError(err instanceof Error ? err.message : 'Save failed'); 
+      setError(err instanceof Error ? err.message : 'Save failed');
+      showBannerToast('❌ Failed to add customer', 'error');
     }
     finally { setSaving(false); }
   }
@@ -690,18 +684,17 @@ export function AdminCustomers() {
         nameEnglish: editForm.name,
         nameMalayalam: editForm.nameMl || undefined,
         phoneNumber: editForm.phone || undefined,
-        // address: editForm.address || undefined,
         routeId: editForm.routeId,
         isActive: editModal.isActive,
       };
       await customersApi.update(editModal.id, updatePayload);
       setEditModal(null); 
-      load();
-      setSuccess('Customer updated successfully');
-      setTimeout(() => setSuccess(''), 3000);
+      await load();
+      showBannerToast('✅ Customer updated successfully', 'success');
     } catch (err: unknown) { 
       console.error('Update error:', err);
-      setError(err instanceof Error ? err.message : 'Save failed'); 
+      setError(err instanceof Error ? err.message : 'Save failed');
+      showBannerToast('❌ Failed to update customer', 'error');
     }
     finally { setSaving(false); }
   }
@@ -714,11 +707,11 @@ export function AdminCustomers() {
       await customersApi.delete(deletePage.id); 
       setDeletePage(null); 
       await load();
-      setSuccess('Customer deleted successfully');
-      setTimeout(() => setSuccess(''), 3000);
+      showBannerToast('✅ Customer deleted successfully', 'success');
     } catch (err: unknown) { 
       console.error('Delete error:', err);
-      setError(err instanceof Error ? err.message : 'Delete failed'); 
+      setError(err instanceof Error ? err.message : 'Delete failed');
+      showBannerToast('❌ Failed to delete customer', 'error');
     }
     finally { setDeleting(false); }
   }
@@ -763,6 +756,43 @@ export function AdminCustomers() {
           Back to Dashboard
         </button>
 
+        {/* ─── BANNER TOAST ─── */}
+        {bannerToast && (
+          <div style={{
+            padding: '12px 16px',
+            borderRadius: 10,
+            marginBottom: 16,
+            background: bannerToast.type === 'success' 
+              ? 'rgba(34,197,94,0.15)' 
+              : 'rgba(239,68,68,0.15)',
+            border: bannerToast.type === 'success' 
+              ? '1px solid #22c55e' 
+              : '1px solid #ef4444',
+            color: bannerToast.type === 'success' ? '#22c55e' : '#ef4444',
+            fontSize: 14,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <span>{bannerToast.message}</span>
+            <button
+              onClick={() => setBannerToast(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: bannerToast.type === 'success' ? '#22c55e' : '#ef4444',
+                cursor: 'pointer',
+                fontSize: 18,
+                fontWeight: 700,
+                padding: '0 4px',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Top bar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
           <div style={{ flex: 1 }}>
@@ -803,8 +833,8 @@ export function AdminCustomers() {
           </button>
         </div>
 
+        {/* ─── ERROR (only for other errors) ─── */}
         {error && <Alert variant="error">{error}</Alert>}
-        {success && <Alert variant="success">{success}</Alert>}
 
         {zeroSeqCount > 0 && (
           <div style={{

@@ -1,5 +1,6 @@
 // PATH: src/pages/Admin/AdminRoutes/AdminRoutes.tsx
 // UPDATED: Dark theme with orange accent
+// FIXED: Toast positioned in content area (not above header)
 
 import { useEffect, useState } from 'react';
 import { Plus, X, RefreshCw, Route, ArrowLeft, Map, Users, Activity } from 'lucide-react';
@@ -34,10 +35,17 @@ export function AdminRoutes() {
   const [routes,      setRoutes]      = useState<RouteDto[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState('');
-  const [success,     setSuccess]     = useState('');
   const [saving,      setSaving]      = useState(false);
-  // const [salesmen,    setSalesmen]    = useState<UserDto[]>([]);
   const [showAddCard, setShowAddCard] = useState(false);
+
+  // ─── BANNER TOAST STATE ────────────────────────────────────────────────────
+  const [bannerToast, setBannerToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // ─── Helper function to show banner toast ─────────────────────────────────
+  const showBannerToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setBannerToast({ message, type });
+    setTimeout(() => setBannerToast(null), 3000);
+  };
 
   async function load() {
     setLoading(true); setError('');
@@ -46,9 +54,7 @@ export function AdminRoutes() {
     finally { setLoading(false); }
   }
 
-  
   useEffect(() => { load(); }, []);
-  // useEffect(() => { if (showAddCard) loadSalesmen(); }, [showAddCard]);
 
   async function handleAdd(form: RouteFormData) {
     if (!form.name.trim()) return;
@@ -57,21 +63,20 @@ export function AdminRoutes() {
       await routesApi.create({
         name: form.name,
         description: form.description || undefined,
-        // assignedSalesmanId: form.assignedSalesmanId || undefined,
       });
       setShowAddCard(false);
-      setSuccess('Route created successfully!');
-      setTimeout(() => setSuccess(''), 3000);
+      showBannerToast('✅ Route created successfully!', 'success');
       await load();
-    } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Save failed'); }
+    } catch (err: unknown) { 
+      setError(err instanceof Error ? err.message : 'Save failed');
+      showBannerToast('❌ Failed to create route', 'error');
+    }
     finally { setSaving(false); }
   }
 
   function handleEdit(route: RouteDto) {
     navigate(`/admin/routes/edit/${route.id}`, { state: { route } });
   }
-
-  
 
   function handleDelete(routeId: string) {
     const route = routes.find(r => String(r.id) === routeId);
@@ -222,14 +227,51 @@ export function AdminRoutes() {
 
       {/* ── Content ───────────────────────────────────────────── */}
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px' }}>
-        {error   && <Alert variant="error">{error}</Alert>}
-        {success && <Alert variant="success">{success}</Alert>}
+        
+        {/* ─── BANNER TOAST (inside content area) ─── */}
+        {bannerToast && (
+          <div style={{
+            padding: '12px 16px',
+            borderRadius: 10,
+            marginBottom: 16,
+            background: bannerToast.type === 'success' 
+              ? 'rgba(34,197,94,0.15)' 
+              : 'rgba(239,68,68,0.15)',
+            border: bannerToast.type === 'success' 
+              ? '1px solid #22c55e' 
+              : '1px solid #ef4444',
+            color: bannerToast.type === 'success' ? '#22c55e' : '#ef4444',
+            fontSize: 14,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <span>{bannerToast.message}</span>
+            <button
+              onClick={() => setBannerToast(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: bannerToast.type === 'success' ? '#22c55e' : '#ef4444',
+                cursor: 'pointer',
+                fontSize: 18,
+                fontWeight: 700,
+                padding: '0 4px',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* ─── ERROR (only for other errors) ─── */}
+        {error && <Alert variant="error">{error}</Alert>}
 
         {/* Add Route Card */}
         {showAddCard && (
           <div style={{ marginBottom: 20 }}>
             <AddRouteCard
-              // salesmen={salesmen}
               saving={saving}
               error={error}
               onSave={handleAdd}
@@ -248,7 +290,6 @@ export function AdminRoutes() {
         ) : (
           <RoutesTable
             routes={routes}
-            // onAssign={handleAssign}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
