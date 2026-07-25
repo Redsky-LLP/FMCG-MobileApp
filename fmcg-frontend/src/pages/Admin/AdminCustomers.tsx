@@ -1,5 +1,8 @@
 // PATH: src/pages/Admin/AdminCustomers.tsx
 // UPDATED: Removed "Set Sequence" text, added Back button, dark theme
+// FIX: handleEdit() now includes sequenceOrder in the update payload — it was
+// being silently dropped, so editing a customer (even just the phone number)
+// reset their visit position back to 0/"No Sequence" every time.
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -563,19 +566,6 @@ const FormFields = React.memo(({ form, setForm, routes, isEdit = false }: FormFi
           onBlur={e => { e.target.style.borderColor = D.border; e.target.style.boxShadow = 'none'; e.target.style.background = D.bg; }}
         />
       </div>
-
-      {/* <div>
-        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: D.muted, marginBottom: 6 }}>Address</label>
-        <input
-          type="text"
-          value={form.address}
-          onChange={e => handleChange('address', e.target.value)}
-          placeholder="Shop / locality"
-          style={inputStyle}
-          onFocus={e => { e.target.style.borderColor = D.accent; e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`; e.target.style.background = D.surface2; }}
-          onBlur={e => { e.target.style.borderColor = D.border; e.target.style.boxShadow = 'none'; e.target.style.background = D.bg; }}
-        />
-      </div> */}
     </div>
   );
 });
@@ -692,6 +682,13 @@ export function AdminCustomers() {
         phoneNumber: editForm.phone || undefined,
         // address: editForm.address || undefined,
         routeId: editForm.routeId,
+        // ── FIX: sequenceOrder was missing from this payload entirely, so every
+        // edit — even something unrelated like the phone number — silently reset
+        // the customer's visit position back to 0/"No Sequence", forcing a manual
+        // Reorder every time. editForm.sequenceOrder already correctly carried
+        // the existing value forward from openEdit() above — it just wasn't
+        // being sent to the backend. ──
+        sequenceOrder: parseInt(editForm.sequenceOrder, 10) || 0,
         isActive: editModal.isActive,
       };
       await customersApi.update(editModal.id, updatePayload);

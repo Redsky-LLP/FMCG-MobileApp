@@ -82,6 +82,11 @@ export default function OrderEntry() {
   const [unitPrices,         setUnitPrices]         = useState<Record<string, ProductUnitPriceDto>>({});
   const [showCancelConfirm,  setShowCancelConfirm]  = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  // ── NEW: ref to the most-recently-rendered item card, so we can scroll it
+  // into view automatically the moment it's added — instead of leaving it
+  // below the fold and making the salesman scroll down manually to confirm
+  // the tap actually registered. ──
+  const lastItemRef = useRef<HTMLDivElement>(null);
 
   // ── FIX: Declare hasExistingOrder BEFORE using it in canCancel ──
   const hasExistingOrder = !!existingOrder;
@@ -191,6 +196,24 @@ export default function OrderEntry() {
   useEffect(() => {
     if (showProducts && searchInputRef.current) searchInputRef.current.focus();
   }, [showProducts]);
+
+  // ── NEW: auto-scroll to the newly added item. New items are appended to
+  // the end of `lines`, so after a tap in the picker they land below whatever
+  // was already visible on screen — this brings the just-added item into
+  // view automatically instead of requiring a manual scroll to confirm it
+  // was actually added. A short delay lets the picker's close animation and
+  // the new card's render settle first, so the scroll target is accurate. ──
+  const prevLineCountRef = useRef(0);
+  useEffect(() => {
+    if (lines.length > prevLineCountRef.current) {
+      const t = setTimeout(() => {
+        lastItemRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 150);
+      prevLineCountRef.current = lines.length;
+      return () => clearTimeout(t);
+    }
+    prevLineCountRef.current = lines.length;
+  }, [lines.length]);
 
   // ── Add product — one tap adds one item, then the picker closes.
   // Tap "+" again to add the next item (deliberate: simpler, less error-prone
@@ -540,8 +563,12 @@ export default function OrderEntry() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {lines.map(line => (
-                <div key={line.product.id} style={{ background: D.card, border: `1px solid ${D.border}`, borderRadius: 12, padding: '12px 14px' }}>
+              {lines.map((line, idx) => (
+                <div
+                  key={line.product.id}
+                  ref={idx === lines.length - 1 ? lastItemRef : undefined}
+                  style={{ background: D.card, border: `1px solid ${D.border}`, borderRadius: 12, padding: '12px 14px' }}
+                >
                   {/* Product name row */}
                   <div style={{ marginBottom: 10 }}>
                     <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: D.text }}>{line.product.nameEnglish}</p>
