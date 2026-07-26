@@ -460,8 +460,8 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                             .Padding(4)
                                             .Row(r =>
                                             {
-                                                r.ConstantItem(100).AlignRight().Text($"{stop.SequenceOrder})").FontSize(18).Bold();
-                                                r.RelativeItem().AlignCenter().Text(stop.CustomerName).FontSize(18).Bold();
+                                                r.ConstantItem(100).AlignRight().Text($"{stop.SequenceOrder})").FontSize(18).ExtraBold();
+                                                r.RelativeItem().AlignCenter().Text(stop.CustomerName).FontSize(18).ExtraBold();
                                                 r.ConstantItem(100);
                                             });
 

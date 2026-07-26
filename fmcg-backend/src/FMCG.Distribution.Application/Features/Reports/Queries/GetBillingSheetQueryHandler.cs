@@ -243,8 +243,8 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                         .AlignCenter().Width(480)
                                         .Row(r =>
                                         {
-                                            r.ConstantItem(40).PaddingLeft(5).Text($"{order.SequenceOrder + 1})").FontSize(18).Bold();
-                                            r.RelativeItem().AlignCenter().Text(order.CustomerName).FontSize(18).Bold();
+                                            r.ConstantItem(40).PaddingLeft(5).Text($"{order.SequenceOrder + 1})").FontSize(18).ExtraBold();
+                                            r.RelativeItem().AlignCenter().Text(order.CustomerName).FontSize(18).ExtraBold();
                                             r.ConstantItem(40);
                                         });
 

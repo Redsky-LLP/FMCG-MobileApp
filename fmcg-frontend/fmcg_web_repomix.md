@@ -1423,7 +1423,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.97sbu146l9"
+    "revision": "0.dv2lch8tlho"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -67231,21 +67231,36 @@ export const reportsApi = {
     });
     return res.data as Blob;
   },
-  productSummary: async (fromDate: string, toDate: string, productGroupId?: string) => {
-    const params: Record<string, string> = { fromDate, toDate };
-    if (productGroupId) params.productGroupId = productGroupId;
-    const res = await apiClient.get('/api/v1/reports/product-summary', {
-      params,
-      responseType: 'blob',
-    });
-    return res.data as Blob;
-  },
+  downloadSummaryReport: async (fromDate?: string, toDate?: string) => {
+  const params: Record<string, string> = {};
+  if (fromDate) params.fromDate = fromDate;
+  if (toDate) params.toDate = toDate;
+  const res = await apiClient.get('/api/v1/reports/summary-report', {
+    params,
+    responseType: 'blob',
+  });
+  return res.data as Blob;
+},
   // ── Incentive Report ──
 downloadIncentiveReport: async (fromDate?: string, toDate?: string) => {
   const params: Record<string, string> = {};
   if (fromDate) params.fromDate = fromDate;
   if (toDate) params.toDate = toDate;
   const res = await apiClient.get('/api/v1/reports/incentive-report', {
+    params,
+    responseType: 'blob',
+  });
+  return res.data as Blob;
+},
+downloadAdditionalRevenueReport: async (fromDate?: string, toDate?: string) => {
+  console.log('🔵 downloadAdditionalRevenueReport called!');
+  console.log('fromDate:', fromDate);
+  console.log('toDate:', toDate);
+  
+  const params: Record<string, string> = {};
+  if (fromDate) params.fromDate = fromDate;
+  if (toDate) params.toDate = toDate;
+  const res = await apiClient.get('/api/v1/reports/additional-revenue', {
     params,
     responseType: 'blob',
   });
@@ -73771,6 +73786,10 @@ export function AdminCatalogConfig() {
 ``````typescript
 // PATH: src/pages/Admin/AdminCustomers.tsx
 // UPDATED: Removed "Set Sequence" text, added Back button, dark theme
+// FIXED: Toast messages shown in banner area
+// FIX: handleEdit() now includes sequenceOrder in the update payload — it was
+// being silently dropped, so editing a customer (even just the phone number)
+// reset their visit position back to 0/"No Sequence" every time.
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -74171,7 +74190,6 @@ function CustomerCard({
         )}
 
         <div style={{ display: 'flex', gap: 6 }}>
-          {/* Reorder button only - removed Set Sequence */}
           <button
             onClick={onReorder}
             style={{
@@ -74223,7 +74241,6 @@ interface FormFieldsProps {
     name: string;
     nameMl: string;
     phone: string;
-    // address: string;
     routeId: string;
     sequenceOrder: string;
   };
@@ -74328,25 +74345,11 @@ const FormFields = React.memo(({ form, setForm, routes, isEdit = false }: FormFi
           type="tel"
           value={form.phone}
           onChange={e => handleChange('phone', e.target.value)}
-          // placeholder="+91 9876543210"
           style={inputStyle}
           onFocus={e => { e.target.style.borderColor = D.accent; e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`; e.target.style.background = D.surface2; }}
           onBlur={e => { e.target.style.borderColor = D.border; e.target.style.boxShadow = 'none'; e.target.style.background = D.bg; }}
         />
       </div>
-
-      {/* <div>
-        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: D.muted, marginBottom: 6 }}>Address</label>
-        <input
-          type="text"
-          value={form.address}
-          onChange={e => handleChange('address', e.target.value)}
-          placeholder="Shop / locality"
-          style={inputStyle}
-          onFocus={e => { e.target.style.borderColor = D.accent; e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`; e.target.style.background = D.surface2; }}
-          onBlur={e => { e.target.style.borderColor = D.border; e.target.style.boxShadow = 'none'; e.target.style.background = D.bg; }}
-        />
-      </div> */}
     </div>
   );
 });
@@ -74361,7 +74364,6 @@ export function AdminCustomers() {
   const [routes,      setRoutes]      = useState<RouteDto[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState('');
-  const [success,     setSuccess]     = useState('');
   const [search,      setSearch]      = useState('');
   const [searchParams] = useSearchParams();
   const [routeFilter, setRouteFilter] = useState(() => searchParams.get('routeId') ?? '');
@@ -74373,6 +74375,15 @@ export function AdminCustomers() {
   const [deleting,    setDeleting]    = useState(false);
   const [reordering,  setReordering]  = useState(false);
   const addCardRef = useRef<HTMLDivElement>(null);
+
+  // ─── BANNER TOAST STATE ────────────────────────────────────────────────────
+  const [bannerToast, setBannerToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // ─── Helper function to show banner toast ─────────────────────────────────
+  const showBannerToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setBannerToast({ message, type });
+    setTimeout(() => setBannerToast(null), 3000);
+  };
 
   const emptyForm = { name: '', nameMl: '', phone: '', routeId: '', sequenceOrder: '1' };
   const [addForm,  setAddForm]  = useState(emptyForm);
@@ -74422,12 +74433,12 @@ export function AdminCustomers() {
     try {
       await customersApi.reorder(customer.routeId, customer.id, newSeq);
       setReorderPage(null);
-      setSuccess('Customer order updated successfully');
-      setTimeout(() => setSuccess(''), 3000);
+      showBannerToast('✅ Customer order updated successfully', 'success');
       await load();
     } catch (err) {
       console.error('Reorder error:', err);
       setError(err instanceof Error ? err.message : 'Reorder failed');
+      showBannerToast('❌ Failed to update customer order', 'error');
     } finally {
       setReordering(false);
     }
@@ -74442,12 +74453,13 @@ export function AdminCustomers() {
         phoneNumber: addForm.phone || undefined, 
         routeId: addForm.routeId,
       });
-      setShowAdd(false); setAddForm(emptyForm); load();
-      setSuccess('Customer added successfully');
-      setTimeout(() => setSuccess(''), 3000);
+      setShowAdd(false); setAddForm(emptyForm); 
+      await load();
+      showBannerToast('✅ Customer added successfully', 'success');
     } catch (err: unknown) { 
       console.error('Add error:', err);
-      setError(err instanceof Error ? err.message : 'Save failed'); 
+      setError(err instanceof Error ? err.message : 'Save failed');
+      showBannerToast('❌ Failed to add customer', 'error');
     }
     finally { setSaving(false); }
   }
@@ -74461,18 +74473,24 @@ export function AdminCustomers() {
         nameEnglish: editForm.name,
         nameMalayalam: editForm.nameMl || undefined,
         phoneNumber: editForm.phone || undefined,
-        // address: editForm.address || undefined,
         routeId: editForm.routeId,
+        // ── FIX: sequenceOrder was missing from this payload entirely, so every
+        // edit — even something unrelated like the phone number — silently reset
+        // the customer's visit position back to 0/"No Sequence", forcing a manual
+        // Reorder every time. editForm.sequenceOrder already correctly carried
+        // the existing value forward from openEdit() above — it just wasn't
+        // being sent to the backend. ──
+        sequenceOrder: parseInt(editForm.sequenceOrder, 10) || 0,
         isActive: editModal.isActive,
       };
       await customersApi.update(editModal.id, updatePayload);
       setEditModal(null); 
-      load();
-      setSuccess('Customer updated successfully');
-      setTimeout(() => setSuccess(''), 3000);
+      await load();
+      showBannerToast('✅ Customer updated successfully', 'success');
     } catch (err: unknown) { 
       console.error('Update error:', err);
-      setError(err instanceof Error ? err.message : 'Save failed'); 
+      setError(err instanceof Error ? err.message : 'Save failed');
+      showBannerToast('❌ Failed to update customer', 'error');
     }
     finally { setSaving(false); }
   }
@@ -74485,11 +74503,11 @@ export function AdminCustomers() {
       await customersApi.delete(deletePage.id); 
       setDeletePage(null); 
       await load();
-      setSuccess('Customer deleted successfully');
-      setTimeout(() => setSuccess(''), 3000);
+      showBannerToast('✅ Customer deleted successfully', 'success');
     } catch (err: unknown) { 
       console.error('Delete error:', err);
-      setError(err instanceof Error ? err.message : 'Delete failed'); 
+      setError(err instanceof Error ? err.message : 'Delete failed');
+      showBannerToast('❌ Failed to delete customer', 'error');
     }
     finally { setDeleting(false); }
   }
@@ -74534,6 +74552,43 @@ export function AdminCustomers() {
           Back to Dashboard
         </button>
 
+        {/* ─── BANNER TOAST ─── */}
+        {bannerToast && (
+          <div style={{
+            padding: '12px 16px',
+            borderRadius: 10,
+            marginBottom: 16,
+            background: bannerToast.type === 'success' 
+              ? 'rgba(34,197,94,0.15)' 
+              : 'rgba(239,68,68,0.15)',
+            border: bannerToast.type === 'success' 
+              ? '1px solid #22c55e' 
+              : '1px solid #ef4444',
+            color: bannerToast.type === 'success' ? '#22c55e' : '#ef4444',
+            fontSize: 14,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <span>{bannerToast.message}</span>
+            <button
+              onClick={() => setBannerToast(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: bannerToast.type === 'success' ? '#22c55e' : '#ef4444',
+                cursor: 'pointer',
+                fontSize: 18,
+                fontWeight: 700,
+                padding: '0 4px',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Top bar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
           <div style={{ flex: 1 }}>
@@ -74574,8 +74629,8 @@ export function AdminCustomers() {
           </button>
         </div>
 
+        {/* ─── ERROR (only for other errors) ─── */}
         {error && <Alert variant="error">{error}</Alert>}
-        {success && <Alert variant="success">{success}</Alert>}
 
         {zeroSeqCount > 0 && (
           <div style={{
@@ -76904,7 +76959,6 @@ export function AdminOrders() {
   const [routes,         setRoutes]         = useState<RouteDto[]>([]);
   const [loading,        setLoading]        = useState(true);
   const [error,          setError]          = useState('');
-  const [success,        setSuccess]        = useState('');
   const [routeFilter,    setRouteFilter]    = useState('');
   const [statusFilter,   setStatusFilter]   = useState<string>('');
   const [dateFilter,     setDateFilter]     = useState('');
@@ -76928,6 +76982,15 @@ export function AdminOrders() {
   // ── Reopen Route state ──────────────────────────────────────────────────────
   const [reopeningRouteId, setReopeningRouteId] = useState<string | null>(null);
   const [reopening,        setReopening]        = useState(false);
+
+  // ─── BANNER TOAST STATE ────────────────────────────────────────────────────
+  const [bannerToast, setBannerToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // ─── Helper function to show banner toast ─────────────────────────────────
+  const showBannerToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setBannerToast({ message, type });
+    setTimeout(() => setBannerToast(null), 3000);
+  };
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -76988,26 +77051,39 @@ export function AdminOrders() {
     setStatusFilter('');
   }
 
+  // ─── handleApprove - ONLY BANNER TOAST ────────────────────────────────────
   async function handleApprove(orderId: string) {
     setApproving(orderId); setError('');
     try {
       await ordersApi.approve(orderId);
-      setSuccess('Order approved!'); setShowModal(false); setReviewOrder(null);
-      await load(); setTimeout(() => setSuccess(''), 3000);
-    } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Approve failed'); }
+      showBannerToast('✅ Order approved successfully', 'success');
+      setShowModal(false);
+      setReviewOrder(null);
+      await load();
+    } catch (err: unknown) { 
+      setError(err instanceof Error ? err.message : 'Approve failed');
+      showBannerToast('❌ Failed to approve order', 'error');
+    }
     finally { setApproving(null); }
   }
 
+  // ─── handleClose - ONLY BANNER TOAST ──────────────────────────────────────
   async function handleClose(orderId: string) {
     setClosing(orderId); setError('');
     try {
       await ordersApi.close(orderId);
-      setSuccess('Order closed!'); setShowModal(false); setReviewOrder(null);
-      await load(); setTimeout(() => setSuccess(''), 3000);
-    } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Close failed'); }
+      showBannerToast('✅ Order closed successfully', 'success');
+      setShowModal(false);
+      setReviewOrder(null);
+      await load();
+    } catch (err: unknown) { 
+      setError(err instanceof Error ? err.message : 'Close failed');
+      showBannerToast('❌ Failed to close order', 'error');
+    }
     finally { setClosing(null); }
   }
 
+  // ─── handleCloseRoute - ONLY BANNER TOAST ─────────────────────────────────
   async function handleCloseRoute(routeId: string) {
     const route = routes.find(r => String(r.id) === routeId);
     setClosingDay(true); setCloseDayError('');
@@ -77015,41 +77091,41 @@ export function AdminOrders() {
       const result = await settlementApi.closeDay(dateFilter || today, routeId, closeDayNotes || undefined);
       setClosingRouteId(null);
       setCloseDayNotes('');
-      setSuccess(`✅ ${route?.name ?? 'Route'} closed! ${result.message ?? ''}`);
+      
+      // ─── BANNER TOAST ───
+      showBannerToast(`✅ ${route?.name ?? 'Route'} closed successfully`, 'success');
 
-      // ── Flip the UI to "closed" immediately — don't wait on the
-      // getStatus() round-trip below to know which button to show ──
       setClosureStatus({ isClosed: true, closedAt: new Date().toISOString() });
 
-      // Then reconcile with the server's actual record (exact timestamp etc)
       const status = await settlementApi.getStatus(dateFilter || today, routeId);
       setClosureStatus(status);
 
       await load();
-      setTimeout(() => setSuccess(''), 5000);
     } catch (err: unknown) {
       setCloseDayError(err instanceof Error ? err.message : `Failed to close ${route?.name ?? 'the route'}`);
+      showBannerToast(`❌ Failed to close ${route?.name ?? 'route'}`, 'error');
     } finally {
       setClosingDay(false);
     }
   }
 
+  // ─── handleReopenRoute - ONLY BANNER TOAST ────────────────────────────────
   async function handleReopenRoute(routeId: string) {
     const route = routes.find(r => String(r.id) === routeId);
     setReopening(true); setCloseDayError('');
     try {
       const result = await settlementApi.reopenRoute(dateFilter || today, routeId);
       setReopeningRouteId(null);
-      setSuccess(`↩️ ${route?.name ?? 'Route'} reopened. ${result.ordersUnlocked} order(s) unlocked.`);
+      
+      // ─── BANNER TOAST ───
+      showBannerToast(`✅ ${route?.name ?? 'Route'} reopened successfully`, 'success');
 
-      // ── Flip the UI back to "open" immediately — this is what makes
-      // "Close Route" reappear right away instead of a beat later ──
       setClosureStatus({ isClosed: false });
 
       await load();
-      setTimeout(() => setSuccess(''), 5000);
     } catch (err: unknown) {
       setCloseDayError(err instanceof Error ? err.message : `Failed to reopen ${route?.name ?? 'the route'}`);
+      showBannerToast(`❌ Failed to reopen ${route?.name ?? 'route'}`, 'error');
     } finally {
       setReopening(false);
     }
@@ -77223,13 +77299,10 @@ export function AdminOrders() {
           {/* ── Spacer ── */}
           <div style={{ flex: 1 }} />
 
-          {/* ── Close / Reopen toggle — scoped to the currently selected route ──
-              Whichever action is actually available is the bright, primary
-              button. The other state is either hidden or shown as quiet text. ── */}
+          {/* ── Close / Reopen toggle ── */}
           {routeFilter && routeFilter !== 'all' ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               {!closureStatus?.isClosed ? (
-                // ── OPEN: "Close Route" is the highlighted action ──
                 <button
                   onClick={() => { setClosingRouteId(routeFilter); setCloseDayError(''); }}
                   style={{
@@ -77262,7 +77335,6 @@ export function AdminOrders() {
                   Close {selectedRouteName}
                 </button>
               ) : (
-                // ── CLOSED: "Reopen Route" is the highlighted action ──
                 <>
                   <span style={{ fontSize: 12, color: D.sub, fontWeight: 600, alignSelf: 'center' }}>
                     {selectedRouteName} closed at{' '}
@@ -77305,7 +77377,6 @@ export function AdminOrders() {
               )}
             </div>
           ) : (
-            // ── "All Routes" selected — no single close action anymore ──
             <span style={{ fontSize: 12, color: D.sub, alignSelf: 'center', fontStyle: 'italic' }}>
               Select a route above to close or reopen it
             </span>
@@ -77314,8 +77385,45 @@ export function AdminOrders() {
       </div>
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 20px' }}>
-        {error   && <Alert variant="error">{error}</Alert>}
-        {success && <Alert variant="success">{success}</Alert>}
+        {/* ─── BANNER TOAST ─── */}
+        {bannerToast && (
+          <div style={{
+            padding: '12px 16px',
+            borderRadius: 10,
+            marginBottom: 16,
+            background: bannerToast.type === 'success' 
+              ? 'rgba(34,197,94,0.15)' 
+              : 'rgba(239,68,68,0.15)',
+            border: bannerToast.type === 'success' 
+              ? '1px solid #22c55e' 
+              : '1px solid #ef4444',
+            color: bannerToast.type === 'success' ? '#22c55e' : '#ef4444',
+            fontSize: 14,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <span>{bannerToast.message}</span>
+            <button
+              onClick={() => setBannerToast(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: bannerToast.type === 'success' ? '#22c55e' : '#ef4444',
+                cursor: 'pointer',
+                fontSize: 18,
+                fontWeight: 700,
+                padding: '0 4px',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* ─── ERROR (only for other errors) ─── */}
+        {error && <Alert variant="error">{error}</Alert>}
 
         {/* ── Filters ── */}
         <div style={{
@@ -77730,7 +77838,7 @@ export function AdminOrders() {
               )}
             </div>
 
-            {/* ── Modal footer - NO Edit button ── */}
+            {/* ── Modal footer ── */}
             <div style={{ padding: '12px 18px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               {reviewOrder.status === OrderStatus.PendingApproval && (
                 <button
@@ -78804,178 +78912,140 @@ export function AdminProducts() {
                 fontSize: 13,
                 background: D.surface,
               }}>
-                <thead>
-                  <tr>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'left',
-                      whiteSpace: 'nowrap',
-                    }}>Product Name</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'left',
-                      whiteSpace: 'nowrap',
-                    }}>Malayalam Name</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'right',
-                      whiteSpace: 'nowrap',
-                    }}>Base Price</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'left',
-                      whiteSpace: 'nowrap',
-                    }}>Item Group</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'center',
-                      whiteSpace: 'nowrap',
-                    }}>Stock Status</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'left',
-                      whiteSpace: 'nowrap',
-                    }}>Size Group</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'right',
-                      whiteSpace: 'nowrap',
-                    }}>Unit Size</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'right',
-                      whiteSpace: 'nowrap',
-                    }}>Incentive</th>
-                    <th style={{
-                      background: D.bg,
-                      color: D.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${D.border}`,
-                      textAlign: 'center',
-                      whiteSpace: 'nowrap',
-                    }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(p => (
-                    <tr
-                      key={p.id}
-                      style={{
-                        borderBottom: `1px solid ${D.border}`,
-                        transition: 'background 0.12s, opacity 0.12s',
-                        // ── Fade the whole row when out of stock, so it's visually clear at a
-                        // glance without needing to read the badge text. ──
-                        opacity: p.isOutOfStock ? 0.5 : 1,
-                      }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-                    >
-                      <td style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: D.text }}>
-                        {p.nameEnglish}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.sub }}>
-                        {p.nameMalayalam || '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: D.accent }}>
-                        ₹{fmt(p.basePrice)}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
-                        {p.productGroupName || '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        {p.isOutOfStock ? (
-                          <span
-                            title={p.outOfStockReason || undefined}
-                            style={{
-                              display: 'inline-block',
-                              padding: '3px 8px',
-                              borderRadius: 6,
-                              fontSize: 10,
-                              fontWeight: 700,
-                              letterSpacing: '0.03em',
-                              textTransform: 'uppercase',
-                              background: 'rgba(239,68,68,0.15)',
-                              color: D.red,
-                              cursor: p.outOfStockReason ? 'help' : 'default',
-                            }}
-                          >
-                            Out of Stock
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: 11, color: D.muted }}>—</span>
-                        )}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
-                        {p.sizeGroupName || '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
-                        {(p as any).unitSize || '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
-                        {(p as any).incentive ? `₹${(p as any).incentive}` : '—'}
-                      </td>
-                      <td style={{ padding: '8px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
+           <thead>
+  <tr>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',
+      whiteSpace: 'nowrap',
+    }}>Product Name</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',
+      whiteSpace: 'nowrap',
+    }}>Malayalam Name</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'right',
+      whiteSpace: 'nowrap',
+    }}>Base Price</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',
+      whiteSpace: 'nowrap',
+    }}>Item Group</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'left',  // ← left alignment
+      whiteSpace: 'nowrap',
+    }}>Size Group</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'right',
+      whiteSpace: 'nowrap',
+    }}>Unit Size</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'right',
+      whiteSpace: 'nowrap',
+    }}>Incentive</th>
+    <th style={{
+      background: D.bg,
+      color: D.muted,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      padding: '12px 16px',
+      borderBottom: `1px solid ${D.border}`,
+      textAlign: 'center',
+      whiteSpace: 'nowrap',
+    }}>Actions</th>
+  </tr>
+</thead>
+<tbody>
+  {filtered.map(p => (
+    <tr
+      key={p.id}
+      style={{
+        borderBottom: `1px solid ${D.border}`,
+        transition: 'background 0.12s',
+      }}
+      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
+      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+    >
+      <td style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: D.text }}>
+        {p.nameEnglish}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.sub }}>
+        {p.nameMalayalam || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: D.accent }}>
+        ₹{fmt(p.basePrice)}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
+        {p.productGroupName || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'left', color: D.muted }}>
+        {p.sizeGroupName || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
+        {(p as any).unitSize || '—'}
+      </td>
+      <td style={{ padding: '12px 16px', textAlign: 'right', color: D.muted }}>
+        {(p as any).incentive ? `₹${(p as any).incentive}` : '—'}
+      </td>
+      <td style={{ padding: '8px 16px', textAlign: 'center' }}>
+        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
                           <button
                             onClick={() => openEdit(p)}
                             style={{
@@ -79695,12 +79765,16 @@ export function AdminReports() {
   // const [routeRptRoute, setRouteRptRoute] = useState('');
   // const [routeFrom, setRouteFrom]  = useState(thirtyDaysAgo);
   // const [routeTo,   setRouteTo]    = useState(today);
+  const [summaryFrom, setSummaryFrom] = useState(thirtyDaysAgo);
+  const [summaryTo, setSummaryTo] = useState(today);
   const [incentiveFrom, setIncentiveFrom] = useState(thirtyDaysAgo);
   const [incentiveTo, setIncentiveTo] = useState(today);
+  const [additionalRevenueFrom, setAdditionalRevenueFrom] = useState(thirtyDaysAgo);
+  const [additionalRevenueTo, setAdditionalRevenueTo] = useState(today);
   const [prodGroup, setProdGroup]   = useState('');
   const [prodFrom,  setProdFrom]    = useState(thirtyDaysAgo);
   const [prodTo,    setProdTo]      = useState(today);
-  const [dailyDate, setDailyDate]   = useState(today);
+  // const [dailyDate, setDailyDate]   = useState(today);
 
   useEffect(() => {
     Promise.all([routesApi.getAll(), productGroupsApi.getAll()])
@@ -79878,47 +79952,37 @@ export function AdminReports() {
     //     previewReport('routeSummary', `Route Summary - ${routeFrom} to ${routeTo} (${routeName})`, fn, downloadFn);
     //   },
     // },
-    {
-  key: 'summaryReport',
-  title: 'Summary Report',  // ← CHANGED
-  desc: 'Product-wise summary with packing category & size group',
+{
+  key: 'summary',
+  title: 'Summary Report',
+  desc: 'Item Group & Size Group wise quantity summary',
   icon: '📊',
-  color: '#8B5CF6',
+  color: '#3B82F6',
   roles: 'Admin',
   filters: (
-    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-      <select 
-        className="input" 
-        value={prodGroup} 
-        onChange={(e) => setProdGroup(e.target.value)} 
-        style={selectStyle(isMobile)}
-      >
-        <option value="">📦 All Groups</option>
-        {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-      </select>
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
       <input 
         className="input" 
         type="date" 
-        value={prodFrom} 
-        onChange={(e) => setProdFrom(e.target.value)} 
+        value={summaryFrom} 
+        onChange={(e) => setSummaryFrom(e.target.value)} 
         style={dateInputStyle(isMobile)}
       />
       <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
       <input 
         className="input" 
         type="date" 
-        value={prodTo} 
-        onChange={(e) => setProdTo(e.target.value)} 
+        value={summaryTo} 
+        onChange={(e) => setSummaryTo(e.target.value)} 
         style={dateInputStyle(isMobile)}
       />
     </div>
   ),
-  onDownload: () => download('summaryReport', () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo), `SummaryReport_${prodFrom}_${prodTo}.pdf`),
+  onDownload: () => download('summary', () => reportsApi.downloadSummaryReport(summaryFrom, summaryTo), `SummaryReport_${summaryFrom}.pdf`),
   onPreview: () => {
-    const fn = () => reportsApi.downloadProductSummary(prodGroup || undefined, prodFrom, prodTo);
-    const downloadFn = () => download('summaryReport', fn, `SummaryReport_${prodFrom}_${prodTo}.pdf`);
-    const groupName = prodGroup ? groups.find(g => g.id === prodGroup)?.name : 'All Groups';
-    previewReport('summaryReport', `Summary Report - ${prodFrom} to ${prodTo} (${groupName})`, fn, downloadFn);
+    const fn = () => reportsApi.downloadSummaryReport(summaryFrom, summaryTo);
+    const downloadFn = () => download('summary', fn, `SummaryReport_${summaryFrom}.pdf`);
+    previewReport('summary', `Summary Report - ${summaryFrom} to ${summaryTo}`, fn, downloadFn);
   },
 },
 {
@@ -79954,29 +80018,62 @@ export function AdminReports() {
     previewReport('incentive', `Incentive Report - ${incentiveFrom} to ${incentiveTo}`, fn, downloadFn);
   },
 },
-    {
-      key: 'daily',
-      title: 'Daily Summary Report',
-      desc: 'Full operational day summary',
-      icon: '📋',
-      color: '#14B8A6',
-      roles: 'Admin / Accounts',
-      filters: (
-        <input 
-          className="input" 
-          type="date" 
-          value={dailyDate} 
-          onChange={(e) => setDailyDate(e.target.value)} 
-          style={dateInputStyle(isMobile)}
-        />
-      ),
-      onDownload: () => download('daily', () => reportsApi.downloadDailySummary(dailyDate), `DailySummary_${dailyDate}.pdf`),
-      onPreview: () => {
-        const fn = () => reportsApi.downloadDailySummary(dailyDate);
-        const downloadFn = () => download('daily', fn, `DailySummary_${dailyDate}.pdf`);
-        previewReport('daily', `Daily Summary - ${dailyDate}`, fn, downloadFn);
-      },
-    },
+{
+  key: 'additionalRevenue',
+  title: 'Additional Revenue Report',
+  desc: '(Selling Price - Base Price) × Unit Size × Quantity',
+  icon: '💰',
+  color: '#F59E0B',
+  roles: 'Admin',
+  filters: (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+      <input 
+        className="input" 
+        type="date" 
+        value={additionalRevenueFrom} 
+        onChange={(e) => setAdditionalRevenueFrom(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+      <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
+      <input 
+        className="input" 
+        type="date" 
+        value={additionalRevenueTo} 
+        onChange={(e) => setAdditionalRevenueTo(e.target.value)} 
+        style={dateInputStyle(isMobile)}
+      />
+    </div>
+  ),
+  onDownload: () => download('additionalRevenue', () => reportsApi.downloadAdditionalRevenueReport(additionalRevenueFrom, additionalRevenueTo), `AdditionalRevenueReport_${additionalRevenueFrom}.pdf`),
+  onPreview: () => {
+    const fn = () => reportsApi.downloadAdditionalRevenueReport(additionalRevenueFrom, additionalRevenueTo);
+    const downloadFn = () => download('additionalRevenue', fn, `AdditionalRevenueReport_${additionalRevenueFrom}.pdf`);
+    previewReport('additionalRevenue', `Additional Revenue Report - ${additionalRevenueFrom} to ${additionalRevenueTo}`, fn, downloadFn);
+  },
+},
+    // {
+    //   key: 'daily',
+    //   title: 'Daily Summary Report',
+    //   desc: 'Full operational day summary',
+    //   icon: '📋',
+    //   color: '#14B8A6',
+    //   roles: 'Admin / Accounts',
+    //   filters: (
+    //     <input 
+    //       className="input" 
+    //       type="date" 
+    //       value={dailyDate} 
+    //       onChange={(e) => setDailyDate(e.target.value)} 
+    //       style={dateInputStyle(isMobile)}
+    //     />
+    //   ),
+    //   onDownload: () => download('daily', () => reportsApi.downloadDailySummary(dailyDate), `DailySummary_${dailyDate}.pdf`),
+    //   onPreview: () => {
+    //     const fn = () => reportsApi.downloadDailySummary(dailyDate);
+    //     const downloadFn = () => download('daily', fn, `DailySummary_${dailyDate}.pdf`);
+    //     previewReport('daily', `Daily Summary - ${dailyDate}`, fn, downloadFn);
+    //   },
+    // },
   ];
 
   if (loading) return (
@@ -80230,6 +80327,7 @@ export function AdminReports() {
 ``````typescript
 // PATH: src/pages/Admin/AdminRoutes/AdminRoutes.tsx
 // UPDATED: Dark theme with orange accent
+// FIXED: Toast positioned in content area (not above header)
 
 import { useEffect, useState } from 'react';
 import { Plus, X, RefreshCw, Route, ArrowLeft, Map, Users, Activity } from 'lucide-react';
@@ -80264,10 +80362,17 @@ export function AdminRoutes() {
   const [routes,      setRoutes]      = useState<RouteDto[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState('');
-  const [success,     setSuccess]     = useState('');
   const [saving,      setSaving]      = useState(false);
-  // const [salesmen,    setSalesmen]    = useState<UserDto[]>([]);
   const [showAddCard, setShowAddCard] = useState(false);
+
+  // ─── BANNER TOAST STATE ────────────────────────────────────────────────────
+  const [bannerToast, setBannerToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // ─── Helper function to show banner toast ─────────────────────────────────
+  const showBannerToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setBannerToast({ message, type });
+    setTimeout(() => setBannerToast(null), 3000);
+  };
 
   async function load() {
     setLoading(true); setError('');
@@ -80276,9 +80381,7 @@ export function AdminRoutes() {
     finally { setLoading(false); }
   }
 
-  
   useEffect(() => { load(); }, []);
-  // useEffect(() => { if (showAddCard) loadSalesmen(); }, [showAddCard]);
 
   async function handleAdd(form: RouteFormData) {
     if (!form.name.trim()) return;
@@ -80287,21 +80390,20 @@ export function AdminRoutes() {
       await routesApi.create({
         name: form.name,
         description: form.description || undefined,
-        // assignedSalesmanId: form.assignedSalesmanId || undefined,
       });
       setShowAddCard(false);
-      setSuccess('Route created successfully!');
-      setTimeout(() => setSuccess(''), 3000);
+      showBannerToast('✅ Route created successfully!', 'success');
       await load();
-    } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Save failed'); }
+    } catch (err: unknown) { 
+      setError(err instanceof Error ? err.message : 'Save failed');
+      showBannerToast('❌ Failed to create route', 'error');
+    }
     finally { setSaving(false); }
   }
 
   function handleEdit(route: RouteDto) {
     navigate(`/admin/routes/edit/${route.id}`, { state: { route } });
   }
-
-  
 
   function handleDelete(routeId: string) {
     const route = routes.find(r => String(r.id) === routeId);
@@ -80452,14 +80554,51 @@ export function AdminRoutes() {
 
       {/* ── Content ───────────────────────────────────────────── */}
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px' }}>
-        {error   && <Alert variant="error">{error}</Alert>}
-        {success && <Alert variant="success">{success}</Alert>}
+        
+        {/* ─── BANNER TOAST (inside content area) ─── */}
+        {bannerToast && (
+          <div style={{
+            padding: '12px 16px',
+            borderRadius: 10,
+            marginBottom: 16,
+            background: bannerToast.type === 'success' 
+              ? 'rgba(34,197,94,0.15)' 
+              : 'rgba(239,68,68,0.15)',
+            border: bannerToast.type === 'success' 
+              ? '1px solid #22c55e' 
+              : '1px solid #ef4444',
+            color: bannerToast.type === 'success' ? '#22c55e' : '#ef4444',
+            fontSize: 14,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <span>{bannerToast.message}</span>
+            <button
+              onClick={() => setBannerToast(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: bannerToast.type === 'success' ? '#22c55e' : '#ef4444',
+                cursor: 'pointer',
+                fontSize: 18,
+                fontWeight: 700,
+                padding: '0 4px',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* ─── ERROR (only for other errors) ─── */}
+        {error && <Alert variant="error">{error}</Alert>}
 
         {/* Add Route Card */}
         {showAddCard && (
           <div style={{ marginBottom: 20 }}>
             <AddRouteCard
-              // salesmen={salesmen}
               saving={saving}
               error={error}
               onSave={handleAdd}
@@ -80478,7 +80617,6 @@ export function AdminRoutes() {
         ) : (
           <RoutesTable
             routes={routes}
-            // onAssign={handleAssign}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
@@ -87682,8 +87820,39 @@ const FeatureIcon6 = () => <svg width="20" height="20" fill="none" stroke="#1580
 
 ## File: src/pages/Salesman/OrderEntry/components/PreviousOrdersModal.tsx
 ``````typescript
-import { X, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { CustomerOrderHistoryDto, fmtNum } from '../../../../types';
+// PATH: src/pages/Salesman/OrderEntry/components/PreviousOrdersModal.tsx
+// FIXES:
+// 1. "+N more" is now an actual clickable button that expands to show every
+//    item in that past order — previously it was static text with no way to
+//    ever see the remaining items.
+// 2. Each item shows the SELLING PRICE actually charged in that order
+//    (sellingPrice — frozen at the time the order was placed, same snapshot
+//    system used everywhere else in this app). Deliberately NOT the
+//    product's current base price — base price can change after the fact,
+//    but what the salesman needs here is what was actually charged.
+// 3. REMOVED the order-level total amount — with per-item price now visible,
+//    the aggregate total was redundant clutter.
+// 4. Rebuilt in dark theme (same tokens as OrderEntry.tsx itself) instead of
+//    a plain white popup that clashed against the dark page around it.
+
+import { useState } from 'react';
+import { X, ChevronLeft, ChevronRight, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { CustomerOrderHistoryDto } from '../../../../types';
+
+// ── Same dark theme tokens as OrderEntry.tsx, so this modal matches the page
+// it appears on instead of standing out as a light popup on a dark screen. ──
+const D = {
+  bg:      '#0f172a',
+  card:    '#1e293b',
+  card2:   '#243447',
+  border:  '#334155',
+  accent:  '#3b82f6',
+  accentH: '#2563eb',
+  green:   '#22c55e',
+  text:    '#f1f5f9',
+  muted:   '#94a3b8',
+  sub:     '#64748b',
+};
 
 interface PreviousOrdersModalProps {
   isOpen: boolean;
@@ -87693,83 +87862,159 @@ interface PreviousOrdersModalProps {
 }
 
 export function PreviousOrdersModal({ isOpen, onClose, previousOrders, onUseOrder }: PreviousOrdersModalProps) {
+  // ── which orders currently have their full item list expanded ──
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+
   if (!isOpen) return null;
+
+  function toggleExpanded(orderId: string) {
+    setExpandedOrders(prev => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  }
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 z-50" onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl max-h-[80vh] bg-white rounded-2xl shadow-xl z-50 flex flex-col">
-        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 rounded-t-2xl flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div style={{ display:'flex', alignItems:'center', background:'linear-gradient(135deg,#7C3AED,#A855F7)', borderRadius:8, padding:'4px 8px', gap:0 }}>
-              <ChevronLeft size={14} color="#fff" style={{ marginRight:-3 }} />
-              <ChevronRight size={14} color="#fff" />
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 500 }} onClick={onClose} />
+      <div style={{
+        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+        width: '100%', maxWidth: 720, maxHeight: '88vh',
+        background: D.bg, borderRadius: 18, zIndex: 500,
+        border: `1px solid ${D.border}`, boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'sticky', top: 0, background: D.card,
+          borderBottom: `1px solid ${D.border}`,
+          padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, borderRadius: 9, padding: '6px 10px' }}>
+              <ChevronLeft size={16} color="#fff" style={{ marginRight: -3 }} />
+              <ChevronRight size={16} color="#fff" />
             </div>
-            <h2 className="text-lg font-bold text-slate-800">Previous Orders</h2>
-            <span className="text-sm text-slate-400">({previousOrders.length})</span>
+            <h2 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: D.text }}>Previous Orders</h2>
+            <span style={{ fontSize: 15, color: D.sub }}>({previousOrders.length})</span>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
-            <X size={18} />
+          <button
+            onClick={onClose}
+            style={{ padding: 8, borderRadius: 8, background: 'transparent', border: 'none', color: D.muted, cursor: 'pointer', display: 'flex' }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = D.card2}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+          >
+            <X size={20} />
           </button>
         </div>
-        
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {previousOrders.map((order, idx) => (
-            <div key={order.orderId} className="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:border-blue-300 transition-all">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-600">
-                      {idx === 0 ? '🕐 Most Recent' : `${idx + 1} order${idx > 0 ? 's' : ''} ago`}
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {previousOrders.map((order, idx) => {
+            const isExpanded = expandedOrders.has(String(order.orderId));
+            const visibleItems = isExpanded ? order.items : order.items.slice(0, 4);
+            const hiddenCount = order.items.length - 4;
+
+            return (
+              <div
+                key={order.orderId}
+                style={{
+                  background: D.card, borderRadius: 16, padding: 18,
+                  border: `1px solid ${D.border}`, transition: 'border-color 0.15s',
+                }}
+              >
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 15, fontWeight: 800, color: D.text }}>
+                      {idx === 0 ? '🕐 Most Recent' : `${idx + 1} orders ago`}
                     </span>
-                    <span className="text-xs text-slate-400">
-                      {new Date(order.orderDate).toLocaleDateString('en-IN', { 
+                    <span style={{ fontSize: 13, color: D.sub }}>
+                      {new Date(order.orderDate).toLocaleDateString('en-IN', {
                         day: 'numeric', month: 'short', year: 'numeric',
                         hour: '2-digit', minute: '2-digit'
                       })}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">Order #{order.orderNumber?.slice(0, 8) || 'N/A'}</p>
+                  <p style={{ margin: '4px 0 0', fontSize: 13, color: D.sub }}>Order #{order.orderNumber?.slice(0, 8) || 'N/A'}</p>
                 </div>
-                <p className="text-lg font-bold text-emerald-600">₹{fmtNum(order.totalAmount)}</p>
-              </div>
-              
-              <div className="flex flex-wrap gap-2 mb-3">
-                {order.items.slice(0, 4).map((item: any, i: number) => (
-                  <span key={i} className="bg-white px-2 py-1 rounded-lg border border-slate-200 text-xs text-slate-600">
-                    {item.productName} ({item.quantity})
-                  </span>
-                ))}
+
+                {/* ── Item list — each row shows the price actually charged that
+                day (frozen), not today's current base price. ── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                  {visibleItems.map((item: any, i: number) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                        background: D.bg, padding: '10px 14px', borderRadius: 10,
+                        border: `1px solid ${D.border}`,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: D.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {item.productName}
+                        </span>
+                        <span style={{ fontSize: 13, color: D.sub, whiteSpace: 'nowrap' }}>
+                          × {item.quantity}{item.unitSymbol ? ` ${item.unitSymbol}` : ''}
+                        </span>
+                      </div>
+                      {item.sellingPrice != null && (
+                        <span style={{ fontSize: 13, fontWeight: 700, color: D.muted, whiteSpace: 'nowrap' }}>
+                          ₹{item.sellingPrice} <span style={{ fontWeight: 400, color: D.sub }}>each</span>
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* ── FIX: was static "+N more" text — now an actual button that
+                expands the list in place, with "Show less" to collapse back. ── */}
                 {order.items.length > 4 && (
-                  <span className="bg-white px-2 py-1 rounded-lg border border-slate-200 text-xs text-blue-500">
-                    +{order.items.length - 4} more
-                  </span>
+                  <button
+                    onClick={() => toggleExpanded(String(order.orderId))}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      fontSize: 13, fontWeight: 700, color: D.accent,
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      padding: '2px 2px 12px', fontFamily: 'inherit',
+                    }}
+                  >
+                    {isExpanded ? (
+                      <>Show less <ChevronUp size={14} /></>
+                    ) : (
+                      <>+{hiddenCount} more item{hiddenCount !== 1 ? 's' : ''} <ChevronDown size={14} /></>
+                    )}
+                  </button>
                 )}
+
+                {order.remarks && (
+                  <div style={{ fontSize: 13, color: D.muted, background: D.bg, padding: 10, borderRadius: 10, border: `1px solid ${D.border}`, marginBottom: 12 }}>
+                    📝 Retail: {order.remarks}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => onUseOrder(order)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    padding: '12px', borderRadius: 12, border: 'none',
+                    background: `${D.accent}22`, color: D.accent,
+                    fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = `${D.accent}33`}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = `${D.accent}22`}
+                >
+                  <Plus size={16} /> Use This Order
+                </button>
               </div>
-              
-              {order.remarks && (
-                <div className="text-xs text-slate-400 bg-white p-2 rounded-lg border border-slate-100 mb-3">
-                  📝 Retail: {order.remarks.substring(0, 100)}{order.remarks.length > 100 ? '...' : ''}
-                </div>
-              )}
-              
-              <button
-                onClick={() => onUseOrder(order)}
-                className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-              >
-                <Plus size={14} /> Use This Order
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
-        
-        {/* <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-3 rounded-b-2xl text-center text-xs text-slate-400">
-          Click "Use This Order" to load items into current bill
-        </div> */}
       </div>
     </>
   );
-}
+}0
 ``````
 
 ## File: src/pages/Salesman/OrderEntry/components/PriceVarianceBadge.tsx
@@ -87827,6 +88072,11 @@ export { default } from './OrderEntry';
 // 9. FIX: Save Draft button centered in bottom bar
 // 10. FIX: hasExistingOrder declared before use
 // 11. FIX: Content no longer hidden behind bottom navigation bar
+// 12. RESTORED: Price Variance Badge + ±10% range validation (was accidentally
+//     dropped from this file at some point — restoring it here, layered on top
+//     of the order-lookup-by-status fix, frozen name snapshot, out-of-stock
+//     picker handling, and acting-as-admin banner-aware positioning, none of
+//     which are touched by this restoration).
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -87893,6 +88143,11 @@ export default function OrderEntry() {
   const [unitPrices,         setUnitPrices]         = useState<Record<string, ProductUnitPriceDto>>({});
   const [showCancelConfirm,  setShowCancelConfirm]  = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  // ── NEW: ref to the most-recently-rendered item card, so we can scroll it
+  // into view automatically the moment it's added — instead of leaving it
+  // below the fold and making the salesman scroll down manually to confirm
+  // the tap actually registered. ──
+  const lastItemRef = useRef<HTMLDivElement>(null);
 
   // ── FIX: Declare hasExistingOrder BEFORE using it in canCancel ──
   const hasExistingOrder = !!existingOrder;
@@ -88003,6 +88258,24 @@ export default function OrderEntry() {
     if (showProducts && searchInputRef.current) searchInputRef.current.focus();
   }, [showProducts]);
 
+  // ── NEW: auto-scroll to the newly added item. New items are appended to
+  // the end of `lines`, so after a tap in the picker they land below whatever
+  // was already visible on screen — this brings the just-added item into
+  // view automatically instead of requiring a manual scroll to confirm it
+  // was actually added. A short delay lets the picker's close animation and
+  // the new card's render settle first, so the scroll target is accurate. ──
+  const prevLineCountRef = useRef(0);
+  useEffect(() => {
+    if (lines.length > prevLineCountRef.current) {
+      const t = setTimeout(() => {
+        lastItemRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 150);
+      prevLineCountRef.current = lines.length;
+      return () => clearTimeout(t);
+    }
+    prevLineCountRef.current = lines.length;
+  }, [lines.length]);
+
   // ── Add product — one tap adds one item, then the picker closes.
   // Tap "+" again to add the next item (deliberate: simpler, less error-prone
   // on a small mobile screen than a picker that stays open). ──
@@ -88056,6 +88329,29 @@ export default function OrderEntry() {
     return tmp !== undefined ? tmp : price === 0 ? '' : String(price);
   };
 
+  // ── RESTORED: reads the live typed price (before blur commits it to `lines`)
+  // so the variance badge and save-validation react immediately as the
+  // salesman types, not only after they tab/click away from the field. Falls
+  // back to the committed sellingPrice when nothing's actively being typed. ──
+  const getEffectivePrice = (productId: string, committedPrice: number): number => {
+    const tmp = tempPrices[productId];
+    if (tmp !== undefined) {
+      const n = parseFloat(tmp);
+      if (!isNaN(n) && n >= 0) return n;
+    }
+    return committedPrice;
+  };
+
+  // ── RESTORED: selling price must stay within ±10% of base price. Returns
+  // true when it's outside that band — used both to show the warning badge
+  // and to block Save until it's corrected. ──
+  const getPriceRangeIssue = (base: number, selling: number): boolean => {
+    if (!base || !selling) return false;
+    const lower = base * 0.9;
+    const upper = base * 1.1;
+    return selling < lower || selling > upper;
+  };
+
   const removeItem = (productId: string) => {
     if (!canEdit) return;
     setLines(prev => prev.filter(l => l.product.id !== productId));
@@ -88096,6 +88392,22 @@ export default function OrderEntry() {
   const incomplete = lines.find(l => !l.qty || !l.sellingPrice);
   if (incomplete) {
     setError(`Enter quantity and price for "${incomplete.product.nameEnglish}" before saving.`);
+    return;
+  }
+
+  // ── RESTORED: block save if any line's price is outside ±10% of its
+  // product's base price. Checked against the EFFECTIVE price (live typed
+  // value if present) so a field still mid-edit but out of range is caught
+  // too, not just already-blurred/committed values. ──
+  const outOfRange = lines.find(l =>
+    getPriceRangeIssue(l.product.basePrice, getEffectivePrice(l.product.id, l.sellingPrice))
+  );
+  if (outOfRange) {
+    const base = outOfRange.product.basePrice;
+    setError(
+      `Price for "${outOfRange.product.nameEnglish}" must be within ±10% of the base price ` +
+      `(₹${(base * 0.9).toFixed(2)} – ₹${(base * 1.1).toFixed(2)}).`
+    );
     return;
   }
   
@@ -88312,15 +88624,24 @@ export default function OrderEntry() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {lines.map(line => (
-                <div key={line.product.id} style={{ background: D.card, border: `1px solid ${D.border}`, borderRadius: 12, padding: '12px 14px' }}>
+              {lines.map((line, idx) => (
+                <div
+                  key={line.product.id}
+                  ref={idx === lines.length - 1 ? lastItemRef : undefined}
+                  style={{ background: D.card, border: `1px solid ${D.border}`, borderRadius: 12, padding: '12px 14px' }}
+                >
                   {/* Product name row */}
                   <div style={{ marginBottom: 10 }}>
                     <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: D.text }}>{line.product.nameEnglish}</p>
                     {line.product.nameMalayalam && (
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: D.muted }} lang="ml">{line.product.nameMalayalam}</p>
                     )}
-                    {/* <PriceVarianceBadge base={line.product.basePrice} selling={line.sellingPrice} /> */}
+                    {/* ── RESTORED: variance badge, driven by the live-typed effective
+                    price so it updates as the salesman types, before blur commits it. ── */}
+                    <PriceVarianceBadge
+                      base={line.product.basePrice}
+                      selling={getEffectivePrice(line.product.id, line.sellingPrice)}
+                    />
                   </div>
 
                   {/* Fields row */}
@@ -90754,6 +91075,16 @@ export default function SalesmanOrders() {
 ## File: src/pages/Salesman/SalesmanRoutes.tsx
 ``````typescript
 // PATH: src/pages/Salesman/SalesmanRoutes.tsx
+//
+// "My Routes" — the single canonical route list, used on both desktop and mobile.
+//
+// IMPORTANT: routes are NOT gated behind a formal daily admin-assignment step.
+// All active routes are visible to every salesman (admin coordinates who takes
+// what informally, e.g. over WhatsApp/call) — the system's job is just to show
+// what's available vs. already started by someone else today, and to lock a
+// route to whoever starts it first. See routesApi.getActiveRoutes() / the
+// backend's GetActiveRoutesQueryHandler + StartRouteExecutionCommandHandler for
+// the actual locking logic.
 
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -90816,6 +91147,10 @@ export function SalesmanRoutes() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const isMobile = useIsMobile();
+  
+  // ─── Confirmation modal state ───
+  const [confirmRoute, setConfirmRoute] = useState<string | null>(null);
+  const [confirmRouteName, setConfirmRouteName] = useState<string>('');
 
   async function load() {
     setLoading(true); setError('');
@@ -90891,7 +91226,6 @@ export function SalesmanRoutes() {
 
   useEffect(() => { load(); }, []);
   useEffect(() => { load(); }, [location.key]);
-
   useEffect(() => {
     function onVisible() { if (document.visibilityState === 'visible') load(); }
     document.addEventListener('visibilitychange', onVisible);
@@ -90916,26 +91250,62 @@ export function SalesmanRoutes() {
 
   const activeRoute = routes.find(r => isGenuinelyInProgress(r));
 
+  // ─── Show confirmation popup instead of starting directly ───
   async function handleStartOrderTaking(routeId: string) {
-  if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
-    setError('Invalid route selected.'); 
-    return;
+    if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
+      setError('Invalid route selected.'); return;
+    }
+
+    if (isRouteAlreadyCompleted(routeId)) {
+      setError('This route is already completed for today.');
+      await load();
+      return;
+    }
+
+    // ─── Find the route name ───
+    const route = routes.find(r => r.routeId === routeId);
+    const routeName = route?.routeName || 'this route';
+
+    // ─── Show confirmation popup ───
+    setConfirmRoute(routeId);
+    setConfirmRouteName(routeName);
   }
 
-  setStarting(routeId);
+  // ─── Actually start the route after confirmation ───
+  async function confirmAndStartRoute() {
+    if (!confirmRoute) return;
+    
+    const routeId = confirmRoute;
+    setConfirmRoute(null);
+    setConfirmRouteName('');
+    
+    setStarting(routeId); 
+    setActiveMode('order');
+    
+    try {
+      const existing = await routesApi.getCurrentExecution(routeId).catch(() => null);
 
-  try {
-    await routesApi.startOrderTaking(routeId);
-  } catch (err) {
-    console.log('Starting execution failed, might already exist');
+      if (existing?.executionId && existing.status === 'Completed') {
+        setError('This route is already completed for today.');
+        await load();
+        return;
+      }
+
+      if (existing?.executionId && existing.status === 'InProgress') {
+        navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'order-taking' } });
+        return;
+      }
+
+      await routesApi.startOrderTaking(routeId);
+      navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'order-taking' } });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to start order taking');
+      await load();
+    } finally { 
+      setStarting(null); 
+      setActiveMode(null); 
+    }
   }
-
-  navigate(`/salesman/routes/${routeId}/execute`, { 
-    state: { mode: 'order-taking' } 
-  });
-
-  setStarting(null);
-}
 
   if (loading) return <PageLoader />;
 
@@ -90946,217 +91316,345 @@ export function SalesmanRoutes() {
     ? routes.filter(r => r.routeName?.toLowerCase().includes(search.trim().toLowerCase()))
     : routes;
 
+  // ── Determine if any route is in progress ──
+  const hasActiveRoute = routes.some(r => isGenuinelyInProgress(r));
+
   return (
     <div style={{ 
-      background: D.bg,
+      background: D.bg, 
       minHeight: '100vh',
-      padding: '16px',
-      maxWidth: '100%',
-      overflowX: 'hidden',
+      width: '100%',
+      position: 'relative',
     }}>
+      {/* ── Header ── */}
       <div style={{
-        maxWidth: 1200,
-        margin: '0 auto',
-        width: '100%',
+        padding: '6px 20px 10px',
+        borderBottom: `1px solid ${D.border}`,
+        marginBottom: 10,
+        background: D.bg,
       }}>
-        <div style={{
-          padding: '6px 0 10px',
-          borderBottom: `1px solid ${D.border}`,
-          marginBottom: 10,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-              }}>
-                {firstName.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h1 style={{ fontSize: 13, fontWeight: 800, color: D.text, margin: 0 }}>
-                    {firstName} 👋
-                </h1>
-                <p style={{ fontSize: 10, color: D.muted, margin: '1px 0 0' }}>
-                  {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-                </p>
-              </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+            }}>
+              {firstName.charAt(0).toUpperCase()}
             </div>
-            <button
-              onClick={load}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 3,
-                padding: '4px 10px',
-                borderRadius: 6,
-                border: `1px solid ${D.border}`,
-                background: D.surface,
-                color: D.muted,
-                fontSize: 10,
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
-            >
-              <RefreshCw size={12} /> Refresh
-            </button>
+            <div>
+              <h1 style={{ fontSize: 13, fontWeight: 800, color: D.text, margin: 0 }}>
+                {firstName} 👋
+              </h1>
+              <p style={{ fontSize: 10, color: D.muted, margin: '1px 0 0' }}>
+                {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+              </p>
+            </div>
           </div>
+          <button onClick={load} style={{
+            display: 'flex', alignItems: 'center', gap: 3,
+            padding: '4px 10px',
+            borderRadius: 6,
+            border: `1px solid ${D.border}`,
+            background: D.surface,
+            color: D.muted,
+            fontSize: 10,
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}>
+            <RefreshCw size={12} /> Refresh
+          </button>
+        </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 3,
+            fontSize: 9, fontWeight: 600, padding: '2px 8px',
+            borderRadius: 12,
+            background: isDayClosed ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
+            border: `1px solid ${isDayClosed ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
+            color: isDayClosed ? D.green : D.amber,
+          }}>
+            {isDayClosed ? <CheckCircle2 size={9} /> : <Lock size={9} />}
+            {isDayClosed ? 'Day closed' : 'Day open'}
+          </span>
+
+          {completedCount > 0 && (
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 3,
               fontSize: 9, fontWeight: 600, padding: '2px 8px',
               borderRadius: 12,
-              background: isDayClosed ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
-              border: `1px solid ${isDayClosed ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
-              color: isDayClosed ? D.green : D.amber,
+              background: 'rgba(59,130,246,0.12)',
+              border: '1px solid rgba(59,130,246,0.25)',
+              color: '#3B82F6',
             }}>
-              {isDayClosed ? <CheckCircle2 size={9} /> : <Lock size={9} />}
-              {isDayClosed ? 'Day closed' : 'Day open'}
+              <CheckCircle2 size={9} /> {completedCount}/{routes.length} done
             </span>
+          )}
 
-            {completedCount > 0 && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 3,
-                fontSize: 9, fontWeight: 600, padding: '2px 8px',
-                borderRadius: 12,
-                background: 'rgba(59,130,246,0.12)',
-                border: '1px solid rgba(59,130,246,0.25)',
-                color: '#3B82F6',
-              }}>
-                <CheckCircle2 size={9} /> {completedCount}/{routes.length} done
-              </span>
-            )}
-
-            {activeRoute && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 3,
-                fontSize: 9, fontWeight: 600, padding: '2px 8px',
-                borderRadius: 12,
-                background: 'rgba(245,158,11,0.12)',
-                border: '1px solid rgba(245,158,11,0.25)',
-                color: D.amber,
-              }}>
-                <AlertTriangle size={9} /> Complete {activeRoute.routeName}
-              </span>
-            )}
-          </div>
-
-          {showRouteSearch && (
-            <div style={{ position: 'relative', marginTop: 8 }}>
-              <Search size={12} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: D.sub }} />
-              <input
-                type="text"
-                placeholder="Search routes..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '4px 28px 4px 28px',
-                  fontSize: 11,
-                  border: `1px solid ${D.border}`,
-                  borderRadius: 6,
-                  background: D.surface,
-                  color: D.text,
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                }}
-              />
-              {search && (
-                <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer' }}>
-                  <X size={12} />
-                </button>
-              )}
-            </div>
+          {activeRoute && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 9, fontWeight: 600, padding: '2px 8px',
+              borderRadius: 12,
+              background: 'rgba(245,158,11,0.12)',
+              border: '1px solid rgba(245,158,11,0.25)',
+              color: D.amber,
+            }}>
+              <AlertTriangle size={9} /> Complete {activeRoute.routeName}
+            </span>
           )}
         </div>
 
-        {error && (
-          <div style={{
-            margin: '12px 0 0',
-            background: 'rgba(239,68,68,0.10)',
-            border: `1px solid rgba(239,68,68,0.25)`,
-            borderRadius: 10,
-            padding: '12px 16px',
-            color: D.red,
-            fontSize: 13,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-            <span>{error}</span>
-            <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: D.red, cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>✕</button>
+        {showRouteSearch && (
+          <div style={{ position: 'relative', marginTop: 8 }}>
+            <Search size={12} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: D.sub }} />
+            <input
+              type="text"
+              placeholder="Search routes..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '4px 28px 4px 28px',
+                fontSize: 11,
+                border: `1px solid ${D.border}`,
+                borderRadius: 6,
+                background: D.surface,
+                color: D.text,
+                outline: 'none',
+                fontFamily: 'inherit',
+              }}
+            />
+            {search && (
+              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.sub, cursor: 'pointer' }}>
+                <X size={12} />
+              </button>
+            )}
           </div>
         )}
-
-        <div style={{ padding: '16px 0' }}>
-          {routes.length === 0 ? (
-            <div style={{
-              background: D.surface,
-              borderRadius: 16,
-              border: `1px solid ${D.border}`,
-              padding: '48px 24px',
-              textAlign: 'center',
-            }}>
-              <Route size={48} style={{ color: D.border, margin: '0 auto 16px' }} />
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: '0 0 8px' }}>No active routes</h3>
-              <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>Ask your admin to create a route — once it's active, it shows up here for every salesman.</p>
-            </div>
-          ) : visibleRoutes.length === 0 ? (
-            <div style={{
-              background: D.surface,
-              borderRadius: 16,
-              border: `1px solid ${D.border}`,
-              padding: '48px 24px',
-              textAlign: 'center',
-            }}>
-              <Search size={48} style={{ color: D.border, margin: '0 auto 16px' }} />
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: '0 0 8px' }}>No routes match your search</h3>
-              <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>Nothing found for "{search}".</p>
-            </div>
-          ) : (
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
-              gap: 16,
-              width: '100%',
-            }}>
-              {visibleRoutes.map(route => {
-                const completed   = isEffectivelyCompleted(route);
-                const inProgress  = isGenuinelyInProgress(route);
-                return (
-                  <RouteCard
-                    key={route.routeId}
-                    route={route}
-                    isCompleted={completed}
-                    isInProgress={inProgress}
-                    isDayClosed={isDayClosed}
-                    starting={starting === route.routeId}
-                    activeMode={activeMode}
-                    onStartOrderTaking={() => handleStartOrderTaking(route.routeId)}
-                    onContinueOrderTaking={() => {
-                      navigate(`/salesman/routes/${route.routeId}/execute`, { state: { mode: 'order-taking' } });
-                    }}
-                    onViewCustomers={() => navigate(`/salesman/routes/${route.routeId}/customers`)}
-                    onViewOrders={() => navigate(`/salesman/routes/${route.routeId}/orders`)}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </div>
       </div>
+
+      {error && (
+        <div style={{
+          margin: '12px 20px 0',
+          background: 'rgba(239,68,68,0.10)',
+          border: `1px solid rgba(239,68,68,0.25)`,
+          borderRadius: 10,
+          padding: '12px 16px',
+          color: D.red,
+          fontSize: 13,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <span>{error}</span>
+          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: D.red, cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>✕</button>
+        </div>
+      )}
+
+      <div style={{ 
+        maxWidth: 1200, 
+        margin: '0 auto', 
+        padding: '16px 20px',
+        background: D.bg,
+        minHeight: 'calc(100vh - 180px)',
+      }}>
+        {routes.length === 0 ? (
+          <div style={{
+            background: D.surface,
+            borderRadius: 16,
+            border: `1px solid ${D.border}`,
+            padding: '48px 24px',
+            textAlign: 'center',
+          }}>
+            <Route size={48} style={{ color: D.border, margin: '0 auto 16px' }} />
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: '0 0 8px' }}>No active routes</h3>
+            <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>Ask your admin to create a route — once it's active, it shows up here for every salesman.</p>
+          </div>
+        ) : visibleRoutes.length === 0 ? (
+          <div style={{
+            background: D.surface,
+            borderRadius: 16,
+            border: `1px solid ${D.border}`,
+            padding: '48px 24px',
+            textAlign: 'center',
+          }}>
+            <Search size={48} style={{ color: D.border, margin: '0 auto 16px' }} />
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: D.text, margin: '0 0 8px' }}>No routes match your search</h3>
+            <p style={{ fontSize: 14, color: D.muted, margin: 0 }}>Nothing found for "{search}".</p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
+            {visibleRoutes.map(route => {
+              const completed   = isEffectivelyCompleted(route);
+              const inProgress  = isGenuinelyInProgress(route);
+              
+              // ── Determine if this route should be faded ──
+              // Fade if: there is an active route AND this route is NOT the active one
+              const shouldFade = hasActiveRoute && !inProgress;
+
+              return (
+                <RouteCard
+                  key={route.routeId}
+                  route={route}
+                  isCompleted={completed}
+                  isInProgress={inProgress}
+                  isDayClosed={isDayClosed}
+                  starting={starting === route.routeId}
+                  activeMode={activeMode}
+                  shouldFade={shouldFade}
+                  onStartOrderTaking={() => handleStartOrderTaking(route.routeId)}
+                  onContinueOrderTaking={() => {
+                    navigate(`/salesman/routes/${route.routeId}/execute`, { state: { mode: 'order-taking' } });
+                  }}
+                  onViewCustomers={() => navigate(`/salesman/routes/${route.routeId}/customers`)}
+                  onViewOrders={() => navigate(`/salesman/routes/${route.routeId}/orders`)}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Confirmation Modal ── */}
+      {confirmRoute && (
+        <>
+          <div
+            onClick={() => {
+              setConfirmRoute(null);
+              setConfirmRouteName('');
+            }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 100,
+            }}
+          />
+          
+          <div
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: D.surface,
+              borderRadius: 16,
+              padding: '28px 32px',
+              maxWidth: 400,
+              width: '90%',
+              zIndex: 110,
+              border: `1px solid ${D.border}`,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            }}
+          >
+            <div style={{ textAlign: 'center' }}>
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  background: `${D.accent}22`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px',
+                  border: `1px solid ${D.accent}44`,
+                }}
+              >
+                <Route size={24} color={D.accent} />
+              </div>
+
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: D.text, margin: '0 0 8px' }}>
+                Confirm Route
+              </h3>
+              <p style={{ fontSize: 14, color: D.muted, margin: '0 0 4px' }}>
+                You are about to start:
+              </p>
+              <p style={{ fontSize: 18, fontWeight: 700, color: D.accent, margin: '0 0 16px' }}>
+                {confirmRouteName}
+              </p>
+              <p style={{ fontSize: 13, color: D.sub, margin: '0 0 20px' }}>
+                Are you sure this is the correct route?
+              </p>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => {
+                    setConfirmRoute(null);
+                    setConfirmRouteName('');
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: 10,
+                    border: `1px solid ${D.border}`,
+                    background: 'transparent',
+                    color: D.muted,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = D.text;
+                    e.currentTarget.style.color = D.text;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = D.border;
+                    e.currentTarget.style.color = D.muted;
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmAndStartRoute}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                    color: '#fff',
+                    fontSize: 14,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    boxShadow: `0 4px 14px ${D.accentGlow}`,
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                    e.currentTarget.style.boxShadow = `0 6px 20px ${D.accentGlow}`;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = `0 4px 14px ${D.accentGlow}`;
+                  }}
+                >
+                  Yes, Start Route
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 function RouteCard({
-  route, isCompleted, isInProgress,isDayClosed,
-  starting, activeMode,
-  onStartOrderTaking, onContinueOrderTaking, 
+  route, isCompleted, isInProgress, isDayClosed,
+  starting, activeMode, shouldFade,
+  onStartOrderTaking, onContinueOrderTaking,
   onViewCustomers, onViewOrders,
 }: {
   route: EnrichedRoute;
@@ -91165,6 +91663,7 @@ function RouteCard({
   isDayClosed: boolean;
   starting: boolean;
   activeMode: 'order' | 'delivery' | null;
+  shouldFade: boolean;
   onStartOrderTaking: () => void;
   onContinueOrderTaking: () => void;
   onViewCustomers: () => void;
@@ -91172,14 +91671,15 @@ function RouteCard({
 }) {
   const [expanded, setExpanded] = useState(false);
 
+  // ── TAKEN BY ANOTHER SALESMAN ──
   if (route.takenByOther) {
     return (
       <div style={{
-        background: D.surface,
+        background: 'transparent',
         borderRadius: 14,
         border: `1px solid ${D.amber}44`,
-        opacity: 0.8,
-        width: '100%',
+        opacity: shouldFade ? 0.5 : 0.8,
+        transition: 'opacity 0.3s ease',
       }}>
         <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{
@@ -91213,14 +91713,15 @@ function RouteCard({
     );
   }
 
+  // ── CLOSED BY ADMIN ──
   if (route.isAdminClosed) {
     return (
       <div style={{
-        background: D.surface,
+        background: 'transparent',
         borderRadius: 14,
         border: `1px solid ${D.border}`,
-        opacity: 0.7,
-        width: '100%',
+        opacity: shouldFade ? 0.5 : 0.7,
+        transition: 'opacity 0.3s ease',
       }}>
         <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{
@@ -91256,25 +91757,25 @@ function RouteCard({
           borderRadius: '0 0 14px 14px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: D.sub }}>
-            <Lock size={13} />
-            Closed by admin — fresh again tomorrow
+            <Lock size={13} /> Closed by admin — fresh again tomorrow
           </div>
         </div>
       </div>
     );
   }
 
+  // ── COMPLETED ──
   if (isCompleted) {
     return (
       <div
         onClick={onContinueOrderTaking}
         style={{
-          background: D.surface,
+          background: 'transparent',
           borderRadius: 14,
           border: `2px solid #4f46e5`,
           cursor: 'pointer',
           transition: 'all 0.15s',
-          width: '100%',
+          opacity: shouldFade ? 0.5 : 1,
         }}
         onMouseEnter={e => {
           (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
@@ -91330,15 +91831,15 @@ function RouteCard({
     );
   }
 
+  // ── ACTIVE or PENDING ──
   return (
     <div style={{
-      background: D.surface,
+      background: 'transparent',
       borderRadius: 14,
       border: `1px solid ${isInProgress ? D.accent : D.border}`,
       boxShadow: isInProgress ? `0 2px 12px ${D.accentGlow}` : 'none',
-      opacity: 1,
-      transition: 'all 0.15s',
-      width: '100%',
+      opacity: shouldFade ? 0.5 : 1,
+      transition: 'opacity 0.3s ease, all 0.15s',
     }}>
       <div style={{ padding: '16px 18px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -91383,7 +91884,7 @@ function RouteCard({
                 <Users size={13} /> {route.customerCount ?? 0} customers
               </span>
             </div>
-            {!isDayClosed && (
+            {!isDayClosed && !isInProgress && (
               <div style={{
                 marginTop: 6,
                 display: 'flex', alignItems: 'center', gap: 4,
@@ -91414,6 +91915,28 @@ function RouteCard({
                   transition: 'all 0.15s',
                   opacity: starting ? 0.6 : 1,
                 }}
+              >
+                <Play size={15} /> Continue
+              </button>
+            ) : (
+              <button
+                onClick={onStartOrderTaking}
+                disabled={starting}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 16px',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: starting ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: starting ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                  boxShadow: starting ? 'none' : `0 4px 14px ${D.accentGlow}`,
+                  transition: 'all 0.15s',
+                  opacity: starting ? 0.5 : 1,
+                }}
                 onMouseEnter={e => {
                   if (!starting) {
                     (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
@@ -91427,44 +91950,8 @@ function RouteCard({
                   }
                 }}
               >
-                <Play size={15} /> Continue
+                <ShoppingBag size={15} /> Take Orders
               </button>
-            ) : (
-              <>
-                <button
-                  onClick={onStartOrderTaking}
-                  disabled={starting}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '8px 16px',
-                    borderRadius: 10,
-                    border: 'none',
-                    background: starting ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`,
-                    color: '#fff',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: starting ? 'not-allowed' : 'pointer',
-                    fontFamily: 'inherit',
-                    boxShadow: starting ? 'none' : `0 4px 14px ${D.accentGlow}`,
-                    transition: 'all 0.15s',
-                    opacity: starting ? 0.5 : 1,
-                  }}
-                  onMouseEnter={e => {
-                    if (!starting) {
-                      (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-                      (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${D.accentGlow}`;
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                    if (!starting) {
-                      (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px ${D.accentGlow}`;
-                    }
-                  }}
-                >
-                  <ShoppingBag size={15} /> Take Orders
-                </button>
-              </>
             )}
             <button
               onClick={() => setExpanded(!expanded)}
