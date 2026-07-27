@@ -87,60 +87,76 @@ export function SalesmanRoutes() {
         setIsDayClosed(status?.isClosed ?? false);
       } catch { setIsDayClosed(false); }
 
-      const enriched: EnrichedRoute[] = await Promise.all(
-        activeRoutes.map(async (r): Promise<EnrichedRoute> => {
-          const base = {
-            routeId:              r.id,
-            routeName:            r.name,
-            description:          r.description,
-            customerCount:        r.customerCount,
-            isDedicatedToAnother: r.isDedicatedToAnother,
-            hasUnclosedCycle:     r.hasUnclosedCycle,
-          };
-
-          if (r.isStarted && !r.isMine) {
-            return { ...base, takenByOther: true, takenByName: r.startedBy };
+      // ── PERFORMANCE FIX: this used to call routesApi.getCurrentExecution(r.id)
+      // once PER route this salesman has (typically 3-4) inside the map below —
+      // and that endpoint itself does up to 6 sequential DB round-trips per call
+      // (fetch execution, possibly auto-start it, fetch customers, possibly
+      // auto-add missing visits, reload, fetch route name). Even running those
+      // calls concurrently client-side, each one still pays the full cross-cloud
+      // latency chain independently. Replaced with ONE batched call for every
+      // "mine" route at once, then looked up from a map below — this is exactly
+      // the delay reported between PIN login and landing on My Routes. ──
+      const mineRouteIds = activeRoutes.filter(r => r.isMine).map(r => r.id);
+      const executionByRouteId: Record<string, any> = {};
+      if (mineRouteIds.length > 0) {
+        try {
+          const batch = await routesApi.getCurrentExecutionsBatch(mineRouteIds);
+          for (const exec of batch) {
+            executionByRouteId[exec.routeId] = exec;
           }
+        } catch {}
+      }
 
-          let executionStatus: EnrichedRoute['executionStatus'] = null;
-          let executionId: string | undefined;
-          let ordersAllSubmitted = false;
-          let submittedCount = 0;
-          let isTrulyCompleted = false;
-          let isAdminClosed = false;
+      const enriched: EnrichedRoute[] = activeRoutes.map((r): EnrichedRoute => {
+        const base = {
+          routeId:              r.id,
+          routeName:            r.name,
+          description:          r.description,
+          customerCount:        r.customerCount,
+          isDedicatedToAnother: r.isDedicatedToAnother,
+          hasUnclosedCycle:     r.hasUnclosedCycle,
+        };
 
-          if (r.isMine) {
-            try {
-              const exec = await routesApi.getCurrentExecution(r.id);
-              if (exec?.executionId) {
-                executionId = exec.executionId;
-                const totalCustomers = exec.totalCustomers ?? 0;
-                const pending = exec.pendingCount ?? 0;
-                isAdminClosed = exec.status === 'Completed';
-                isTrulyCompleted = totalCustomers > 0 && pending === 0;
-                ordersAllSubmitted = isTrulyCompleted;
-                submittedCount = (exec.customers ?? []).filter(c => c.visitStatus === 'OrderPlaced').length;
-                executionStatus = isAdminClosed
-                  ? 'Completed'
-                  : isTrulyCompleted
-                    ? 'Completed'
-                    : exec.status === 'InProgress' ? 'InProgress' : null;
-              }
-            } catch {}
+        if (r.isStarted && !r.isMine) {
+          return { ...base, takenByOther: true, takenByName: r.startedBy };
+        }
+
+        let executionStatus: EnrichedRoute['executionStatus'] = null;
+        let executionId: string | undefined;
+        let ordersAllSubmitted = false;
+        let submittedCount = 0;
+        let isTrulyCompleted = false;
+        let isAdminClosed = false;
+
+        if (r.isMine) {
+          const exec = executionByRouteId[r.id];
+          if (exec?.hasActiveExecution && exec?.executionId) {
+            executionId = exec.executionId;
+            const totalCustomers = exec.totalCustomers ?? 0;
+            const pending = exec.pendingCount ?? 0;
+            isAdminClosed = exec.status === 'Completed';
+            isTrulyCompleted = totalCustomers > 0 && pending === 0;
+            ordersAllSubmitted = isTrulyCompleted;
+            submittedCount = (exec.customers ?? []).filter((c: any) => c.visitStatus === 'OrderPlaced').length;
+            executionStatus = isAdminClosed
+              ? 'Completed'
+              : isTrulyCompleted
+                ? 'Completed'
+                : exec.status === 'InProgress' ? 'InProgress' : null;
           }
+        }
 
-          return {
-            ...base,
-            takenByOther: false,
-            executionStatus,
-            executionId,
-            ordersAllSubmitted,
-            submittedCount,
-            isTrulyCompleted,
-            isAdminClosed,
-          };
-        })
-      );
+        return {
+          ...base,
+          takenByOther: false,
+          executionStatus,
+          executionId,
+          ordersAllSubmitted,
+          submittedCount,
+          isTrulyCompleted,
+          isAdminClosed,
+        };
+      });
 
       setRoutes(enriched);
     } catch (err: unknown) {

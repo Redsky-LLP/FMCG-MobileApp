@@ -143,6 +143,32 @@ public class RoutesController(IMediator mediator, IApplicationDbContext context)
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
+    // ── PERFORMANCE FIX: batched sibling of GetCurrentRouteExecution above.
+    // SalesmanRoutes.tsx was previously calling the single-route endpoint once
+    // PER route a salesman has (typically 3-4) — and that handler itself does
+    // up to 6 sequential DB round-trips per call. This does the exact same
+    // self-healing logic (auto-start Draft executions, auto-add visits for
+    // newly added customers) for ALL requested routes in one request, batching
+    // the reads and combining all writes into a single SaveChanges call. ──
+    [HttpPost("current-executions-batch")]
+    [Authorize(Roles = "Salesman,Admin,SuperAdmin")]
+    public async Task<ActionResult<Result<List<RouteExecutionSummaryDto>>>> GetCurrentRouteExecutionsBatch(
+        [FromBody] GetCurrentRouteExecutionsBatchRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == Guid.Empty)
+            return BadRequest(Result<List<RouteExecutionSummaryDto>>.Failure("User not authenticated."));
+
+        var query = new GetCurrentRouteExecutionsBatchQuery
+        {
+            RouteIds = request.RouteIds,
+            SalesmanId = userId
+        };
+
+        var result = await mediator.Send(query);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
     [HttpPost("record-visit")]
     [Authorize(Roles = "Salesman")]
     public async Task<ActionResult<Result<RecordCustomerVisitResponse>>> RecordCustomerVisit(

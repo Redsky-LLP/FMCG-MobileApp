@@ -147,6 +147,12 @@ export const routesApi = {
     ),
   getCurrentExecution: (routeId: string) =>
     get<CurrentRouteExecutionDto>(`/api/v1/routes/${routeId}/current-execution`),
+  // ── PERFORMANCE FIX: batched sibling of getCurrentExecution above — fetches
+  // execution status for MANY routes in one call instead of one call per
+  // route. Used by SalesmanRoutes.tsx's load() to avoid fanning out one heavy
+  // request per route on every page load. ──
+  getCurrentExecutionsBatch: (routeIds: string[]) =>
+    post<any[]>('/api/v1/routes/current-executions-batch', { routeIds }),
   recordVisit: (body: RecordVisitBody) => {
     const { visitStatus, ...rest } = body;
     return post<RecordCustomerVisitResponse>('/api/v1/routes/record-visit', {
