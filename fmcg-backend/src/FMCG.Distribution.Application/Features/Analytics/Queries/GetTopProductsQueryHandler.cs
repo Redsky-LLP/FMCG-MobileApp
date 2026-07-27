@@ -17,6 +17,7 @@ public class GetTopProductsQueryHandler(IApplicationDbContext context)
 
         // Get order IDs within date range
         var orderIds = await context.Orders
+            .AsNoTracking()
             .Where(o => !o.IsDeleted
                 && o.Status != OrderStatus.Draft
                 && o.OrderDate.Date >= fromDate.Date
@@ -31,6 +32,7 @@ public class GetTopProductsQueryHandler(IApplicationDbContext context)
 
         // Build order items query
         var orderItemsQuery = context.OrderItems
+            .AsNoTracking()
             .Include(i => i.Product)
             .Where(i => orderIds.Contains(i.OrderId) && !i.IsDeleted);
 

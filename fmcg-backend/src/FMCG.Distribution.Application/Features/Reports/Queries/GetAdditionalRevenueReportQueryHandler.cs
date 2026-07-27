@@ -29,6 +29,7 @@ public class GetAdditionalRevenueReportQueryHandler : IRequestHandler<GetAdditio
 
         // Get all active salesmen
         var salesmen = await _context.Users
+            .AsNoTracking()
             .Where(u => u.Role == UserRole.Salesman && u.IsActive && !u.IsDeleted)
             .ToListAsync(cancellationToken);
 
@@ -41,6 +42,7 @@ public class GetAdditionalRevenueReportQueryHandler : IRequestHandler<GetAdditio
 
         // Get closed orders within date range with product and customer details
         var orders = await _context.Orders
+            .AsNoTracking()
             .Include(o => o.Customer)
             .Include(o => o.Items)
                 .ThenInclude(i => i.Product)

@@ -17,6 +17,7 @@ public class GetOrderMarginQueryHandler : IRequestHandler<GetOrderMarginQuery, R
     public async Task<Result<OrderMarginDto>> Handle(GetOrderMarginQuery request, CancellationToken cancellationToken)
     {
         var order = await _context.Orders
+            .AsNoTracking()
             .Include(o => o.Customer)
             .Include(o => o.Route)
             .Include(o => o.Items)

@@ -21,6 +21,7 @@ public class GetProductProfitabilityQueryHandler(IApplicationDbContext context)
         // ── FIXED: was (Submitted || Closed) — Submitted no longer exists ─────
         // Include all orders that have moved past the Draft stage.
         var ordersQuery = context.Orders
+            .AsNoTracking()
             .Where(o => !o.IsDeleted && o.Status != OrderStatus.Draft);
 
         if (request.FromDate.HasValue)
@@ -32,6 +33,7 @@ public class GetProductProfitabilityQueryHandler(IApplicationDbContext context)
         var orderIds = await ordersQuery.Select(o => o.Id).ToListAsync(cancellationToken);
 
         var orderItemsQuery = context.OrderItems
+            .AsNoTracking()
             .Include(oi => oi.Product)
             .ThenInclude(p => p!.ProductGroup)
             .Where(oi => orderIds.Contains(oi.OrderId) && !oi.IsDeleted);

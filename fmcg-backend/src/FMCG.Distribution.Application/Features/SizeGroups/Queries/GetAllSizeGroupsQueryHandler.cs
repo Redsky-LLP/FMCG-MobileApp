@@ -16,6 +16,7 @@ public class GetAllSizeGroupsQueryHandler(IApplicationDbContext context)
     public async Task<Result<List<SizeGroupDto>>> Handle(GetAllSizeGroupsQuery request, CancellationToken cancellationToken)
     {
         var query = context.SizeGroups
+            .AsNoTracking()
             .Where(g => !g.IsDeleted);
 
         if (request.IsActive.HasValue)

@@ -29,6 +29,7 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
 
             // ── Get all orders with Closed status for the target date ──
             var closedOrders = await context.Orders
+                .AsNoTracking()
                 .Include(o => o.Customer)
                 .Include(o => o.Route)
                 .Include(o => o.Items!)
@@ -58,6 +59,7 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
 
             // ── Get unit priorities ──
             var units = await context.ProductUnits
+                .AsNoTracking()
                 .Where(u => !u.IsDeleted)
                 .ToDictionaryAsync(u => u.Id, u => u.LoadingPriority, cancellationToken);
 

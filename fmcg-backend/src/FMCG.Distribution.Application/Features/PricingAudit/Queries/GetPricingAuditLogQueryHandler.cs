@@ -17,6 +17,7 @@ public class GetPricingAuditLogQueryHandler : IRequestHandler<GetPricingAuditLog
     public async Task<Result<List<PricingAuditLogDto>>> Handle(GetPricingAuditLogQuery request, CancellationToken cancellationToken)
     {
         var query = _context.PricingAuditLogs
+            .AsNoTracking()
             .Include(p => p.Product)
             .Where(p => !p.IsDeleted);
 

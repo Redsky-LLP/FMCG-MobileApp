@@ -12,6 +12,7 @@ public class GetAllCustomersQueryHandler(IApplicationDbContext context)
     public async Task<Result<List<CustomerDto>>> Handle(GetAllCustomersQuery request, CancellationToken cancellationToken)
     {
         var query = context.Customers
+            .AsNoTracking()
             .Include(c => c.Route)
             .Where(c => !c.IsDeleted && c.IsActive);
 
@@ -24,6 +25,7 @@ public class GetAllCustomersQueryHandler(IApplicationDbContext context)
         else if (!request.IsAdmin && request.UserRole == "Salesman" && request.CurrentUserId.HasValue)
         {
             var assignedRoute = await context.Routes
+                .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.AssignedSalesmanId == request.CurrentUserId.Value && !r.IsDeleted, cancellationToken);
 
             if (assignedRoute != null)

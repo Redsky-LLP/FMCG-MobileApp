@@ -21,6 +21,7 @@ public class GetOrderByIdQueryHandler(IApplicationDbContext context)
     public async Task<Result<OrderDetailDto>> Handle(GetOrderByIdQuery request, CancellationToken cancellationToken)
     {
         var order = await context.Orders
+            .AsNoTracking()
             .Include(o => o.Customer)
             .Include(o => o.Route)
             .Include(o => o.Items!)
@@ -43,10 +44,16 @@ public class GetOrderByIdQueryHandler(IApplicationDbContext context)
         var itemDtos = new List<OrderItemDto>();
         foreach (var item in order.Items ?? [])
         {
-            var product = await context.Products
-                .FirstOrDefaultAsync(p => p.Id == item.ProductId, cancellationToken);
-            var unit = await context.ProductUnits
-                .FirstOrDefaultAsync(u => u.Id == item.UnitId, cancellationToken);
+            // ── PERFORMANCE FIX: Product and Unit were already eagerly loaded by the
+            // .Include()/.ThenInclude() calls above in the SAME query — item.Product and
+            // item.Unit are already populated in memory. The previous code ignored that
+            // and ran two brand-new database round-trips per item instead (one for
+            // Products, one for ProductUnits), turning a 7-item order into 15 sequential
+            // DB calls instead of 1. Across a cross-cloud connection (app server and DB
+            // in different data centers), each of those round-trips costs real time —
+            // this was a meaningful chunk of "why does this page feel slow." ──
+            var product = item.Product;
+            var unit = item.Unit;
 
             itemDtos.Add(new OrderItemDto
             {

@@ -29,6 +29,7 @@ public class GetSummaryReportQueryHandler : IRequestHandler<GetSummaryReportQuer
 
         // Get closed orders with items, product groups, and size groups
         var orders = await _context.Orders
+            .AsNoTracking()
             .Include(o => o.Items)
                 .ThenInclude(i => i.Product)
                     .ThenInclude(p => p!.ProductGroup)

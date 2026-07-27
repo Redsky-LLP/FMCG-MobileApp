@@ -11,6 +11,7 @@ public class GetCustomerByIdQueryHandler(IApplicationDbContext context)
     public async Task<Result<CustomerDetailDto>> Handle(GetCustomerByIdQuery request, CancellationToken cancellationToken)
     {
         var customer = await context.Customers
+            .AsNoTracking()
             .Include(c => c.Route)
             .FirstOrDefaultAsync(c => c.Id == request.Id && !c.IsDeleted, cancellationToken);
 

@@ -22,6 +22,7 @@ public class GetDailySummaryReportQueryHandler(IApplicationDbContext context)
 
         // Query orders for the target date (submitted or closed, not draft)
         var ordersQuery = context.Orders
+            .AsNoTracking()
             .Include(o => o.Route)
             .Include(o => o.Items!)
             .Where(o => !o.IsDeleted
@@ -32,6 +33,7 @@ public class GetDailySummaryReportQueryHandler(IApplicationDbContext context)
 
         // Check if day is closed
         var dailyClosure = await context.DailyClosures
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => !c.IsDeleted && c.ClosureDate.Date == targetDate.Date, cancellationToken);
 
         if (orders.Count == 0 && dailyClosure == null)

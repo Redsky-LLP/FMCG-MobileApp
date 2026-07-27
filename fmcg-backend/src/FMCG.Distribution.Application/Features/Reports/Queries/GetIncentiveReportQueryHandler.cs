@@ -27,6 +27,7 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
 
         // Get all active salesmen
         var salesmen = await _context.Users
+            .AsNoTracking()
             .Where(u => u.Role == UserRole.Salesman && u.IsActive && !u.IsDeleted)
             .ToListAsync(cancellationToken);
 
@@ -39,6 +40,7 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
 
         // Get closed orders within date range with product details
         var orders = await _context.Orders
+            .AsNoTracking()
             .Include(o => o.Items)
                 .ThenInclude(i => i.Product)
             .Where(o => !o.IsDeleted

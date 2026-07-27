@@ -25,7 +25,10 @@ public class ApproveOrderCommandHandler(IApplicationDbContext context)
             return Result<OrderDetailDto>.Failure("Only Admin or SuperAdmin can approve orders.");
 
         var order = await context.Orders
-            .Include(o => o.Items)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Product)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Unit)
             .FirstOrDefaultAsync(o => o.Id == request.Id && !o.IsDeleted, cancellationToken);
 
         if (order == null)
@@ -51,13 +54,13 @@ public class ApproveOrderCommandHandler(IApplicationDbContext context)
         var route = await context.Routes
             .FirstOrDefaultAsync(r => r.Id == order.RouteId && !r.IsDeleted, cancellationToken);
 
+        // ── PERFORMANCE FIX: Product/Unit already eagerly loaded above via
+        // .ThenInclude() — no need to re-query per item here. ──
         var itemDtos = new List<OrderItemDto>();
         foreach (var item in order.Items ?? [])
         {
-            var product = await context.Products
-                .FirstOrDefaultAsync(p => p.Id == item.ProductId, cancellationToken);
-            var unit = await context.ProductUnits
-                .FirstOrDefaultAsync(u => u.Id == item.UnitId, cancellationToken);
+            var product = item.Product;
+            var unit = item.Unit;
 
             itemDtos.Add(new OrderItemDto
             {

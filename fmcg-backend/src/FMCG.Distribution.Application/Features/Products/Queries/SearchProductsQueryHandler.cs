@@ -11,6 +11,7 @@ public class SearchProductsQueryHandler(IApplicationDbContext context)
     public async Task<Result<List<ProductSearchDto>>> Handle(SearchProductsQuery request, CancellationToken cancellationToken)
     {
         var query = context.Products
+            .AsNoTracking()
             .Include(p => p.ProductGroup)
             .Include(p => p.DefaultUnit)  // ← CHANGE ProductUnit to DefaultUnit
             .Where(p => !p.IsDeleted);

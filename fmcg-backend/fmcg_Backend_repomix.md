@@ -337860,7 +337860,10 @@ public class ApproveOrderCommandHandler(IApplicationDbContext context)
             return Result<OrderDetailDto>.Failure("Only Admin or SuperAdmin can approve orders.");
 
         var order = await context.Orders
-            .Include(o => o.Items)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Product)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Unit)
             .FirstOrDefaultAsync(o => o.Id == request.Id && !o.IsDeleted, cancellationToken);
 
         if (order == null)
@@ -337886,13 +337889,13 @@ public class ApproveOrderCommandHandler(IApplicationDbContext context)
         var route = await context.Routes
             .FirstOrDefaultAsync(r => r.Id == order.RouteId && !r.IsDeleted, cancellationToken);
 
+        // ── PERFORMANCE FIX: Product/Unit already eagerly loaded above via
+        // .ThenInclude() — no need to re-query per item here. ──
         var itemDtos = new List<OrderItemDto>();
         foreach (var item in order.Items ?? [])
         {
-            var product = await context.Products
-                .FirstOrDefaultAsync(p => p.Id == item.ProductId, cancellationToken);
-            var unit = await context.ProductUnits
-                .FirstOrDefaultAsync(u => u.Id == item.UnitId, cancellationToken);
+            var product = item.Product;
+            var unit = item.Unit;
 
             itemDtos.Add(new OrderItemDto
             {
@@ -337981,7 +337984,10 @@ public class CloseOrderCommandHandler : IRequestHandler<CloseOrderCommand, Resul
     public async Task<Result<OrderDetailDto>> Handle(CloseOrderCommand request, CancellationToken cancellationToken)
     {
         var order = await _context.Orders
-            .Include(o => o.Items)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Product)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Unit)
             .FirstOrDefaultAsync(o => o.Id == request.Id && !o.IsDeleted, cancellationToken);
 
         if (order == null)
@@ -338011,13 +338017,13 @@ public class CloseOrderCommandHandler : IRequestHandler<CloseOrderCommand, Resul
         var route = await _context.Routes
             .FirstOrDefaultAsync(r => r.Id == order.RouteId && !r.IsDeleted, cancellationToken);
 
+        // ── PERFORMANCE FIX: Product/Unit already eagerly loaded above via
+        // .ThenInclude() — no need to re-query per item here. ──
         var itemDtos = new List<OrderItemDto>();
         foreach (var item in order.Items ?? [])
         {
-            var product = await _context.Products
-                .FirstOrDefaultAsync(p => p.Id == item.ProductId, cancellationToken);
-            var unit = await _context.ProductUnits
-                .FirstOrDefaultAsync(u => u.Id == item.UnitId, cancellationToken);
+            var product = item.Product;
+            var unit = item.Unit;
 
             itemDtos.Add(new OrderItemDto
             {
@@ -338460,7 +338466,10 @@ public class SubmitOrderCommandHandler(IApplicationDbContext context)
         CancellationToken cancellationToken)
     {
         var order = await context.Orders
-            .Include(o => o.Items)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Product)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Unit)
             .FirstOrDefaultAsync(o => o.Id == request.Id && !o.IsDeleted, cancellationToken);
 
         if (order == null)
@@ -338491,13 +338500,13 @@ public class SubmitOrderCommandHandler(IApplicationDbContext context)
         var route = await context.Routes
             .FirstOrDefaultAsync(r => r.Id == order.RouteId && !r.IsDeleted, cancellationToken);
 
+        // ── PERFORMANCE FIX: Product/Unit already eagerly loaded above via
+        // .ThenInclude() — no need to re-query per item here. ──
         var itemDtos = new List<OrderItemDto>();
         foreach (var item in order.Items)
         {
-            var product = await context.Products
-                .FirstOrDefaultAsync(p => p.Id == item.ProductId, cancellationToken);
-            var unit = await context.ProductUnits
-                .FirstOrDefaultAsync(u => u.Id == item.UnitId, cancellationToken);
+            var product = item.Product;
+            var unit = item.Unit;
 
             itemDtos.Add(new OrderItemDto
             {
@@ -338676,6 +338685,21 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
         var updatedItemIds = new HashSet<Guid>();
         var itemsToAdd = new List<OrderItem>();
 
+        // ── PERFORMANCE FIX: previously, every item in the request triggered its own
+        // separate database round-trip to validate the referenced product (once for
+        // existing items, again for new items) — an order with 10 items meant 10
+        // sequential round-trips just for validation, before anything else even ran.
+        // Fetching every distinct referenced product in ONE query up front, then
+        // looking each one up from an in-memory dictionary inside the loop, turns
+        // that into a single round-trip regardless of how many items are on the
+        // order. Across a cross-cloud connection (app server and DB in different
+        // data centers), this is one of the biggest wins in the whole request. ──
+        var requestedProductIds = request.Items.Select(i => i.ProductId).Distinct().ToList();
+        var productsById = await context.Products
+            .Include(p => p.SizeGroup)
+            .Where(p => requestedProductIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, cancellationToken);
+
         foreach (var itemDto in request.Items)
         {
             if (itemDto.Id.HasValue)
@@ -338683,9 +338707,8 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
                 var existingItem = order.Items?.FirstOrDefault(i => i.Id == itemDto.Id.Value);
                 if (existingItem != null)
                 {
-                    var product = await context.Products
-                        .FirstOrDefaultAsync(p => p.Id == itemDto.ProductId && p.IsActive && !p.IsDeleted, cancellationToken);
-                    if (product == null)
+                    if (!productsById.TryGetValue(itemDto.ProductId, out var product)
+                        || !product.IsActive || product.IsDeleted)
                         return Result<OrderDetailDto>.Failure("Product not found or inactive.");
 
                     var qty = ResolveQuantity(itemDto.Quantity, itemDto.QuantityBags, itemDto.QuantityBoxes, itemDto.QuantityTins);
@@ -338711,12 +338734,8 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
             }
             else
             {
-                // ── Include SizeGroup so we can snapshot its name below, same as
-                // CreateOrderCommandHandler does for brand-new orders. ──
-                var product = await context.Products
-                    .Include(p => p.SizeGroup)
-                    .FirstOrDefaultAsync(p => p.Id == itemDto.ProductId && p.IsActive && !p.IsDeleted, cancellationToken);
-                if (product == null)
+                if (!productsById.TryGetValue(itemDto.ProductId, out var product)
+                    || !product.IsActive || product.IsDeleted)
                     return Result<OrderDetailDto>.Failure("Product not found or inactive.");
 
                 // ── NEW: Out of Stock guard — only for genuinely new items being added
@@ -338791,17 +338810,22 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
         }
 
         var updatedOrder = await context.Orders
-            .Include(o => o.Items)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Product)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Unit)
             .FirstOrDefaultAsync(o => o.Id == order.Id, cancellationToken);
 
         var route = await context.Routes
             .FirstOrDefaultAsync(r => r.Id == order.RouteId && !r.IsDeleted, cancellationToken);
 
+        // ── PERFORMANCE FIX: Product/Unit already eagerly loaded above via
+        // .ThenInclude() — no need to re-query per item here. ──
         var itemDtos = new List<OrderItemDto>();
         foreach (var item in updatedOrder?.Items ?? [])
         {
-            var product = await context.Products.FirstOrDefaultAsync(p => p.Id == item.ProductId, cancellationToken);
-            var unit = await context.ProductUnits.FirstOrDefaultAsync(u => u.Id == item.UnitId, cancellationToken);
+            var product = item.Product;
+            var unit = item.Unit;
 
             itemDtos.Add(new OrderItemDto
             {
@@ -339082,8 +339106,20 @@ public class GetCustomerOrderHistoryQueryHandler : IRequestHandler<GetCustomerOr
         }
 
         // Get completed orders (Submitted or Closed) for history
+        // ── PERFORMANCE FIX: added .ThenInclude(i => i.Product) and .ThenInclude(i =>
+        // i.Unit) here, so both are eagerly loaded in this ONE query alongside the
+        // orders/items. Previously, every single item on every single order triggered
+        // two brand-new database round-trips inside the nested loop below — for the
+        // default 10-order history with ~5 items each, that was up to 100 sequential
+        // round-trips just to open the Previous Orders popup. Across a cross-cloud
+        // connection (app server and DB in different data centers), each round-trip
+        // costs real time — this was likely the single biggest contributor to that
+        // screen feeling slow to open. ──
         var orders = await _context.Orders
-            .Include(o => o.Items)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Product)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Unit)
             .Where(o => o.CustomerId == request.CustomerId && !o.IsDeleted && o.Status != OrderStatus.Draft)
             .OrderByDescending(o => o.OrderDate)
             .Take(request.Limit)
@@ -339096,10 +339132,9 @@ public class GetCustomerOrderHistoryQueryHandler : IRequestHandler<GetCustomerOr
             var itemDtos = new List<OrderHistoryItemDto>();
             foreach (var item in order.Items ?? [])
             {
-                var product = await _context.Products
-                    .FirstOrDefaultAsync(p => p.Id == item.ProductId, cancellationToken);
-                var unit = await _context.ProductUnits
-                    .FirstOrDefaultAsync(u => u.Id == item.UnitId, cancellationToken);
+                // ── Both already loaded above — no more per-item database calls. ──
+                var product = item.Product;
+                var unit = item.Unit;
 
                 itemDtos.Add(new OrderHistoryItemDto
                 {
@@ -339198,10 +339233,16 @@ public class GetOrderByIdQueryHandler(IApplicationDbContext context)
         var itemDtos = new List<OrderItemDto>();
         foreach (var item in order.Items ?? [])
         {
-            var product = await context.Products
-                .FirstOrDefaultAsync(p => p.Id == item.ProductId, cancellationToken);
-            var unit = await context.ProductUnits
-                .FirstOrDefaultAsync(u => u.Id == item.UnitId, cancellationToken);
+            // ── PERFORMANCE FIX: Product and Unit were already eagerly loaded by the
+            // .Include()/.ThenInclude() calls above in the SAME query — item.Product and
+            // item.Unit are already populated in memory. The previous code ignored that
+            // and ran two brand-new database round-trips per item instead (one for
+            // Products, one for ProductUnits), turning a 7-item order into 15 sequential
+            // DB calls instead of 1. Across a cross-cloud connection (app server and DB
+            // in different data centers), each of those round-trips costs real time —
+            // this was a meaningful chunk of "why does this page feel slow." ──
+            var product = item.Product;
+            var unit = item.Unit;
 
             itemDtos.Add(new OrderItemDto
             {
@@ -341523,8 +341564,8 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                         .AlignCenter().Width(480)
                                         .Row(r =>
                                         {
-                                            r.ConstantItem(40).PaddingLeft(5).Text($"{order.SequenceOrder + 1})").FontSize(18).Bold();
-                                            r.RelativeItem().AlignCenter().Text(order.CustomerName).FontSize(18).Bold();
+                                            r.ConstantItem(40).PaddingLeft(5).Text($"{order.SequenceOrder + 1})").FontSize(18).ExtraBold();
+                                            r.RelativeItem().AlignCenter().Text(order.CustomerName).FontSize(18).ExtraBold();
                                             r.ConstantItem(40);
                                         });
 
@@ -343180,8 +343221,8 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                             .Padding(4)
                                             .Row(r =>
                                             {
-                                                r.ConstantItem(100).AlignRight().Text($"{stop.SequenceOrder})").FontSize(18).Bold();
-                                                r.RelativeItem().AlignCenter().Text(stop.CustomerName).FontSize(18).Bold();
+                                                r.ConstantItem(100).AlignRight().Text($"{stop.SequenceOrder})").FontSize(18).ExtraBold();
+                                                r.RelativeItem().AlignCenter().Text(stop.CustomerName).FontSize(18).ExtraBold();
                                                 r.ConstantItem(100);
                                             });
 

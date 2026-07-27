@@ -18,6 +18,7 @@ public class GetOrdersByRouteQueryHandler(IApplicationDbContext context)
     public async Task<Result<List<OrderDto>>> Handle(GetOrdersByRouteQuery request, CancellationToken cancellationToken)
     {
         var query = context.Orders
+            .AsNoTracking()
             .Include(o => o.Customer)
             .Include(o => o.Route)
             .Include(o => o.Items!)

@@ -19,6 +19,7 @@ public class GetDashboardKpisQueryHandler(IApplicationDbContext context)
 
         // Get orders for current period - with null-safe access
         var currentOrders = await context.Orders
+            .AsNoTracking()
             .Include(o => o.Items!)
             .Where(o => !o.IsDeleted
                 && o.Status != OrderStatus.Draft
@@ -27,6 +28,7 @@ public class GetDashboardKpisQueryHandler(IApplicationDbContext context)
 
         // Get orders for previous period - with null-safe access
         var previousOrders = await context.Orders
+            .AsNoTracking()
             .Include(o => o.Items!)
             .Where(o => !o.IsDeleted
                 && o.Status != OrderStatus.Draft
@@ -46,6 +48,7 @@ public class GetDashboardKpisQueryHandler(IApplicationDbContext context)
 
         // Get outstanding amount
         var outstanding = await context.Outstandings
+            .AsNoTracking()
             .Where(o => !o.IsDeleted && o.SettlementStatus != SettlementStatus.Settled)
             .SumAsync(o => o.OutstandingAmount, cancellationToken);
 

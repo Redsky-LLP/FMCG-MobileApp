@@ -26,6 +26,7 @@ public class CheckPinAvailabilityQueryHandler(IApplicationDbContext context)
         }
 
         var candidates = await context.Users
+            .AsNoTracking()
             .Where(u => u.IsActive
                 && u.PinHash != null
                 && (request.ExcludeUserId == null || u.Id != request.ExcludeUserId.Value))

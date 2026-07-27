@@ -23,7 +23,10 @@ public class CloseOrderCommandHandler : IRequestHandler<CloseOrderCommand, Resul
     public async Task<Result<OrderDetailDto>> Handle(CloseOrderCommand request, CancellationToken cancellationToken)
     {
         var order = await _context.Orders
-            .Include(o => o.Items)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Product)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Unit)
             .FirstOrDefaultAsync(o => o.Id == request.Id && !o.IsDeleted, cancellationToken);
 
         if (order == null)
@@ -53,13 +56,13 @@ public class CloseOrderCommandHandler : IRequestHandler<CloseOrderCommand, Resul
         var route = await _context.Routes
             .FirstOrDefaultAsync(r => r.Id == order.RouteId && !r.IsDeleted, cancellationToken);
 
+        // ── PERFORMANCE FIX: Product/Unit already eagerly loaded above via
+        // .ThenInclude() — no need to re-query per item here. ──
         var itemDtos = new List<OrderItemDto>();
         foreach (var item in order.Items ?? [])
         {
-            var product = await _context.Products
-                .FirstOrDefaultAsync(p => p.Id == item.ProductId, cancellationToken);
-            var unit = await _context.ProductUnits
-                .FirstOrDefaultAsync(u => u.Id == item.UnitId, cancellationToken);
+            var product = item.Product;
+            var unit = item.Unit;
 
             itemDtos.Add(new OrderItemDto
             {

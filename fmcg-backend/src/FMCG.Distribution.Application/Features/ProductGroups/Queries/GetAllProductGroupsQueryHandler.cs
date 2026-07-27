@@ -25,6 +25,7 @@ public class GetAllProductGroupsQueryHandler(IApplicationDbContext context)
         GetAllProductGroupsQuery request, CancellationToken cancellationToken)
     {
         var groups = await context.ProductGroups
+            .AsNoTracking()
             .Include(g => g.Products)
             .Where(g => !g.IsDeleted)
             .OrderBy(g => g.Name)

@@ -23,6 +23,7 @@ public class GetRouteSummaryReportQueryHandler(IApplicationDbContext context)
 
         // Query orders within date range (submitted or closed, not draft)
         var ordersQuery = context.Orders
+            .AsNoTracking()
         .Include(o => o.Route)
         .Include(o => o.Items!)
         .Where(o => !o.IsDeleted

@@ -19,6 +19,7 @@ public class GetProductPerformanceQueryHandler(IApplicationDbContext context)
 
         // Get order IDs within date range
         var orderIds = await context.Orders
+            .AsNoTracking()
             .Where(o => !o.IsDeleted
                 && o.Status != OrderStatus.Draft
                 && o.OrderDate.Date >= fromDate.Date
@@ -40,6 +41,7 @@ public class GetProductPerformanceQueryHandler(IApplicationDbContext context)
 
         // Build order items query
         var orderItemsQuery = context.OrderItems
+            .AsNoTracking()
             .Include(i => i.Product!)
                 .ThenInclude(p => p!.ProductGroup)
             .Include(i => i.Unit)

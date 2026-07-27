@@ -19,6 +19,7 @@ public class GetDailyClosureStatusQueryHandler(IApplicationDbContext context)
         // (only IsDeleted was checked), so the route looked permanently
         // closed even after a successful reopen. ──
         var closure = await context.DailyClosures
+            .AsNoTracking()
             .Include(c => c.ClosedByUser)
             .Where(c => !c.IsDeleted && c.IsActive && c.ClosureDate.Date == targetDate.Date)
             .Where(c => request.RouteId == null || c.RouteId == request.RouteId)

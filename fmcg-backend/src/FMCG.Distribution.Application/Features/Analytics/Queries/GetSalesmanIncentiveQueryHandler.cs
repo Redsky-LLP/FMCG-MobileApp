@@ -28,6 +28,7 @@ public class GetSalesmanIncentiveQueryHandler(
 
         // Verify salesman exists and has correct role
         var salesman = await context.Users
+            .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == request.SalesmanId.Value
                 && u.Role == UserRole.Salesman
                 && !u.IsDeleted, cancellationToken);

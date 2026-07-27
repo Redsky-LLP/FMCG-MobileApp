@@ -17,6 +17,7 @@ public class GetRoutePerformanceQueryHandler(IApplicationDbContext context)
 
         // Build orders query
         var ordersQuery = context.Orders
+            .AsNoTracking()
             .Include(o => o.Route)
             .Include(o => o.Items!)
             .Include(o => o.Customer)
@@ -49,6 +50,7 @@ public class GetRoutePerformanceQueryHandler(IApplicationDbContext context)
 
         // Get customer count per route
         var customerCounts = await context.Customers
+            .AsNoTracking()
             .Where(c => routeIds.Contains(c.RouteId) && !c.IsDeleted)
             .GroupBy(c => c.RouteId)
             .Select(g => new { RouteId = g.Key, Count = g.Count() })
@@ -56,6 +58,7 @@ public class GetRoutePerformanceQueryHandler(IApplicationDbContext context)
 
         // Get salesman count per route
         var salesmanCounts = await context.Routes
+            .AsNoTracking()
             .Where(r => routeIds.Contains(r.Id) && !r.IsDeleted && r.AssignedSalesmanId.HasValue)
             .GroupBy(r => r.Id)
             .Select(g => new { RouteId = g.Key, Count = g.Count() })

@@ -27,6 +27,7 @@ public class GetCustomerOrderHistoryQueryHandler : IRequestHandler<GetCustomerOr
     {
         // Verify customer exists
         var customer = await _context.Customers
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == request.CustomerId && !c.IsDeleted, cancellationToken);
 
         if (customer == null)
@@ -40,6 +41,7 @@ public class GetCustomerOrderHistoryQueryHandler : IRequestHandler<GetCustomerOr
         if (!request.IsAdmin && request.SalesmanId.HasValue)
         {
             var route = await _context.Routes
+                .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == customer.RouteId && !r.IsDeleted, cancellationToken);
 
             if (route != null && route.AssignedSalesmanId.HasValue && route.AssignedSalesmanId != request.SalesmanId.Value)
@@ -49,8 +51,21 @@ public class GetCustomerOrderHistoryQueryHandler : IRequestHandler<GetCustomerOr
         }
 
         // Get completed orders (Submitted or Closed) for history
+        // ── PERFORMANCE FIX: added .ThenInclude(i => i.Product) and .ThenInclude(i =>
+        // i.Unit) here, so both are eagerly loaded in this ONE query alongside the
+        // orders/items. Previously, every single item on every single order triggered
+        // two brand-new database round-trips inside the nested loop below — for the
+        // default 10-order history with ~5 items each, that was up to 100 sequential
+        // round-trips just to open the Previous Orders popup. Across a cross-cloud
+        // connection (app server and DB in different data centers), each round-trip
+        // costs real time — this was likely the single biggest contributor to that
+        // screen feeling slow to open. ──
         var orders = await _context.Orders
-            .Include(o => o.Items)
+            .AsNoTracking()
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Product)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Unit)
             .Where(o => o.CustomerId == request.CustomerId && !o.IsDeleted && o.Status != OrderStatus.Draft)
             .OrderByDescending(o => o.OrderDate)
             .Take(request.Limit)
@@ -63,10 +78,9 @@ public class GetCustomerOrderHistoryQueryHandler : IRequestHandler<GetCustomerOr
             var itemDtos = new List<OrderHistoryItemDto>();
             foreach (var item in order.Items ?? [])
             {
-                var product = await _context.Products
-                    .FirstOrDefaultAsync(p => p.Id == item.ProductId, cancellationToken);
-                var unit = await _context.ProductUnits
-                    .FirstOrDefaultAsync(u => u.Id == item.UnitId, cancellationToken);
+                // ── Both already loaded above — no more per-item database calls. ──
+                var product = item.Product;
+                var unit = item.Unit;
 
                 itemDtos.Add(new OrderHistoryItemDto
                 {

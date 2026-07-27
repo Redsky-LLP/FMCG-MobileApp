@@ -58,7 +58,10 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
         }
 
         // ── Sync: add visits for customers added after execution started ──────
+        // PERFORMANCE FIX: read-only lookup, never mutated/saved — safe to skip
+        // EF's change-tracking overhead for it.
         var routeCustomers = await context.Customers
+            .AsNoTracking()
             .Where(c => c.RouteId == request.RouteId && c.IsActive && !c.IsDeleted)
             .OrderBy(c => c.SequenceOrder)
             .ToListAsync(cancellationToken);
@@ -99,7 +102,9 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
         }
         // ─────────────────────────────────────────────────────────────────────
 
+        // PERFORMANCE FIX: read-only, purely for display — never mutated/saved.
         var route = await context.Routes
+            .AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == execution.RouteId && !r.IsDeleted, cancellationToken);
 
         var visits = execution.Visits ?? [];   // IDE0028

@@ -20,6 +20,7 @@ public class GetAllRoutesQueryHandler(IApplicationDbContext context)
 
             // Get daily overrides for TODAY where this salesman is assigned
             var todayOverrides = await context.RouteAssignments
+                .AsNoTracking()
                 .Where(a => !a.IsDeleted
                     && a.SalesmanId == salesmanId
                     && a.AssignmentDate.Date == today)
@@ -31,6 +32,7 @@ public class GetAllRoutesQueryHandler(IApplicationDbContext context)
 
             // Get permanent routes assigned to this salesman
             var permanentRoutes = await context.Routes
+                .AsNoTracking()
                 .Include(r => r.AssignedSalesman)
                 .Include(r => r.Customers)
                 .Where(r => !r.IsDeleted && r.IsActive && r.AssignedSalesmanId == salesmanId)
@@ -38,6 +40,7 @@ public class GetAllRoutesQueryHandler(IApplicationDbContext context)
 
             // Get routes where this salesman is the daily override (NOT in permanent)
             var overrideRoutes = await context.Routes
+                .AsNoTracking()
                 .Include(r => r.AssignedSalesman)
                 .Include(r => r.Customers)
                 .Where(r => !r.IsDeleted
@@ -73,6 +76,7 @@ public class GetAllRoutesQueryHandler(IApplicationDbContext context)
 
         // For Admin, return all routes with override info
         var adminRoutes = await context.Routes
+            .AsNoTracking()
             .Include(r => r.AssignedSalesman)
             .Include(r => r.Customers)
             .Where(r => !r.IsDeleted)

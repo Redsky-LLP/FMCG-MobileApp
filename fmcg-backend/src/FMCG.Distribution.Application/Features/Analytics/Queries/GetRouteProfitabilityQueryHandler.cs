@@ -21,6 +21,7 @@ public class GetRouteProfitabilityQueryHandler(IApplicationDbContext context)
         // ── FIXED: was (Submitted || Closed) — Submitted no longer exists ─────
         // Include all orders that have moved past the Draft stage.
         var ordersQuery = context.Orders
+            .AsNoTracking()
             .Include(o => o.Route)
             .Include(o => o.Items)
             .Where(o => !o.IsDeleted && o.Status != OrderStatus.Draft);

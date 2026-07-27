@@ -12,6 +12,7 @@ public class GetProductIncentivesQueryHandler(IApplicationDbContext context)
     public async Task<Result<List<ProductIncentiveDto>>> Handle(GetProductIncentivesQuery request, CancellationToken cancellationToken)
     {
         var query = context.ProductIncentives
+            .AsNoTracking()
             .Include(i => i.Product)
             .Where(i => !i.IsDeleted);
 

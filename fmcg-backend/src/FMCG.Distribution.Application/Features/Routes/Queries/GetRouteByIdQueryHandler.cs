@@ -12,6 +12,7 @@ public class GetRouteByIdQueryHandler(IApplicationDbContext context)
     public async Task<Result<RouteDetailDto>> Handle(GetRouteByIdQuery request, CancellationToken cancellationToken)
     {
         var route = await context.Routes
+            .AsNoTracking()
             .Include(r => r.AssignedSalesman)
             .Include(r => r.Customers!.Where(c => !c.IsDeleted && c.IsActive))
             .FirstOrDefaultAsync(r => r.Id == request.Id && !r.IsDeleted, cancellationToken);

@@ -32,6 +32,7 @@ public class GetPeriodComparisonQueryHandler(IApplicationDbContext context)
 
         // Build base query
         var baseQuery = context.Orders
+            .AsNoTracking()
             .Include(o => o.Items!)
             .Include(o => o.Customer)
             .Include(o => o.Route)

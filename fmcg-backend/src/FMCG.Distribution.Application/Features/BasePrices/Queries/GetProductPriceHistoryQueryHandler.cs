@@ -18,6 +18,7 @@ public class GetProductPriceHistoryQueryHandler : IRequestHandler<GetProductPric
     {
         // Verify product exists
         var product = await _context.Products
+            .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == request.ProductId && !p.IsDeleted, cancellationToken);
 
         if (product == null)
@@ -26,6 +27,7 @@ public class GetProductPriceHistoryQueryHandler : IRequestHandler<GetProductPric
         }
 
         var history = await _context.BasePrices
+            .AsNoTracking()
             .Where(bp => bp.ProductId == request.ProductId && !bp.IsDeleted)
             .OrderByDescending(bp => bp.EffectiveDate)
             .ToListAsync(cancellationToken);

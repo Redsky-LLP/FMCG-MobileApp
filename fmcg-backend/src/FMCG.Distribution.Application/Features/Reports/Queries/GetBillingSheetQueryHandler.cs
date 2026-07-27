@@ -44,6 +44,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
 
         // Query orders for the target date (submitted or closed, not draft)
         var ordersQuery = context.Orders
+            .AsNoTracking()
         .Include(o => o.Customer)
         .Include(o => o.Route)
         .Include(o => o.Items!)

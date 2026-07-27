@@ -11,6 +11,7 @@ public class GetProductByIdQueryHandler(IApplicationDbContext context)
     public async Task<Result<ProductDetailDto>> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
     {
         var product = await context.Products
+            .AsNoTracking()
             .Include(p => p.ProductGroup)
             .Include(p => p.DefaultUnit)  // ← CHANGE ProductUnit to DefaultUnit
             .FirstOrDefaultAsync(p => p.Id == request.Id && !p.IsDeleted, cancellationToken);

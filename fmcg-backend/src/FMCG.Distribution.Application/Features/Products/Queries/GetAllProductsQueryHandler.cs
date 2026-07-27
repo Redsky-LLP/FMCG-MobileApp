@@ -11,6 +11,7 @@ public class GetAllProductsQueryHandler(IApplicationDbContext context)
     public async Task<Result<List<ProductDto>>> Handle(GetAllProductsQuery request, CancellationToken cancellationToken)
     {
         var query = context.Products
+            .AsNoTracking()
             .Include(p => p.ProductGroup)
             .Include(p => p.DefaultUnit)
             .Include(p => p.SizeGroup)  // ← NEW: Include SizeGroup

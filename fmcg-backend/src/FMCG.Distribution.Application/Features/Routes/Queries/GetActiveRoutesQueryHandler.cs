@@ -22,6 +22,7 @@ public class GetActiveRoutesQueryHandler : IRequestHandler<GetActiveRoutesQuery,
         // Every active route is visible to every salesman — there is no admin
         // "assign route to salesman" step required for day-to-day use.
         var routes = await _context.Routes
+            .AsNoTracking()
             .Include(r => r.Customers)
             .Where(r => r.IsActive && !r.IsDeleted)
             .OrderBy(r => r.SequenceOrder)
@@ -34,6 +35,7 @@ public class GetActiveRoutesQueryHandler : IRequestHandler<GetActiveRoutesQuery,
         // If a route somehow has more than one open execution, the most
         // recently started one wins.
         var executions = await _context.RouteExecutions
+            .AsNoTracking()
             .Include(e => e.Salesman)
             .Where(e => e.Status != ExecutionStatus.Completed
                         && e.Status != ExecutionStatus.Abandoned

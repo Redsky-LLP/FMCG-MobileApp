@@ -24,6 +24,7 @@ public class GetAllProductUnitsQueryHandler(IApplicationDbContext context)
         GetAllProductUnitsQuery request, CancellationToken cancellationToken)
     {
         var units = await context.ProductUnits
+            .AsNoTracking()
             .Where(u => !u.IsDeleted)
             .OrderBy(u => u.Name)
             .Select(u => new ProductUnitDto

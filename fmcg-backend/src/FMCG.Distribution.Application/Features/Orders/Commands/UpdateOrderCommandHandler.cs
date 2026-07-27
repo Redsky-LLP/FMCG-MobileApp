@@ -108,6 +108,21 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
         var updatedItemIds = new HashSet<Guid>();
         var itemsToAdd = new List<OrderItem>();
 
+        // ── PERFORMANCE FIX: previously, every item in the request triggered its own
+        // separate database round-trip to validate the referenced product (once for
+        // existing items, again for new items) — an order with 10 items meant 10
+        // sequential round-trips just for validation, before anything else even ran.
+        // Fetching every distinct referenced product in ONE query up front, then
+        // looking each one up from an in-memory dictionary inside the loop, turns
+        // that into a single round-trip regardless of how many items are on the
+        // order. Across a cross-cloud connection (app server and DB in different
+        // data centers), this is one of the biggest wins in the whole request. ──
+        var requestedProductIds = request.Items.Select(i => i.ProductId).Distinct().ToList();
+        var productsById = await context.Products
+            .Include(p => p.SizeGroup)
+            .Where(p => requestedProductIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, cancellationToken);
+
         foreach (var itemDto in request.Items)
         {
             if (itemDto.Id.HasValue)
@@ -115,9 +130,8 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
                 var existingItem = order.Items?.FirstOrDefault(i => i.Id == itemDto.Id.Value);
                 if (existingItem != null)
                 {
-                    var product = await context.Products
-                        .FirstOrDefaultAsync(p => p.Id == itemDto.ProductId && p.IsActive && !p.IsDeleted, cancellationToken);
-                    if (product == null)
+                    if (!productsById.TryGetValue(itemDto.ProductId, out var product)
+                        || !product.IsActive || product.IsDeleted)
                         return Result<OrderDetailDto>.Failure("Product not found or inactive.");
 
                     var qty = ResolveQuantity(itemDto.Quantity, itemDto.QuantityBags, itemDto.QuantityBoxes, itemDto.QuantityTins);
@@ -143,12 +157,8 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
             }
             else
             {
-                // ── Include SizeGroup so we can snapshot its name below, same as
-                // CreateOrderCommandHandler does for brand-new orders. ──
-                var product = await context.Products
-                    .Include(p => p.SizeGroup)
-                    .FirstOrDefaultAsync(p => p.Id == itemDto.ProductId && p.IsActive && !p.IsDeleted, cancellationToken);
-                if (product == null)
+                if (!productsById.TryGetValue(itemDto.ProductId, out var product)
+                    || !product.IsActive || product.IsDeleted)
                     return Result<OrderDetailDto>.Failure("Product not found or inactive.");
 
                 // ── NEW: Out of Stock guard — only for genuinely new items being added
@@ -223,17 +233,22 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
         }
 
         var updatedOrder = await context.Orders
-            .Include(o => o.Items)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Product)
+            .Include(o => o.Items!)
+                .ThenInclude(i => i.Unit)
             .FirstOrDefaultAsync(o => o.Id == order.Id, cancellationToken);
 
         var route = await context.Routes
             .FirstOrDefaultAsync(r => r.Id == order.RouteId && !r.IsDeleted, cancellationToken);
 
+        // ── PERFORMANCE FIX: Product/Unit already eagerly loaded above via
+        // .ThenInclude() — no need to re-query per item here. ──
         var itemDtos = new List<OrderItemDto>();
         foreach (var item in updatedOrder?.Items ?? [])
         {
-            var product = await context.Products.FirstOrDefaultAsync(p => p.Id == item.ProductId, cancellationToken);
-            var unit = await context.ProductUnits.FirstOrDefaultAsync(u => u.Id == item.UnitId, cancellationToken);
+            var product = item.Product;
+            var unit = item.Unit;
 
             itemDtos.Add(new OrderItemDto
             {
