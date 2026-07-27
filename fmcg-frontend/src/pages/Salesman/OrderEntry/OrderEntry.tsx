@@ -97,17 +97,24 @@ export default function OrderEntry() {
   // ── NEW: Show cancel button for ANY existing draft order (even with items) ──
   const canCancel = isDraft && hasExistingOrder;
 
+  // ── PERFORMANCE FIX: this used to call productsApi.getUnitPrices(product.id)
+  // once for EVERY product in the entire active catalog, in sequential batches
+  // of 5 — for a 100-product catalog, that's 20 sequential round-trips just to
+  // open a single order screen, before a salesman could even see an empty "New"
+  // order. Across a cross-cloud connection (app server and DB in different
+  // data centers), each round-trip costs real time, which is exactly what was
+  // causing the several-second delay on opening/saving orders. Replaced with
+  // ONE call to a new batched endpoint that returns every product's default
+  // unit price in a single response — same resulting priceMap shape as before,
+  // just built from one API call instead of N. ──
   const loadUnitPrices = useCallback(async (products: any[]) => {
     const priceMap: Record<string, ProductUnitPriceDto> = {};
-    for (let i = 0; i < products.length; i += 5) {
-      await Promise.all(products.slice(i, i + 5).map(async (product) => {
-        try {
-          const prices = await productsApi.getUnitPrices(product.id);
-          const def    = prices.find(p => p.isDefault) || prices[0];
-          if (def) priceMap[product.id] = def;
-        } catch {}
-      }));
-    }
+    try {
+      const defaults = await productsApi.getDefaultUnitPrices();
+      for (const def of defaults) {
+        priceMap[def.productId] = def;
+      }
+    } catch {}
     setUnitPrices(priceMap);
     return priceMap;
   }, []);

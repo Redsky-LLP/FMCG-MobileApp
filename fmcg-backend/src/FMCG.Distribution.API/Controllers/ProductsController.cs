@@ -199,6 +199,66 @@ public class ProductsController(IMediator mediator, IApplicationDbContext contex
         return Ok(Result<List<ProductUnitPriceDto>>.Success(unitPrices));
     }
 
+    // ── PERFORMANCE FIX: GET /api/v1/products/default-unit-prices ──────────────
+    // Returns the default (or first available) unit price for EVERY active
+    // product in ONE database round-trip. This exists because OrderEntry.tsx
+    // was previously calling GetProductUnitPrices above once PER PRODUCT in the
+    // entire catalog (batched 5-at-a-time) just to open a single order screen —
+    // for a 100-product catalog, that's 20 sequential round-trips before a
+    // salesman could even see an empty "New" order. Across a cross-cloud
+    // connection (app server and DB in different data centers), each round-trip
+    // costs real time, which is what was causing the several-second delay
+    // reported when opening or saving an order. The grouping logic here
+    // ("prefer IsDefault, else just take the first one") exactly mirrors what
+    // the frontend was already doing per-product — it's just computed once,
+    // server-side, across the whole catalog in a single query. ──
+    // GET /api/v1/products/default-unit-prices
+    [HttpGet("default-unit-prices")]
+    [Authorize(Roles = "Admin,SuperAdmin,Salesman")]
+    public async Task<ActionResult<Result<List<ProductUnitPriceDto>>>> GetDefaultUnitPrices()
+    {
+        var allUnitPrices = await context.ProductUnitPrices
+            .Include(p => p.ProductUnit)
+            .Where(p => !p.IsDeleted)
+            .Select(p => new ProductUnitPriceDto
+            {
+                Id = p.Id,
+                ProductId = p.ProductId,
+                ProductUnitId = p.ProductUnitId,
+                UnitName = p.ProductUnit != null ? p.ProductUnit.Name : string.Empty,
+                UnitSymbol = p.ProductUnit != null ? p.ProductUnit.Symbol : string.Empty,
+                UnitSize = p.UnitSize,
+                UnitSizeLabel = p.UnitSizeLabel,
+                SalePrice = p.SalePrice,
+                SalePrice2 = p.SalePrice2,
+                SalePrice3 = p.SalePrice3,
+                SalePrice4 = p.SalePrice4,
+                PurchaseRate = p.PurchaseRate,
+                LandingCost = p.LandingCost,
+                MRP = p.MRP,
+                MOP = p.MOP,
+                Discount1 = p.Discount1,
+                Discount2 = p.Discount2,
+                Discount3 = p.Discount3,
+                Discount4 = p.Discount4,
+                VAT = p.VAT,
+                FloodCost = p.FloodCost,
+                IsDefault = p.IsDefault,
+                IsActive = p.IsActive
+            })
+            .ToListAsync();
+
+        // Same "prefer the default row, else just take one" logic the frontend
+        // was already doing per-product — now computed once, in memory, across
+        // the single batch just fetched above.
+        var defaultPerProduct = allUnitPrices
+            .GroupBy(p => p.ProductId)
+            .Select(g => g.FirstOrDefault(x => x.IsDefault) ?? g.First())
+            .ToList();
+
+        return Ok(Result<List<ProductUnitPriceDto>>.Success(defaultPerProduct));
+    }
+
     // POST /api/v1/products/unit-price
     [HttpPost("unit-price")]
     [Authorize(Roles = "Admin,SuperAdmin")]

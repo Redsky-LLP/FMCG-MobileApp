@@ -280,6 +280,13 @@ export const productsApi = {
   getUnitPrices: (productId: string) =>
     get<ProductUnitPriceDto[]>(`/api/v1/products/${productId}/unit-prices`),
 
+  // ── PERFORMANCE FIX: returns every product's default unit price in ONE call,
+  // instead of requiring getUnitPrices above to be called once per product.
+  // Used by OrderEntry.tsx's loadUnitPrices to load prices for the whole
+  // catalog in a single round-trip instead of N sequential ones. ──
+  getDefaultUnitPrices: () =>
+    get<ProductUnitPriceDto[]>('/api/v1/products/default-unit-prices'),
+
   addUnitPrice: (data: CreateProductUnitPriceDto) =>
     post<ProductUnitPriceDto>('/api/v1/products/unit-price', data),
 

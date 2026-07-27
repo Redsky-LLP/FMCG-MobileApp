@@ -51,16 +51,34 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
         var orderItems = new List<OrderItem>();
         var itemDtos = new List<OrderItemDto>();
 
+        // ── PERFORMANCE FIX: previously, every item in the request triggered two
+        // separate database round-trips (one for its Product, one for its Unit) —
+        // an order with 10 items meant 20 sequential round-trips before the order
+        // was even created. This is exactly the delay you're seeing when opening
+        // a brand-new order screen and it appears empty while still loading, and
+        // again on save. Fetching every distinct referenced product and unit in
+        // TWO queries up front, then looking each one up from an in-memory
+        // dictionary inside the loop, turns that into 2 round-trips total
+        // regardless of how many items are on the order. Across a cross-cloud
+        // connection (app server and DB in different data centers), each
+        // round-trip costs real time — this was likely the single biggest
+        // contributor to the salesman-side delay reported. ──
+        var requestedProductIds = request.Items.Select(i => i.ProductId).Distinct().ToList();
+        var requestedUnitIds = request.Items.Select(i => i.UnitId).Distinct().ToList();
+
+        var productsById = await context.Products
+            .Include(p => p.DefaultUnit)
+            .Include(p => p.SizeGroup)
+            .Where(p => requestedProductIds.Contains(p.Id) && p.IsActive && !p.IsDeleted)
+            .ToDictionaryAsync(p => p.Id, cancellationToken);
+
+        var unitsById = await context.ProductUnits
+            .Where(u => requestedUnitIds.Contains(u.Id) && !u.IsDeleted)
+            .ToDictionaryAsync(u => u.Id, cancellationToken);
+
         foreach (var item in request.Items)
         {
-            // ── Include SizeGroup so we can snapshot its name below, alongside the
-            // product's own name — same query, no extra round-trip. ──
-            var product = await context.Products
-                .Include(p => p.DefaultUnit)
-                .Include(p => p.SizeGroup)
-                .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.IsActive && !p.IsDeleted, cancellationToken);
-
-            if (product == null)
+            if (!productsById.TryGetValue(item.ProductId, out var product))
                 return Result<OrderDetailDto>.Failure($"Product '{item.ProductId}' not found or inactive.");
 
             // ── NEW: Out of Stock guard — a salesman shouldn't be able to place a fresh
@@ -82,10 +100,7 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             // product assignments — it should NOT retroactively break orders for
             // products that are already linked to it. Only IsDeleted disqualifies a
             // unit, since a hard-deleted unit genuinely no longer exists. ──
-            var unit = await context.ProductUnits
-                .FirstOrDefaultAsync(u => u.Id == item.UnitId && !u.IsDeleted, cancellationToken);
-
-            if (unit == null)
+            if (!unitsById.TryGetValue(item.UnitId, out var unit))
                 return Result<OrderDetailDto>.Failure($"Unit not found for product '{product.NameEnglish}'.");
 
             orderItems.Add(new OrderItem
