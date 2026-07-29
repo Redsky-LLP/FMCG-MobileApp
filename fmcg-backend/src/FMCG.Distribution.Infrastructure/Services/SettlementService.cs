@@ -453,16 +453,40 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
             .ToListAsync(cancellationToken);
 
         var executionsToReopen = completedExecutions
-            .GroupBy(e => e.ExecutionType)
-            .Select(g => g.OrderByDescending(e => e.CompletedAt).First())
-            .ToList();
+      .GroupBy(e => e.ExecutionType)
+      .Select(g => g.OrderByDescending(e => e.CompletedAt).First())
+      .ToList();
+
+        // ─── 🔥 FIX: RESET "NO ORDER" AND "SKIPPED" VISITS ───
+        int resetVisitsCount = 0;
+        foreach (var execution in executionsToReopen)
+        {
+            var visits = await context.CustomerVisits
+                .Where(v => v.RouteExecutionId == execution.Id)
+                .ToListAsync(cancellationToken);
+
+            foreach (var visit in visits)
+            {
+                // VisitStatus: Pending = 1, OrderPlaced = 2, Skipped = 3, NoOrder = 4
+                if ((int)visit.Status == 3 || (int)visit.Status == 4)
+                {
+                    // ─── CRITICAL: Clear the OrderId reference ───
+                    // This prevents the historical order from loading
+                    visit.Status = (VisitStatus)1; 
+                    visit.OrderId = null;  // ← KEY FIX
+                    visit.UpdatedAt = DateTime.UtcNow;
+                    resetVisitsCount++;
+                }
+                // ─── OrderPlaced visits: KEEP THEM AS IS ───
+            }
+        }
+        Console.WriteLine($"[ReopenRoute] Reset {resetVisitsCount} NoOrder/Skipped visits to Pending");
 
         foreach (var execution in executionsToReopen)
         {
             execution.Reopen();
         }
         Console.WriteLine($"[ReopenRoute] Reopened {executionsToReopen.Count} execution(s) for {route.Name}");
-
         // ── Deactivate the closure record — route now shows as open again ──
         closure.IsActive = false;
         closure.Notes = string.IsNullOrWhiteSpace(closure.Notes)
@@ -480,6 +504,8 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
             Message = $"{route.Name} reopened. Orders are unlocked and the route is back in progress.",
             OrdersUnlocked = ordersToUnlock.Count,
             ExecutionsReopened = executionsToReopen.Count,
+            ResetVisitsCount = resetVisitsCount,  // ← NEW
+            ExecutionDate = executionsToReopen.FirstOrDefault()?.CreatedAt,  // ← NEW
         };
     }
 }

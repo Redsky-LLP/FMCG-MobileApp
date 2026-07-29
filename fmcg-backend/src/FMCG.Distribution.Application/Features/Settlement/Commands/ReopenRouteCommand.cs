@@ -35,4 +35,6 @@ public class ReopenRouteResultDto
     public string? Message { get; set; }
     public int OrdersUnlocked { get; set; }
     public int ExecutionsReopened { get; set; }
+    public int ResetVisitsCount { get; set; }  // ← ADD THIS
+    public DateTime? ExecutionDate { get; set; }  // ← ADD THIS
 }

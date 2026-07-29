@@ -26,7 +26,7 @@ public class DeleteOrderCommandHandler(IApplicationDbContext context)
         }
 
         // ── 2. Verify salesman owns this order ──
-        if (order.SalesmanId != request.SalesmanId)
+        if (order.Status != OrderStatus.Draft)
         {
             return Result<bool>.Failure("You are not authorized to delete this order.");
         }
