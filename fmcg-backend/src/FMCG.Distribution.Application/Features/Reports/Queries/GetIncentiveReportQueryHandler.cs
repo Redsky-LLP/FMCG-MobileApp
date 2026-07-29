@@ -208,7 +208,7 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                                 // ─── Show salesman name only once ───
                                 if (isFirstRow)
                                 {
-                                    table.Cell().BorderBottom(0.5f).Padding(3).Text(salesmanName);
+                                    table.Cell().BorderBottom(0.5f).Padding(3).Text(salesmanName.ToUpper());
                                     isFirstRow = false;
                                 }
                                 else
@@ -216,7 +216,7 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                                     table.Cell().BorderBottom(0.5f).Padding(3).Text("");
                                 }
 
-                                table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName);
+                                table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName.ToUpper());
                                 table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.Quantity:N0}");
                                 table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.IncentiveEarned:N2}")
                                     .FontColor(Colors.Green.Medium);

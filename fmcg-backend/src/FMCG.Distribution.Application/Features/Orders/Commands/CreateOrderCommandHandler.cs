@@ -145,38 +145,21 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             return Result<OrderDetailDto>.Failure("Add at least one product or retail remark to create an order.");
         }
 
-        // ── Generate unique order number via PostgreSQL sequence ───────────────
-        // nextval('order_number_seq') is atomic — the DB guarantees each call
-        // returns a unique value, even with thousands of concurrent requests.
-        var orderNumber = await GenerateOrderNumberAsync(cancellationToken);
-
-        // ── Create the order ───────────────────────────────────────────────────
-        var order = new Order
-        {
-            Id = Guid.NewGuid(),
-            OrderNumber = orderNumber,
-            CustomerId = request.CustomerId,
-            RouteId = customer.RouteId,
-            SalesmanId = request.SalesmanId,
-            OrderDate = DateTime.UtcNow,
-            Status = OrderStatus.Draft,
-            Remarks = request.Remarks,
-            Items = orderItems,
-            CustomerVisitId = request.CustomerVisitId,
-        };
-
-        await context.Orders.AddAsync(order, cancellationToken);
-        await context.SaveChangesAsync(cancellationToken);
-
-        // ── Link to customer visit ──────────────────────────────────────────────
-        // Prefer the explicit ids the caller passed (fast, unambiguous). But not
-        // every page that can create an order necessarily has execution context
-        // in hand — fall back to resolving the visit from whatever in-progress
-        // execution this salesman has for this route right now. Without this
-        // fallback, an order created from such a page silently never marks its
-        // stop as done, so the route execution page keeps showing it as Pending
-        // forever even though a perfectly good order exists.
+        // ── BUG FIX: OrderDate used to always be DateTime.UtcNow — the exact
+        // moment Save was clicked, completely regardless of which route
+        // execution this order actually belongs to. This broke the case of a
+        // customer missed on the original route day (e.g. Saturday) and only
+        // filled in later (e.g. Monday, after a Sunday gap) — the order would
+        // get stamped with Monday's date instead of the Saturday route's real
+        // date, even though editing an already-existing order always correctly
+        // preserved its original date (UpdateOrderCommandHandler never touches
+        // OrderDate at all). New orders now resolve the same way: find the
+        // route execution this order belongs to FIRST, and stamp OrderDate from
+        // its ExecutionDate — falling back to "now" only if no execution
+        // context can be resolved at all (should be rare, since every order is
+        // tied to a route that always operates through an execution). ──
         CustomerVisit? visit = null;
+        DateTime? executionDate = null;
 
         if (request.CustomerVisitId.HasValue && request.ExecutionId.HasValue)
         {
@@ -184,6 +167,14 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
                 .FirstOrDefaultAsync(v => v.Id == request.CustomerVisitId.Value
                     && v.RouteExecutionId == request.ExecutionId.Value
                     && !v.IsDeleted, cancellationToken);
+
+            if (visit != null)
+            {
+                executionDate = await context.RouteExecutions
+                    .Where(e => e.Id == request.ExecutionId.Value && !e.IsDeleted)
+                    .Select(e => (DateTime?)e.ExecutionDate)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
         }
 
         if (visit == null)
@@ -202,9 +193,36 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
                     .FirstOrDefaultAsync(v => v.RouteExecutionId == inProgressExecution.Id
                         && v.CustomerId == request.CustomerId
                         && !v.IsDeleted, cancellationToken);
+
+                executionDate = inProgressExecution.ExecutionDate;
             }
         }
 
+        // ── Generate unique order number via PostgreSQL sequence ───────────────
+        // nextval('order_number_seq') is atomic — the DB guarantees each call
+        // returns a unique value, even with thousands of concurrent requests.
+        var orderNumber = await GenerateOrderNumberAsync(cancellationToken);
+
+        // ── Create the order ───────────────────────────────────────────────────
+        var order = new Order
+        {
+            Id = Guid.NewGuid(),
+            OrderNumber = orderNumber,
+            CustomerId = request.CustomerId,
+            RouteId = customer.RouteId,
+            SalesmanId = request.SalesmanId,
+            OrderDate = executionDate ?? DateTime.UtcNow,
+            Status = OrderStatus.Draft,
+            Remarks = request.Remarks,
+            Items = orderItems,
+            CustomerVisitId = request.CustomerVisitId,
+        };
+
+        await context.Orders.AddAsync(order, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+
+        // ── Mark the visit as ordered, now that the order exists ──
+        // (Visit/execution already resolved above — no need to re-look it up here.)
         if (visit != null && visit.Status == VisitStatus.Pending)
         {
             visit.RecordOrder(order.Id);

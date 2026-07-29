@@ -207,9 +207,9 @@ public class GetAdditionalRevenueReportQueryHandler : IRequestHandler<GetAdditio
                         {
                             var color = item.AdditionalRevenue >= 0 ? Colors.Green.Medium : Colors.Red.Medium;
 
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.SalesmanName);
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.CustomerName);
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName);
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.SalesmanName.ToUpper());
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.CustomerName.ToUpper());
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName.ToUpper());
                             table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.Quantity:N0}");
                             table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.BasePrice:N2}");
                             table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.SellingPrice:N2}");

@@ -222,7 +222,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                             routeCol.Item().Background(Colors.Grey.Lighten2)
                                 .Padding(6)
                                 .AlignCenter()
-                                .Text($"{route.RouteName}").FontSize(18).Bold();
+                                .Text($"{route.RouteName.ToUpper()}").FontSize(18).Bold();
 
                             // ── One block per customer stop ──
                             foreach (var order in route.Orders)
@@ -245,7 +245,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                         .Row(r =>
                                         {
                                             r.ConstantItem(40).PaddingLeft(5).Text($"{order.SequenceOrder + 1})").FontSize(18).ExtraBold();
-                                            r.RelativeItem().AlignCenter().Text(order.CustomerName).FontSize(18).ExtraBold();
+                                            r.RelativeItem().AlignCenter().Text(order.CustomerName.ToUpper()).FontSize(18).ExtraBold();
                                             r.ConstantItem(40);
                                         });
 
@@ -303,7 +303,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                                     .PaddingVertical(3)
                                                     .PaddingLeft(5)
                                                     .PaddingRight(10)
-                                                    .Text(KeepParentheticalTogether(item.ProductName))
+                                                    .Text(KeepParentheticalTogether(item.ProductName.ToUpper()))
                                                     .FontSize(18)
                                                     .ExtraBold();
 
@@ -340,7 +340,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                     if (order.Remarks != null)
                                     {
                                         stopCol.Item().AlignCenter().Width(480).PaddingLeft(5).PaddingTop(4)
-                                            .Text(order.Remarks).FontSize(18).ExtraBold().FontColor(Colors.Black);
+                                            .Text(order.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
                                     }
                                 });
                             }

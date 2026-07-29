@@ -163,8 +163,8 @@ public class GetSummaryReportQueryHandler : IRequestHandler<GetSummaryReportQuer
                         // ─── Table Rows ───
                         foreach (var item in data.Items)
                         {
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ItemGroupName);
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.SizeGroupName);
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ItemGroupName.ToUpper());
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.SizeGroupName.ToUpper());
                             table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.TotalQuantity:N0}");
                         }
 

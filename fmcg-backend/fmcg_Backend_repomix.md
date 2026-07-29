@@ -221,6 +221,8 @@ src/FMCG.Distribution.Application/Features/Routes/Queries/GetAllRoutesQuery.cs
 src/FMCG.Distribution.Application/Features/Routes/Queries/GetAllRoutesQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionQuery.cs
 src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionQueryHandler.cs
+src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionsBatchQuery.cs
+src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionsBatchQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Routes/Queries/GetRouteByIdQuery.cs
 src/FMCG.Distribution.Application/Features/Routes/Queries/GetRouteByIdQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Settlement/Commands/CloseOperationalDayCommand.cs
@@ -330260,7 +330262,7 @@ ON CONFLICT (""MigrationId"") DO NOTHING;
     "http://localhost:5173",
     "https://localhost:5173",
     "http://localhost:3000",
-    "http://localhost:3001", // ← ADD THIS
+    "http://localhost:3001",
     "http://localhost:4200",
     "https://willowy-sawine-450377.netlify.app",
     "http://localhost:5002",
@@ -331707,6 +331709,66 @@ public class ProductsController(IMediator mediator, IApplicationDbContext contex
         return Ok(Result<List<ProductUnitPriceDto>>.Success(unitPrices));
     }
 
+    // ── PERFORMANCE FIX: GET /api/v1/products/default-unit-prices ──────────────
+    // Returns the default (or first available) unit price for EVERY active
+    // product in ONE database round-trip. This exists because OrderEntry.tsx
+    // was previously calling GetProductUnitPrices above once PER PRODUCT in the
+    // entire catalog (batched 5-at-a-time) just to open a single order screen —
+    // for a 100-product catalog, that's 20 sequential round-trips before a
+    // salesman could even see an empty "New" order. Across a cross-cloud
+    // connection (app server and DB in different data centers), each round-trip
+    // costs real time, which is what was causing the several-second delay
+    // reported when opening or saving an order. The grouping logic here
+    // ("prefer IsDefault, else just take the first one") exactly mirrors what
+    // the frontend was already doing per-product — it's just computed once,
+    // server-side, across the whole catalog in a single query. ──
+    // GET /api/v1/products/default-unit-prices
+    [HttpGet("default-unit-prices")]
+    [Authorize(Roles = "Admin,SuperAdmin,Salesman")]
+    public async Task<ActionResult<Result<List<ProductUnitPriceDto>>>> GetDefaultUnitPrices()
+    {
+        var allUnitPrices = await context.ProductUnitPrices
+            .Include(p => p.ProductUnit)
+            .Where(p => !p.IsDeleted)
+            .Select(p => new ProductUnitPriceDto
+            {
+                Id = p.Id,
+                ProductId = p.ProductId,
+                ProductUnitId = p.ProductUnitId,
+                UnitName = p.ProductUnit != null ? p.ProductUnit.Name : string.Empty,
+                UnitSymbol = p.ProductUnit != null ? p.ProductUnit.Symbol : string.Empty,
+                UnitSize = p.UnitSize,
+                UnitSizeLabel = p.UnitSizeLabel,
+                SalePrice = p.SalePrice,
+                SalePrice2 = p.SalePrice2,
+                SalePrice3 = p.SalePrice3,
+                SalePrice4 = p.SalePrice4,
+                PurchaseRate = p.PurchaseRate,
+                LandingCost = p.LandingCost,
+                MRP = p.MRP,
+                MOP = p.MOP,
+                Discount1 = p.Discount1,
+                Discount2 = p.Discount2,
+                Discount3 = p.Discount3,
+                Discount4 = p.Discount4,
+                VAT = p.VAT,
+                FloodCost = p.FloodCost,
+                IsDefault = p.IsDefault,
+                IsActive = p.IsActive
+            })
+            .ToListAsync();
+
+        // Same "prefer the default row, else just take one" logic the frontend
+        // was already doing per-product — now computed once, in memory, across
+        // the single batch just fetched above.
+        var defaultPerProduct = allUnitPrices
+            .GroupBy(p => p.ProductId)
+            .Select(g => g.FirstOrDefault(x => x.IsDefault) ?? g.First())
+            .ToList();
+
+        return Ok(Result<List<ProductUnitPriceDto>>.Success(defaultPerProduct));
+    }
+
     // POST /api/v1/products/unit-price
     [HttpPost("unit-price")]
     [Authorize(Roles = "Admin,SuperAdmin")]
@@ -332770,6 +332832,32 @@ public class RoutesController(IMediator mediator, IApplicationDbContext context)
         var query = new GetCurrentRouteExecutionQuery
         {
             RouteId = routeId,
+            SalesmanId = userId
+        };
+
+        var result = await mediator.Send(query);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    // ── PERFORMANCE FIX: batched sibling of GetCurrentRouteExecution above.
+    // SalesmanRoutes.tsx was previously calling the single-route endpoint once
+    // PER route a salesman has (typically 3-4) — and that handler itself does
+    // up to 6 sequential DB round-trips per call. This does the exact same
+    // self-healing logic (auto-start Draft executions, auto-add visits for
+    // newly added customers) for ALL requested routes in one request, batching
+    // the reads and combining all writes into a single SaveChanges call. ──
+    [HttpPost("current-executions-batch")]
+    [Authorize(Roles = "Salesman,Admin,SuperAdmin")]
+    public async Task<ActionResult<Result<List<RouteExecutionSummaryDto>>>> GetCurrentRouteExecutionsBatch(
+        [FromBody] GetCurrentRouteExecutionsBatchRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == Guid.Empty)
+            return BadRequest(Result<List<RouteExecutionSummaryDto>>.Failure("User not authenticated."));
+
+        var query = new GetCurrentRouteExecutionsBatchQuery
+        {
+            RouteIds = request.RouteIds,
             SalesmanId = userId
         };
 
@@ -334744,6 +334832,7 @@ public class GetDashboardKpisQueryHandler(IApplicationDbContext context)
 
         // Get orders for current period - with null-safe access
         var currentOrders = await context.Orders
+            .AsNoTracking()
             .Include(o => o.Items!)
             .Where(o => !o.IsDeleted
                 && o.Status != OrderStatus.Draft
@@ -334752,6 +334841,7 @@ public class GetDashboardKpisQueryHandler(IApplicationDbContext context)
 
         // Get orders for previous period - with null-safe access
         var previousOrders = await context.Orders
+            .AsNoTracking()
             .Include(o => o.Items!)
             .Where(o => !o.IsDeleted
                 && o.Status != OrderStatus.Draft
@@ -334771,6 +334861,7 @@ public class GetDashboardKpisQueryHandler(IApplicationDbContext context)
 
         // Get outstanding amount
         var outstanding = await context.Outstandings
+            .AsNoTracking()
             .Where(o => !o.IsDeleted && o.SettlementStatus != SettlementStatus.Settled)
             .SumAsync(o => o.OutstandingAmount, cancellationToken);
 
@@ -334939,6 +335030,7 @@ public class GetOrderMarginQueryHandler : IRequestHandler<GetOrderMarginQuery, R
     public async Task<Result<OrderMarginDto>> Handle(GetOrderMarginQuery request, CancellationToken cancellationToken)
     {
         var order = await _context.Orders
+            .AsNoTracking()
             .Include(o => o.Customer)
             .Include(o => o.Route)
             .Include(o => o.Items)
@@ -335055,6 +335147,7 @@ public class GetPeriodComparisonQueryHandler(IApplicationDbContext context)
 
         // Build base query
         var baseQuery = context.Orders
+            .AsNoTracking()
             .Include(o => o.Items!)
             .Include(o => o.Customer)
             .Include(o => o.Route)
@@ -335196,6 +335289,7 @@ public class GetProductPerformanceQueryHandler(IApplicationDbContext context)
 
         // Get order IDs within date range
         var orderIds = await context.Orders
+            .AsNoTracking()
             .Where(o => !o.IsDeleted
                 && o.Status != OrderStatus.Draft
                 && o.OrderDate.Date >= fromDate.Date
@@ -335217,6 +335311,7 @@ public class GetProductPerformanceQueryHandler(IApplicationDbContext context)
 
         // Build order items query
         var orderItemsQuery = context.OrderItems
+            .AsNoTracking()
             .Include(i => i.Product!)
                 .ThenInclude(p => p!.ProductGroup)
             .Include(i => i.Unit)
@@ -335371,6 +335466,7 @@ public class GetProductProfitabilityQueryHandler(IApplicationDbContext context)
         // ── FIXED: was (Submitted || Closed) — Submitted no longer exists ─────
         // Include all orders that have moved past the Draft stage.
         var ordersQuery = context.Orders
+            .AsNoTracking()
             .Where(o => !o.IsDeleted && o.Status != OrderStatus.Draft);
 
         if (request.FromDate.HasValue)
@@ -335382,6 +335478,7 @@ public class GetProductProfitabilityQueryHandler(IApplicationDbContext context)
         var orderIds = await ordersQuery.Select(o => o.Id).ToListAsync(cancellationToken);
 
         var orderItemsQuery = context.OrderItems
+            .AsNoTracking()
             .Include(oi => oi.Product)
             .ThenInclude(p => p!.ProductGroup)
             .Where(oi => orderIds.Contains(oi.OrderId) && !oi.IsDeleted);
@@ -335465,6 +335562,7 @@ public class GetRoutePerformanceQueryHandler(IApplicationDbContext context)
 
         // Build orders query
         var ordersQuery = context.Orders
+            .AsNoTracking()
             .Include(o => o.Route)
             .Include(o => o.Items!)
             .Include(o => o.Customer)
@@ -335497,6 +335595,7 @@ public class GetRoutePerformanceQueryHandler(IApplicationDbContext context)
 
         // Get customer count per route
         var customerCounts = await context.Customers
+            .AsNoTracking()
             .Where(c => routeIds.Contains(c.RouteId) && !c.IsDeleted)
             .GroupBy(c => c.RouteId)
             .Select(g => new { RouteId = g.Key, Count = g.Count() })
@@ -335504,6 +335603,7 @@ public class GetRoutePerformanceQueryHandler(IApplicationDbContext context)
 
         // Get salesman count per route
         var salesmanCounts = await context.Routes
+            .AsNoTracking()
             .Where(r => routeIds.Contains(r.Id) && !r.IsDeleted && r.AssignedSalesmanId.HasValue)
             .GroupBy(r => r.Id)
             .Select(g => new { RouteId = g.Key, Count = g.Count() })
@@ -335614,6 +335714,7 @@ public class GetRouteProfitabilityQueryHandler(IApplicationDbContext context)
         // ── FIXED: was (Submitted || Closed) — Submitted no longer exists ─────
         // Include all orders that have moved past the Draft stage.
         var ordersQuery = context.Orders
+            .AsNoTracking()
             .Include(o => o.Route)
             .Include(o => o.Items)
             .Where(o => !o.IsDeleted && o.Status != OrderStatus.Draft);
@@ -335706,6 +335807,7 @@ public class GetSalesmanIncentiveQueryHandler(
 
         // Verify salesman exists and has correct role
         var salesman = await context.Users
+            .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == request.SalesmanId.Value
                 && u.Role == UserRole.Salesman
                 && !u.IsDeleted, cancellationToken);
@@ -335766,6 +335868,7 @@ public class GetTopProductsQueryHandler(IApplicationDbContext context)
 
         // Get order IDs within date range
         var orderIds = await context.Orders
+            .AsNoTracking()
             .Where(o => !o.IsDeleted
                 && o.Status != OrderStatus.Draft
                 && o.OrderDate.Date >= fromDate.Date
@@ -335780,6 +335883,7 @@ public class GetTopProductsQueryHandler(IApplicationDbContext context)
 
         // Build order items query
         var orderItemsQuery = context.OrderItems
+            .AsNoTracking()
             .Include(i => i.Product)
             .Where(i => orderIds.Contains(i.OrderId) && !i.IsDeleted);
 
@@ -336749,6 +336853,7 @@ public class CheckPinAvailabilityQueryHandler(IApplicationDbContext context)
         }
 
         var candidates = await context.Users
+            .AsNoTracking()
             .Where(u => u.IsActive
                 && u.PinHash != null
                 && (request.ExcludeUserId == null || u.Id != request.ExcludeUserId.Value))
@@ -336946,6 +337051,7 @@ public class GetProductPriceHistoryQueryHandler : IRequestHandler<GetProductPric
     {
         // Verify product exists
         var product = await _context.Products
+            .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == request.ProductId && !p.IsDeleted, cancellationToken);
 
         if (product == null)
@@ -336954,6 +337060,7 @@ public class GetProductPriceHistoryQueryHandler : IRequestHandler<GetProductPric
         }
 
         var history = await _context.BasePrices
+            .AsNoTracking()
             .Where(bp => bp.ProductId == request.ProductId && !bp.IsDeleted)
             .OrderByDescending(bp => bp.EffectiveDate)
             .ToListAsync(cancellationToken);
@@ -337259,6 +337366,7 @@ public class GetAllCustomersQueryHandler(IApplicationDbContext context)
     public async Task<Result<List<CustomerDto>>> Handle(GetAllCustomersQuery request, CancellationToken cancellationToken)
     {
         var query = context.Customers
+            .AsNoTracking()
             .Include(c => c.Route)
             .Where(c => !c.IsDeleted && c.IsActive);
 
@@ -337271,6 +337379,7 @@ public class GetAllCustomersQueryHandler(IApplicationDbContext context)
         else if (!request.IsAdmin && request.UserRole == "Salesman" && request.CurrentUserId.HasValue)
         {
             var assignedRoute = await context.Routes
+                .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.AssignedSalesmanId == request.CurrentUserId.Value && !r.IsDeleted, cancellationToken);
 
             if (assignedRoute != null)
@@ -337349,6 +337458,7 @@ public class GetCustomerByIdQueryHandler(IApplicationDbContext context)
     public async Task<Result<CustomerDetailDto>> Handle(GetCustomerByIdQuery request, CancellationToken cancellationToken)
     {
         var customer = await context.Customers
+            .AsNoTracking()
             .Include(c => c.Route)
             .FirstOrDefaultAsync(c => c.Id == request.Id && !c.IsDeleted, cancellationToken);
 
@@ -337779,6 +337889,7 @@ public class GetProductIncentivesQueryHandler(IApplicationDbContext context)
     public async Task<Result<List<ProductIncentiveDto>>> Handle(GetProductIncentivesQuery request, CancellationToken cancellationToken)
     {
         var query = context.ProductIncentives
+            .AsNoTracking()
             .Include(i => i.Product)
             .Where(i => !i.IsDeleted);
 
@@ -338144,16 +338255,34 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
         var orderItems = new List<OrderItem>();
         var itemDtos = new List<OrderItemDto>();
 
+        // ── PERFORMANCE FIX: previously, every item in the request triggered two
+        // separate database round-trips (one for its Product, one for its Unit) —
+        // an order with 10 items meant 20 sequential round-trips before the order
+        // was even created. This is exactly the delay you're seeing when opening
+        // a brand-new order screen and it appears empty while still loading, and
+        // again on save. Fetching every distinct referenced product and unit in
+        // TWO queries up front, then looking each one up from an in-memory
+        // dictionary inside the loop, turns that into 2 round-trips total
+        // regardless of how many items are on the order. Across a cross-cloud
+        // connection (app server and DB in different data centers), each
+        // round-trip costs real time — this was likely the single biggest
+        // contributor to the salesman-side delay reported. ──
+        var requestedProductIds = request.Items.Select(i => i.ProductId).Distinct().ToList();
+        var requestedUnitIds = request.Items.Select(i => i.UnitId).Distinct().ToList();
+
+        var productsById = await context.Products
+            .Include(p => p.DefaultUnit)
+            .Include(p => p.SizeGroup)
+            .Where(p => requestedProductIds.Contains(p.Id) && p.IsActive && !p.IsDeleted)
+            .ToDictionaryAsync(p => p.Id, cancellationToken);
+
+        var unitsById = await context.ProductUnits
+            .Where(u => requestedUnitIds.Contains(u.Id) && !u.IsDeleted)
+            .ToDictionaryAsync(u => u.Id, cancellationToken);
+
         foreach (var item in request.Items)
         {
-            // ── Include SizeGroup so we can snapshot its name below, alongside the
-            // product's own name — same query, no extra round-trip. ──
-            var product = await context.Products
-                .Include(p => p.DefaultUnit)
-                .Include(p => p.SizeGroup)
-                .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.IsActive && !p.IsDeleted, cancellationToken);
-
-            if (product == null)
+            if (!productsById.TryGetValue(item.ProductId, out var product))
                 return Result<OrderDetailDto>.Failure($"Product '{item.ProductId}' not found or inactive.");
 
             // ── NEW: Out of Stock guard — a salesman shouldn't be able to place a fresh
@@ -338175,10 +338304,7 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             // product assignments — it should NOT retroactively break orders for
             // products that are already linked to it. Only IsDeleted disqualifies a
             // unit, since a hard-deleted unit genuinely no longer exists. ──
-            var unit = await context.ProductUnits
-                .FirstOrDefaultAsync(u => u.Id == item.UnitId && !u.IsDeleted, cancellationToken);
-
-            if (unit == null)
+            if (!unitsById.TryGetValue(item.UnitId, out var unit))
                 return Result<OrderDetailDto>.Failure($"Unit not found for product '{product.NameEnglish}'.");
 
             orderItems.Add(new OrderItem
@@ -339084,6 +339210,7 @@ public class GetCustomerOrderHistoryQueryHandler : IRequestHandler<GetCustomerOr
     {
         // Verify customer exists
         var customer = await _context.Customers
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == request.CustomerId && !c.IsDeleted, cancellationToken);
 
         if (customer == null)
@@ -339097,6 +339224,7 @@ public class GetCustomerOrderHistoryQueryHandler : IRequestHandler<GetCustomerOr
         if (!request.IsAdmin && request.SalesmanId.HasValue)
         {
             var route = await _context.Routes
+                .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == customer.RouteId && !r.IsDeleted, cancellationToken);
 
             if (route != null && route.AssignedSalesmanId.HasValue && route.AssignedSalesmanId != request.SalesmanId.Value)
@@ -339116,6 +339244,7 @@ public class GetCustomerOrderHistoryQueryHandler : IRequestHandler<GetCustomerOr
         // costs real time — this was likely the single biggest contributor to that
         // screen feeling slow to open. ──
         var orders = await _context.Orders
+            .AsNoTracking()
             .Include(o => o.Items!)
                 .ThenInclude(i => i.Product)
             .Include(o => o.Items!)
@@ -339211,6 +339340,7 @@ public class GetOrderByIdQueryHandler(IApplicationDbContext context)
     public async Task<Result<OrderDetailDto>> Handle(GetOrderByIdQuery request, CancellationToken cancellationToken)
     {
         var order = await context.Orders
+            .AsNoTracking()
             .Include(o => o.Customer)
             .Include(o => o.Route)
             .Include(o => o.Items!)
@@ -339330,6 +339460,7 @@ public class GetOrdersByRouteQueryHandler(IApplicationDbContext context)
     public async Task<Result<List<OrderDto>>> Handle(GetOrdersByRouteQuery request, CancellationToken cancellationToken)
     {
         var query = context.Orders
+            .AsNoTracking()
             .Include(o => o.Customer)
             .Include(o => o.Route)
             .Include(o => o.Items!)
@@ -339450,6 +339581,7 @@ public class GetPricingAuditLogQueryHandler : IRequestHandler<GetPricingAuditLog
     public async Task<Result<List<PricingAuditLogDto>>> Handle(GetPricingAuditLogQuery request, CancellationToken cancellationToken)
     {
         var query = _context.PricingAuditLogs
+            .AsNoTracking()
             .Include(p => p.Product)
             .Where(p => !p.IsDeleted);
 
@@ -339715,6 +339847,7 @@ public class GetAllProductGroupsQueryHandler(IApplicationDbContext context)
         GetAllProductGroupsQuery request, CancellationToken cancellationToken)
     {
         var groups = await context.ProductGroups
+            .AsNoTracking()
             .Include(g => g.Products)
             .Where(g => !g.IsDeleted)
             .OrderBy(g => g.Name)
@@ -340208,6 +340341,7 @@ public class GetAllProductsQueryHandler(IApplicationDbContext context)
     public async Task<Result<List<ProductDto>>> Handle(GetAllProductsQuery request, CancellationToken cancellationToken)
     {
         var query = context.Products
+            .AsNoTracking()
             .Include(p => p.ProductGroup)
             .Include(p => p.DefaultUnit)
             .Include(p => p.SizeGroup)  // ← NEW: Include SizeGroup
@@ -340233,9 +340367,12 @@ public class GetAllProductsQueryHandler(IApplicationDbContext context)
             // no priority assigned yet (SortOrder = -1, or no size group at all) sorts to the
             // end of its item group instead of interleaving randomly. Name is still the final
             // tie-breaker for products that land on the same priority. ──
-            .OrderBy(p => p.ProductGroupId)
-            .ThenBy(p => (p.SizeGroup != null && p.SizeGroup.SortOrder >= 0) ? p.SizeGroup.SortOrder : int.MaxValue)
-            .ThenBy(p => p.NameEnglish)
+            // ── UPDATED: Client asked for a simple A-Z alphabetical list, to make finding
+            // a product easier by scanning — replaces the previous Item Group → Size Group
+            // → name grouping. ToUpper() ensures the sort is case-insensitive (so a product
+            // typed as "chilly..." sorts alongside "Chilly...", not after every capitalized
+            // name due to ASCII ordering putting lowercase letters after uppercase ones). ──
+            .OrderBy(p => p.NameEnglish.ToUpper())
             .Select(p => new ProductDto
             {
                 Id = p.Id,
@@ -340330,6 +340467,7 @@ public class GetProductByIdQueryHandler(IApplicationDbContext context)
     public async Task<Result<ProductDetailDto>> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
     {
         var product = await context.Products
+            .AsNoTracking()
             .Include(p => p.ProductGroup)
             .Include(p => p.DefaultUnit)  // ← CHANGE ProductUnit to DefaultUnit
             .FirstOrDefaultAsync(p => p.Id == request.Id && !p.IsDeleted, cancellationToken);
@@ -340419,6 +340557,7 @@ public class SearchProductsQueryHandler(IApplicationDbContext context)
     public async Task<Result<List<ProductSearchDto>>> Handle(SearchProductsQuery request, CancellationToken cancellationToken)
     {
         var query = context.Products
+            .AsNoTracking()
             .Include(p => p.ProductGroup)
             .Include(p => p.DefaultUnit)  // ← CHANGE ProductUnit to DefaultUnit
             .Where(p => !p.IsDeleted);
@@ -340686,6 +340825,7 @@ public class GetAllProductUnitsQueryHandler(IApplicationDbContext context)
         GetAllProductUnitsQuery request, CancellationToken cancellationToken)
     {
         var units = await context.ProductUnits
+            .AsNoTracking()
             .Where(u => !u.IsDeleted)
             .OrderBy(u => u.Name)
             .Select(u => new ProductUnitDto
@@ -341081,6 +341221,7 @@ public class GetAdditionalRevenueReportQueryHandler : IRequestHandler<GetAdditio
 
         // Get all active salesmen
         var salesmen = await _context.Users
+            .AsNoTracking()
             .Where(u => u.Role == UserRole.Salesman && u.IsActive && !u.IsDeleted)
             .ToListAsync(cancellationToken);
 
@@ -341093,6 +341234,7 @@ public class GetAdditionalRevenueReportQueryHandler : IRequestHandler<GetAdditio
 
         // Get closed orders within date range with product and customer details
         var orders = await _context.Orders
+            .AsNoTracking()
             .Include(o => o.Customer)
             .Include(o => o.Items)
                 .ThenInclude(i => i.Product)
@@ -341257,9 +341399,9 @@ public class GetAdditionalRevenueReportQueryHandler : IRequestHandler<GetAdditio
                         {
                             var color = item.AdditionalRevenue >= 0 ? Colors.Green.Medium : Colors.Red.Medium;
 
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.SalesmanName);
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.CustomerName);
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName);
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.SalesmanName.ToUpper());
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.CustomerName.ToUpper());
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName.ToUpper());
                             table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.Quantity:N0}");
                             table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.BasePrice:N2}");
                             table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.SellingPrice:N2}");
@@ -341365,6 +341507,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
 
         // Query orders for the target date (submitted or closed, not draft)
         var ordersQuery = context.Orders
+            .AsNoTracking()
         .Include(o => o.Customer)
         .Include(o => o.Route)
         .Include(o => o.Items!)
@@ -341542,7 +341685,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                             routeCol.Item().Background(Colors.Grey.Lighten2)
                                 .Padding(6)
                                 .AlignCenter()
-                                .Text($"{route.RouteName}").FontSize(18).Bold();
+                                .Text($"{route.RouteName.ToUpper()}").FontSize(18).Bold();
 
                             // ── One block per customer stop ──
                             foreach (var order in route.Orders)
@@ -341565,7 +341708,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                         .Row(r =>
                                         {
                                             r.ConstantItem(40).PaddingLeft(5).Text($"{order.SequenceOrder + 1})").FontSize(18).ExtraBold();
-                                            r.RelativeItem().AlignCenter().Text(order.CustomerName).FontSize(18).ExtraBold();
+                                            r.RelativeItem().AlignCenter().Text(order.CustomerName.ToUpper()).FontSize(18).ExtraBold();
                                             r.ConstantItem(40);
                                         });
 
@@ -341623,7 +341766,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                                     .PaddingVertical(3)
                                                     .PaddingLeft(5)
                                                     .PaddingRight(10)
-                                                    .Text(KeepParentheticalTogether(item.ProductName))
+                                                    .Text(KeepParentheticalTogether(item.ProductName.ToUpper()))
                                                     .FontSize(18)
                                                     .ExtraBold();
 
@@ -341660,7 +341803,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                     if (order.Remarks != null)
                                     {
                                         stopCol.Item().AlignCenter().Width(480).PaddingLeft(5).PaddingTop(4)
-                                            .Text(order.Remarks).FontSize(18).ExtraBold().FontColor(Colors.Black);
+                                            .Text(order.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
                                     }
                                 });
                             }
@@ -341732,6 +341875,7 @@ public class GetDailySummaryReportQueryHandler(IApplicationDbContext context)
 
         // Query orders for the target date (submitted or closed, not draft)
         var ordersQuery = context.Orders
+            .AsNoTracking()
             .Include(o => o.Route)
             .Include(o => o.Items!)
             .Where(o => !o.IsDeleted
@@ -341742,6 +341886,7 @@ public class GetDailySummaryReportQueryHandler(IApplicationDbContext context)
 
         // Check if day is closed
         var dailyClosure = await context.DailyClosures
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => !c.IsDeleted && c.ClosureDate.Date == targetDate.Date, cancellationToken);
 
         if (orders.Count == 0 && dailyClosure == null)
@@ -341999,6 +342144,7 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
 
         // Get all active salesmen
         var salesmen = await _context.Users
+            .AsNoTracking()
             .Where(u => u.Role == UserRole.Salesman && u.IsActive && !u.IsDeleted)
             .ToListAsync(cancellationToken);
 
@@ -342011,6 +342157,7 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
 
         // Get closed orders within date range with product details
         var orders = await _context.Orders
+            .AsNoTracking()
             .Include(o => o.Items)
                 .ThenInclude(i => i.Product)
             .Where(o => !o.IsDeleted
@@ -342178,7 +342325,7 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                                 // ─── Show salesman name only once ───
                                 if (isFirstRow)
                                 {
-                                    table.Cell().BorderBottom(0.5f).Padding(3).Text(salesmanName);
+                                    table.Cell().BorderBottom(0.5f).Padding(3).Text(salesmanName.ToUpper());
                                     isFirstRow = false;
                                 }
                                 else
@@ -342186,7 +342333,7 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                                     table.Cell().BorderBottom(0.5f).Padding(3).Text("");
                                 }
 
-                                table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName);
+                                table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName.ToUpper());
                                 table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.Quantity:N0}");
                                 table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.IncentiveEarned:N2}")
                                     .FontColor(Colors.Green.Medium);
@@ -342286,6 +342433,7 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
 
             // ── Get all orders with Closed status for the target date ──
             var closedOrders = await context.Orders
+                .AsNoTracking()
                 .Include(o => o.Customer)
                 .Include(o => o.Route)
                 .Include(o => o.Items!)
@@ -342315,6 +342463,7 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
 
             // ── Get unit priorities ──
             var units = await context.ProductUnits
+                .AsNoTracking()
                 .Where(u => !u.IsDeleted)
                 .ToDictionaryAsync(u => u.Id, u => u.LoadingPriority, cancellationToken);
 
@@ -342812,6 +342961,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
 
             // ── Get all orders with Closed status for the target date ──
             var closedOrdersQuery = context.Orders
+                .AsNoTracking()
                 .Include(o => o.Customer)
                 .Include(o => o.Route)
                 .Include(o => o.Items!)
@@ -342841,6 +342991,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
 
             // ── Get unit priorities ──
             var units = await context.ProductUnits
+                .AsNoTracking()
                 .Where(u => !u.IsDeleted)
                 .ToDictionaryAsync(u => u.Id, u => u.LoadingPriority, cancellationToken);
 
@@ -343188,7 +343339,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                             col.Item().Text($"Date: {targetDate:dd-MM-yyyy}").FontSize(10);
                             if (isSingleRoute && routes.Count == 1)
                             {
-                                col.Item().Text($"Route: {routes[0].RouteName}").FontSize(11).Bold();
+                                col.Item().Text($"Route: {routes[0].RouteName.ToUpper()}").FontSize(11).Bold();
                             }
                         });
 
@@ -343203,7 +343354,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                 routeCol.Item().Background(Colors.Grey.Lighten2)
                                     .Padding(6)
                                     .AlignCenter()
-                                    .Text($"{route.RouteName}").FontSize(18).Bold();
+                                    .Text($"{route.RouteName.ToUpper()}").FontSize(18).Bold();
 
                                 // ── One block per customer stop (numbering stays left, name centered & large) ──
                                 // ShowEntire() keeps a stop's header + product table + remarks together as one
@@ -343222,7 +343373,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                             .Row(r =>
                                             {
                                                 r.ConstantItem(100).AlignRight().Text($"{stop.SequenceOrder})").FontSize(18).ExtraBold();
-                                                r.RelativeItem().AlignCenter().Text(stop.CustomerName).FontSize(18).ExtraBold();
+                                                r.RelativeItem().AlignCenter().Text(stop.CustomerName.ToUpper()).FontSize(18).ExtraBold();
                                                 r.ConstantItem(100);
                                             });
 
@@ -343272,7 +343423,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                                     table.Cell().BorderBottom(0.5f)
                                                         .PaddingVertical(3)
                                                         .PaddingLeft(5)
-                                                        .Text(item.ProductName)
+                                                        .Text(item.ProductName.ToUpper())
                                                         .FontSize(18)
                                                         .ExtraBold();
 
@@ -343300,7 +343451,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                         {
                                             // Extra bold + 18pt for stronger readability, matching the product/qty rows.
                                             stopCol.Item().AlignCenter().Width(360).PaddingLeft(5).PaddingTop(4)
-                                                .Text(stop.Remarks).FontSize(18).ExtraBold().FontColor(Colors.Black);
+                                                .Text(stop.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
                                         }
                                     });
 
@@ -343316,7 +343467,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                     {
                                         routeCol.Item().PaddingTop(6).ShowEntire()
                                             .Background(Colors.Red.Lighten3).Padding(6)
-                                            .Text($"⚠ ALERT: 50 KG BAGS HAVE REACHED {milestone}+ (RUNNING TOTAL: {stop.RunningFiftyKgBagTotal}) — AFTER \"{stop.CustomerName}\" — ALSO CHECK: 30 KG BAGS: {stop.RunningThirtyKgBagTotal}, 26 KG BAGS: {stop.RunningTwentySixKgBagTotal}, 20 KG BAGS: {stop.RunningTwentyKgBagTotal} — VERIFY LOADING CAPACITY")
+                                            .Text($"⚠ ALERT: 50 KG BAGS HAVE REACHED {milestone}+ (RUNNING TOTAL: {stop.RunningFiftyKgBagTotal}) — AFTER \"{stop.CustomerName.ToUpper()}\" — ALSO CHECK: 30 KG BAGS: {stop.RunningThirtyKgBagTotal}, 26 KG BAGS: {stop.RunningTwentySixKgBagTotal}, 20 KG BAGS: {stop.RunningTwentyKgBagTotal} — VERIFY LOADING CAPACITY")
                                             .Bold().FontSize(18).FontColor(Colors.Red.Darken2);
                                     }
                                 }
@@ -343335,7 +343486,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                             var i = 1;
                                             foreach (var sg in route.SizeGroupSummary)
                                             {
-                                                sgCol.Item().PaddingTop(2).Text($"{i}. {sg.SizeGroupName} — {sg.TotalQuantity:N0} {sg.UnitTypeLabel}").FontSize(18).Bold();
+                                                sgCol.Item().PaddingTop(2).Text($"{i}. {sg.SizeGroupName.ToUpper()} — {sg.TotalQuantity:N0} {sg.UnitTypeLabel}").FontSize(18).Bold();
                                                 i++;
                                             }
                                         });
@@ -343482,6 +343633,7 @@ public class GetSummaryReportQueryHandler : IRequestHandler<GetSummaryReportQuer
 
         // Get closed orders with items, product groups, and size groups
         var orders = await _context.Orders
+            .AsNoTracking()
             .Include(o => o.Items)
                 .ThenInclude(i => i.Product)
                     .ThenInclude(p => p!.ProductGroup)
@@ -343615,8 +343767,8 @@ public class GetSummaryReportQueryHandler : IRequestHandler<GetSummaryReportQuer
                         // ─── Table Rows ───
                         foreach (var item in data.Items)
                         {
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ItemGroupName);
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.SizeGroupName);
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ItemGroupName.ToUpper());
+                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.SizeGroupName.ToUpper());
                             table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.TotalQuantity:N0}");
                         }
 
@@ -343691,6 +343843,7 @@ public class GetRouteSummaryReportQueryHandler(IApplicationDbContext context)
 
         // Query orders within date range (submitted or closed, not draft)
         var ordersQuery = context.Orders
+            .AsNoTracking()
         .Include(o => o.Route)
         .Include(o => o.Items!)
         .Where(o => !o.IsDeleted
@@ -344877,6 +345030,7 @@ public class GetActiveRoutesQueryHandler : IRequestHandler<GetActiveRoutesQuery,
         // Every active route is visible to every salesman — there is no admin
         // "assign route to salesman" step required for day-to-day use.
         var routes = await _context.Routes
+            .AsNoTracking()
             .Include(r => r.Customers)
             .Where(r => r.IsActive && !r.IsDeleted)
             .OrderBy(r => r.SequenceOrder)
@@ -344889,6 +345043,7 @@ public class GetActiveRoutesQueryHandler : IRequestHandler<GetActiveRoutesQuery,
         // If a route somehow has more than one open execution, the most
         // recently started one wins.
         var executions = await _context.RouteExecutions
+            .AsNoTracking()
             .Include(e => e.Salesman)
             .Where(e => e.Status != ExecutionStatus.Completed
                         && e.Status != ExecutionStatus.Abandoned
@@ -344990,6 +345145,7 @@ public class GetAllRoutesQueryHandler(IApplicationDbContext context)
 
             // Get daily overrides for TODAY where this salesman is assigned
             var todayOverrides = await context.RouteAssignments
+                .AsNoTracking()
                 .Where(a => !a.IsDeleted
                     && a.SalesmanId == salesmanId
                     && a.AssignmentDate.Date == today)
@@ -345001,6 +345157,7 @@ public class GetAllRoutesQueryHandler(IApplicationDbContext context)
 
             // Get permanent routes assigned to this salesman
             var permanentRoutes = await context.Routes
+                .AsNoTracking()
                 .Include(r => r.AssignedSalesman)
                 .Include(r => r.Customers)
                 .Where(r => !r.IsDeleted && r.IsActive && r.AssignedSalesmanId == salesmanId)
@@ -345008,6 +345165,7 @@ public class GetAllRoutesQueryHandler(IApplicationDbContext context)
 
             // Get routes where this salesman is the daily override (NOT in permanent)
             var overrideRoutes = await context.Routes
+                .AsNoTracking()
                 .Include(r => r.AssignedSalesman)
                 .Include(r => r.Customers)
                 .Where(r => !r.IsDeleted
@@ -345043,6 +345201,7 @@ public class GetAllRoutesQueryHandler(IApplicationDbContext context)
 
         // For Admin, return all routes with override info
         var adminRoutes = await context.Routes
+            .AsNoTracking()
             .Include(r => r.AssignedSalesman)
             .Include(r => r.Customers)
             .Where(r => !r.IsDeleted)
@@ -345175,7 +345334,10 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
         }
 
         // ── Sync: add visits for customers added after execution started ──────
+        // PERFORMANCE FIX: read-only lookup, never mutated/saved — safe to skip
+        // EF's change-tracking overhead for it.
         var routeCustomers = await context.Customers
+            .AsNoTracking()
             .Where(c => c.RouteId == request.RouteId && c.IsActive && !c.IsDeleted)
             .OrderBy(c => c.SequenceOrder)
             .ToListAsync(cancellationToken);
@@ -345216,7 +345378,9 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
         }
         // ─────────────────────────────────────────────────────────────────────
 
+        // PERFORMANCE FIX: read-only, purely for display — never mutated/saved.
         var route = await context.Routes
+            .AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == execution.RouteId && !r.IsDeleted, cancellationToken);
 
         var visits = execution.Visits ?? [];   // IDE0028
@@ -345255,6 +345419,252 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
             PendingCount = pending,
             Customers = customers,
         });
+    }
+}
+```````
+
+## File: src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionsBatchQuery.cs
+```````csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+// PATH: src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionsBatchQuery.cs
+// PERFORMANCE FIX: companion to GetCurrentRouteExecutionQuery, but for MANY routes
+// in one call instead of one call per route. SalesmanRoutes.tsx was previously
+// calling GetCurrentRouteExecution once PER route a salesman has (3-4 routes is
+// typical) — and that handler itself does up to 6 sequential DB round-trips per
+// call (fetch execution, possibly auto-start it, fetch customers, possibly
+// auto-add missing visits, reload, fetch route name). Even running those calls
+// concurrently client-side, each one still pays the full cross-cloud latency
+// chain independently, and they compete for the same DB connections. This
+// query does the same self-healing logic but with all reads batched into a
+// handful of queries total, and at most ONE SaveChanges call, regardless of
+// how many routes are being checked.
+
+using MediatR;
+using FMCG.Distribution.Application.Common;
+
+namespace FMCG.Distribution.Application.Features.Routes.Queries;
+
+public class GetCurrentRouteExecutionsBatchQuery : IRequest<Result<List<RouteExecutionSummaryDto>>>
+{
+    public List<Guid> RouteIds { get; set; } = [];
+    public Guid SalesmanId { get; set; }
+}
+
+// Same shape as CurrentRouteExecutionDto, plus RouteId so the frontend can map
+// each result back to the route it belongs to.
+public class RouteExecutionSummaryDto
+{
+    public Guid RouteId { get; set; }
+    public bool HasActiveExecution { get; set; }
+    public Guid? ExecutionId { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime ExecutionDate { get; set; }
+    public string RouteName { get; set; } = string.Empty;
+    public int TotalCustomers { get; set; }
+    public int CompletedCount { get; set; }
+    public int PendingCount { get; set; }
+    public List<CustomerVisitStatusDto> Customers { get; set; } = [];
+}
+
+// Simple request body for the batched controller endpoint (POST, since a list
+// of route IDs doesn't fit cleanly into a query string).
+public class GetCurrentRouteExecutionsBatchRequest
+{
+    public List<Guid> RouteIds { get; set; } = [];
+}
+```````
+
+## File: src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionsBatchQueryHandler.cs
+```````csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+// PATH: src/FMCG.Distribution.Application/Features/Routes/Queries/GetCurrentRouteExecutionsBatchQueryHandler.cs
+
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using FMCG.Distribution.Application.Common;
+using FMCG.Distribution.Application.Common.Interfaces;
+using FMCG.Distribution.Domain.Entities;
+using FMCG.Distribution.Domain.Enums;
+
+namespace FMCG.Distribution.Application.Features.Routes.Queries;
+
+public class GetCurrentRouteExecutionsBatchQueryHandler(IApplicationDbContext context)
+    : IRequestHandler<GetCurrentRouteExecutionsBatchQuery, Result<List<RouteExecutionSummaryDto>>>
+{
+    public async Task<Result<List<RouteExecutionSummaryDto>>> Handle(
+        GetCurrentRouteExecutionsBatchQuery request,
+        CancellationToken cancellationToken)
+    {
+        var routeIds = request.RouteIds.Distinct().ToList();
+        if (routeIds.Count == 0)
+            return Result<List<RouteExecutionSummaryDto>>.Success([]);
+
+        // ── Batch read #1: every open execution across every requested route, in
+        // one query. NOTE: deliberately NOT using AsNoTracking here — Start() below
+        // mutates these entities and they need to stay tracked for SaveChanges to
+        // persist that change, same reasoning as the single-route handler. ──
+        var executions = await context.RouteExecutions
+            .Include(e => e.Visits!)
+                .ThenInclude(v => v.Customer)
+            .Where(e => routeIds.Contains(e.RouteId)
+                && e.SalesmanId == request.SalesmanId
+                && e.Status != ExecutionStatus.Completed
+                && e.Status != ExecutionStatus.Abandoned)
+            .ToListAsync(cancellationToken);
+
+        // Most recent open execution per route (mirrors the single-route handler's
+        // OrderByDescending(ExecutionDate).FirstOrDefault()).
+        var executionByRoute = executions
+            .GroupBy(e => e.RouteId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(e => e.ExecutionDate).First());
+
+        // ── Batch read #2: every active customer across every requested route,
+        // read-only — never mutated, safe to skip change-tracking for. ──
+        var allCustomers = await context.Customers
+            .AsNoTracking()
+            .Where(c => routeIds.Contains(c.RouteId) && c.IsActive && !c.IsDeleted)
+            .OrderBy(c => c.SequenceOrder)
+            .ToListAsync(cancellationToken);
+
+        var customersByRoute = allCustomers
+            .GroupBy(c => c.RouteId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        // ── Batch read #3: route names, read-only. ──
+        var routeNames = await context.Routes
+            .AsNoTracking()
+            .Where(r => routeIds.Contains(r.Id) && !r.IsDeleted)
+            .Select(r => new { r.Id, r.Name })
+            .ToDictionaryAsync(r => r.Id, r => r.Name, cancellationToken);
+
+        // ── First pass: apply any needed self-healing (auto-start Draft executions,
+        // auto-add visits for customers added after the execution started) entirely
+        // in memory, across ALL routes, collecting the results so only ONE
+        // SaveChanges call is needed for everything combined — instead of up to two
+        // per route as the single-route handler does. ──
+        var newVisitsToAdd = new List<CustomerVisit>();
+        var visitsByRoute = new Dictionary<Guid, List<CustomerVisit>>();
+        var anyChangesMade = false;
+
+        foreach (var routeId in routeIds)
+        {
+            if (!executionByRoute.TryGetValue(routeId, out var execution))
+                continue;
+
+            if (execution.Status == ExecutionStatus.Draft)
+            {
+                execution.Start();
+                anyChangesMade = true;
+            }
+
+            var routeCustomers = customersByRoute.GetValueOrDefault(routeId, []);
+            var currentVisits = execution.Visits?.ToList() ?? [];
+            var existingVisitCustomerIds = currentVisits.Select(v => v.CustomerId).ToHashSet();
+
+            var missingCustomers = routeCustomers
+                .Where(c => !existingVisitCustomerIds.Contains(c.Id))
+                .ToList();
+
+            if (missingCustomers.Count > 0)
+            {
+                var maxSeq = currentVisits.Count > 0 ? currentVisits.Max(v => v.SequenceOrder) : 0;
+
+                var newVisits = missingCustomers
+                    .Select((c, idx) => new CustomerVisit
+                    {
+                        Id = Guid.NewGuid(),
+                        RouteExecutionId = execution.Id,
+                        CustomerId = c.Id,
+                        SequenceOrder = c.SequenceOrder > 0 ? c.SequenceOrder : maxSeq + idx + 1,
+                        Status = VisitStatus.Pending
+                    })
+                    .ToList();
+
+                newVisitsToAdd.AddRange(newVisits);
+                currentVisits.AddRange(newVisits);
+                anyChangesMade = true;
+            }
+
+            visitsByRoute[routeId] = currentVisits;
+        }
+
+        // ── Single combined write for everything collected above. Only runs at all
+        // if some route actually needed healing — most requests hit zero writes here. ──
+        if (anyChangesMade)
+        {
+            if (newVisitsToAdd.Count > 0)
+                await context.CustomerVisits.AddRangeAsync(newVisitsToAdd, cancellationToken);
+
+            await context.SaveChangesAsync(cancellationToken);
+        }
+
+        // ── Second pass: build the response DTOs from what's already in memory —
+        // no reload needed, since we already know exactly what was just written. ──
+        var results = new List<RouteExecutionSummaryDto>();
+
+        foreach (var routeId in routeIds)
+        {
+            if (!executionByRoute.TryGetValue(routeId, out var execution))
+            {
+                results.Add(new RouteExecutionSummaryDto
+                {
+                    RouteId = routeId,
+                    HasActiveExecution = false
+                });
+                continue;
+            }
+
+            var visits = visitsByRoute.GetValueOrDefault(routeId, []);
+
+            // Auto-fix SequenceOrder=0: assign 1,2,3... if all are 0 (same as before).
+            var orderedVisits = visits.All(v => v.SequenceOrder == 0)
+                ? visits.Select((v, idx) => { v.SequenceOrder = idx + 1; return v; }).ToList()
+                : [.. visits.OrderBy(v => v.SequenceOrder)];
+
+            var total = orderedVisits.Count;
+            var completed = orderedVisits.Count(v => v.Status != VisitStatus.Pending);
+            var pending = orderedVisits.Count(v => v.Status == VisitStatus.Pending);
+
+            var customerDtos = orderedVisits.Select(v => new CustomerVisitStatusDto
+            {
+                VisitId = v.Id,
+                CustomerId = v.CustomerId,
+                CustomerName = v.Customer?.NameEnglish ?? string.Empty,
+                CustomerNameMalayalam = v.Customer?.NameMalayalam,
+                PhoneNumber = v.Customer?.PhoneNumber,
+                Address = v.Customer?.Address,
+                SequenceOrder = v.SequenceOrder,
+                VisitStatus = v.Status.ToString(),
+                OrderId = v.OrderId,
+                SkipReason = v.SkipReason,
+            }).ToList();
+
+            results.Add(new RouteExecutionSummaryDto
+            {
+                RouteId = routeId,
+                HasActiveExecution = true,
+                ExecutionId = execution.Id,
+                Status = execution.Status.ToString(),
+                ExecutionDate = execution.ExecutionDate,
+                RouteName = routeNames.GetValueOrDefault(routeId, string.Empty),
+                TotalCustomers = total,
+                CompletedCount = completed,
+                PendingCount = pending,
+                Customers = customerDtos,
+            });
+        }
+
+        return Result<List<RouteExecutionSummaryDto>>.Success(results);
     }
 }
 ```````
@@ -345306,6 +345716,7 @@ public class GetRouteByIdQueryHandler(IApplicationDbContext context)
     public async Task<Result<RouteDetailDto>> Handle(GetRouteByIdQuery request, CancellationToken cancellationToken)
     {
         var route = await context.Routes
+            .AsNoTracking()
             .Include(r => r.AssignedSalesman)
             .Include(r => r.Customers!.Where(c => !c.IsDeleted && c.IsActive))
             .FirstOrDefaultAsync(r => r.Id == request.Id && !r.IsDeleted, cancellationToken);
@@ -345753,6 +346164,7 @@ public class GetDailyClosureStatusQueryHandler(IApplicationDbContext context)
         // (only IsDeleted was checked), so the route looked permanently
         // closed even after a successful reopen. ──
         var closure = await context.DailyClosures
+            .AsNoTracking()
             .Include(c => c.ClosedByUser)
             .Where(c => !c.IsDeleted && c.IsActive && c.ClosureDate.Date == targetDate.Date)
             .Where(c => request.RouteId == null || c.RouteId == request.RouteId)
@@ -345907,6 +346319,7 @@ public class GetAllSizeGroupsQueryHandler(IApplicationDbContext context)
     public async Task<Result<List<SizeGroupDto>>> Handle(GetAllSizeGroupsQuery request, CancellationToken cancellationToken)
     {
         var query = context.SizeGroups
+            .AsNoTracking()
             .Where(g => !g.IsDeleted);
 
         if (request.IsActive.HasValue)
