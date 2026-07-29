@@ -388,12 +388,39 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
             };
         }
 
-        // The orders this closure locked — same filter used to lock them.
+        // ── BUG FIX: this used to grab every locked order with OrderDate <=
+        // closureDate — meaning reopening THIS closure could also unlock orders
+        // that were genuinely closed by an EARLIER, separate closure of the same
+        // route days or weeks before. In practice: a customer's order from an
+        // earlier properly-closed day would silently flip back to Draft, then
+        // reappear in the salesman's "existing order for this customer" lookup
+        // as if it were the current one — and cancelling what looked like a
+        // fresh order could actually hard-delete that old, real historical
+        // order permanently.
+        //
+        // Fix: bound the unlock window on BOTH sides — only orders dated after
+        // the previous closure for this route (if any) through this closure
+        // date are eligible. This still correctly handles a legitimately
+        // lingering multi-day draft being swept up by a later close (the close
+        // side's own `<=` is intentionally broad for that reason), but reopen
+        // now only ever touches the specific batch THIS closure actually
+        // locked — never anything an earlier, separate closure already handled. ──
+        var previousClosureDate = await context.DailyClosures
+            .Where(c => !c.IsDeleted
+                && c.RouteId == routeId
+                && c.ClosureDate.Date < closureDate.Date)
+            .OrderByDescending(c => c.ClosureDate)
+            .Select(c => (DateTime?)c.ClosureDate)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        // The orders this closure locked — same filter used to lock them,
+        // now bounded to exclude anything an earlier closure already covered.
         var ordersToUnlock = await context.Orders
             .Where(o => !o.IsDeleted
                 && o.IsLocked
                 && o.RouteId == routeId
-                && o.OrderDate.Date <= closureDate.Date)
+                && o.OrderDate.Date <= closureDate.Date
+                && (previousClosureDate == null || o.OrderDate.Date > previousClosureDate.Value.Date))
             .ToListAsync(cancellationToken);
 
         // ── GUARD 2: block if warehouse already started packing ──

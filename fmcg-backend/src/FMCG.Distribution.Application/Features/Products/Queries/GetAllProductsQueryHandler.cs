@@ -37,9 +37,12 @@ public class GetAllProductsQueryHandler(IApplicationDbContext context)
             // no priority assigned yet (SortOrder = -1, or no size group at all) sorts to the
             // end of its item group instead of interleaving randomly. Name is still the final
             // tie-breaker for products that land on the same priority. ──
-            .OrderBy(p => p.ProductGroupId)
-            .ThenBy(p => (p.SizeGroup != null && p.SizeGroup.SortOrder >= 0) ? p.SizeGroup.SortOrder : int.MaxValue)
-            .ThenBy(p => p.NameEnglish)
+            // ── UPDATED: Client asked for a simple A-Z alphabetical list, to make finding
+            // a product easier by scanning — replaces the previous Item Group → Size Group
+            // → name grouping. ToUpper() ensures the sort is case-insensitive (so a product
+            // typed as "chilly..." sorts alongside "Chilly...", not after every capitalized
+            // name due to ASCII ordering putting lowercase letters after uppercase ones). ──
+            .OrderBy(p => p.NameEnglish.ToUpper())
             .Select(p => new ProductDto
             {
                 Id = p.Id,

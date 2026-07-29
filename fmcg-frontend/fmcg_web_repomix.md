@@ -1423,7 +1423,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.dv2lch8tlho"
+    "revision": "0.5ir4vmdr394"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -66966,6 +66966,12 @@ export const routesApi = {
     ),
   getCurrentExecution: (routeId: string) =>
     get<CurrentRouteExecutionDto>(`/api/v1/routes/${routeId}/current-execution`),
+  // ── PERFORMANCE FIX: batched sibling of getCurrentExecution above — fetches
+  // execution status for MANY routes in one call instead of one call per
+  // route. Used by SalesmanRoutes.tsx's load() to avoid fanning out one heavy
+  // request per route on every page load. ──
+  getCurrentExecutionsBatch: (routeIds: string[]) =>
+    post<any[]>('/api/v1/routes/current-executions-batch', { routeIds }),
   recordVisit: (body: RecordVisitBody) => {
     const { visitStatus, ...rest } = body;
     return post<RecordCustomerVisitResponse>('/api/v1/routes/record-visit', {
@@ -67098,6 +67104,13 @@ export const productsApi = {
   // ── Per-Unit Pricing endpoints ──────────────────────────────────────────
   getUnitPrices: (productId: string) =>
     get<ProductUnitPriceDto[]>(`/api/v1/products/${productId}/unit-prices`),
+
+  // ── PERFORMANCE FIX: returns every product's default unit price in ONE call,
+  // instead of requiring getUnitPrices above to be called once per product.
+  // Used by OrderEntry.tsx's loadUnitPrices to load prices for the whole
+  // catalog in a single round-trip instead of N sequential ones. ──
+  getDefaultUnitPrices: () =>
+    get<ProductUnitPriceDto[]>('/api/v1/products/default-unit-prices'),
 
   addUnitPrice: (data: CreateProductUnitPriceDto) =>
     post<ProductUnitPriceDto>('/api/v1/products/unit-price', data),
@@ -88158,17 +88171,24 @@ export default function OrderEntry() {
   // ── NEW: Show cancel button for ANY existing draft order (even with items) ──
   const canCancel = isDraft && hasExistingOrder;
 
+  // ── PERFORMANCE FIX: this used to call productsApi.getUnitPrices(product.id)
+  // once for EVERY product in the entire active catalog, in sequential batches
+  // of 5 — for a 100-product catalog, that's 20 sequential round-trips just to
+  // open a single order screen, before a salesman could even see an empty "New"
+  // order. Across a cross-cloud connection (app server and DB in different
+  // data centers), each round-trip costs real time, which is exactly what was
+  // causing the several-second delay on opening/saving orders. Replaced with
+  // ONE call to a new batched endpoint that returns every product's default
+  // unit price in a single response — same resulting priceMap shape as before,
+  // just built from one API call instead of N. ──
   const loadUnitPrices = useCallback(async (products: any[]) => {
     const priceMap: Record<string, ProductUnitPriceDto> = {};
-    for (let i = 0; i < products.length; i += 5) {
-      await Promise.all(products.slice(i, i + 5).map(async (product) => {
-        try {
-          const prices = await productsApi.getUnitPrices(product.id);
-          const def    = prices.find(p => p.isDefault) || prices[0];
-          if (def) priceMap[product.id] = def;
-        } catch {}
-      }));
-    }
+    try {
+      const defaults = await productsApi.getDefaultUnitPrices();
+      for (const def of defaults) {
+        priceMap[def.productId] = def;
+      }
+    } catch {}
     setUnitPrices(priceMap);
     return priceMap;
   }, []);
@@ -91163,60 +91183,76 @@ export function SalesmanRoutes() {
         setIsDayClosed(status?.isClosed ?? false);
       } catch { setIsDayClosed(false); }
 
-      const enriched: EnrichedRoute[] = await Promise.all(
-        activeRoutes.map(async (r): Promise<EnrichedRoute> => {
-          const base = {
-            routeId:              r.id,
-            routeName:            r.name,
-            description:          r.description,
-            customerCount:        r.customerCount,
-            isDedicatedToAnother: r.isDedicatedToAnother,
-            hasUnclosedCycle:     r.hasUnclosedCycle,
-          };
-
-          if (r.isStarted && !r.isMine) {
-            return { ...base, takenByOther: true, takenByName: r.startedBy };
+      // ── PERFORMANCE FIX: this used to call routesApi.getCurrentExecution(r.id)
+      // once PER route this salesman has (typically 3-4) inside the map below —
+      // and that endpoint itself does up to 6 sequential DB round-trips per call
+      // (fetch execution, possibly auto-start it, fetch customers, possibly
+      // auto-add missing visits, reload, fetch route name). Even running those
+      // calls concurrently client-side, each one still pays the full cross-cloud
+      // latency chain independently. Replaced with ONE batched call for every
+      // "mine" route at once, then looked up from a map below — this is exactly
+      // the delay reported between PIN login and landing on My Routes. ──
+      const mineRouteIds = activeRoutes.filter(r => r.isMine).map(r => r.id);
+      const executionByRouteId: Record<string, any> = {};
+      if (mineRouteIds.length > 0) {
+        try {
+          const batch = await routesApi.getCurrentExecutionsBatch(mineRouteIds);
+          for (const exec of batch) {
+            executionByRouteId[exec.routeId] = exec;
           }
+        } catch {}
+      }
 
-          let executionStatus: EnrichedRoute['executionStatus'] = null;
-          let executionId: string | undefined;
-          let ordersAllSubmitted = false;
-          let submittedCount = 0;
-          let isTrulyCompleted = false;
-          let isAdminClosed = false;
+      const enriched: EnrichedRoute[] = activeRoutes.map((r): EnrichedRoute => {
+        const base = {
+          routeId:              r.id,
+          routeName:            r.name,
+          description:          r.description,
+          customerCount:        r.customerCount,
+          isDedicatedToAnother: r.isDedicatedToAnother,
+          hasUnclosedCycle:     r.hasUnclosedCycle,
+        };
 
-          if (r.isMine) {
-            try {
-              const exec = await routesApi.getCurrentExecution(r.id);
-              if (exec?.executionId) {
-                executionId = exec.executionId;
-                const totalCustomers = exec.totalCustomers ?? 0;
-                const pending = exec.pendingCount ?? 0;
-                isAdminClosed = exec.status === 'Completed';
-                isTrulyCompleted = totalCustomers > 0 && pending === 0;
-                ordersAllSubmitted = isTrulyCompleted;
-                submittedCount = (exec.customers ?? []).filter(c => c.visitStatus === 'OrderPlaced').length;
-                executionStatus = isAdminClosed
-                  ? 'Completed'
-                  : isTrulyCompleted
-                    ? 'Completed'
-                    : exec.status === 'InProgress' ? 'InProgress' : null;
-              }
-            } catch {}
+        if (r.isStarted && !r.isMine) {
+          return { ...base, takenByOther: true, takenByName: r.startedBy };
+        }
+
+        let executionStatus: EnrichedRoute['executionStatus'] = null;
+        let executionId: string | undefined;
+        let ordersAllSubmitted = false;
+        let submittedCount = 0;
+        let isTrulyCompleted = false;
+        let isAdminClosed = false;
+
+        if (r.isMine) {
+          const exec = executionByRouteId[r.id];
+          if (exec?.hasActiveExecution && exec?.executionId) {
+            executionId = exec.executionId;
+            const totalCustomers = exec.totalCustomers ?? 0;
+            const pending = exec.pendingCount ?? 0;
+            isAdminClosed = exec.status === 'Completed';
+            isTrulyCompleted = totalCustomers > 0 && pending === 0;
+            ordersAllSubmitted = isTrulyCompleted;
+            submittedCount = (exec.customers ?? []).filter((c: any) => c.visitStatus === 'OrderPlaced').length;
+            executionStatus = isAdminClosed
+              ? 'Completed'
+              : isTrulyCompleted
+                ? 'Completed'
+                : exec.status === 'InProgress' ? 'InProgress' : null;
           }
+        }
 
-          return {
-            ...base,
-            takenByOther: false,
-            executionStatus,
-            executionId,
-            ordersAllSubmitted,
-            submittedCount,
-            isTrulyCompleted,
-            isAdminClosed,
-          };
-        })
-      );
+        return {
+          ...base,
+          takenByOther: false,
+          executionStatus,
+          executionId,
+          ordersAllSubmitted,
+          submittedCount,
+          isTrulyCompleted,
+          isAdminClosed,
+        };
+      });
 
       setRoutes(enriched);
     } catch (err: unknown) {

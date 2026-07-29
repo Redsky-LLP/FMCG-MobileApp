@@ -429,7 +429,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                             col.Item().Text($"Date: {targetDate:dd-MM-yyyy}").FontSize(10);
                             if (isSingleRoute && routes.Count == 1)
                             {
-                                col.Item().Text($"Route: {routes[0].RouteName}").FontSize(11).Bold();
+                                col.Item().Text($"Route: {routes[0].RouteName.ToUpper()}").FontSize(11).Bold();
                             }
                         });
 
@@ -444,7 +444,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                 routeCol.Item().Background(Colors.Grey.Lighten2)
                                     .Padding(6)
                                     .AlignCenter()
-                                    .Text($"{route.RouteName}").FontSize(18).Bold();
+                                    .Text($"{route.RouteName.ToUpper()}").FontSize(18).Bold();
 
                                 // ── One block per customer stop (numbering stays left, name centered & large) ──
                                 // ShowEntire() keeps a stop's header + product table + remarks together as one
@@ -463,7 +463,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                             .Row(r =>
                                             {
                                                 r.ConstantItem(100).AlignRight().Text($"{stop.SequenceOrder})").FontSize(18).ExtraBold();
-                                                r.RelativeItem().AlignCenter().Text(stop.CustomerName).FontSize(18).ExtraBold();
+                                                r.RelativeItem().AlignCenter().Text(stop.CustomerName.ToUpper()).FontSize(18).ExtraBold();
                                                 r.ConstantItem(100);
                                             });
 
@@ -513,7 +513,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                                     table.Cell().BorderBottom(0.5f)
                                                         .PaddingVertical(3)
                                                         .PaddingLeft(5)
-                                                        .Text(item.ProductName)
+                                                        .Text(item.ProductName.ToUpper())
                                                         .FontSize(18)
                                                         .ExtraBold();
 
@@ -541,7 +541,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                         {
                                             // Extra bold + 18pt for stronger readability, matching the product/qty rows.
                                             stopCol.Item().AlignCenter().Width(360).PaddingLeft(5).PaddingTop(4)
-                                                .Text(stop.Remarks).FontSize(18).ExtraBold().FontColor(Colors.Black);
+                                                .Text(stop.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
                                         }
                                     });
 
@@ -557,7 +557,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                     {
                                         routeCol.Item().PaddingTop(6).ShowEntire()
                                             .Background(Colors.Red.Lighten3).Padding(6)
-                                            .Text($"⚠ ALERT: 50 KG BAGS HAVE REACHED {milestone}+ (RUNNING TOTAL: {stop.RunningFiftyKgBagTotal}) — AFTER \"{stop.CustomerName}\" — ALSO CHECK: 30 KG BAGS: {stop.RunningThirtyKgBagTotal}, 26 KG BAGS: {stop.RunningTwentySixKgBagTotal}, 20 KG BAGS: {stop.RunningTwentyKgBagTotal} — VERIFY LOADING CAPACITY")
+                                            .Text($"⚠ ALERT: 50 KG BAGS HAVE REACHED {milestone}+ (RUNNING TOTAL: {stop.RunningFiftyKgBagTotal}) — AFTER \"{stop.CustomerName.ToUpper()}\" — ALSO CHECK: 30 KG BAGS: {stop.RunningThirtyKgBagTotal}, 26 KG BAGS: {stop.RunningTwentySixKgBagTotal}, 20 KG BAGS: {stop.RunningTwentyKgBagTotal} — VERIFY LOADING CAPACITY")
                                             .Bold().FontSize(18).FontColor(Colors.Red.Darken2);
                                     }
                                 }
@@ -576,7 +576,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                             var i = 1;
                                             foreach (var sg in route.SizeGroupSummary)
                                             {
-                                                sgCol.Item().PaddingTop(2).Text($"{i}. {sg.SizeGroupName} — {sg.TotalQuantity:N0} {sg.UnitTypeLabel}").FontSize(18).Bold();
+                                                sgCol.Item().PaddingTop(2).Text($"{i}. {sg.SizeGroupName.ToUpper()} — {sg.TotalQuantity:N0} {sg.UnitTypeLabel}").FontSize(18).Bold();
                                                 i++;
                                             }
                                         });
