@@ -204,19 +204,6 @@ export function AdminDashboard() {
 
   if (loading) return <PageLoader />;
 
-  const today = new Date().toLocaleDateString('en-IN', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  });
-
-  const getGreeting = () => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
-
-  const firstName = user?.name?.split(' ')[0] ?? 'Admin';
-
   const kpiCards: KpiCardProps[] = kpis ? [
     { label: 'Today Revenue', value: fmt(kpis.todayRevenue), icon: TrendingUp, color: D.accent, bgColor: `${D.accent}22`, trend: 'up' },
     { label: 'Today Orders', value: fmtNum(kpis.todayOrders), icon: ShoppingCart, color: '#3B82F6', bgColor: 'rgba(59,130,246,0.15)' },
@@ -293,16 +280,6 @@ export function AdminDashboard() {
             )}
           </div>
         )}
-
-        {/* ── Welcome Header ────────────────────────────────────────────────── */}
-        <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontSize: 26, fontWeight: 900, color: D.text, letterSpacing: '-0.03em', margin: 0 }}>
-            {getGreeting()}, {firstName} 🎉
-          </h1>
-          <p style={{ color: D.muted, fontSize: 14, marginTop: 4, fontWeight: 500 }}>
-            Here's your operations overview for today.
-          </p>
-        </div>
 
         {/* ── Status Strip ───────────────────────────────────────────────────── */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>

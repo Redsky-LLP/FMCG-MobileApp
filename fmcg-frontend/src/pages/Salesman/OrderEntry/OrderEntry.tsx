@@ -34,6 +34,12 @@ import { LineItem } from './types';
 import { PriceVarianceBadge } from './types';
 import { PreviousOrdersModal } from './components/PreviousOrdersModal';
 import { useIsMobile } from '../../../hooks/useIsMobile';
+// ── FIX: was a locally-guessed constant (70) that had drifted from the real
+// bottom nav bar's actual height (52, defined once in MobileLayout.tsx). This
+// didn't break anything visibly — it just left extra unnecessary gap above
+// the real nav bar — but importing the single shared value means this can
+// never silently drift out of sync again if the real nav height ever changes. ──
+import { MOBILE_NAV_HEIGHT } from '../../../components/layout/MobileLayout';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -51,8 +57,7 @@ const D = {
   orange:  '#f97316',
 };
 
-// ── Mobile nav height constant ──────────────────────────────────────────────
-const MOBILE_NAV_HEIGHT = 70;
+// ── Mobile nav height now imported from MobileLayout.tsx (see import above) ──
 
 export default function OrderEntry() {
   const { routeId, customerId } = useParams<{ routeId: string; customerId: string }>();
@@ -697,7 +702,6 @@ export default function OrderEntry() {
               color: '#94a3b8',
               letterSpacing: '0.04em',
             }}>
-              ADD ITEMS
             </span>
           </div>
         )}

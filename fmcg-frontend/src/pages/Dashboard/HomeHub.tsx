@@ -325,16 +325,6 @@ export function HomeHub() {
             }} />
             <span style={{ fontSize: 11, fontWeight: 600, color: D.green }}>Live</span>
           </div>
-
-          <h1 style={{
-            fontSize: 30, fontWeight: 900, color: D.text,
-            letterSpacing: '-0.04em', margin: 0, lineHeight: 1.1,
-          }}>
-             {firstName} <span style={{ color: D.accent }}>✦</span>
-          </h1>
-          <p style={{ color: D.muted, fontSize: 14, marginTop: 6, marginBottom: 0, fontWeight: 400 }}>
-            Here's your operations overview for today.
-          </p>
         </div>
 
         {/* ── Status Strip ──────────────────────────────────── */}
