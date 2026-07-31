@@ -1423,7 +1423,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.4lnov0de1to"
+    "revision": "0.v2mqjsnikn4"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -75367,19 +75367,6 @@ export function AdminDashboard() {
 
   if (loading) return <PageLoader />;
 
-  const today = new Date().toLocaleDateString('en-IN', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  });
-
-  const getGreeting = () => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
-
-  const firstName = user?.name?.split(' ')[0] ?? 'Admin';
-
   const kpiCards: KpiCardProps[] = kpis ? [
     { label: 'Today Revenue', value: fmt(kpis.todayRevenue), icon: TrendingUp, color: D.accent, bgColor: `${D.accent}22`, trend: 'up' },
     { label: 'Today Orders', value: fmtNum(kpis.todayOrders), icon: ShoppingCart, color: '#3B82F6', bgColor: 'rgba(59,130,246,0.15)' },
@@ -75456,16 +75443,6 @@ export function AdminDashboard() {
             )}
           </div>
         )}
-
-        {/* ── Welcome Header ────────────────────────────────────────────────── */}
-        <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontSize: 26, fontWeight: 900, color: D.text, letterSpacing: '-0.03em', margin: 0 }}>
-            {getGreeting()}, {firstName} 🎉
-          </h1>
-          <p style={{ color: D.muted, fontSize: 14, marginTop: 4, fontWeight: 500 }}>
-            Here's your operations overview for today.
-          </p>
-        </div>
 
         {/* ── Status Strip ───────────────────────────────────────────────────── */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
@@ -79796,6 +79773,31 @@ export function AdminReports() {
       .finally(() => setLoading(false));
   }, []);
 
+  // ── Extracts the real backend error message from a failed report request.
+  // These endpoints all use responseType: 'blob' (since a success response is
+  // PDF binary data) — which means axios delivers a FAILED response's body as
+  // a Blob too, not parsed JSON, even though the backend actually sent a JSON
+  // error body like { error: "No orders found for date 2026-07-30." }. This
+  // reads that blob's text and parses it, so the real message can be shown
+  // instead of falling back to a generic, unhelpful one. ──
+  async function extractBackendErrorMessage(err: unknown): Promise<string | null> {
+    const data = (err as { response?: { data?: unknown } })?.response?.data;
+    if (data instanceof Blob) {
+      try {
+        const text = await data.text();
+        const parsed = JSON.parse(text);
+        return parsed.error ?? parsed.message ?? null;
+      } catch {
+        return null;
+      }
+    }
+    if (data && typeof data === 'object') {
+      const obj = data as { error?: string; message?: string };
+      return obj.error ?? obj.message ?? null;
+    }
+    return null;
+  }
+
   async function download(key: string, fn: () => Promise<Blob>, filename: string) {
     setDownloading(key); setError(''); setMsg('');
     try {
@@ -79804,7 +79806,15 @@ export function AdminReports() {
       setMsg(`${filename} downloaded.`);
       setTimeout(() => setMsg(''), 4000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Download failed');
+      // ── FIX: was showing the raw generic HTTP message ("Request failed
+      // with status code 400") instead of the actual, helpful reason the
+      // backend already provides (e.g. "No orders found for date
+      // 2026-07-30."). Unlike Preview, Download has no modal to fall back
+      // on for a clean empty-state message, so surfacing the real backend
+      // message here — rather than suppressing it entirely — is what
+      // actually tells the admin why nothing downloaded. ──
+      const backendMessage = await extractBackendErrorMessage(err);
+      setError(backendMessage ?? (err instanceof Error ? err.message : 'Download failed'));
     } finally { setDownloading(null); }
   }
 
@@ -79826,7 +79836,20 @@ export function AdminReports() {
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to generate preview');
+      // ── FIX: a 400 here specifically means "no orders found for this
+      // date/route" — an expected, understandable outcome, not a real
+      // failure. The modal already shows a clean "No Preview Available /
+      // No data found for the selected filters" message for exactly this
+      // case (see the empty-state block below, triggered whenever
+      // previewUrl stays null) — so setting the page-level red error
+      // banner on top of that was just showing the same thing twice, with
+      // the second copy being a confusing raw HTTP status message instead
+      // of a helpful one. Only genuinely unexpected failures (auth issues,
+      // network errors, server errors) still surface the banner. ──
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status !== 400) {
+        setError(err instanceof Error ? err.message : 'Failed to generate preview');
+      }
     } finally {
       setPreviewLoading(false);
     }
@@ -86447,16 +86470,6 @@ export function HomeHub() {
             }} />
             <span style={{ fontSize: 11, fontWeight: 600, color: D.green }}>Live</span>
           </div>
-
-          <h1 style={{
-            fontSize: 30, fontWeight: 900, color: D.text,
-            letterSpacing: '-0.04em', margin: 0, lineHeight: 1.1,
-          }}>
-             {firstName} <span style={{ color: D.accent }}>✦</span>
-          </h1>
-          <p style={{ color: D.muted, fontSize: 14, marginTop: 6, marginBottom: 0, fontWeight: 400 }}>
-            Here's your operations overview for today.
-          </p>
         </div>
 
         {/* ── Status Strip ──────────────────────────────────── */}
@@ -88108,6 +88121,12 @@ import { LineItem } from './types';
 import { PriceVarianceBadge } from './types';
 import { PreviousOrdersModal } from './components/PreviousOrdersModal';
 import { useIsMobile } from '../../../hooks/useIsMobile';
+// ── FIX: was a locally-guessed constant (70) that had drifted from the real
+// bottom nav bar's actual height (52, defined once in MobileLayout.tsx). This
+// didn't break anything visibly — it just left extra unnecessary gap above
+// the real nav bar — but importing the single shared value means this can
+// never silently drift out of sync again if the real nav height ever changes. ──
+import { MOBILE_NAV_HEIGHT } from '../../../components/layout/MobileLayout';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -88125,8 +88144,7 @@ const D = {
   orange:  '#f97316',
 };
 
-// ── Mobile nav height constant ──────────────────────────────────────────────
-const MOBILE_NAV_HEIGHT = 70;
+// ── Mobile nav height now imported from MobileLayout.tsx (see import above) ──
 
 export default function OrderEntry() {
   const { routeId, customerId } = useParams<{ routeId: string; customerId: string }>();
@@ -88771,7 +88789,6 @@ export default function OrderEntry() {
               color: '#94a3b8',
               letterSpacing: '0.04em',
             }}>
-              ADD ITEMS
             </span>
           </div>
         )}
