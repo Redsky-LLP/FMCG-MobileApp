@@ -18,6 +18,12 @@ import { Spinner } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
+// Real submission time when available, falling back to the business-day
+// OrderDate (stored as midnight UTC) only if createdAt wasn't sent.
+function orderTimestamp(order: { createdAt?: string | null; orderDate: string }): Date {
+  return new Date(order.createdAt || order.orderDate);
+}
+
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
   bg:       '#0f172a',
@@ -105,7 +111,7 @@ function OrderCard({
             <span style={{ fontSize: 12, color: D.sub }}>📦 {order.items?.length ?? 0} items</span>
             <span style={{ fontSize: 12, color: D.sub }}>📊 {order.items?.reduce((s, i) => s + i.quantity, 0) ?? 0} units</span>
             <span style={{ fontSize: 12, color: D.sub }}>
-              🕐 {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+              🕐 {orderTimestamp(order).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
           <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: D.text }}>₹{fmt(order.totalAmount ?? 0)}</p>

@@ -468,6 +468,31 @@ export function AdminReports() {
       .finally(() => setLoading(false));
   }, []);
 
+  // ── Extracts the real backend error message from a failed report request.
+  // These endpoints all use responseType: 'blob' (since a success response is
+  // PDF binary data) — which means axios delivers a FAILED response's body as
+  // a Blob too, not parsed JSON, even though the backend actually sent a JSON
+  // error body like { error: "No orders found for date 2026-07-30." }. This
+  // reads that blob's text and parses it, so the real message can be shown
+  // instead of falling back to a generic, unhelpful one. ──
+  async function extractBackendErrorMessage(err: unknown): Promise<string | null> {
+    const data = (err as { response?: { data?: unknown } })?.response?.data;
+    if (data instanceof Blob) {
+      try {
+        const text = await data.text();
+        const parsed = JSON.parse(text);
+        return parsed.error ?? parsed.message ?? null;
+      } catch {
+        return null;
+      }
+    }
+    if (data && typeof data === 'object') {
+      const obj = data as { error?: string; message?: string };
+      return obj.error ?? obj.message ?? null;
+    }
+    return null;
+  }
+
   async function download(key: string, fn: () => Promise<Blob>, filename: string) {
     setDownloading(key); setError(''); setMsg('');
     try {
@@ -476,7 +501,15 @@ export function AdminReports() {
       setMsg(`${filename} downloaded.`);
       setTimeout(() => setMsg(''), 4000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Download failed');
+      // ── FIX: was showing the raw generic HTTP message ("Request failed
+      // with status code 400") instead of the actual, helpful reason the
+      // backend already provides (e.g. "No orders found for date
+      // 2026-07-30."). Unlike Preview, Download has no modal to fall back
+      // on for a clean empty-state message, so surfacing the real backend
+      // message here — rather than suppressing it entirely — is what
+      // actually tells the admin why nothing downloaded. ──
+      const backendMessage = await extractBackendErrorMessage(err);
+      setError(backendMessage ?? (err instanceof Error ? err.message : 'Download failed'));
     } finally { setDownloading(null); }
   }
 
@@ -498,7 +531,20 @@ export function AdminReports() {
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to generate preview');
+      // ── FIX: a 400 here specifically means "no orders found for this
+      // date/route" — an expected, understandable outcome, not a real
+      // failure. The modal already shows a clean "No Preview Available /
+      // No data found for the selected filters" message for exactly this
+      // case (see the empty-state block below, triggered whenever
+      // previewUrl stays null) — so setting the page-level red error
+      // banner on top of that was just showing the same thing twice, with
+      // the second copy being a confusing raw HTTP status message instead
+      // of a helpful one. Only genuinely unexpected failures (auth issues,
+      // network errors, server errors) still surface the banner. ──
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status !== 400) {
+        setError(err instanceof Error ? err.message : 'Failed to generate preview');
+      }
     } finally {
       setPreviewLoading(false);
     }
