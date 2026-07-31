@@ -76,6 +76,12 @@ export function SalesmanRoutes() {
   const [confirmRoute, setConfirmRoute] = useState<string | null>(null);
   const [confirmRouteName, setConfirmRouteName] = useState<string>('');
 
+  // ─── Banner toast (persistent until manually dismissed via ✕) ───
+  const [bannerToast, setBannerToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  function showBannerToast(message: string, type: 'success' | 'error' = 'error') {
+    setBannerToast({ message, type });
+  }
+
   async function load() {
     setLoading(true); setError('');
     try {
@@ -197,7 +203,11 @@ export function SalesmanRoutes() {
     }
 
     if (isRouteAlreadyCompleted(routeId)) {
-      setError('This route is already completed for today.');
+      const route = routes.find(r => r.routeId === routeId);
+      showBannerToast(
+        `${route?.routeName || 'This route'} was already closed for today. ` +
+        `Ask Admin to reopen it if more orders are needed — a new cycle can only start from tomorrow.`
+      );
       await load();
       return;
     }
@@ -226,7 +236,7 @@ export function SalesmanRoutes() {
       const existing = await routesApi.getCurrentExecution(routeId).catch(() => null);
 
       if (existing?.executionId && existing.status === 'Completed') {
-        setError('This route is already completed for today.');
+        showBannerToast('This route is already completed for today.');
         await load();
         return;
       }
@@ -239,7 +249,9 @@ export function SalesmanRoutes() {
       await routesApi.startOrderTaking(routeId);
       navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'order-taking' } });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to start order taking');
+      const message = err instanceof Error ? err.message : 'Failed to start order taking';
+      showBannerToast(message);
+      setError(message);
       await load();
     } finally { 
       setStarting(null); 
@@ -379,6 +391,30 @@ export function SalesmanRoutes() {
           </div>
         )}
       </div>
+
+      {bannerToast && (
+        <div style={{
+          margin: '12px 20px 0',
+          padding: '12px 16px',
+          borderRadius: 10,
+          background: bannerToast.type === 'success' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+          border: bannerToast.type === 'success' ? '1px solid #22c55e' : '1px solid #ef4444',
+          color: bannerToast.type === 'success' ? '#22c55e' : '#ef4444',
+          fontSize: 13,
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <span>{bannerToast.message}</span>
+          <button
+            onClick={() => setBannerToast(null)}
+            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 16, fontWeight: 700 }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {error && (
         <div style={{

@@ -6,6 +6,17 @@
 // the correct ones: a route already taken by someone else stays locked
 // ("Taken by X"), and a salesman can't run two routes of their own at once.
 // Delivery mode still requires day closure and CLOSED orders.
+//
+// UPDATED: Added a guard against re-starting a route that Admin already
+// closed (Completed) for THIS exact calendar date. Previously, tapping
+// "Take Orders" right after Close (even by accident) silently created a
+// second RouteExecution for the same date — same customers got a second
+// CustomerVisit/Order row, showing up as duplicates on the Orders screen —
+// and it also made the original closure un-reopenable, since Reopen refuses
+// once a newer cycle exists for the route. Now that path is blocked with a
+// clear message pointing to Reopen. This only applies to the SAME date —
+// once the calendar date rolls over, the route is fresh and startable as
+// normal, same as before.
 
 using System;
 using System.Collections.Generic;
@@ -105,6 +116,32 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
                 TotalCustomers = totalCustomers,
                 IsOrderTaking = existingExecution.ExecutionType == ExecutionType.OrderTaking,
             }, "Resuming existing route execution.");
+        }
+
+        // ── GUARD: block a brand-new cycle for this route on a date that was
+        // already closed (Completed) by Admin. Without this, "Take Orders"
+        // tapped right after Close would silently spin up a second
+        // RouteExecution for the same date — the same customers would get a
+        // second CustomerVisit/Order row, showing up as duplicates on the
+        // Orders screen — and the original closure would also become
+        // un-reopenable, since Reopen refuses once a newer cycle exists.
+        // Scoped strictly to e.ExecutionDate.Date == executionDate.Date, so
+        // this never touches yesterday's (or any other date's) executions —
+        // the route is fresh and startable as normal from the next day on. ──
+        var closedTodayExecution = await context.RouteExecutions
+            .Where(e => e.RouteId == request.RouteId
+                && e.Status == ExecutionStatus.Completed
+                && !e.IsDeleted
+                && e.ExecutionDate.Date == executionDate.Date)
+            .OrderByDescending(e => e.ExecutionDate)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (closedTodayExecution != null)
+        {
+            return Result<StartRouteExecutionResponse>.Failure(
+                $"{route.Name} was already closed for {executionDate:dd MMM yyyy}. " +
+                "Please reopen it if more orders are needed today — Admin can do this from the Orders screen. " +
+                "A new cycle can only start from tomorrow.");
         }
 
         // Guard: no other open execution on a different route, regardless of
