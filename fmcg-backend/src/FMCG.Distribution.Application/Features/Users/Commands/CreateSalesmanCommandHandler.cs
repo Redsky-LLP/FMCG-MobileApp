@@ -25,12 +25,17 @@ public class CreateSalesmanCommandHandler : IRequestHandler<CreateSalesmanComman
             return Result<CreateSalesmanResponse>.Failure("Username is required.");
         }
 
-        // Check uniqueness
+        // Check uniqueness — excludes soft-deleted accounts (a deleted user's
+        // username should be reusable). Deliberately still includes INACTIVE
+        // (deactivated) accounts here — reactivate that one from the Users
+        // list instead of creating a second account with the same username.
         var exists = await _context.Users.AnyAsync(
-            u => u.UserName == request.UserName, cancellationToken);
+            u => u.UserName == request.UserName && !u.IsDeleted, cancellationToken);
         if (exists)
         {
-            return Result<CreateSalesmanResponse>.Failure("Username already taken.");
+            return Result<CreateSalesmanResponse>.Failure(
+                "Username already taken. If this belongs to a deactivated account, " +
+                "reactivate it from the Users list instead of creating a new one.");
         }
 
         // ── Validate Full Name ──

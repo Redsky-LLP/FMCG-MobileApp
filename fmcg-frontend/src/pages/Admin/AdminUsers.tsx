@@ -496,6 +496,10 @@ export function AdminUsers() {
   const [toggling,     setToggling]     = useState<string | null>(null);
   const [toggleTarget, setToggleTarget] = useState<UserDto | null>(null);
 
+  // ── NEW: Permanent delete (only offered on already-inactive accounts) ──
+  const [deleting,     setDeleting]     = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserDto | null>(null);
+
   // ── NEW: Act as Salesman (Admin Override via Master PIN) ──
   const [overrideModal,   setOverrideModal]   = useState<UserDto | null>(null);
   const [overridePin,     setOverridePin]     = useState('');
@@ -522,8 +526,9 @@ export function AdminUsers() {
  async function load() {
   setLoading(true); setError('');
   try {
-    // ── CHANGE: Only get active users ──
-    const all = await usersApi.getAll(
+    // ── CHANGE: include inactive users so a deactivated account is still
+    // visible (and reactivatable) instead of silently disappearing ──
+    const all = await usersApi.getAllWithInactive(
       roleFilter === 'All' ? undefined : roleFilter
     );
     setUsers(all);
@@ -548,6 +553,22 @@ export function AdminUsers() {
       setError(err instanceof Error ? err.message : 'Failed to update user status');
       setToggleTarget(null);
     } finally { setToggling(null); }
+  }
+
+  // ── NEW: Permanent delete ──
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    setDeleting(deleteTarget.id);
+    setError('');
+    try {
+      await usersApi.deleteUser(deleteTarget.id);
+      setSuccess(`${deleteTarget.fullName} has been permanently deleted.`);
+      setDeleteTarget(null);
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to delete user');
+      setDeleteTarget(null);
+    } finally { setDeleting(null); }
   }
 
   function openPinModal(u: UserDto) {
@@ -830,8 +851,52 @@ export function AdminUsers() {
           </div>
         </div>
 
-        {error   && <Alert variant="error">{error}</Alert>}
-        {success && <Alert variant="success">{success}</Alert>}
+        {error && (
+          <div style={{
+            margin: '0 0 16px',
+            padding: '12px 16px',
+            borderRadius: 10,
+            background: 'rgba(239,68,68,0.15)',
+            border: '1px solid #ef4444',
+            color: D.red,
+            fontSize: 13,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <span>{error}</span>
+            <button
+              onClick={() => setError('')}
+              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 16, fontWeight: 700 }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        {success && (
+          <div style={{
+            margin: '0 0 16px',
+            padding: '12px 16px',
+            borderRadius: 10,
+            background: 'rgba(34,197,94,0.15)',
+            border: '1px solid #22c55e',
+            color: D.green,
+            fontSize: 13,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <span>{success}</span>
+            <button
+              onClick={() => setSuccess('')}
+              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 16, fontWeight: 700 }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* Filters */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -1001,6 +1066,30 @@ export function AdminUsers() {
                         : <><UserCheck size={13} /> Activate</>
                     }
                   </button>
+                  {!u.isActive && (
+                    <button
+                      onClick={() => setDeleteTarget(u)}
+                      disabled={deleting === u.id}
+                      title="Permanently delete this account"
+                      style={{
+                        flex: 1, justifyContent: 'center', minWidth: 100,
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        border: `1px solid ${D.red}`,
+                        background: 'transparent',
+                        color: D.red,
+                        fontSize: 12, fontWeight: 600,
+                        cursor: deleting === u.id ? 'not-allowed' : 'pointer',
+                        fontFamily: 'inherit',
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        transition: 'all 0.12s',
+                      }}
+                      onMouseEnter={e => { if (deleting !== u.id) (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.10)'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                    >
+                      {deleting === u.id ? <Spinner size={13} /> : <><Trash2 size={13} /> Delete</>}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -1135,6 +1224,29 @@ export function AdminUsers() {
                                 : <><UserCheck size={12} /> Activate</>
                             }
                           </button>
+                          {!u.isActive && (
+                            <button
+                              onClick={() => setDeleteTarget(u)}
+                              disabled={deleting === u.id}
+                              title="Permanently delete this account"
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: 7,
+                                border: `1px solid ${D.red}`,
+                                background: 'transparent',
+                                color: D.red,
+                                fontSize: 12, fontWeight: 600,
+                                cursor: deleting === u.id ? 'not-allowed' : 'pointer',
+                                fontFamily: 'inherit',
+                                display: 'flex', alignItems: 'center', gap: 4,
+                                transition: 'all 0.12s',
+                              }}
+                              onMouseEnter={e => { if (deleting !== u.id) (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.10)'; }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                            >
+                              {deleting === u.id ? <Spinner size={12} /> : <><Trash2 size={12} /> Delete</>}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1489,6 +1601,18 @@ export function AdminUsers() {
           loading={!!toggling}
           onConfirm={handleToggleConfirm}
           onCancel={() => setToggleTarget(null)}
+        />
+
+        {/* NEW: Permanent delete confirmation */}
+        <ConfirmModal
+          open={!!deleteTarget}
+          title="Delete User Permanently"
+          message={`This permanently removes ${deleteTarget?.fullName} and their login sessions from the database. This cannot be undone. Their username and PIN become free to reuse immediately. Continue?`}
+          confirmLabel="Delete Permanently"
+          danger
+          loading={!!deleting}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteTarget(null)}
         />
       </div>
     </div>

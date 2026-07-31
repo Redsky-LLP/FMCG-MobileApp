@@ -124,6 +124,9 @@ export const usersApi = {
     get<UserDto[]>('/api/v1/users/all', role ? { role } : undefined),
   toggleActive: (id: string) =>
     patch<boolean>(`/api/v1/users/${id}/toggle-active`),
+  // ── NEW: permanent delete (only valid on already-deactivated accounts) ──
+  deleteUser: (id: string) =>
+    del<boolean>(`/api/v1/users/${id}`),
 };
 
 // ── Routes ────────────────────────────────────────────────────────────────────
