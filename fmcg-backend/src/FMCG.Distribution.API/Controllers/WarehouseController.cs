@@ -254,6 +254,7 @@ public class WarehouseController(IApplicationDbContext context) : ControllerBase
             TotalQty = o.Items?.Sum(i => i.Quantity) ?? 0,
             PackingStatus = (int)o.PackingStatus,
             PackedAt = o.PackedAt,
+            CreatedAt = o.CreatedAt,
             Items = o.Items?.Select(i => new WarehouseOrderItemDto
             {
                 ProductId = i.ProductId,
@@ -282,6 +283,11 @@ public class WarehouseOrderDto
     public decimal TotalQty { get; set; }
     public int PackingStatus { get; set; }
     public DateTime? PackedAt { get; set; }
+    // ── NEW: real order-submission timestamp. OrderDate only carries the
+    // business day (stamped at midnight UTC from the route execution date),
+    // so it can't be used to show "what time was this order actually taken" —
+    // that's what CreatedAt is for. ──
+    public DateTime CreatedAt { get; set; }
     public List<WarehouseOrderItemDto> Items { get; set; } = [];
 }
 

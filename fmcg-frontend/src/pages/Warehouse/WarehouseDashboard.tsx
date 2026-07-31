@@ -12,6 +12,12 @@ import type { WarehouseOrderDto, RouteDto } from '../../types';
 import { Spinner, Alert, EmptyState } from '../../components/ui';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
+// Real submission time when available, falling back to the business-day
+// OrderDate (stored as midnight UTC) only if createdAt wasn't sent.
+function orderTimestamp(order: { createdAt?: string | null; orderDate: string }): Date {
+  return new Date(order.createdAt || order.orderDate);
+}
+
 // ── Status helpers ────────────────────────────────────────────────────────────
 const PACKING_STATUS = {
   0: { label: 'Pending',  color: 'text-amber-600 bg-amber-50 border border-amber-200', icon: <Clock size={12} /> },
@@ -505,7 +511,7 @@ export default function WarehouseDashboard() {
                       <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text-sub)' }}>
                         {new Date(order.orderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                         <span style={{ display: 'block', fontSize: 11, color: '#94A3B8' }}>
-                          {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                          {orderTimestamp(order).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </td>
                       <td style={{ padding: '10px 14px', fontWeight: 600 }}>{order.salesmanName}</td>

@@ -12,6 +12,15 @@ import { OrderStatus, ORDER_STATUS_LABELS, fmt, fmtDate } from '../../types';
 import { PageLoader, Spinner, Alert, Badge, EmptyState } from '../../components/ui';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
+// Real time the order was actually taken. orderDate only carries the
+// business day (stamped at midnight UTC from the route execution date, so
+// it always renders as the same fixed clock time) — createdAt is the real
+// submission timestamp. Falls back to orderDate only if createdAt wasn't
+// sent by the API.
+function orderTimestamp(order: { createdAt?: string | null; orderDate: string }): Date {
+  return new Date(order.createdAt || order.orderDate);
+}
+
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
   bg:       '#0f172a',
@@ -705,7 +714,7 @@ export function AdminOrders() {
                                 )}
                               </div>
                               <div style={{ fontSize: 12, color: D.sub, marginTop: 2, fontFamily: 'monospace' }}>
-                                #{String(order.id).slice(0, 8)} · {fmtDate(order.orderDate)} at {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                #{String(order.id).slice(0, 8)} · {fmtDate(order.orderDate)} at {orderTimestamp(order).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                               </div>
 
                               {order.closedAt && (

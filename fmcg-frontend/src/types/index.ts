@@ -1,5 +1,5 @@
 // PATH: src/types/index.ts
-// UPDATED: Added SizeGroupDto, UQC fields, ReopenRouteResultDto, and related product/unit types
+// UPDATED: Added SizeGroupDto, UQC fields, and related product/unit types
 
 // ── Route Execution (Salesman daily flow) ─────────────────────────────────────
 export type VisitStatus = 'Pending' | 'OrderPlaced' | 'Skipped' | 'NoOrder';
@@ -214,7 +214,6 @@ export interface SizeGroupDto {
   nameMl?: string;
   description?: string;
   isActive: boolean;
-  sortOrder?: number;      // NEW — report display order (Loading Sheet / Billing Sheet / Size Group Summary); -1 = not yet assigned
   productCount?: number;
   createdDate?: string;
 }
@@ -250,11 +249,6 @@ export interface ProductDto {
     uqc?: string;
     unitSize?: number;    // ← NEW
     incentive?: number;   // ← NEW
-
-    // ── NEW: Out of Stock ──
-    isOutOfStock?: boolean;
-    outOfStockReason?: string;
-    outOfStockMarkedAt?: string;
 }
 
 export interface ProductDetailDto extends ProductDto {
@@ -278,8 +272,6 @@ export interface ProductSearchDto {
   sizeGroupId?:     string;
   sizeGroupName?:   string;
   uqc?:             string;
-  isOutOfStock?:    boolean;
-  outOfStockReason?: string;
 }
 
 // ── Product Unit Price Types ────────────────────────────────────────────────
@@ -470,6 +462,7 @@ export interface OrderDto {
   itemCount?:     number;
   items?:         OrderItemDto[];
   createdDate?:   string;
+  createdAt?:     string;
   remarks?:       string;
   approvedAt?:    string;
   isLocked?:      boolean;
@@ -581,14 +574,6 @@ export interface DailyClosureResultDto {
   message:       string;
 }
 
-// ── NEW: Reopen Route Result ──────────────────────────────────────────────────
-export interface ReopenRouteResultDto {
-  success: boolean;
-  message?: string;
-  ordersUnlocked: number;
-  executionsReopened: number;
-}
-
 // ── Analytics ─────────────────────────────────────────────────────────────────
 export interface DashboardKpisDto {
   todayRevenue:       number;
@@ -660,6 +645,7 @@ export interface WarehouseOrderDto {
   totalQty:      number;
   packingStatus: number;
   packedAt?:     string;
+  createdAt:     string;
   items: {
     productId:     string;
     productName:   string;
