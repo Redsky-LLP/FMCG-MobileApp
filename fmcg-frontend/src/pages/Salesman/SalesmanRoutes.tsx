@@ -818,7 +818,7 @@ function RouteCard({
       transition: 'opacity 0.3s ease, all 0.15s',
     }}>
       <div style={{ padding: '16px 18px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
           <div style={{
             width: 56, height: 56, borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -830,9 +830,9 @@ function RouteCard({
               : <Route size={26} style={{ color: D.accent }} />}
           </div>
 
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: '1 1 160px', minWidth: 160 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: D.text, margin: 0 }}>{route.routeName}</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: D.text, margin: 0, wordBreak: 'break-word' }}>{route.routeName}</h3>
               {isInProgress && (
                 <span style={{
                   fontSize: 10, fontWeight: 700,
@@ -871,7 +871,7 @@ function RouteCard({
             )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0, marginLeft: 'auto' }}>
             {isInProgress ? (
               <button
                 onClick={onContinueOrderTaking}
