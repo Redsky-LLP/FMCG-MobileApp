@@ -113,6 +113,63 @@ public class UsersController : ControllerBase
         var msg = user.IsActive ? "User activated successfully." : "User deactivated successfully.";
         return Ok(Result<bool>.Success(true, msg));
     }
+
+    // DELETE /api/v1/users/{id}
+    // Permanently removes the user row (and its sessions) from the database.
+    // Only allowed on accounts that are already deactivated — deactivate first
+    // if this is still active. This is what actually frees the username/PIN
+    // for reuse; Deactivate alone does not (it only flips IsActive).
+    [HttpDelete("{id}")]
+    public async Task<ActionResult<Result<bool>>> DeleteUser(Guid id)
+    {
+        var callerRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        var callerId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+
+        if (user == null)
+            return NotFound(Result<bool>.Failure("User not found."));
+
+        if (callerId != null && Guid.TryParse(callerId, out var callerGuid) && callerGuid == id)
+            return BadRequest(Result<bool>.Failure("You cannot delete your own account."));
+
+        // Same protection as ToggleActive — Admin cannot remove Admin/SuperAdmin.
+        if (callerRole == "Admin" &&
+            (user.Role == UserRole.SuperAdmin || user.Role == UserRole.Admin))
+        {
+            return BadRequest(Result<bool>.Failure(
+                "Admin cannot delete Admin or SuperAdmin accounts. Contact a SuperAdmin."));
+        }
+
+        if (user.IsActive)
+        {
+            return BadRequest(Result<bool>.Failure(
+                "Deactivate this user first before permanently deleting them."));
+        }
+
+        // Refuse to hard-delete anyone with real order history — deleting the
+        // row would either fail on the RouteExecutions FK or silently orphan
+        // past orders. Keep them deactivated instead; that already hides them
+        // everywhere that matters.
+        var hasHistory = await _context.RouteExecutions
+            .AnyAsync(e => e.SalesmanId == id);
+
+        if (hasHistory)
+        {
+            return BadRequest(Result<bool>.Failure(
+                "This user has order/route history and can't be permanently deleted. " +
+                "It will remain deactivated (hidden from active use, but preserved for records)."));
+        }
+
+        var sessions = _context.UserSessions.Where(s => s.UserId == id);
+        _context.UserSessions.RemoveRange(sessions);
+
+        _context.Users.Remove(user);
+        await _context.SaveChangesAsync();
+
+        return Ok(Result<bool>.Success(true, $"{user.FullName} has been permanently deleted."));
+    }
 }
 
 // ── DTO ───────────────────────────────────────────────────────────────────────
