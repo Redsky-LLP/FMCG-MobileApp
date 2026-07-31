@@ -371,12 +371,34 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
             };
         }
 
+        // ── GUARD 0: block reopening a closure from a PREVIOUS calendar day ──
+        // Reopen() only flips the execution's Status back to InProgress — it never
+        // touches ExecutionDate. So reopening a route closed on, say, 30-Jul while
+        // it's now 31-Jul revives that SAME execution row still stamped with
+        // ExecutionDate = 30-Jul. Every new visit/order the salesman then takes
+        // inherits that stale date (CreateOrderCommandHandler stamps
+        // OrderDate = execution.ExecutionDate), which is exactly how "today's"
+        // orders end up showing as yesterday's. A new calendar day already means
+        // a fresh cycle is available via the normal Take Orders flow — Reopen is
+        // only meaningful for undoing a same-day closure mistake.
+        if (closure.ClosureDate.Date != DateTime.UtcNow.Date)
+        {
+            return new ReopenRouteResultDto
+            {
+                Success = false,
+                Message = $"{route.Name} was closed on {closure.ClosureDate:dd MMM yyyy}, not today. " +
+                    "A new day already means a fresh cycle is available — just have the salesman tap " +
+                    "Take Orders to start today's cycle instead of reopening yesterday's."
+            };
+        }
+
         // ── GUARD 1: block if the route has already been restarted ──
         // If a new InProgress execution exists, the salesman is already mid-way
         // through a fresh cycle; reopening the old closure now would collide
         // with it and corrupt state.
         var hasActiveExecution = await context.RouteExecutions
             .AnyAsync(e => !e.IsDeleted && e.RouteId == routeId && e.Status == ExecutionStatus.InProgress, cancellationToken);
+
 
         if (hasActiveExecution)
         {
