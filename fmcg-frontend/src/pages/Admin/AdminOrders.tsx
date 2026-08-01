@@ -714,7 +714,7 @@ export function AdminOrders() {
                                 )}
                               </div>
                               <div style={{ fontSize: 12, color: D.sub, marginTop: 2, fontFamily: 'monospace' }}>
-                                #{String(order.id).slice(0, 8)} · {fmtDate(order.orderDate)} at {orderTimestamp(order).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                #{String(order.id).slice(0, 8)} · {fmtDate(orderTimestamp(order))} at {orderTimestamp(order).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                               </div>
 
                               {order.closedAt && (
