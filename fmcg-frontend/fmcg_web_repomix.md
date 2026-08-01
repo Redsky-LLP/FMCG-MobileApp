@@ -1423,7 +1423,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.v2mqjsnikn4"
+    "revision": "0.icsol7sdi8o"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -66943,6 +66943,9 @@ export const usersApi = {
     get<UserDto[]>('/api/v1/users/all', role ? { role } : undefined),
   toggleActive: (id: string) =>
     patch<boolean>(`/api/v1/users/${id}/toggle-active`),
+  // ── NEW: permanent delete (only valid on already-deactivated accounts) ──
+  deleteUser: (id: string) =>
+    del<boolean>(`/api/v1/users/${id}`),
 };
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -76866,6 +76869,15 @@ import { OrderStatus, ORDER_STATUS_LABELS, fmt, fmtDate } from '../../types';
 import { PageLoader, Spinner, Alert, Badge, EmptyState } from '../../components/ui';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
+// Real time the order was actually taken. orderDate only carries the
+// business day (stamped at midnight UTC from the route execution date, so
+// it always renders as the same fixed clock time) — createdAt is the real
+// submission timestamp. Falls back to orderDate only if createdAt wasn't
+// sent by the API.
+function orderTimestamp(order: { createdAt?: string | null; orderDate: string }): Date {
+  return new Date(order.createdAt || order.orderDate);
+}
+
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
   bg:       '#0f172a',
@@ -77559,7 +77571,7 @@ export function AdminOrders() {
                                 )}
                               </div>
                               <div style={{ fontSize: 12, color: D.sub, marginTop: 2, fontFamily: 'monospace' }}>
-                                #{String(order.id).slice(0, 8)} · {fmtDate(order.orderDate)} at {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                #{String(order.id).slice(0, 8)} · {fmtDate(order.orderDate)} at {orderTimestamp(order).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                               </div>
 
                               {order.closedAt && (
@@ -78482,8 +78494,8 @@ export function AdminProducts() {
   const [addForm, setAddForm] = useState(emptyForm);
   const [editForm, setEditForm] = useState(emptyForm);
 
-  async function loadAll() {
-    setLoading(true);
+  async function loadAll(silent = false) {
+    if (!silent) setLoading(true);
     try {
       const [p, g, u, sg, pri] = await Promise.all([
         productsApi.getAll(groupFilter ? { productGroupId: groupFilter } : undefined),
@@ -78504,7 +78516,7 @@ export function AdminProducts() {
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Load failed');
-    } finally { setLoading(false); }
+    } finally { if (!silent) setLoading(false); }
   }
 
   useEffect(() => { loadAll(); }, [groupFilter]);
@@ -78590,7 +78602,7 @@ export function AdminProducts() {
       });
       setShowAdd(false);
       setAddForm(emptyForm);
-      loadAll();
+      loadAll(true);
     } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Save failed'); }
     finally { setSaving(false); }
   }
@@ -78636,7 +78648,7 @@ export function AdminProducts() {
         Incentive: editForm.incentive ? parseFloat(editForm.incentive) : 0,
       });
       setEditModal(null);
-      loadAll();
+      loadAll(true);
     } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Save failed'); }
     finally { setSaving(false); }
   }
@@ -78647,7 +78659,7 @@ export function AdminProducts() {
     try {
       await productsApi.updateBasePrice(priceModal.id, parseFloat(newPrice), priceReason || undefined);
       setPriceModal(null);
-      loadAll();
+      loadAll(true);
     } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Price update failed'); }
     finally { setSaving(false); }
   }
@@ -78655,7 +78667,7 @@ export function AdminProducts() {
   async function handleDelete() {
     if (!confirm) return;
     setDeleting(true);
-    try { await productsApi.delete(confirm); setConfirm(null); loadAll(); }
+    try { await productsApi.delete(confirm); setConfirm(null); loadAll(true); }
     catch (err: unknown) { setError(err instanceof Error ? err.message : 'Delete failed'); }
     finally { setDeleting(false); }
   }
@@ -78681,7 +78693,7 @@ export function AdminProducts() {
     setTogglingStockId(p.id);
     try {
       await productsApi.updateStockStatus(p.id, goingOut, reason);
-      loadAll();
+      loadAll(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to update stock status');
     } finally {
@@ -78754,7 +78766,7 @@ export function AdminProducts() {
           </Link>
           
           <button 
-            onClick={loadAll} 
+            onClick={() => loadAll()} 
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '9px 14px', borderRadius: 9,
@@ -83847,6 +83859,10 @@ export function AdminUsers() {
   const [toggling,     setToggling]     = useState<string | null>(null);
   const [toggleTarget, setToggleTarget] = useState<UserDto | null>(null);
 
+  // ── NEW: Permanent delete (only offered on already-inactive accounts) ──
+  const [deleting,     setDeleting]     = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserDto | null>(null);
+
   // ── NEW: Act as Salesman (Admin Override via Master PIN) ──
   const [overrideModal,   setOverrideModal]   = useState<UserDto | null>(null);
   const [overridePin,     setOverridePin]     = useState('');
@@ -83870,11 +83886,25 @@ export function AdminUsers() {
   const [pinAvailability, setPinAvailability] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [pinConflictName, setPinConflictName] = useState('');
 
+  // ── NEW: auto-dismiss toasts after 3 seconds (✕ button still works for manual dismiss) ──
+  useEffect(() => {
+    if (!success) return;
+    const t = setTimeout(() => setSuccess(''), 3000);
+    return () => clearTimeout(t);
+  }, [success]);
+
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(''), 3000);
+    return () => clearTimeout(t);
+  }, [error]);
+
  async function load() {
   setLoading(true); setError('');
   try {
-    // ── CHANGE: Only get active users ──
-    const all = await usersApi.getAll(
+    // ── CHANGE: include inactive users so a deactivated account is still
+    // visible (and reactivatable) instead of silently disappearing ──
+    const all = await usersApi.getAllWithInactive(
       roleFilter === 'All' ? undefined : roleFilter
     );
     setUsers(all);
@@ -83899,6 +83929,22 @@ export function AdminUsers() {
       setError(err instanceof Error ? err.message : 'Failed to update user status');
       setToggleTarget(null);
     } finally { setToggling(null); }
+  }
+
+  // ── NEW: Permanent delete ──
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    setDeleting(deleteTarget.id);
+    setError('');
+    try {
+      await usersApi.deleteUser(deleteTarget.id);
+      setSuccess(`${deleteTarget.fullName} has been permanently deleted.`);
+      setDeleteTarget(null);
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to delete user');
+      setDeleteTarget(null);
+    } finally { setDeleting(null); }
   }
 
   function openPinModal(u: UserDto) {
@@ -84124,9 +84170,20 @@ export function AdminUsers() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 900, color: D.text, margin: 0, letterSpacing: '-0.02em' }}>Users</h1>
-            <p style={{ color: D.muted, fontSize: 13, marginTop: 4, fontWeight: 500 }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              marginTop: 6,
+              padding: '3px 10px',
+              borderRadius: 12,
+              background: `${D.accent}18`,
+              border: `1px solid ${D.accent}44`,
+              color: D.accent,
+              fontSize: 13,
+              fontWeight: 800,
+            }}>
               {users.length} user{users.length !== 1 ? 's' : ''}
-            </p>
+            </span>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button
@@ -84181,8 +84238,52 @@ export function AdminUsers() {
           </div>
         </div>
 
-        {error   && <Alert variant="error">{error}</Alert>}
-        {success && <Alert variant="success">{success}</Alert>}
+        {error && (
+          <div style={{
+            margin: '0 0 16px',
+            padding: '12px 16px',
+            borderRadius: 10,
+            background: 'rgba(239,68,68,0.15)',
+            border: '1px solid #ef4444',
+            color: D.red,
+            fontSize: 13,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <span>{error}</span>
+            <button
+              onClick={() => setError('')}
+              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 16, fontWeight: 700 }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        {success && (
+          <div style={{
+            margin: '0 0 16px',
+            padding: '12px 16px',
+            borderRadius: 10,
+            background: 'rgba(34,197,94,0.15)',
+            border: '1px solid #22c55e',
+            color: D.green,
+            fontSize: 13,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <span>{success}</span>
+            <button
+              onClick={() => setSuccess('')}
+              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 16, fontWeight: 700 }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* Filters */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -84352,6 +84453,30 @@ export function AdminUsers() {
                         : <><UserCheck size={13} /> Activate</>
                     }
                   </button>
+                  {!u.isActive && (
+                    <button
+                      onClick={() => setDeleteTarget(u)}
+                      disabled={deleting === u.id}
+                      title="Permanently delete this account"
+                      style={{
+                        flex: 1, justifyContent: 'center', minWidth: 100,
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        border: `1px solid ${D.red}`,
+                        background: 'transparent',
+                        color: D.red,
+                        fontSize: 12, fontWeight: 600,
+                        cursor: deleting === u.id ? 'not-allowed' : 'pointer',
+                        fontFamily: 'inherit',
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        transition: 'all 0.12s',
+                      }}
+                      onMouseEnter={e => { if (deleting !== u.id) (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.10)'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                    >
+                      {deleting === u.id ? <Spinner size={13} /> : <><Trash2 size={13} /> Delete</>}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -84486,6 +84611,29 @@ export function AdminUsers() {
                                 : <><UserCheck size={12} /> Activate</>
                             }
                           </button>
+                          {!u.isActive && (
+                            <button
+                              onClick={() => setDeleteTarget(u)}
+                              disabled={deleting === u.id}
+                              title="Permanently delete this account"
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: 7,
+                                border: `1px solid ${D.red}`,
+                                background: 'transparent',
+                                color: D.red,
+                                fontSize: 12, fontWeight: 600,
+                                cursor: deleting === u.id ? 'not-allowed' : 'pointer',
+                                fontFamily: 'inherit',
+                                display: 'flex', alignItems: 'center', gap: 4,
+                                transition: 'all 0.12s',
+                              }}
+                              onMouseEnter={e => { if (deleting !== u.id) (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.10)'; }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                            >
+                              {deleting === u.id ? <Spinner size={12} /> : <><Trash2 size={12} /> Delete</>}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -84840,6 +84988,18 @@ export function AdminUsers() {
           loading={!!toggling}
           onConfirm={handleToggleConfirm}
           onCancel={() => setToggleTarget(null)}
+        />
+
+        {/* NEW: Permanent delete confirmation */}
+        <ConfirmModal
+          open={!!deleteTarget}
+          title="Delete User Permanently"
+          message={`This permanently removes ${deleteTarget?.fullName} and their login sessions from the database. This cannot be undone. Their username and PIN become free to reuse immediately. Continue?`}
+          confirmLabel="Delete Permanently"
+          danger
+          loading={!!deleting}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteTarget(null)}
         />
       </div>
     </div>
@@ -90652,6 +90812,12 @@ import { Spinner } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
+// Real submission time when available, falling back to the business-day
+// OrderDate (stored as midnight UTC) only if createdAt wasn't sent.
+function orderTimestamp(order: { createdAt?: string | null; orderDate: string }): Date {
+  return new Date(order.createdAt || order.orderDate);
+}
+
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
   bg:       '#0f172a',
@@ -90739,7 +90905,7 @@ function OrderCard({
             <span style={{ fontSize: 12, color: D.sub }}>📦 {order.items?.length ?? 0} items</span>
             <span style={{ fontSize: 12, color: D.sub }}>📊 {order.items?.reduce((s, i) => s + i.quantity, 0) ?? 0} units</span>
             <span style={{ fontSize: 12, color: D.sub }}>
-              🕐 {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+              🕐 {orderTimestamp(order).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
           <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: D.text }}>₹{fmt(order.totalAmount ?? 0)}</p>
@@ -91189,6 +91355,12 @@ export function SalesmanRoutes() {
   const [confirmRoute, setConfirmRoute] = useState<string | null>(null);
   const [confirmRouteName, setConfirmRouteName] = useState<string>('');
 
+  // ─── Banner toast (persistent until manually dismissed via ✕) ───
+  const [bannerToast, setBannerToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  function showBannerToast(message: string, type: 'success' | 'error' = 'error') {
+    setBannerToast({ message, type });
+  }
+
   async function load() {
     setLoading(true); setError('');
     try {
@@ -91310,7 +91482,11 @@ export function SalesmanRoutes() {
     }
 
     if (isRouteAlreadyCompleted(routeId)) {
-      setError('This route is already completed for today.');
+      const route = routes.find(r => r.routeId === routeId);
+      showBannerToast(
+        `${route?.routeName || 'This route'} was already closed for today. ` +
+        `Ask Admin to reopen it if more orders are needed — a new cycle can only start from tomorrow.`
+      );
       await load();
       return;
     }
@@ -91339,7 +91515,7 @@ export function SalesmanRoutes() {
       const existing = await routesApi.getCurrentExecution(routeId).catch(() => null);
 
       if (existing?.executionId && existing.status === 'Completed') {
-        setError('This route is already completed for today.');
+        showBannerToast('This route is already completed for today.');
         await load();
         return;
       }
@@ -91352,7 +91528,9 @@ export function SalesmanRoutes() {
       await routesApi.startOrderTaking(routeId);
       navigate(`/salesman/routes/${routeId}/execute`, { state: { mode: 'order-taking' } });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to start order taking');
+      const message = err instanceof Error ? err.message : 'Failed to start order taking';
+      showBannerToast(message);
+      setError(message);
       await load();
     } finally { 
       setStarting(null); 
@@ -91492,6 +91670,30 @@ export function SalesmanRoutes() {
           </div>
         )}
       </div>
+
+      {bannerToast && (
+        <div style={{
+          margin: '12px 20px 0',
+          padding: '12px 16px',
+          borderRadius: 10,
+          background: bannerToast.type === 'success' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+          border: bannerToast.type === 'success' ? '1px solid #22c55e' : '1px solid #ef4444',
+          color: bannerToast.type === 'success' ? '#22c55e' : '#ef4444',
+          fontSize: 13,
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <span>{bannerToast.message}</span>
+          <button
+            onClick={() => setBannerToast(null)}
+            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 16, fontWeight: 700 }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {error && (
         <div style={{
@@ -91895,7 +92097,7 @@ function RouteCard({
       transition: 'opacity 0.3s ease, all 0.15s',
     }}>
       <div style={{ padding: '16px 18px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
           <div style={{
             width: 56, height: 56, borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -91907,9 +92109,9 @@ function RouteCard({
               : <Route size={26} style={{ color: D.accent }} />}
           </div>
 
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: '1 1 160px', minWidth: 160 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: D.text, margin: 0 }}>{route.routeName}</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: D.text, margin: 0, wordBreak: 'break-word' }}>{route.routeName}</h3>
               {isInProgress && (
                 <span style={{
                   fontSize: 10, fontWeight: 700,
@@ -91948,7 +92150,7 @@ function RouteCard({
             )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0, marginLeft: 'auto' }}>
             {isInProgress ? (
               <button
                 onClick={onContinueOrderTaking}
@@ -92108,6 +92310,12 @@ import { warehouseApi, routesApi } from '../../api/services';
 import type { WarehouseOrderDto, RouteDto } from '../../types';
 import { Spinner, Alert, EmptyState } from '../../components/ui';
 import { useIsMobile } from '../../hooks/useIsMobile';
+
+// Real submission time when available, falling back to the business-day
+// OrderDate (stored as midnight UTC) only if createdAt wasn't sent.
+function orderTimestamp(order: { createdAt?: string | null; orderDate: string }): Date {
+  return new Date(order.createdAt || order.orderDate);
+}
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 const PACKING_STATUS = {
@@ -92602,7 +92810,7 @@ export default function WarehouseDashboard() {
                       <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text-sub)' }}>
                         {new Date(order.orderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                         <span style={{ display: 'block', fontSize: 11, color: '#94A3B8' }}>
-                          {new Date(order.orderDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                          {orderTimestamp(order).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </td>
                       <td style={{ padding: '10px 14px', fontWeight: 600 }}>{order.salesmanName}</td>

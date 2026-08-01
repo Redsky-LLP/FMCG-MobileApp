@@ -523,6 +523,19 @@ export function AdminUsers() {
   const [pinAvailability, setPinAvailability] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [pinConflictName, setPinConflictName] = useState('');
 
+  // ── NEW: auto-dismiss toasts after 3 seconds (✕ button still works for manual dismiss) ──
+  useEffect(() => {
+    if (!success) return;
+    const t = setTimeout(() => setSuccess(''), 3000);
+    return () => clearTimeout(t);
+  }, [success]);
+
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(''), 3000);
+    return () => clearTimeout(t);
+  }, [error]);
+
  async function load() {
   setLoading(true); setError('');
   try {
@@ -794,9 +807,20 @@ export function AdminUsers() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 900, color: D.text, margin: 0, letterSpacing: '-0.02em' }}>Users</h1>
-            <p style={{ color: D.muted, fontSize: 13, marginTop: 4, fontWeight: 500 }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              marginTop: 6,
+              padding: '3px 10px',
+              borderRadius: 12,
+              background: `${D.accent}18`,
+              border: `1px solid ${D.accent}44`,
+              color: D.accent,
+              fontSize: 13,
+              fontWeight: 800,
+            }}>
               {users.length} user{users.length !== 1 ? 's' : ''}
-            </p>
+            </span>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button

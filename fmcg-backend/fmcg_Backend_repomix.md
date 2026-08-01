@@ -333658,6 +333658,63 @@ public class UsersController : ControllerBase
         var msg = user.IsActive ? "User activated successfully." : "User deactivated successfully.";
         return Ok(Result<bool>.Success(true, msg));
     }
+
+    // DELETE /api/v1/users/{id}
+    // Permanently removes the user row (and its sessions) from the database.
+    // Only allowed on accounts that are already deactivated — deactivate first
+    // if this is still active. This is what actually frees the username/PIN
+    // for reuse; Deactivate alone does not (it only flips IsActive).
+    [HttpDelete("{id}")]
+    public async Task<ActionResult<Result<bool>>> DeleteUser(Guid id)
+    {
+        var callerRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        var callerId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+
+        if (user == null)
+            return NotFound(Result<bool>.Failure("User not found."));
+
+        if (callerId != null && Guid.TryParse(callerId, out var callerGuid) && callerGuid == id)
+            return BadRequest(Result<bool>.Failure("You cannot delete your own account."));
+
+        // Same protection as ToggleActive — Admin cannot remove Admin/SuperAdmin.
+        if (callerRole == "Admin" &&
+            (user.Role == UserRole.SuperAdmin || user.Role == UserRole.Admin))
+        {
+            return BadRequest(Result<bool>.Failure(
+                "Admin cannot delete Admin or SuperAdmin accounts. Contact a SuperAdmin."));
+        }
+
+        if (user.IsActive)
+        {
+            return BadRequest(Result<bool>.Failure(
+                "Deactivate this user first before permanently deleting them."));
+        }
+
+        // Refuse to hard-delete anyone with real order history — deleting the
+        // row would either fail on the RouteExecutions FK or silently orphan
+        // past orders. Keep them deactivated instead; that already hides them
+        // everywhere that matters.
+        var hasHistory = await _context.RouteExecutions
+            .AnyAsync(e => e.SalesmanId == id);
+
+        if (hasHistory)
+        {
+            return BadRequest(Result<bool>.Failure(
+                "This user has order/route history and can't be permanently deleted. " +
+                "It will remain deactivated (hidden from active use, but preserved for records)."));
+        }
+
+        var sessions = _context.UserSessions.Where(s => s.UserId == id);
+        _context.UserSessions.RemoveRange(sessions);
+
+        _context.Users.Remove(user);
+        await _context.SaveChangesAsync();
+
+        return Ok(Result<bool>.Success(true, $"{user.FullName} has been permanently deleted."));
+    }
 }
 
 // ── DTO ───────────────────────────────────────────────────────────────────────
@@ -333929,6 +333986,7 @@ public class WarehouseController(IApplicationDbContext context) : ControllerBase
             TotalQty = o.Items?.Sum(i => i.Quantity) ?? 0,
             PackingStatus = (int)o.PackingStatus,
             PackedAt = o.PackedAt,
+            CreatedAt = o.CreatedAt,
             Items = o.Items?.Select(i => new WarehouseOrderItemDto
             {
                 ProductId = i.ProductId,
@@ -333957,6 +334015,11 @@ public class WarehouseOrderDto
     public decimal TotalQty { get; set; }
     public int PackingStatus { get; set; }
     public DateTime? PackedAt { get; set; }
+    // ── NEW: real order-submission timestamp. OrderDate only carries the
+    // business day (stamped at midnight UTC from the route execution date),
+    // so it can't be used to show "what time was this order actually taken" —
+    // that's what CreatedAt is for. ──
+    public DateTime CreatedAt { get; set; }
     public List<WarehouseOrderItemDto> Items { get; set; } = [];
 }
 
@@ -344615,6 +344678,17 @@ public class StartRouteExecutionResponse
 // the correct ones: a route already taken by someone else stays locked
 // ("Taken by X"), and a salesman can't run two routes of their own at once.
 // Delivery mode still requires day closure and CLOSED orders.
+//
+// UPDATED: Added a guard against re-starting a route that Admin already
+// closed (Completed) for THIS exact calendar date. Previously, tapping
+// "Take Orders" right after Close (even by accident) silently created a
+// second RouteExecution for the same date — same customers got a second
+// CustomerVisit/Order row, showing up as duplicates on the Orders screen —
+// and it also made the original closure un-reopenable, since Reopen refuses
+// once a newer cycle exists for the route. Now that path is blocked with a
+// clear message pointing to Reopen. This only applies to the SAME date —
+// once the calendar date rolls over, the route is fresh and startable as
+// normal, same as before.
 
 using System;
 using System.Collections.Generic;
@@ -344714,6 +344788,32 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
                 TotalCustomers = totalCustomers,
                 IsOrderTaking = existingExecution.ExecutionType == ExecutionType.OrderTaking,
             }, "Resuming existing route execution.");
+        }
+
+        // ── GUARD: block a brand-new cycle for this route on a date that was
+        // already closed (Completed) by Admin. Without this, "Take Orders"
+        // tapped right after Close would silently spin up a second
+        // RouteExecution for the same date — the same customers would get a
+        // second CustomerVisit/Order row, showing up as duplicates on the
+        // Orders screen — and the original closure would also become
+        // un-reopenable, since Reopen refuses once a newer cycle exists.
+        // Scoped strictly to e.ExecutionDate.Date == executionDate.Date, so
+        // this never touches yesterday's (or any other date's) executions —
+        // the route is fresh and startable as normal from the next day on. ──
+        var closedTodayExecution = await context.RouteExecutions
+            .Where(e => e.RouteId == request.RouteId
+                && e.Status == ExecutionStatus.Completed
+                && !e.IsDeleted
+                && e.ExecutionDate.Date == executionDate.Date)
+            .OrderByDescending(e => e.ExecutionDate)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (closedTodayExecution != null)
+        {
+            return Result<StartRouteExecutionResponse>.Failure(
+                $"{route.Name} was already closed for {executionDate:dd MMM yyyy}. " +
+                "Please reopen it if more orders are needed today — Admin can do this from the Orders screen. " +
+                "A new cycle can only start from tomorrow.");
         }
 
         // Guard: no other open execution on a different route, regardless of
@@ -346418,12 +346518,17 @@ public class CreateSalesmanCommandHandler : IRequestHandler<CreateSalesmanComman
             return Result<CreateSalesmanResponse>.Failure("Username is required.");
         }
 
-        // Check uniqueness
+        // Check uniqueness — excludes soft-deleted accounts (a deleted user's
+        // username should be reusable). Deliberately still includes INACTIVE
+        // (deactivated) accounts here — reactivate that one from the Users
+        // list instead of creating a second account with the same username.
         var exists = await _context.Users.AnyAsync(
-            u => u.UserName == request.UserName, cancellationToken);
+            u => u.UserName == request.UserName && !u.IsDeleted, cancellationToken);
         if (exists)
         {
-            return Result<CreateSalesmanResponse>.Failure("Username already taken.");
+            return Result<CreateSalesmanResponse>.Failure(
+                "Username already taken. If this belongs to a deactivated account, " +
+                "reactivate it from the Users list instead of creating a new one.");
         }
 
         // ── Validate Full Name ──
