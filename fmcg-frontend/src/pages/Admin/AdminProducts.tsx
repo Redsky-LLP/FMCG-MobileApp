@@ -452,8 +452,8 @@ export function AdminProducts() {
   const [addForm, setAddForm] = useState(emptyForm);
   const [editForm, setEditForm] = useState(emptyForm);
 
-  async function loadAll() {
-    setLoading(true);
+  async function loadAll(silent = false) {
+    if (!silent) setLoading(true);
     try {
       const [p, g, u, sg, pri] = await Promise.all([
         productsApi.getAll(groupFilter ? { productGroupId: groupFilter } : undefined),
@@ -474,7 +474,7 @@ export function AdminProducts() {
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Load failed');
-    } finally { setLoading(false); }
+    } finally { if (!silent) setLoading(false); }
   }
 
   useEffect(() => { loadAll(); }, [groupFilter]);
@@ -560,7 +560,7 @@ export function AdminProducts() {
       });
       setShowAdd(false);
       setAddForm(emptyForm);
-      loadAll();
+      loadAll(true);
     } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Save failed'); }
     finally { setSaving(false); }
   }
@@ -606,7 +606,7 @@ export function AdminProducts() {
         Incentive: editForm.incentive ? parseFloat(editForm.incentive) : 0,
       });
       setEditModal(null);
-      loadAll();
+      loadAll(true);
     } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Save failed'); }
     finally { setSaving(false); }
   }
@@ -617,7 +617,7 @@ export function AdminProducts() {
     try {
       await productsApi.updateBasePrice(priceModal.id, parseFloat(newPrice), priceReason || undefined);
       setPriceModal(null);
-      loadAll();
+      loadAll(true);
     } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Price update failed'); }
     finally { setSaving(false); }
   }
@@ -625,7 +625,7 @@ export function AdminProducts() {
   async function handleDelete() {
     if (!confirm) return;
     setDeleting(true);
-    try { await productsApi.delete(confirm); setConfirm(null); loadAll(); }
+    try { await productsApi.delete(confirm); setConfirm(null); loadAll(true); }
     catch (err: unknown) { setError(err instanceof Error ? err.message : 'Delete failed'); }
     finally { setDeleting(false); }
   }
@@ -651,7 +651,7 @@ export function AdminProducts() {
     setTogglingStockId(p.id);
     try {
       await productsApi.updateStockStatus(p.id, goingOut, reason);
-      loadAll();
+      loadAll(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to update stock status');
     } finally {
@@ -724,7 +724,7 @@ export function AdminProducts() {
           </Link>
           
           <button 
-            onClick={loadAll} 
+            onClick={() => loadAll()} 
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '9px 14px', borderRadius: 9,

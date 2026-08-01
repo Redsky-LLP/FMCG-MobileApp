@@ -371,21 +371,36 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
             };
         }
 
-        // ── GUARD 1: block if the route has already been restarted ──
-        // If a new InProgress execution exists, the salesman is already mid-way
-        // through a fresh cycle; reopening the old closure now would collide
-        // with it and corrupt state.
-        var hasActiveExecution = await context.RouteExecutions
-            .AnyAsync(e => !e.IsDeleted && e.RouteId == routeId && e.Status == ExecutionStatus.InProgress, cancellationToken);
+        // ── GUARD 1: block if the route has already been restarted WITH real
+        // progress. A brand new execution that's still all-Pending (salesman
+        // tapped "Take Orders" by mistake, hasn't touched a single stop yet) has
+        // nothing to collide with — auto-abandon it and let the reopen proceed,
+        // instead of forcing the admin to ask the salesman to manually close it
+        // first for what amounts to an empty, throwaway cycle. Only a cycle with
+        // at least one non-Pending visit (an order placed, a stop skipped, etc.)
+        // actually represents work that reopening the old cycle could collide
+        // with — that's the only case still worth blocking. ──
+        var newExecution = await context.RouteExecutions
+            .Include(e => e.Visits)
+            .FirstOrDefaultAsync(e => !e.IsDeleted && e.RouteId == routeId && e.Status == ExecutionStatus.InProgress, cancellationToken);
 
-        if (hasActiveExecution)
+        if (newExecution != null)
         {
-            Console.WriteLine($"[ReopenRoute] Blocked: {route.Name} already has a new execution in progress.");
-            return new ReopenRouteResultDto
+            var hasRealProgress = newExecution.Visits?.Any(v => v.Status != VisitStatus.Pending) ?? false;
+
+            if (hasRealProgress)
             {
-                Success = false,
-                Message = $"{route.Name} has already started a new cycle since it was closed — it can't be reopened. Ask the salesman to close that new cycle first if this was a mistake."
-            };
+                Console.WriteLine($"[ReopenRoute] Blocked: {route.Name} already has a new execution in progress.");
+                return new ReopenRouteResultDto
+                {
+                    Success = false,
+                    Message = $"{route.Name} has already started a new cycle since it was closed — it can't be reopened. Ask the salesman to close that new cycle first if this was a mistake."
+                };
+            }
+
+            // Empty cycle, nothing done yet — safe to discard automatically.
+            newExecution.Abandon();
+            Console.WriteLine($"[ReopenRoute] Auto-abandoned an empty new cycle for {route.Name} (no progress yet) so the reopen could proceed.");
         }
 
         // ── BUG FIX: this used to grab every locked order with OrderDate <=
@@ -511,6 +526,15 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
 
         foreach (var execution in executionsToReopen)
         {
+            // ── Reopen() only flips Status back to InProgress — deliberately
+            // leave ExecutionDate untouched. A customer missed on the route's
+            // original day (e.g. Chengannur's 31-Jul run) and only filled in
+            // later must still be dated 31-Jul, not whatever day the salesman
+            // got around to it — that's the exact same rule
+            // CreateOrderCommandHandler already documents and relies on
+            // (OrderDate = execution.ExecutionDate). Bumping the date here
+            // would silently contradict that and misdate every missed-stop
+            // order taken after a reopen. ──
             execution.Reopen();
         }
         Console.WriteLine($"[ReopenRoute] Reopened {executionsToReopen.Count} execution(s) for {route.Name}");

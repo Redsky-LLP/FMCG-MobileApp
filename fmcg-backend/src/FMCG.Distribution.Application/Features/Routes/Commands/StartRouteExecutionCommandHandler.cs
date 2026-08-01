@@ -66,9 +66,17 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
                 "This route is permanently assigned to another salesman. Ask your admin to reassign it if needed.");
         }
 
+        // ── IST FIX: India Standard Time is fixed at UTC+5:30 (no DST), so it's
+        // safe to compute it directly from UtcNow. Using raw DateTime.UtcNow.Date
+        // here meant that between 00:00 and 05:29 IST, the server's UTC clock
+        // still reads YESTERDAY's date — so a route closed "yesterday" (IST)
+        // looked like it was closed "today" (UTC) during that window, wrongly
+        // re-triggering the same-day-already-closed block right after midnight
+        // IST, even though the salesman's screen correctly showed the new day. ──
+        var istNow = DateTime.UtcNow.AddHours(5).AddMinutes(30);
         var executionDate = request.ExecutionDate.HasValue && request.IsAdmin
             ? request.ExecutionDate.Value.Date
-            : DateTime.UtcNow.Date;
+            : istNow.Date;
 
         // Resume existing execution if any — not scoped to today's date, since
         // an open execution from yesterday must still be resumable here until
@@ -118,25 +126,30 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
             }, "Resuming existing route execution.");
         }
 
-        // ── GUARD: block a brand-new cycle for this route on a date that was
-        // already closed (Completed) by Admin. Without this, "Take Orders"
-        // tapped right after Close would silently spin up a second
-        // RouteExecution for the same date — the same customers would get a
-        // second CustomerVisit/Order row, showing up as duplicates on the
-        // Orders screen — and the original closure would also become
-        // un-reopenable, since Reopen refuses once a newer cycle exists.
-        // Scoped strictly to e.ExecutionDate.Date == executionDate.Date, so
-        // this never touches yesterday's (or any other date's) executions —
-        // the route is fresh and startable as normal from the next day on. ──
-        var closedTodayExecution = await context.RouteExecutions
-            .Where(e => e.RouteId == request.RouteId
-                && e.Status == ExecutionStatus.Completed
-                && !e.IsDeleted
-                && e.ExecutionDate.Date == executionDate.Date)
-            .OrderByDescending(e => e.ExecutionDate)
+        // ── GUARD: block a brand-new cycle for this route on a date that's
+        // still actively closed by Admin. Without this, "Take Orders" tapped
+        // right after Close would silently spin up a second RouteExecution for
+        // the same date — the same customers would get a second
+        // CustomerVisit/Order row, showing up as duplicates on the Orders
+        // screen — and the original closure would also become un-reopenable,
+        // since Reopen refuses once a newer cycle exists.
+        //
+        // IMPORTANT: this checks DailyClosure, not RouteExecution.ExecutionDate.
+        // ExecutionDate gets deliberately bumped forward by ReopenRouteAsync
+        // when a stale closure is reopened on a later day (so new orders date
+        // correctly) — which means ExecutionDate can legitimately drift away
+        // from the closure's actual ClosureDate. Checking the closure itself
+        // is the only reliable source of truth for "is this route closed for
+        // THIS date", and isn't affected by that drift. ──
+        var closedTodayClosure = await context.DailyClosures
+            .Where(c => c.RouteId == request.RouteId
+                && c.IsActive
+                && !c.IsDeleted
+                && c.ClosureDate.Date == executionDate.Date)
+            .OrderByDescending(c => c.ClosureDate)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (closedTodayExecution != null)
+        if (closedTodayClosure != null)
         {
             return Result<StartRouteExecutionResponse>.Failure(
                 $"{route.Name} was already closed for {executionDate:dd MMM yyyy}. " +

@@ -714,7 +714,7 @@ export function AdminOrders() {
                                 )}
                               </div>
                               <div style={{ fontSize: 12, color: D.sub, marginTop: 2, fontFamily: 'monospace' }}>
-                                #{String(order.id).slice(0, 8)} · {fmtDate(order.orderDate)} at {orderTimestamp(order).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                #{String(order.id).slice(0, 8)} · {fmtDate(orderTimestamp(order))} at {orderTimestamp(order).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                               </div>
 
                               {order.closedAt && (
@@ -1058,8 +1058,20 @@ export function AdminOrders() {
             />
 
             {closeDayError && (
-              <div style={{ marginBottom: 12 }}>
-                <Alert variant="error">{closeDayError}</Alert>
+              <div style={{
+                marginBottom: 12,
+                padding: '12px 14px',
+                borderRadius: 10,
+                background: 'rgba(239,68,68,0.12)',
+                border: `1px solid ${D.red}66`,
+                display: 'flex',
+                gap: 10,
+                alignItems: 'flex-start',
+              }}>
+                <AlertTriangle size={17} color={D.red} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div style={{ fontSize: 13, color: D.text, lineHeight: 1.5, fontWeight: 500 }}>
+                  {closeDayError}
+                </div>
               </div>
             )}
 
@@ -1121,10 +1133,23 @@ export function AdminOrders() {
             </p>
 
             {closeDayError && (
-              <div style={{ marginBottom: 12 }}>
-                <Alert variant="error">{closeDayError}</Alert>
+              <div style={{
+                marginBottom: 12,
+                padding: '12px 14px',
+                borderRadius: 10,
+                background: 'rgba(239,68,68,0.12)',
+                border: `1px solid ${D.red}66`,
+                display: 'flex',
+                gap: 10,
+                alignItems: 'flex-start',
+              }}>
+                <AlertTriangle size={17} color={D.red} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div style={{ fontSize: 13, color: D.text, lineHeight: 1.5, fontWeight: 500 }}>
+                  {closeDayError}
+                </div>
               </div>
             )}
+
 
             <div style={{ display: 'flex', gap: 8 }}>
               <button
