@@ -339,7 +339,13 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                     // above so remarks line up directly under the PRODUCT column.
                                     if (order.Remarks != null)
                                     {
-                                        stopCol.Item().AlignCenter().Width(480).PaddingLeft(5).PaddingTop(4)
+                                        stopCol.Item().AlignCenter().Width(520).PaddingTop(6).PaddingBottom(4)
+                                              .LineHorizontal(2.5f);  // Thicker than default (2.5pt)
+
+                                        // ── RETAIL ITEMS LABEL ──
+                                        stopCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(2)
+                                            .Text("RETAIL ITEMS:").FontSize(14).ExtraBold().FontColor(Colors.Grey.Darken2);
+                                        stopCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(4)
                                             .Text(order.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
                                     }
                                 });
