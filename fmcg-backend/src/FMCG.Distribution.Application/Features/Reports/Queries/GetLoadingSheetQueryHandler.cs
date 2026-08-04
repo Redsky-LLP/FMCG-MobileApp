@@ -548,17 +548,27 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                         // Wrapped with the same AlignCenter().Width(360) + PaddingLeft(5) as the
                                         // product table above, so remarks line up directly under the PRODUCT column
                                         // instead of sitting further left than the table.
+                                        //
+                                        // FIX: nested a second ShowEntire() around just this block (divider +
+                                        // label + text) on top of the outer one around the whole stop. The outer
+                                        // ShowEntire() wasn't reliably keeping the retail-items tail together with
+                                        // the rest of the stop when a page boundary fell in the middle of it —
+                                        // this makes "don't split this specific block" an explicit guarantee of
+                                        // its own, rather than relying only on the outer wrapper.
                                         if (stop.Remarks != null)
                                         {
-                                            // Using a full-width line with padding to make it visually distinct
-                                            stopCol.Item().AlignCenter().Width(520).PaddingTop(6).PaddingBottom(4)
-                                                .LineHorizontal(2.5f);  // Thicker than default (2.5pt)
-                                            // ── RETAIL ITEMS LABEL ──
-                                            stopCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(2)
-                                                .Text("RETAIL ITEMS:").FontSize(14).ExtraBold().FontColor(Colors.Grey.Darken2);
-                                            // Extra bold + 18pt for stronger readability, matching the product/qty rows.
-                                            stopCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(4)
-                                                .Text(stop.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
+                                            stopCol.Item().ShowEntire().Column(remarksCol =>
+                                            {
+                                                // Using a full-width line with padding to make it visually distinct
+                                                remarksCol.Item().AlignCenter().Width(520).PaddingTop(6).PaddingBottom(4)
+                                                    .LineHorizontal(2.5f);  // Thicker than default (2.5pt)
+                                                // ── RETAIL ITEMS LABEL ──
+                                                remarksCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(2)
+                                                    .Text("RETAIL ITEMS:").FontSize(14).ExtraBold().FontColor(Colors.Grey.Darken2);
+                                                // Extra bold + 18pt for stronger readability, matching the product/qty rows.
+                                                remarksCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(4)
+                                                    .Text(stop.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
+                                            });
                                         }
                                     });
 
