@@ -199,7 +199,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
             {
                 page.Size(PageSizes.A4);
                 page.Margin(0.5f, PdfUnit.Centimetre);
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Times New Roman"));
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Serif"));
 
                 // Header
                 page.Header()
@@ -227,7 +227,20 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                             // ── One block per customer stop ──
                             foreach (var order in route.Orders)
                             {
-                                routeCol.Item().PaddingTop(8).ShowEntire().Column(stopCol =>
+                                // FIX: ShowEntire() removed here — same reasoning as the Loading Sheet's
+                                // identical block. A stop with many items plus the retail-items
+                                // divider/label/remarks can exceed a single page's height, and
+                                // ShowEntire() hard-fails the whole PDF instead of splitting in that
+                                // case. Letting it paginate normally avoids the entire report failing
+                                // for routes with genuinely large orders.
+                                // FIX: EnsureSpace() instead of a plain Column() — reserves a minimum
+                                // block of space so this stop's header row can't get stranded alone at
+                                // the very bottom of a page with its item table starting fresh on the
+                                // next one. Unlike ShowEntire() (removed above for the same block), this
+                                // doesn't require the ENTIRE stop to fit before starting it — a genuinely
+                                // huge table can still paginate normally after the reserved minimum, so
+                                // this can't reintroduce the "conflicting size constraints" crash.
+                                routeCol.Item().PaddingTop(8).EnsureSpace().Column(stopCol =>
                                 {
                                     // Customer header with number and name centered
                                     // order.SequenceOrder is now a contiguous, per-route index (see Handle() above),
@@ -337,15 +350,14 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                     // Extra bold + 18pt for stronger readability, matching the product/qty/price rows.
                                     // Wrapped with the same AlignCenter().Width(480) + PaddingLeft(5) as the table
                                     // above so remarks line up directly under the PRODUCT column.
+                                    //
+                                    // FIX: nested a second ShowEntire() around just this block, same reasoning as
+                                    // GetLoadingSheetQueryHandler — the outer ShowEntire() around the whole stop
+                                    // wasn't reliably keeping the retail-items tail together when a page boundary
+                                    // fell in the middle of it.
                                     if (order.Remarks != null)
                                     {
-                                        stopCol.Item().AlignCenter().Width(520).PaddingTop(6).PaddingBottom(4)
-                                              .LineHorizontal(2.5f);  // Thicker than default (2.5pt)
-
-                                        // ── RETAIL ITEMS LABEL ──
-                                        stopCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(2)
-                                            .Text("RETAIL ITEMS:").FontSize(14).ExtraBold().FontColor(Colors.Grey.Darken2);
-                                        stopCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(4)
+                                        stopCol.Item().AlignCenter().Width(480).PaddingLeft(5).PaddingTop(4)
                                             .Text(order.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
                                     }
                                 });
