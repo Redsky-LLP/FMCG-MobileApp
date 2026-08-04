@@ -463,7 +463,14 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                     // block paginate normally means a very large stop's table can now
                                     // split across two pages instead — a much better trade-off than the
                                     // entire report failing to generate.
-                                    routeCol.Item().PaddingTop(8).Column(stopCol =>
+                                    // FIX: EnsureSpace() instead of a plain Column() — reserves a minimum
+                                    // block of space so this stop's header row can't get stranded alone at
+                                    // the very bottom of a page with its item table starting fresh on the
+                                    // next one. Unlike ShowEntire() (removed above for the same block), this
+                                    // doesn't require the ENTIRE stop to fit before starting it — a genuinely
+                                    // huge table can still paginate normally after the reserved minimum, so
+                                    // this can't reintroduce the "conflicting size constraints" crash.
+                                    routeCol.Item().PaddingTop(8).EnsureSpace().Column(stopCol =>
                                     {
                                         // ── Number sits in a wider left column, right-aligned, so it lands partway
                                         // across the row (per client mark-up) instead of hugging the far-left edge

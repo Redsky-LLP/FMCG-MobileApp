@@ -233,7 +233,14 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                 // ShowEntire() hard-fails the whole PDF instead of splitting in that
                                 // case. Letting it paginate normally avoids the entire report failing
                                 // for routes with genuinely large orders.
-                                routeCol.Item().PaddingTop(8).Column(stopCol =>
+                                // FIX: EnsureSpace() instead of a plain Column() — reserves a minimum
+                                // block of space so this stop's header row can't get stranded alone at
+                                // the very bottom of a page with its item table starting fresh on the
+                                // next one. Unlike ShowEntire() (removed above for the same block), this
+                                // doesn't require the ENTIRE stop to fit before starting it — a genuinely
+                                // huge table can still paginate normally after the reserved minimum, so
+                                // this can't reintroduce the "conflicting size constraints" crash.
+                                routeCol.Item().PaddingTop(8).EnsureSpace().Column(stopCol =>
                                 {
                                     // Customer header with number and name centered
                                     // order.SequenceOrder is now a contiguous, per-route index (see Handle() above),
