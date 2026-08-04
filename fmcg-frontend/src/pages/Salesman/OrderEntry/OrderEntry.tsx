@@ -16,6 +16,11 @@
 //     of the order-lookup-by-status fix, frozen name snapshot, out-of-stock
 //     picker handling, and acting-as-admin banner-aware positioning, none of
 //     which are touched by this restoration).
+// 13. NEW: Product picker is now search-first — no full 148-item list dumped
+//     on open. It shows just the search bar until something is typed, and the
+//     "+" FAB is hidden while the picker is open (it was previously still
+//     technically present underneath, and on some tablets the on-screen
+//     keyboard opening left part of it visible/tappable behind the sheet).
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -191,17 +196,20 @@ export default function OrderEntry() {
       .finally(() => setLoading(false));
   }, [customerId, routeId, loadUnitPrices]);
 
-  // Filter products — name/item code search only, no group filter
+  // ── Filter products — search-first: no results shown until something is
+  // typed, instead of dumping the entire (often 100+) product catalog the
+  // instant the picker opens. Name / Malayalam name / item code search. ──
   useEffect(() => {
-    let filtered = allProducts;
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      filtered = filtered.filter((p: any) =>
-        p.nameEnglish?.toLowerCase().includes(q) ||
-        p.nameMalayalam?.toLowerCase().includes(q) ||
-        p.itemCode?.toLowerCase().includes(q)
-      );
+    if (!search.trim()) {
+      setFilteredProducts([]);
+      return;
     }
+    const q = search.toLowerCase();
+    const filtered = allProducts.filter((p: any) =>
+      p.nameEnglish?.toLowerCase().includes(q) ||
+      p.nameMalayalam?.toLowerCase().includes(q) ||
+      p.itemCode?.toLowerCase().includes(q)
+    );
     setFilteredProducts(filtered);
   }, [search, allProducts]);
 
@@ -647,8 +655,12 @@ export default function OrderEntry() {
           </div>
         )}
 
-        {/* ── ADD PRODUCTS - LARGE FLOATING PLUS BUTTON ── */}
-        {canEdit && (
+        {/* ── ADD PRODUCTS - LARGE FLOATING PLUS BUTTON ──
+        Hidden while the picker sheet is open — previously it stayed rendered
+        underneath the sheet, and on some tablets the on-screen keyboard
+        opening (once the search field is focused) left part of it visible
+        and tappable behind/around the sheet's edges. ── */}
+        {canEdit && !showProducts && (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -803,16 +815,28 @@ export default function OrderEntry() {
                   style={{ width: '100%', padding: '9px 12px 9px 32px', background: D.bg, border: `1px solid ${D.border}`, borderRadius: 9, fontSize: 14, color: D.text, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
-              <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
-                {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
-              </p>
+              {/* ── Only shown once the salesman has actually typed something —
+              no point showing a running "148 products" count against an
+              empty, not-yet-rendered list. ── */}
+              {search.trim() && (
+                <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
+                  {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
+                </p>
+              )}
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 16px' }}>
-              {filteredProducts.length === 0 ? (
+              {!search.trim() ? (
+                <div style={{ textAlign: 'center', padding: '32px 20px' }}>
+                  <Search size={40} color={D.border} style={{ marginBottom: 8 }} />
+                  <p style={{ color: D.sub, fontSize: 13 }}>
+                    Start typing to search products
+                  </p>
+                </div>
+              ) : filteredProducts.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '32px 20px' }}>
                   <Package size={40} color={D.border} style={{ marginBottom: 8 }} />
                   <p style={{ color: D.sub, fontSize: 13 }}>
-                    {search ? 'No products match your search' : 'No products available'}
+                    No products match your search
                   </p>
                 </div>
               ) : (

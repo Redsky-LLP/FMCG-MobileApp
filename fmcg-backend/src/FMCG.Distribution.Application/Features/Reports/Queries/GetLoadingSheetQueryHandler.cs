@@ -417,7 +417,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(0.5f, PdfUnit.Centimetre);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Times New Roman"));
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Serif"));
 
                     // ── Header ──
                     page.Header()
@@ -452,7 +452,25 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                 // the next page instead of splitting a customer's products across pages.
                                 foreach (var stop in route.Stops)
                                 {
-                                    routeCol.Item().PaddingTop(8).ShowEntire().Column(stopCol =>
+                                    // FIX: ShowEntire() removed here — a stop with a large item count
+                                    // (seen in production: 21+ items on one order) plus the retail-items
+                                    // divider/label/remarks can be taller than a single blank page.
+                                    // ShowEntire() has no fallback for that case — it throws a hard
+                                    // "conflicting size constraints" layout exception instead of just
+                                    // splitting the block, which was silently failing the whole PDF for
+                                    // routes with genuinely large orders (production data), even though
+                                    // it never showed up against smaller local test data. Letting the
+                                    // block paginate normally means a very large stop's table can now
+                                    // split across two pages instead — a much better trade-off than the
+                                    // entire report failing to generate.
+                                    // FIX: EnsureSpace() instead of a plain Column() — reserves a minimum
+                                    // block of space so this stop's header row can't get stranded alone at
+                                    // the very bottom of a page with its item table starting fresh on the
+                                    // next one. Unlike ShowEntire() (removed above for the same block), this
+                                    // doesn't require the ENTIRE stop to fit before starting it — a genuinely
+                                    // huge table can still paginate normally after the reserved minimum, so
+                                    // this can't reintroduce the "conflicting size constraints" crash.
+                                    routeCol.Item().PaddingTop(8).EnsureSpace().Column(stopCol =>
                                     {
                                         // ── Number sits in a wider left column, right-aligned, so it lands partway
                                         // across the row (per client mark-up) instead of hugging the far-left edge
@@ -537,11 +555,27 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                         // Wrapped with the same AlignCenter().Width(360) + PaddingLeft(5) as the
                                         // product table above, so remarks line up directly under the PRODUCT column
                                         // instead of sitting further left than the table.
+                                        //
+                                        // FIX: nested a second ShowEntire() around just this block (divider +
+                                        // label + text) on top of the outer one around the whole stop. The outer
+                                        // ShowEntire() wasn't reliably keeping the retail-items tail together with
+                                        // the rest of the stop when a page boundary fell in the middle of it —
+                                        // this makes "don't split this specific block" an explicit guarantee of
+                                        // its own, rather than relying only on the outer wrapper.
                                         if (stop.Remarks != null)
                                         {
-                                            // Extra bold + 18pt for stronger readability, matching the product/qty rows.
-                                            stopCol.Item().AlignCenter().Width(360).PaddingLeft(5).PaddingTop(4)
-                                                .Text(stop.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
+                                            stopCol.Item().ShowEntire().Column(remarksCol =>
+                                            {
+                                                // Using a full-width line with padding to make it visually distinct
+                                                remarksCol.Item().AlignCenter().Width(520).PaddingTop(6).PaddingBottom(4)
+                                                    .LineHorizontal(2.5f);  // Thicker than default (2.5pt)
+                                                // ── RETAIL ITEMS LABEL ──
+                                                remarksCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(2)
+                                                    .Text("RETAIL ITEMS:").FontSize(14).ExtraBold().FontColor(Colors.Grey.Darken2);
+                                                // Extra bold + 18pt for stronger readability, matching the product/qty rows.
+                                                remarksCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(4)
+                                                    .Text(stop.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
+                                            });
                                         }
                                     });
 
@@ -623,7 +657,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(0.5f, PdfUnit.Centimetre);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Times New Roman"));
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Serif"));
 
                     page.Header()
                         .BorderBottom(0.5f)
