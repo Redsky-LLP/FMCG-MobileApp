@@ -199,7 +199,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
             {
                 page.Size(PageSizes.A4);
                 page.Margin(0.5f, PdfUnit.Centimetre);
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Times New Roman"));
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Serif"));
 
                 // Header
                 page.Header()
@@ -227,7 +227,13 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                             // ── One block per customer stop ──
                             foreach (var order in route.Orders)
                             {
-                                routeCol.Item().PaddingTop(8).ShowEntire().Column(stopCol =>
+                                // FIX: ShowEntire() removed here — same reasoning as the Loading Sheet's
+                                // identical block. A stop with many items plus the retail-items
+                                // divider/label/remarks can exceed a single page's height, and
+                                // ShowEntire() hard-fails the whole PDF instead of splitting in that
+                                // case. Letting it paginate normally avoids the entire report failing
+                                // for routes with genuinely large orders.
+                                routeCol.Item().PaddingTop(8).Column(stopCol =>
                                 {
                                     // Customer header with number and name centered
                                     // order.SequenceOrder is now a contiguous, per-route index (see Handle() above),

@@ -417,7 +417,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(0.5f, PdfUnit.Centimetre);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Times New Roman"));
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Serif"));
 
                     // ── Header ──
                     page.Header()
@@ -452,7 +452,18 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                 // the next page instead of splitting a customer's products across pages.
                                 foreach (var stop in route.Stops)
                                 {
-                                    routeCol.Item().PaddingTop(8).ShowEntire().Column(stopCol =>
+                                    // FIX: ShowEntire() removed here — a stop with a large item count
+                                    // (seen in production: 21+ items on one order) plus the retail-items
+                                    // divider/label/remarks can be taller than a single blank page.
+                                    // ShowEntire() has no fallback for that case — it throws a hard
+                                    // "conflicting size constraints" layout exception instead of just
+                                    // splitting the block, which was silently failing the whole PDF for
+                                    // routes with genuinely large orders (production data), even though
+                                    // it never showed up against smaller local test data. Letting the
+                                    // block paginate normally means a very large stop's table can now
+                                    // split across two pages instead — a much better trade-off than the
+                                    // entire report failing to generate.
+                                    routeCol.Item().PaddingTop(8).Column(stopCol =>
                                     {
                                         // ── Number sits in a wider left column, right-aligned, so it lands partway
                                         // across the row (per client mark-up) instead of hugging the far-left edge
@@ -629,7 +640,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(0.5f, PdfUnit.Centimetre);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Times New Roman"));
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Serif"));
 
                     page.Header()
                         .BorderBottom(0.5f)
