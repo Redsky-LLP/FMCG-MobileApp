@@ -1423,7 +1423,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.icsol7sdi8o"
+    "revision": "0.gkvk6mclc08"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -68720,6 +68720,12 @@ export function HeaderSearch({ onSearch, placeholder = "Search orders, customers
 ``````typescript
 // PATH: src/components/layout/MobileLayout.tsx
 // COMPLETE FIX - Proper fixed header with content scrolling below
+// UPDATED: Drawer header/footer now reserve space for the device's safe area
+// (status bar at top, system nav bar at bottom) — the fixed bottom TAB nav
+// already did this (paddingBottom: env(safe-area-inset-bottom)), but the
+// side DRAWER (hamburger menu) never got the same treatment, so on tablets
+// its header could sit under the status bar and its "Sign Out" footer sat
+// flush against the system nav bar, both getting visually clipped.
 
 import React, { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -69061,6 +69067,12 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           transform: drawerOpen ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.26s cubic-bezier(0.34, 1.2, 0.64, 1)',
           willChange: 'transform',
+          // FIX: reserve the device's safe area on both ends of the drawer,
+          // same as the bottom tab nav already does — otherwise the header
+          // (top) and Sign Out button (bottom) can sit under the status bar
+          // / system nav bar and get visually clipped on tablets.
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
         {/* Drawer Header */}
@@ -69071,6 +69083,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            flexShrink: 0,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -69121,6 +69134,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             display: 'flex',
             alignItems: 'center',
             gap: 8,
+            flexShrink: 0,
           }}
         >
           <div
@@ -69223,7 +69237,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         </div>
 
         {/* Sign Out */}
-        <div style={{ padding: '8px 10px', borderTop: `1px solid ${D.border}` }}>
+        <div style={{ padding: '8px 10px', borderTop: `1px solid ${D.border}`, flexShrink: 0 }}>
           <button
             onClick={handleLogout}
             style={{
@@ -77571,7 +77585,7 @@ export function AdminOrders() {
                                 )}
                               </div>
                               <div style={{ fontSize: 12, color: D.sub, marginTop: 2, fontFamily: 'monospace' }}>
-                                #{String(order.id).slice(0, 8)} · {fmtDate(order.orderDate)} at {orderTimestamp(order).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                #{String(order.id).slice(0, 8)} · {fmtDate(orderTimestamp(order))} at {orderTimestamp(order).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                               </div>
 
                               {order.closedAt && (
@@ -77915,8 +77929,20 @@ export function AdminOrders() {
             />
 
             {closeDayError && (
-              <div style={{ marginBottom: 12 }}>
-                <Alert variant="error">{closeDayError}</Alert>
+              <div style={{
+                marginBottom: 12,
+                padding: '12px 14px',
+                borderRadius: 10,
+                background: 'rgba(239,68,68,0.12)',
+                border: `1px solid ${D.red}66`,
+                display: 'flex',
+                gap: 10,
+                alignItems: 'flex-start',
+              }}>
+                <AlertTriangle size={17} color={D.red} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div style={{ fontSize: 13, color: D.text, lineHeight: 1.5, fontWeight: 500 }}>
+                  {closeDayError}
+                </div>
               </div>
             )}
 
@@ -77978,10 +78004,23 @@ export function AdminOrders() {
             </p>
 
             {closeDayError && (
-              <div style={{ marginBottom: 12 }}>
-                <Alert variant="error">{closeDayError}</Alert>
+              <div style={{
+                marginBottom: 12,
+                padding: '12px 14px',
+                borderRadius: 10,
+                background: 'rgba(239,68,68,0.12)',
+                border: `1px solid ${D.red}66`,
+                display: 'flex',
+                gap: 10,
+                alignItems: 'flex-start',
+              }}>
+                <AlertTriangle size={17} color={D.red} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div style={{ fontSize: 13, color: D.text, lineHeight: 1.5, fontWeight: 500 }}>
+                  {closeDayError}
+                </div>
               </div>
             )}
+
 
             <div style={{ display: 'flex', gap: 8 }}>
               <button
@@ -88263,6 +88302,11 @@ export { default } from './OrderEntry';
 //     of the order-lookup-by-status fix, frozen name snapshot, out-of-stock
 //     picker handling, and acting-as-admin banner-aware positioning, none of
 //     which are touched by this restoration).
+// 13. NEW: Product picker is now search-first — no full 148-item list dumped
+//     on open. It shows just the search bar until something is typed, and the
+//     "+" FAB is hidden while the picker is open (it was previously still
+//     technically present underneath, and on some tablets the on-screen
+//     keyboard opening left part of it visible/tappable behind the sheet).
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -88438,17 +88482,20 @@ export default function OrderEntry() {
       .finally(() => setLoading(false));
   }, [customerId, routeId, loadUnitPrices]);
 
-  // Filter products — name/item code search only, no group filter
+  // ── Filter products — search-first: no results shown until something is
+  // typed, instead of dumping the entire (often 100+) product catalog the
+  // instant the picker opens. Name / Malayalam name / item code search. ──
   useEffect(() => {
-    let filtered = allProducts;
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      filtered = filtered.filter((p: any) =>
-        p.nameEnglish?.toLowerCase().includes(q) ||
-        p.nameMalayalam?.toLowerCase().includes(q) ||
-        p.itemCode?.toLowerCase().includes(q)
-      );
+    if (!search.trim()) {
+      setFilteredProducts([]);
+      return;
     }
+    const q = search.toLowerCase();
+    const filtered = allProducts.filter((p: any) =>
+      p.nameEnglish?.toLowerCase().includes(q) ||
+      p.nameMalayalam?.toLowerCase().includes(q) ||
+      p.itemCode?.toLowerCase().includes(q)
+    );
     setFilteredProducts(filtered);
   }, [search, allProducts]);
 
@@ -88894,8 +88941,12 @@ export default function OrderEntry() {
           </div>
         )}
 
-        {/* ── ADD PRODUCTS - LARGE FLOATING PLUS BUTTON ── */}
-        {canEdit && (
+        {/* ── ADD PRODUCTS - LARGE FLOATING PLUS BUTTON ──
+        Hidden while the picker sheet is open — previously it stayed rendered
+        underneath the sheet, and on some tablets the on-screen keyboard
+        opening (once the search field is focused) left part of it visible
+        and tappable behind/around the sheet's edges. ── */}
+        {canEdit && !showProducts && (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -89050,16 +89101,28 @@ export default function OrderEntry() {
                   style={{ width: '100%', padding: '9px 12px 9px 32px', background: D.bg, border: `1px solid ${D.border}`, borderRadius: 9, fontSize: 14, color: D.text, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
-              <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
-                {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
-              </p>
+              {/* ── Only shown once the salesman has actually typed something —
+              no point showing a running "148 products" count against an
+              empty, not-yet-rendered list. ── */}
+              {search.trim() && (
+                <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
+                  {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
+                </p>
+              )}
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 16px' }}>
-              {filteredProducts.length === 0 ? (
+              {!search.trim() ? (
+                <div style={{ textAlign: 'center', padding: '32px 20px' }}>
+                  <Search size={40} color={D.border} style={{ marginBottom: 8 }} />
+                  <p style={{ color: D.sub, fontSize: 13 }}>
+                    Start typing to search products
+                  </p>
+                </div>
+              ) : filteredProducts.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '32px 20px' }}>
                   <Package size={40} color={D.border} style={{ marginBottom: 8 }} />
                   <p style={{ color: D.sub, fontSize: 13 }}>
-                    {search ? 'No products match your search' : 'No products available'}
+                    No products match your search
                   </p>
                 </div>
               ) : (
