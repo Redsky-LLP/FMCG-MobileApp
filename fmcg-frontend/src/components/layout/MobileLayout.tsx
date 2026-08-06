@@ -1,5 +1,11 @@
 // PATH: src/components/layout/MobileLayout.tsx
 // COMPLETE FIX - Proper fixed header with content scrolling below
+// UPDATED: Drawer header/footer now reserve space for the device's safe area
+// (status bar at top, system nav bar at bottom) — the fixed bottom TAB nav
+// already did this (paddingBottom: env(safe-area-inset-bottom)), but the
+// side DRAWER (hamburger menu) never got the same treatment, so on tablets
+// its header could sit under the status bar and its "Sign Out" footer sat
+// flush against the system nav bar, both getting visually clipped.
 
 import React, { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -341,6 +347,12 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           transform: drawerOpen ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.26s cubic-bezier(0.34, 1.2, 0.64, 1)',
           willChange: 'transform',
+          // FIX: reserve the device's safe area on both ends of the drawer,
+          // same as the bottom tab nav already does — otherwise the header
+          // (top) and Sign Out button (bottom) can sit under the status bar
+          // / system nav bar and get visually clipped on tablets.
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
         {/* Drawer Header */}
@@ -351,6 +363,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            flexShrink: 0,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -401,6 +414,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
             display: 'flex',
             alignItems: 'center',
             gap: 8,
+            flexShrink: 0,
           }}
         >
           <div
@@ -503,7 +517,7 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
         </div>
 
         {/* Sign Out */}
-        <div style={{ padding: '8px 10px', borderTop: `1px solid ${D.border}` }}>
+        <div style={{ padding: '8px 10px', borderTop: `1px solid ${D.border}`, flexShrink: 0 }}>
           <button
             onClick={handleLogout}
             style={{
