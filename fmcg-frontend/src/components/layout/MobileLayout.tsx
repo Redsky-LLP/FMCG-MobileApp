@@ -290,7 +290,14 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           height: MOBILE_NAV_HEIGHT,
           zIndex: 60,
           padding: '0 4px',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          // FIX: env(safe-area-inset-bottom) can resolve to 0 on devices/
+          // WebView configs where the system navigation bar still visually
+          // overlaps this fixed bar — same underlying class of problem as
+          // the status-bar/hamburger overlap fixed earlier, just at the
+          // bottom instead of the top. max() guarantees at least 12px of
+          // real clearance even when the reported inset is 0, so labels
+          // can't get visually swallowed by the system bar.
+          paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)',
         }}
       >
         {navItems.map((item) => {

@@ -93,15 +93,6 @@ export function SalesmanRoutes() {
         setIsDayClosed(status?.isClosed ?? false);
       } catch { setIsDayClosed(false); }
 
-      // ── PERFORMANCE FIX: this used to call routesApi.getCurrentExecution(r.id)
-      // once PER route this salesman has (typically 3-4) inside the map below —
-      // and that endpoint itself does up to 6 sequential DB round-trips per call
-      // (fetch execution, possibly auto-start it, fetch customers, possibly
-      // auto-add missing visits, reload, fetch route name). Even running those
-      // calls concurrently client-side, each one still pays the full cross-cloud
-      // latency chain independently. Replaced with ONE batched call for every
-      // "mine" route at once, then looked up from a map below — this is exactly
-      // the delay reported between PIN login and landing on My Routes. ──
       const mineRouteIds = activeRoutes.filter(r => r.isMine).map(r => r.id);
       const executionByRouteId: Record<string, any> = {};
       if (mineRouteIds.length > 0) {
@@ -196,7 +187,6 @@ export function SalesmanRoutes() {
 
   const activeRoute = routes.find(r => isGenuinelyInProgress(r));
 
-  // ─── Show confirmation popup instead of starting directly ───
   async function handleStartOrderTaking(routeId: string) {
     if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
       setError('Invalid route selected.'); return;
@@ -212,16 +202,13 @@ export function SalesmanRoutes() {
       return;
     }
 
-    // ─── Find the route name ───
     const route = routes.find(r => r.routeId === routeId);
     const routeName = route?.routeName || 'this route';
 
-    // ─── Show confirmation popup ───
     setConfirmRoute(routeId);
     setConfirmRouteName(routeName);
   }
 
-  // ─── Actually start the route after confirmation ───
   async function confirmAndStartRoute() {
     if (!confirmRoute) return;
     
@@ -268,13 +255,11 @@ export function SalesmanRoutes() {
     ? routes.filter(r => r.routeName?.toLowerCase().includes(search.trim().toLowerCase()))
     : routes;
 
-  // ── Determine if any route is in progress ──
   const hasActiveRoute = routes.some(r => isGenuinelyInProgress(r));
 
   return (
     <div style={{ 
       background: D.bg, 
-      minHeight: '100vh',
       width: '100%',
       position: 'relative',
     }}>
@@ -434,12 +419,17 @@ export function SalesmanRoutes() {
         </div>
       )}
 
+      {/* FIX: removed the forced minHeight (was calc(100vh - 180px)). This
+      page is rendered inside MobileLayout's own scrollable container, which
+      already handles full-page height — a second min-height nearly as tall
+      as the viewport stacked on top of that meant a short route list (e.g.
+      3 routes) left a huge dead blank area below the cards while scrolling.
+      Content now sizes to what's actually there. */}
       <div style={{ 
         maxWidth: 1200, 
         margin: '0 auto', 
         padding: '16px 20px',
         background: D.bg,
-        minHeight: 'calc(100vh - 180px)',
       }}>
         {routes.length === 0 ? (
           <div style={{
@@ -471,8 +461,6 @@ export function SalesmanRoutes() {
               const completed   = isEffectivelyCompleted(route);
               const inProgress  = isGenuinelyInProgress(route);
               
-              // ── Determine if this route should be faded ──
-              // Fade if: there is an active route AND this route is NOT the active one
               const shouldFade = hasActiveRoute && !inProgress;
 
               return (
@@ -647,7 +635,6 @@ function RouteCard({
 }) {
   const [expanded, setExpanded] = useState(false);
 
-  // ── TAKEN BY ANOTHER SALESMAN ──
   if (route.takenByOther) {
     return (
       <div style={{
@@ -689,7 +676,6 @@ function RouteCard({
     );
   }
 
-  // ── CLOSED BY ADMIN ──
   if (route.isAdminClosed) {
     return (
       <div style={{
@@ -740,7 +726,6 @@ function RouteCard({
     );
   }
 
-  // ── COMPLETED ──
   if (isCompleted) {
     return (
       <div
@@ -807,7 +792,6 @@ function RouteCard({
     );
   }
 
-  // ── ACTIVE or PENDING ──
   return (
     <div style={{
       background: 'transparent',
