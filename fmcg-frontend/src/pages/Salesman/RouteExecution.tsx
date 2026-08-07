@@ -427,7 +427,7 @@ export default function RouteExecution() {
     const s = summary;
     const customers = execution?.customers ?? [];
     return (
-      <div style={{ minHeight: '100vh', background: D.bg, padding: '32px 20px' }}>
+      <div style={{ background: D.bg, padding: '32px 20px' }}>
         <div style={{ maxWidth: 520, margin: '0 auto' }}>
           <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, padding: '36px 28px', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.3)', marginBottom: 20 }}>
             <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(34,197,94,0.15)', border: '2px solid rgba(34,197,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
@@ -466,7 +466,7 @@ export default function RouteExecution() {
   }
 
   if (!execution?.hasActiveExecution) return (
-    <div style={{ minHeight: '100vh', background: D.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+    <div style={{ minHeight: '60vh', background: D.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ textAlign: 'center', maxWidth: 360 }}>
         <p style={{ color: D.muted, fontSize: 14, marginBottom: 24 }}>{error || 'No active execution found.'}</p>
         <button onClick={() => navigate('/salesman/routes')} style={{ padding: '12px 28px', borderRadius: 10, background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', boxShadow: `0 4px 14px ${D.accentGlow}` }}>
@@ -506,7 +506,7 @@ export default function RouteExecution() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: allDone ? 130 : 32 }}>
+    <div style={{ background: D.bg, paddingBottom: allDone ? 130 : 32 }}>
       <div style={{ background: D.bg, borderBottom: `1px solid ${D.border}`, marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px 4px' }}>
           <button

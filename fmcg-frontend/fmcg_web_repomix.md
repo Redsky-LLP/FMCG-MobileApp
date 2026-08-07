@@ -1423,7 +1423,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.gkvk6mclc08"
+    "revision": "0.brvh2pp9lbg"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -68900,12 +68900,19 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           zIndex: 50,
           background: D.bg,
           borderBottom: `1px solid ${D.border}`,
-          height: MOBILE_HEADER_HEIGHT,
+          height: `calc(${MOBILE_HEADER_HEIGHT}px + env(safe-area-inset-top, 0px))`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0 10px',
+          // FIX: reserve the status bar's height on top, same as the drawer
+          // fix — on devices that render edge-to-edge (seen on tablets, and
+          // apparently some phones too), the OS status bar (clock/wifi/
+          // battery) overlays the app instead of pushing it down, so without
+          // this the hamburger button and title sat directly underneath it.
+          paddingTop: 'env(safe-area-inset-top, 0px)',
           flexShrink: 0,
+          boxSizing: 'border-box',
         }}
       >
         <button
