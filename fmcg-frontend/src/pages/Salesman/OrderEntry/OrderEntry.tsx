@@ -98,6 +98,14 @@ export default function OrderEntry() {
   // the tap actually registered. ──
   const lastItemRef = useRef<HTMLDivElement>(null);
 
+  // ── NEW: ref to the actual scrollable content div. window.scrollTo() /
+  // document.body.scrollTop don't work here because window/body never
+  // scroll in this layout — this inner div does (overflowY: 'auto'). That's
+  // exactly why the post-save scroll-to-top only ever worked on desktop web
+  // (where a different global scroll context sometimes coincidentally
+  // matched) and silently did nothing on phone/tablet builds. ──
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   // ── FIX: Declare hasExistingOrder BEFORE using it in canCancel ──
   const hasExistingOrder = !!existingOrder;
   const isDraft = existingOrder?.status === OrderStatus.Draft;
@@ -323,6 +331,31 @@ export default function OrderEntry() {
     return tmp !== undefined ? tmp : qty === 0 ? '' : String(qty);
   };
 
+  // ── FIX: neither window nor a single fixed ref reliably identifies "the"
+  // scrolling element across every context this page renders in — on
+  // desktop it's the window; inside MobileLayout on tablet/phone, it's
+  // actually MobileLayout's OWN outer content div, not this page's inner
+  // one, since this page's wrapper isn't height-constrained and just grows
+  // to fit inside whatever ancestor really scrolls. Guessing one specific
+  // element is fragile. Instead: walk up from the ref through every
+  // ancestor, and scroll any of them that's actually capable of scrolling
+  // (scrollHeight > clientHeight) — plus window/document as a final
+  // catch-all. Whichever one is the real scroll context for a given
+  // platform gets reset; the rest are harmless no-ops. ──
+  function scrollEverythingToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    let el: HTMLElement | null = scrollContainerRef.current;
+    while (el) {
+      if (el.scrollHeight > el.clientHeight) {
+        el.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      el = el.parentElement;
+    }
+  }
+
   const buildPayload = (): CreateOrderCommand => ({
   customerId:      String(customerId),
   routeId:         String(routeId),
@@ -388,16 +421,15 @@ export default function OrderEntry() {
     
     setExistingOrder(result);
     
-    // ── SCROLL TO TOP (Multiple methods to ensure it works) ──
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    // ── FIX: walks up every real scrolling ancestor (see helper above) —
+    // more robust than guessing window vs. a single container ref, since
+    // which one actually scrolls depends on whether this page is nested
+    // inside MobileLayout (tablet/phone) or standalone (desktop web). ──
+    scrollEverythingToTop();
     
   } catch (e: unknown) {
     setError(e instanceof Error ? e.message : 'Save failed');
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    scrollEverythingToTop();
   } finally { 
     setSaving(false); 
   }
@@ -462,8 +494,14 @@ export default function OrderEntry() {
   const orderStatus = existingOrder?.status;
 
   return (
+    // FIX: removed minHeight:'100vh' — same root cause as the blank-scroll-
+    // space bug already fixed in SalesmanRoutes.tsx/RouteExecution.tsx. When
+    // this page is rendered inside MobileLayout's own scrollable container
+    // (which already provides full-height background), stacking a second
+    // near-full-viewport minimum height on top of it left a large dead
+    // blank area below the form on shorter orders. The dark background
+    // still fills the screen via MobileLayout's own container either way.
     <div style={{
-      minHeight: '100vh',
       background: D.bg,
       color: D.text,
       display: 'flex',
@@ -526,10 +564,20 @@ export default function OrderEntry() {
         </div>
       </div>
 
-      {/* ── SCROLLABLE CONTENT ── */}
-      <div style={{ 
-        flex: 1, 
-        overflowY: 'auto', 
+      {/* ── CONTENT (no longer independently scrollable — see note below) ── */}
+      {/* FIX: this div previously had its own flex:1 + overflowY:'auto',
+      making it a SECOND scrollable container nested inside MobileLayout's
+      own already-scrollable content wrapper — that's exactly what produced
+      two visible scrollbars stacked on top of each other. position:fixed
+      elements (the header above, the Save Draft bar below) stay pinned to
+      the viewport regardless of whether this div scrolls internally or its
+      parent does, so there was never a real need for this div to manage its
+      own scroll — removing it makes whichever ancestor is the genuine
+      scroll context (MobileLayout's container on tablet/phone, or the
+      browser window on desktop) the single source of scrolling. The ref is
+      kept for scrollEverythingToTop() to walk up from, even though this
+      specific div itself is no longer the thing that scrolls. ── */}
+      <div ref={scrollContainerRef} style={{ 
         padding: '10px 16px',
         /* ── FIX: Large bottom padding to clear both Save button AND mobile nav ── */
         paddingBottom: isMobile 
