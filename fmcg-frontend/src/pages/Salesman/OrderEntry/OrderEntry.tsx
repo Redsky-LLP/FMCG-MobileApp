@@ -106,6 +106,22 @@ export default function OrderEntry() {
   // matched) and silently did nothing on phone/tablet builds. ──
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // ── NEW: Autosave — protects against unsaved work being lost to ANY
+  // unexpected session end (forced logout from an admin "Act As" override
+  // overwriting the salesman's refresh token — since fixed separately in
+  // AdminOverrideLoginCommandHandler — but also a crash, a network drop, a
+  // dead battery, or just accidentally hitting Back). Debounced: fires a
+  // few seconds after the salesman stops actively editing, not on every
+  // keystroke. Silent — no toast spam, no scroll-to-top, no navigation —
+  // just a small inline "Auto-saved" indicator so it's not confusing when
+  // the draft ends up already saved. Skips entirely while there's nothing
+  // valid to save yet (matches the same completeness rules handleSave
+  // already enforces), so it never persists a half-typed item. ──
+  const [autosaving,     setAutosaving]     = useState(false);
+  const [lastAutosavedAt, setLastAutosavedAt] = useState<Date | null>(null);
+  const autosaveTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipNextAutosaveRef = useRef(true); // true until the initial data load finishes
+
   // ── FIX: Declare hasExistingOrder BEFORE using it in canCancel ──
   const hasExistingOrder = !!existingOrder;
   const isDraft = existingOrder?.status === OrderStatus.Draft;
@@ -201,7 +217,13 @@ export default function OrderEntry() {
         } catch {}
       })
       .catch(() => setError('Failed to load data. Please refresh.'))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        // Initial load just populated `lines`/`remarks` from the server —
+        // that's not a real edit, so don't let it trigger an autosave.
+        skipNextAutosaveRef.current = true;
+        setTimeout(() => { skipNextAutosaveRef.current = false; }, 0);
+      });
   }, [customerId, routeId, loadUnitPrices]);
 
   // ── Filter products — search-first: no results shown until something is
@@ -370,6 +392,61 @@ export default function OrderEntry() {
   customerVisitId: executionContext?.customerVisitId,
   ...(remarks ? { remarks } : {}),
 });
+
+  // ── NEW: silent autosave worker — same completeness/price-range rules as
+  // the manual Save button, but no toast, no scroll, no navigation. Skips
+  // quietly (no error shown) if anything's incomplete, since that just means
+  // the salesman is still mid-edit — it'll catch up on the next debounce
+  // cycle once they finish typing. ──
+  const performAutosave = async () => {
+    if (!canEdit || saving || autosaving) return;
+    if (lines.length === 0 && !remarks.trim()) return;
+
+    const incomplete = lines.some(l => !l.qty || !l.sellingPrice);
+    if (incomplete) return;
+
+    const outOfRange = lines.some(l =>
+      getPriceRangeIssue(l.product.basePrice, getEffectivePrice(l.product.id, l.sellingPrice))
+    );
+    if (outOfRange) return;
+
+    setAutosaving(true);
+    try {
+      const payload = buildPayload();
+      let result;
+      if (existingOrder) {
+        result = await ordersApi.update(existingOrder.id, { id: existingOrder.id, ...payload });
+      } else {
+        result = await ordersApi.create(payload);
+      }
+      setExistingOrder(result);
+      setLastAutosavedAt(new Date());
+    } catch {
+      // Silent — a failed autosave isn't worth interrupting the salesman
+      // over; the next debounce cycle (or the manual Save button) will
+      // retry, and manual Save still surfaces real errors normally.
+    } finally {
+      setAutosaving(false);
+    }
+  };
+
+  // Debounced: waits for a pause in editing before autosaving, rather than
+  // firing on every keystroke/qty change.
+  useEffect(() => {
+    if (skipNextAutosaveRef.current) return;
+    if (!canEdit) return;
+
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(() => {
+      performAutosave();
+    }, 2500);
+
+    return () => {
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lines, remarks]);
+
   const handleSave = async () => {
   if (!canEdit) { 
     setError('Cannot edit this order.'); 
@@ -595,6 +672,24 @@ export default function OrderEntry() {
         {successMsg && (
           <div style={{ marginBottom: 10, padding: '10px 14px', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.30)', borderRadius: 10, color: '#86efac', fontSize: 13, fontWeight: 700 }}>
             ✓ {successMsg}
+          </div>
+        )}
+        {/* ── NEW: small, quiet autosave indicator — never competes with the
+        louder error/success banners above, just a subtle confirmation that
+        in-progress work is being protected in the background. ── */}
+        {canEdit && (autosaving || lastAutosavedAt) && (
+          <div style={{ marginBottom: 8, fontSize: 11, color: D.sub, display: 'flex', alignItems: 'center', gap: 5 }}>
+            {autosaving ? (
+              <>
+                <Spinner size={10} />
+                Saving…
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={11} color={D.sub} />
+                Auto-saved {lastAutosavedAt!.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+              </>
+            )}
           </div>
         )}
         {!canEdit && (
