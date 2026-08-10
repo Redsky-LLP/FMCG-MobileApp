@@ -503,9 +503,43 @@ public class ExampleInstrumentedTest {
 ``````java
 package com.fmcg.distribution;
 
+import android.os.Bundle;
+import android.view.View;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import com.getcapacitor.BridgeActivity;
 
-public class MainActivity extends BridgeActivity {}
+public class MainActivity extends BridgeActivity {
+    // FIX: targetSdkVersion 36 (variables.gradle) is well past API 35, where
+    // edge-to-edge display became MANDATORY — Android forces the app to draw
+    // behind the system status bar and navigation bar regardless of what
+    // styles.xml's android:navigationBarColor/statusBarColor say (those are
+    // silently ignored once edge-to-edge is forced). With nothing telling
+    // Android where the real safe boundaries are, the WebView had no reliable
+    // way to know the system bars' actual size — which is exactly why CSS
+    // env(safe-area-inset-top/bottom) kept resolving unreliably no matter how
+    // many padding/z-index adjustments were tried on the web side. This was
+    // never fixable purely in CSS.
+    //
+    // Fix: capture the real system bar insets natively and apply them as
+    // padding on the root view that hosts the WebView. This makes the WebView
+    // occupy exactly the space between the status bar and navigation bar —
+    // the same effect the old (pre-edge-to-edge) behavior gave us for free —
+    // so the hamburger button, bottom nav labels, etc. can no longer be
+    // covered by the system bars, independent of anything in the CSS/JS side.
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        View rootView = findViewById(android.R.id.content);
+        ViewCompat.setOnApplyWindowInsetsListener(rootView, (view, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            view.setPadding(insets.left, insets.top, insets.right, insets.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
+    }
+}
 ``````
 
 ## File: android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml
@@ -1327,7 +1361,29 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.fmcg.distribution',
   appName: 'FMCG Distribution',
-  webDir: 'dist'
+  webDir: 'dist',
+  plugins: {
+    // FIX: without this, the Android status bar overlays the app's content
+    // instead of pushing it down — CSS env(safe-area-inset-top) can't
+    // reliably compensate for that on its own inside a native Capacitor
+    // WebView (unlike a plain installed PWA in Chrome, which handles this
+    // automatically). overlaysWebView: false tells Android to reserve the
+    // status bar's own space, so the app's header (hamburger button, clock
+    // row) is never covered by the time/wifi/battery icons.
+    StatusBar: {
+      overlaysWebView: false,
+      style: 'DARK',
+      backgroundColor: '#0a0e1a',
+    },
+    // FIX: makes the on-screen keyboard resize/shrink the page content to
+    // fit above it, instead of floating on top of everything — this is
+    // what was causing the floating/overlapping keyboard behavior on
+    // tablets reported earlier.
+    Keyboard: {
+      resize: 'body',
+      resizeOnFullScreen: true,
+    },
+  },
 };
 
 export default config;
@@ -1423,7 +1479,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.brvh2pp9lbg"
+    "revision": "0.omdt11l6dr"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -68777,7 +68833,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   ],
 };
 
-export const MOBILE_NAV_HEIGHT = 52;
+export const MOBILE_NAV_HEIGHT = 60;
 export const MOBILE_HEADER_HEIGHT = 44;
 export const MOBILE_DATE_BAR_HEIGHT = 26;
 export const MOBILE_TOTAL_HEADER_HEIGHT = MOBILE_HEADER_HEIGHT + MOBILE_DATE_BAR_HEIGHT;
@@ -69010,7 +69066,10 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
           height: MOBILE_NAV_HEIGHT,
           zIndex: 60,
           padding: '0 4px',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          // FIX: raised the safety floor from 12px to 20px — the smaller
+          // floor still wasn't enough clearance on some tablets where the
+          // system navigation bar is taller than that.
+          paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 20px)',
         }}
       >
         {navItems.map((item) => {
@@ -70842,7 +70901,7 @@ export function useSessionTimeout() {
    ═══════════════════════════════════════════════════════════ */
 :root {
   /* ── App Canvas ─────────────────────────────────────────── */
-  --bg:            #0a0e1a;
+  --bg:            #0f172a;
   --bg-page:       #FFFFFF;
   --card:          #FFFFFF;
   --card-hover:    #F8FAFC;
@@ -70934,9 +70993,13 @@ body {
 /* ── Scrollbar ──────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #CBD5E1; }
-
+::-webkit-scrollbar-thumb { 
+  background: #334155;  /* Darker gray to match dark theme */
+  border-radius: 3px; 
+}
+::-webkit-scrollbar-thumb:hover { 
+  background: #475569;  /* Slightly lighter on hover */
+}
 /* ── Layout ─────────────────────────────────────────────────── */
 main {
   padding-top: var(--nav-h);
@@ -71526,6 +71589,52 @@ button:active, .btn:active {
 
 @media (max-width: 768px) {
   .e-btn { min-height: 48px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FIX: Remove excess bottom padding — CORRECTED VERSION
+   ═══════════════════════════════════════════════════════════════
+   The original version of this section zeroed out padding-bottom on
+   .page-wrapper, .page-root, and main > * using !important — but those
+   same classes carry the legitimate bottom-nav safe-area clearance
+   declared earlier in this file (search "Salesman mobile bottom nav
+   clearance" above). Zeroing them here would silently strip that
+   clearance on every page using those classes, causing content to hide
+   BEHIND the bottom nav instead of leaving blank space below it — the
+   opposite problem. It also set min-height: auto !important on
+   .page-root/.page-wrapper, undoing the min-height: 100vh needed to
+   keep the app's background filling the full screen (see the --bg
+   color-match fix earlier in this file).
+   
+   Scoped down to just .page-content (a plain visual inset, unrelated
+   to bottom-nav clearance) and trailing-margin cleanup on cards —
+   the part of the original intent that's actually safe to apply
+   globally without conflicting with the nav-clearance rules above.
+   The real fix for the page-specific blank-space bug (SalesmanRoutes,
+   RouteExecution, OrderEntry) was at the component level — removing
+   a stray minHeight:'100vh' from each page's own inline styles — not
+   a CSS class, since those pages use inline styles, not these classes.
+   ═══════════════════════════════════════════════════════════════ */
+
+.page-content {
+  padding: 28px 32px;
+  padding-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .page-content {
+    padding: 16px 16px;
+    padding-bottom: 0;
+  }
+}
+
+.card {
+  margin-bottom: 0;
+}
+
+.page-content > *:last-child,
+.card > *:last-child {
+  margin-bottom: 0;
 }
 ``````
 
@@ -88391,6 +88500,14 @@ export default function OrderEntry() {
   // the tap actually registered. ──
   const lastItemRef = useRef<HTMLDivElement>(null);
 
+  // ── NEW: ref to the actual scrollable content div. window.scrollTo() /
+  // document.body.scrollTop don't work here because window/body never
+  // scroll in this layout — this inner div does (overflowY: 'auto'). That's
+  // exactly why the post-save scroll-to-top only ever worked on desktop web
+  // (where a different global scroll context sometimes coincidentally
+  // matched) and silently did nothing on phone/tablet builds. ──
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   // ── FIX: Declare hasExistingOrder BEFORE using it in canCancel ──
   const hasExistingOrder = !!existingOrder;
   const isDraft = existingOrder?.status === OrderStatus.Draft;
@@ -88616,6 +88733,31 @@ export default function OrderEntry() {
     return tmp !== undefined ? tmp : qty === 0 ? '' : String(qty);
   };
 
+  // ── FIX: neither window nor a single fixed ref reliably identifies "the"
+  // scrolling element across every context this page renders in — on
+  // desktop it's the window; inside MobileLayout on tablet/phone, it's
+  // actually MobileLayout's OWN outer content div, not this page's inner
+  // one, since this page's wrapper isn't height-constrained and just grows
+  // to fit inside whatever ancestor really scrolls. Guessing one specific
+  // element is fragile. Instead: walk up from the ref through every
+  // ancestor, and scroll any of them that's actually capable of scrolling
+  // (scrollHeight > clientHeight) — plus window/document as a final
+  // catch-all. Whichever one is the real scroll context for a given
+  // platform gets reset; the rest are harmless no-ops. ──
+  function scrollEverythingToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    let el: HTMLElement | null = scrollContainerRef.current;
+    while (el) {
+      if (el.scrollHeight > el.clientHeight) {
+        el.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      el = el.parentElement;
+    }
+  }
+
   const buildPayload = (): CreateOrderCommand => ({
   customerId:      String(customerId),
   routeId:         String(routeId),
@@ -88681,16 +88823,15 @@ export default function OrderEntry() {
     
     setExistingOrder(result);
     
-    // ── SCROLL TO TOP (Multiple methods to ensure it works) ──
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    // ── FIX: walks up every real scrolling ancestor (see helper above) —
+    // more robust than guessing window vs. a single container ref, since
+    // which one actually scrolls depends on whether this page is nested
+    // inside MobileLayout (tablet/phone) or standalone (desktop web). ──
+    scrollEverythingToTop();
     
   } catch (e: unknown) {
     setError(e instanceof Error ? e.message : 'Save failed');
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    scrollEverythingToTop();
   } finally { 
     setSaving(false); 
   }
@@ -88755,8 +88896,14 @@ export default function OrderEntry() {
   const orderStatus = existingOrder?.status;
 
   return (
+    // FIX: removed minHeight:'100vh' — same root cause as the blank-scroll-
+    // space bug already fixed in SalesmanRoutes.tsx/RouteExecution.tsx. When
+    // this page is rendered inside MobileLayout's own scrollable container
+    // (which already provides full-height background), stacking a second
+    // near-full-viewport minimum height on top of it left a large dead
+    // blank area below the form on shorter orders. The dark background
+    // still fills the screen via MobileLayout's own container either way.
     <div style={{
-      minHeight: '100vh',
       background: D.bg,
       color: D.text,
       display: 'flex',
@@ -88819,10 +88966,20 @@ export default function OrderEntry() {
         </div>
       </div>
 
-      {/* ── SCROLLABLE CONTENT ── */}
-      <div style={{ 
-        flex: 1, 
-        overflowY: 'auto', 
+      {/* ── CONTENT (no longer independently scrollable — see note below) ── */}
+      {/* FIX: this div previously had its own flex:1 + overflowY:'auto',
+      making it a SECOND scrollable container nested inside MobileLayout's
+      own already-scrollable content wrapper — that's exactly what produced
+      two visible scrollbars stacked on top of each other. position:fixed
+      elements (the header above, the Save Draft bar below) stay pinned to
+      the viewport regardless of whether this div scrolls internally or its
+      parent does, so there was never a real need for this div to manage its
+      own scroll — removing it makes whichever ancestor is the genuine
+      scroll context (MobileLayout's container on tablet/phone, or the
+      browser window on desktop) the single source of scrolling. The ref is
+      kept for scrollEverythingToTop() to walk up from, even though this
+      specific div itself is no longer the thing that scrolls. ── */}
+      <div ref={scrollContainerRef} style={{ 
         padding: '10px 16px',
         /* ── FIX: Large bottom padding to clear both Save button AND mobile nav ── */
         paddingBottom: isMobile 
@@ -90096,7 +90253,7 @@ export default function RouteExecution() {
     const s = summary;
     const customers = execution?.customers ?? [];
     return (
-      <div style={{ minHeight: '100vh', background: D.bg, padding: '32px 20px' }}>
+      <div style={{ background: D.bg, padding: '32px 20px' }}>
         <div style={{ maxWidth: 520, margin: '0 auto' }}>
           <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, padding: '36px 28px', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.3)', marginBottom: 20 }}>
             <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(34,197,94,0.15)', border: '2px solid rgba(34,197,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
@@ -90135,7 +90292,7 @@ export default function RouteExecution() {
   }
 
   if (!execution?.hasActiveExecution) return (
-    <div style={{ minHeight: '100vh', background: D.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+    <div style={{ minHeight: '60vh', background: D.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ textAlign: 'center', maxWidth: 360 }}>
         <p style={{ color: D.muted, fontSize: 14, marginBottom: 24 }}>{error || 'No active execution found.'}</p>
         <button onClick={() => navigate('/salesman/routes')} style={{ padding: '12px 28px', borderRadius: 10, background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', boxShadow: `0 4px 14px ${D.accentGlow}` }}>
@@ -90175,7 +90332,7 @@ export default function RouteExecution() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: allDone ? 130 : 32 }}>
+    <div style={{ background: D.bg, paddingBottom: allDone ? 130 : 32 }}>
       <div style={{ background: D.bg, borderBottom: `1px solid ${D.border}`, marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px 4px' }}>
           <button
@@ -91442,15 +91599,6 @@ export function SalesmanRoutes() {
         setIsDayClosed(status?.isClosed ?? false);
       } catch { setIsDayClosed(false); }
 
-      // ── PERFORMANCE FIX: this used to call routesApi.getCurrentExecution(r.id)
-      // once PER route this salesman has (typically 3-4) inside the map below —
-      // and that endpoint itself does up to 6 sequential DB round-trips per call
-      // (fetch execution, possibly auto-start it, fetch customers, possibly
-      // auto-add missing visits, reload, fetch route name). Even running those
-      // calls concurrently client-side, each one still pays the full cross-cloud
-      // latency chain independently. Replaced with ONE batched call for every
-      // "mine" route at once, then looked up from a map below — this is exactly
-      // the delay reported between PIN login and landing on My Routes. ──
       const mineRouteIds = activeRoutes.filter(r => r.isMine).map(r => r.id);
       const executionByRouteId: Record<string, any> = {};
       if (mineRouteIds.length > 0) {
@@ -91545,7 +91693,6 @@ export function SalesmanRoutes() {
 
   const activeRoute = routes.find(r => isGenuinelyInProgress(r));
 
-  // ─── Show confirmation popup instead of starting directly ───
   async function handleStartOrderTaking(routeId: string) {
     if (!routeId || routeId === 'undefined' || routeId === 'NaN') {
       setError('Invalid route selected.'); return;
@@ -91561,16 +91708,13 @@ export function SalesmanRoutes() {
       return;
     }
 
-    // ─── Find the route name ───
     const route = routes.find(r => r.routeId === routeId);
     const routeName = route?.routeName || 'this route';
 
-    // ─── Show confirmation popup ───
     setConfirmRoute(routeId);
     setConfirmRouteName(routeName);
   }
 
-  // ─── Actually start the route after confirmation ───
   async function confirmAndStartRoute() {
     if (!confirmRoute) return;
     
@@ -91617,13 +91761,11 @@ export function SalesmanRoutes() {
     ? routes.filter(r => r.routeName?.toLowerCase().includes(search.trim().toLowerCase()))
     : routes;
 
-  // ── Determine if any route is in progress ──
   const hasActiveRoute = routes.some(r => isGenuinelyInProgress(r));
 
   return (
     <div style={{ 
       background: D.bg, 
-      minHeight: '100vh',
       width: '100%',
       position: 'relative',
     }}>
@@ -91783,12 +91925,17 @@ export function SalesmanRoutes() {
         </div>
       )}
 
+      {/* FIX: removed the forced minHeight (was calc(100vh - 180px)). This
+      page is rendered inside MobileLayout's own scrollable container, which
+      already handles full-page height — a second min-height nearly as tall
+      as the viewport stacked on top of that meant a short route list (e.g.
+      3 routes) left a huge dead blank area below the cards while scrolling.
+      Content now sizes to what's actually there. */}
       <div style={{ 
         maxWidth: 1200, 
         margin: '0 auto', 
         padding: '16px 20px',
         background: D.bg,
-        minHeight: 'calc(100vh - 180px)',
       }}>
         {routes.length === 0 ? (
           <div style={{
@@ -91820,8 +91967,6 @@ export function SalesmanRoutes() {
               const completed   = isEffectivelyCompleted(route);
               const inProgress  = isGenuinelyInProgress(route);
               
-              // ── Determine if this route should be faded ──
-              // Fade if: there is an active route AND this route is NOT the active one
               const shouldFade = hasActiveRoute && !inProgress;
 
               return (
@@ -91996,7 +92141,6 @@ function RouteCard({
 }) {
   const [expanded, setExpanded] = useState(false);
 
-  // ── TAKEN BY ANOTHER SALESMAN ──
   if (route.takenByOther) {
     return (
       <div style={{
@@ -92038,7 +92182,6 @@ function RouteCard({
     );
   }
 
-  // ── CLOSED BY ADMIN ──
   if (route.isAdminClosed) {
     return (
       <div style={{
@@ -92089,7 +92232,6 @@ function RouteCard({
     );
   }
 
-  // ── COMPLETED ──
   if (isCompleted) {
     return (
       <div
@@ -92156,7 +92298,6 @@ function RouteCard({
     );
   }
 
-  // ── ACTIVE or PENDING ──
   return (
     <div style={{
       background: 'transparent',

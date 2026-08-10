@@ -106,9 +106,13 @@ body {
 /* ── Scrollbar ──────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #CBD5E1; }
-
+::-webkit-scrollbar-thumb { 
+  background: #334155;  /* Darker gray to match dark theme */
+  border-radius: 3px; 
+}
+::-webkit-scrollbar-thumb:hover { 
+  background: #475569;  /* Slightly lighter on hover */
+}
 /* ── Layout ─────────────────────────────────────────────────── */
 main {
   padding-top: var(--nav-h);
@@ -698,4 +702,50 @@ button:active, .btn:active {
 
 @media (max-width: 768px) {
   .e-btn { min-height: 48px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FIX: Remove excess bottom padding — CORRECTED VERSION
+   ═══════════════════════════════════════════════════════════════
+   The original version of this section zeroed out padding-bottom on
+   .page-wrapper, .page-root, and main > * using !important — but those
+   same classes carry the legitimate bottom-nav safe-area clearance
+   declared earlier in this file (search "Salesman mobile bottom nav
+   clearance" above). Zeroing them here would silently strip that
+   clearance on every page using those classes, causing content to hide
+   BEHIND the bottom nav instead of leaving blank space below it — the
+   opposite problem. It also set min-height: auto !important on
+   .page-root/.page-wrapper, undoing the min-height: 100vh needed to
+   keep the app's background filling the full screen (see the --bg
+   color-match fix earlier in this file).
+   
+   Scoped down to just .page-content (a plain visual inset, unrelated
+   to bottom-nav clearance) and trailing-margin cleanup on cards —
+   the part of the original intent that's actually safe to apply
+   globally without conflicting with the nav-clearance rules above.
+   The real fix for the page-specific blank-space bug (SalesmanRoutes,
+   RouteExecution, OrderEntry) was at the component level — removing
+   a stray minHeight:'100vh' from each page's own inline styles — not
+   a CSS class, since those pages use inline styles, not these classes.
+   ═══════════════════════════════════════════════════════════════ */
+
+.page-content {
+  padding: 28px 32px;
+  padding-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .page-content {
+    padding: 16px 16px;
+    padding-bottom: 0;
+  }
+}
+
+.card {
+  margin-bottom: 0;
+}
+
+.page-content > *:last-child,
+.card > *:last-child {
+  margin-bottom: 0;
 }
