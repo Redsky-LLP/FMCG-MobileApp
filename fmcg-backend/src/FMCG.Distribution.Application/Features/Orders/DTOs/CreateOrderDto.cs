@@ -4,6 +4,7 @@ public class CreateOrderDto
 {
     public Guid CustomerId { get; set; }
     public string? Remarks { get; set; }
+    public DateTime? ExecutionDate { get; set; } // ← ADD THIS (optional)
     public List<CreateOrderItemDto> Items { get; set; } = [];
 }
 

@@ -17,6 +17,8 @@ public class Order : BaseEntity
     public DateTime? SubmittedAt { get; set; }
     public DateTime? ApprovedAt { get; set; }          // ← ADD THIS
     public Guid? ApprovedBy { get; set; }              // ← ADD THIS
+    public DateTime? ExecutionDate { get; set; } // ← ADD THIS
+    public Guid? ExecutionId { get; set; } // ← This should exist
     public DateTime? ClosedAt { get; set; }
     public string? ModifiedBy { get; set; }
     public DateTime? ModifiedAt { get; set; }

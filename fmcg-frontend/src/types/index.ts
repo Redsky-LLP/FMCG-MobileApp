@@ -27,6 +27,7 @@ export interface CurrentRouteExecutionDto {
   routeId?:         string;
   routeName?:       string;
   executionDate?:   string;
+  createdAt?: string; // ← ADD THIS
   status?:          string;
   totalCustomers?:  number;
   completedCount?:  number;
@@ -587,6 +588,7 @@ export interface ReopenRouteResultDto {
   message?: string;
   ordersUnlocked: number;
   executionsReopened: number;
+  executionDate?: string;
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────────

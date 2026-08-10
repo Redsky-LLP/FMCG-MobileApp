@@ -9,9 +9,12 @@ public class CreateOrderCommand : IRequest<Result<OrderDetailDto>>
     public Guid SalesmanId { get; set; }
     public Guid CustomerId { get; set; }
     public string? Remarks { get; set; }
+    public Guid? ExecutionId { get; set; } // ← ADD THIS
+    public DateTime? ExecutionDate { get; set; } // ← ADD THIS
     public List<CreateOrderItemDto> Items { get; set; } = [];
 
     // NEW: Link to route execution and visit
-    public Guid? ExecutionId { get; set; }
+    //public Guid? ExecutionId { get; set; }
+
     public Guid? CustomerVisitId { get; set; }
 }

@@ -24,6 +24,8 @@ public class OrderDto
     public DateTime? ApprovedAt { get; set; }
     public DateTime? ClosedAt { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime? ExecutionDate { get; set; } // ← ADD THIS
+    public Guid? ExecutionId { get; set; } // ← ADD THIS if not exists
     public List<OrderItemDto>? Items { get; set; }
     // Set true the moment admin runs Close Day — now applies to every order,
     // Draft included. This is the single source of truth for "can this be
