@@ -336102,8 +336102,33 @@ public class AdminOverrideLoginCommandHandler : IRequestHandler<AdminOverrideLog
         var token = GenerateJwtToken(salesman);
         var refreshToken = GenerateRefreshToken();
 
-        salesman.RefreshToken = refreshToken;
-        salesman.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+        // ── BUG FIX: this used to also do
+        //     salesman.RefreshToken = refreshToken;
+        //     salesman.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+        // — but Users.RefreshToken is a SINGLE column per user, not one per
+        // device/session. If the salesman was already logged in on their own
+        // tablet, that overwrite silently replaced the refresh token their
+        // tablet was holding with this override session's token. The
+        // salesman's tablet kept working for a while (their access token was
+        // still valid on its own), but the next time it tried to silently
+        // refresh, RefreshTokenCommandHandler's `u.RefreshToken == request.
+        // RefreshToken` check no longer matched — refresh failed, the
+        // salesman got force-logged-out, and any order they had open but
+        // hadn't saved yet was lost. This is exactly the bug QA reported:
+        // admin using Master PIN "Act As" while the salesman was mid-order
+        // on their own device.
+        //
+        // Fix: don't touch the salesman's stored refresh token at all. The
+        // override session's access token (`token`, above) is still fully
+        // valid on its own for its normal lifetime (480 min) — plenty for an
+        // admin's typically short, interactive "Act As" session — it just
+        // can't silently refresh itself past that without a real re-login,
+        // which is an acceptable, safe trade-off in exchange for never
+        // disturbing the salesman's own real device session again.
+        // `refreshToken` is still generated and returned below only to keep
+        // the LoginResponse contract shape the frontend already expects —
+        // it's simply never persisted, so it naturally can't be used to
+        // silently extend the override session past its access-token expiry.
 
         // ── Record the session with a distinct LoginMethod and a note of which
         // admin performed the override, so this is fully auditable later even
