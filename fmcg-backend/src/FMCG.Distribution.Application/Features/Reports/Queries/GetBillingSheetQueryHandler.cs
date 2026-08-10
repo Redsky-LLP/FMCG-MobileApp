@@ -4,12 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
 using FMCG.Distribution.Application.Features.Reports.DTOs;
+using FMCG.Distribution.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
@@ -42,7 +42,12 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
     {
         var targetDate = request.Date ?? DateTime.UtcNow.Date;
 
-        // Query orders for the target date (submitted or closed, not draft)
+        // FIX: was including Draft/Submitted orders alongside Closed ones (the old inline
+        // comment even said so — "Draft/Submitted/Closed all included" — despite the doc
+        // comment above the query claiming otherwise). That let un-finalized orders onto a
+        // customer-facing billing sheet, and let duplicate Draft orders for the same stop
+        // (e.g. a double-submit) print as two separate numbered entries. Now matches
+        // GetLoadingSheetQueryHandler's rule exactly: only Closed or Locked orders count.
         var ordersQuery = context.Orders
             .AsNoTracking()
         .Include(o => o.Customer)
@@ -53,7 +58,8 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
         .Include(o => o.Items!)
             .ThenInclude(i => i.Unit)
         .Where(o => !o.IsDeleted
-            && o.OrderDate.Date == targetDate.Date);   // Draft/Submitted/Closed all included
+            && (o.Status == OrderStatus.Closed || o.IsLocked)
+            && o.OrderDate.Date == targetDate.Date);
 
         if (request.RouteId.HasValue)
         {
@@ -64,7 +70,10 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
 
         if (orders.Count == 0)
         {
-            return Result<byte[]>.Failure($"No orders found for date {targetDate:yyyy-MM-dd}.");
+            return Result<byte[]>.Failure(
+                request.RouteId.HasValue
+                    ? $"No closed orders found for the selected route/date ({targetDate:yyyy-MM-dd})."
+                    : $"No closed orders found for date {targetDate:yyyy-MM-dd}.");
         }
 
         // ── NEW: load the admin-configurable size-group display order from the database
