@@ -341743,7 +341743,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
             {
                 page.Size(PageSizes.A4);
                 page.Margin(0.5f, PdfUnit.Centimetre);
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Times New Roman"));
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Serif"));
 
                 // Header
                 page.Header()
@@ -341771,7 +341771,20 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                             // ── One block per customer stop ──
                             foreach (var order in route.Orders)
                             {
-                                routeCol.Item().PaddingTop(8).ShowEntire().Column(stopCol =>
+                                // FIX: ShowEntire() removed here — same reasoning as the Loading Sheet's
+                                // identical block. A stop with many items plus the retail-items
+                                // divider/label/remarks can exceed a single page's height, and
+                                // ShowEntire() hard-fails the whole PDF instead of splitting in that
+                                // case. Letting it paginate normally avoids the entire report failing
+                                // for routes with genuinely large orders.
+                                // FIX: EnsureSpace() instead of a plain Column() — reserves a minimum
+                                // block of space so this stop's header row can't get stranded alone at
+                                // the very bottom of a page with its item table starting fresh on the
+                                // next one. Unlike ShowEntire() (removed above for the same block), this
+                                // doesn't require the ENTIRE stop to fit before starting it — a genuinely
+                                // huge table can still paginate normally after the reserved minimum, so
+                                // this can't reintroduce the "conflicting size constraints" crash.
+                                routeCol.Item().PaddingTop(8).EnsureSpace().Column(stopCol =>
                                 {
                                     // Customer header with number and name centered
                                     // order.SequenceOrder is now a contiguous, per-route index (see Handle() above),
@@ -341881,10 +341894,25 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                     // Extra bold + 18pt for stronger readability, matching the product/qty/price rows.
                                     // Wrapped with the same AlignCenter().Width(480) + PaddingLeft(5) as the table
                                     // above so remarks line up directly under the PRODUCT column.
+                                    //
+                                    // FIX: nested a second ShowEntire() around just this block, same reasoning as
+                                    // GetLoadingSheetQueryHandler — the outer ShowEntire() around the whole stop
+                                    // wasn't reliably keeping the retail-items tail together when a page boundary
+                                    // fell in the middle of it.
                                     if (order.Remarks != null)
                                     {
-                                        stopCol.Item().AlignCenter().Width(480).PaddingLeft(5).PaddingTop(4)
-                                            .Text(order.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
+                                        stopCol.Item().ShowEntire().Column(remarksCol =>
+                                        {
+                                            // Using a full-width line with padding to make it visually distinct
+                                            remarksCol.Item().AlignCenter().Width(520).PaddingTop(6).PaddingBottom(4)
+                                                .LineHorizontal(2.5f);  // Thicker than default (2.5pt)
+                                            // ── RETAIL ITEMS LABEL ──
+                                            remarksCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(2)
+                                                .Text("RETAIL ITEMS:").FontSize(14).ExtraBold().FontColor(Colors.Grey.Darken2);
+                                            // Extra bold + 18pt for stronger readability, matching the product/qty rows.
+                                            remarksCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(4)
+                                                .Text(order.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
+                                        });
                                     }
                                 });
                             }
@@ -343408,7 +343436,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(0.5f, PdfUnit.Centimetre);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Times New Roman"));
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Serif"));
 
                     // ── Header ──
                     page.Header()
@@ -343443,7 +343471,25 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                 // the next page instead of splitting a customer's products across pages.
                                 foreach (var stop in route.Stops)
                                 {
-                                    routeCol.Item().PaddingTop(8).ShowEntire().Column(stopCol =>
+                                    // FIX: ShowEntire() removed here — a stop with a large item count
+                                    // (seen in production: 21+ items on one order) plus the retail-items
+                                    // divider/label/remarks can be taller than a single blank page.
+                                    // ShowEntire() has no fallback for that case — it throws a hard
+                                    // "conflicting size constraints" layout exception instead of just
+                                    // splitting the block, which was silently failing the whole PDF for
+                                    // routes with genuinely large orders (production data), even though
+                                    // it never showed up against smaller local test data. Letting the
+                                    // block paginate normally means a very large stop's table can now
+                                    // split across two pages instead — a much better trade-off than the
+                                    // entire report failing to generate.
+                                    // FIX: EnsureSpace() instead of a plain Column() — reserves a minimum
+                                    // block of space so this stop's header row can't get stranded alone at
+                                    // the very bottom of a page with its item table starting fresh on the
+                                    // next one. Unlike ShowEntire() (removed above for the same block), this
+                                    // doesn't require the ENTIRE stop to fit before starting it — a genuinely
+                                    // huge table can still paginate normally after the reserved minimum, so
+                                    // this can't reintroduce the "conflicting size constraints" crash.
+                                    routeCol.Item().PaddingTop(8).EnsureSpace().Column(stopCol =>
                                     {
                                         // ── Number sits in a wider left column, right-aligned, so it lands partway
                                         // across the row (per client mark-up) instead of hugging the far-left edge
@@ -343528,11 +343574,27 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                         // Wrapped with the same AlignCenter().Width(360) + PaddingLeft(5) as the
                                         // product table above, so remarks line up directly under the PRODUCT column
                                         // instead of sitting further left than the table.
+                                        //
+                                        // FIX: nested a second ShowEntire() around just this block (divider +
+                                        // label + text) on top of the outer one around the whole stop. The outer
+                                        // ShowEntire() wasn't reliably keeping the retail-items tail together with
+                                        // the rest of the stop when a page boundary fell in the middle of it —
+                                        // this makes "don't split this specific block" an explicit guarantee of
+                                        // its own, rather than relying only on the outer wrapper.
                                         if (stop.Remarks != null)
                                         {
-                                            // Extra bold + 18pt for stronger readability, matching the product/qty rows.
-                                            stopCol.Item().AlignCenter().Width(360).PaddingLeft(5).PaddingTop(4)
-                                                .Text(stop.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
+                                            stopCol.Item().ShowEntire().Column(remarksCol =>
+                                            {
+                                                // Using a full-width line with padding to make it visually distinct
+                                                remarksCol.Item().AlignCenter().Width(520).PaddingTop(6).PaddingBottom(4)
+                                                    .LineHorizontal(2.5f);  // Thicker than default (2.5pt)
+                                                // ── RETAIL ITEMS LABEL ──
+                                                remarksCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(2)
+                                                    .Text("RETAIL ITEMS:").FontSize(14).ExtraBold().FontColor(Colors.Grey.Darken2);
+                                                // Extra bold + 18pt for stronger readability, matching the product/qty rows.
+                                                remarksCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(4)
+                                                    .Text(stop.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
+                                            });
                                         }
                                     });
 
@@ -343614,7 +343676,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(0.5f, PdfUnit.Centimetre);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Times New Roman"));
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Serif"));
 
                     page.Header()
                         .BorderBottom(0.5f)
@@ -344738,9 +344800,17 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
                 "This route is permanently assigned to another salesman. Ask your admin to reassign it if needed.");
         }
 
+        // ── IST FIX: India Standard Time is fixed at UTC+5:30 (no DST), so it's
+        // safe to compute it directly from UtcNow. Using raw DateTime.UtcNow.Date
+        // here meant that between 00:00 and 05:29 IST, the server's UTC clock
+        // still reads YESTERDAY's date — so a route closed "yesterday" (IST)
+        // looked like it was closed "today" (UTC) during that window, wrongly
+        // re-triggering the same-day-already-closed block right after midnight
+        // IST, even though the salesman's screen correctly showed the new day. ──
+        var istNow = DateTime.UtcNow.AddHours(5).AddMinutes(30);
         var executionDate = request.ExecutionDate.HasValue && request.IsAdmin
             ? request.ExecutionDate.Value.Date
-            : DateTime.UtcNow.Date;
+            : istNow.Date;
 
         // Resume existing execution if any — not scoped to today's date, since
         // an open execution from yesterday must still be resumable here until
@@ -344790,25 +344860,30 @@ public class StartRouteExecutionCommandHandler(IApplicationDbContext context)
             }, "Resuming existing route execution.");
         }
 
-        // ── GUARD: block a brand-new cycle for this route on a date that was
-        // already closed (Completed) by Admin. Without this, "Take Orders"
-        // tapped right after Close would silently spin up a second
-        // RouteExecution for the same date — the same customers would get a
-        // second CustomerVisit/Order row, showing up as duplicates on the
-        // Orders screen — and the original closure would also become
-        // un-reopenable, since Reopen refuses once a newer cycle exists.
-        // Scoped strictly to e.ExecutionDate.Date == executionDate.Date, so
-        // this never touches yesterday's (or any other date's) executions —
-        // the route is fresh and startable as normal from the next day on. ──
-        var closedTodayExecution = await context.RouteExecutions
-            .Where(e => e.RouteId == request.RouteId
-                && e.Status == ExecutionStatus.Completed
-                && !e.IsDeleted
-                && e.ExecutionDate.Date == executionDate.Date)
-            .OrderByDescending(e => e.ExecutionDate)
+        // ── GUARD: block a brand-new cycle for this route on a date that's
+        // still actively closed by Admin. Without this, "Take Orders" tapped
+        // right after Close would silently spin up a second RouteExecution for
+        // the same date — the same customers would get a second
+        // CustomerVisit/Order row, showing up as duplicates on the Orders
+        // screen — and the original closure would also become un-reopenable,
+        // since Reopen refuses once a newer cycle exists.
+        //
+        // IMPORTANT: this checks DailyClosure, not RouteExecution.ExecutionDate.
+        // ExecutionDate gets deliberately bumped forward by ReopenRouteAsync
+        // when a stale closure is reopened on a later day (so new orders date
+        // correctly) — which means ExecutionDate can legitimately drift away
+        // from the closure's actual ClosureDate. Checking the closure itself
+        // is the only reliable source of truth for "is this route closed for
+        // THIS date", and isn't affected by that drift. ──
+        var closedTodayClosure = await context.DailyClosures
+            .Where(c => c.RouteId == request.RouteId
+                && c.IsActive
+                && !c.IsDeleted
+                && c.ClosureDate.Date == executionDate.Date)
+            .OrderByDescending(c => c.ClosureDate)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (closedTodayExecution != null)
+        if (closedTodayClosure != null)
         {
             return Result<StartRouteExecutionResponse>.Failure(
                 $"{route.Name} was already closed for {executionDate:dd MMM yyyy}. " +
@@ -390897,21 +390972,36 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
             };
         }
 
-        // ── GUARD 1: block if the route has already been restarted ──
-        // If a new InProgress execution exists, the salesman is already mid-way
-        // through a fresh cycle; reopening the old closure now would collide
-        // with it and corrupt state.
-        var hasActiveExecution = await context.RouteExecutions
-            .AnyAsync(e => !e.IsDeleted && e.RouteId == routeId && e.Status == ExecutionStatus.InProgress, cancellationToken);
+        // ── GUARD 1: block if the route has already been restarted WITH real
+        // progress. A brand new execution that's still all-Pending (salesman
+        // tapped "Take Orders" by mistake, hasn't touched a single stop yet) has
+        // nothing to collide with — auto-abandon it and let the reopen proceed,
+        // instead of forcing the admin to ask the salesman to manually close it
+        // first for what amounts to an empty, throwaway cycle. Only a cycle with
+        // at least one non-Pending visit (an order placed, a stop skipped, etc.)
+        // actually represents work that reopening the old cycle could collide
+        // with — that's the only case still worth blocking. ──
+        var newExecution = await context.RouteExecutions
+            .Include(e => e.Visits)
+            .FirstOrDefaultAsync(e => !e.IsDeleted && e.RouteId == routeId && e.Status == ExecutionStatus.InProgress, cancellationToken);
 
-        if (hasActiveExecution)
+        if (newExecution != null)
         {
-            Console.WriteLine($"[ReopenRoute] Blocked: {route.Name} already has a new execution in progress.");
-            return new ReopenRouteResultDto
+            var hasRealProgress = newExecution.Visits?.Any(v => v.Status != VisitStatus.Pending) ?? false;
+
+            if (hasRealProgress)
             {
-                Success = false,
-                Message = $"{route.Name} has already started a new cycle since it was closed — it can't be reopened. Ask the salesman to close that new cycle first if this was a mistake."
-            };
+                Console.WriteLine($"[ReopenRoute] Blocked: {route.Name} already has a new execution in progress.");
+                return new ReopenRouteResultDto
+                {
+                    Success = false,
+                    Message = $"{route.Name} has already started a new cycle since it was closed — it can't be reopened. Ask the salesman to close that new cycle first if this was a mistake."
+                };
+            }
+
+            // Empty cycle, nothing done yet — safe to discard automatically.
+            newExecution.Abandon();
+            Console.WriteLine($"[ReopenRoute] Auto-abandoned an empty new cycle for {route.Name} (no progress yet) so the reopen could proceed.");
         }
 
         // ── BUG FIX: this used to grab every locked order with OrderDate <=
@@ -391012,6 +391102,15 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
 
         foreach (var execution in executionsToReopen)
         {
+            // ── Reopen() only flips Status back to InProgress — deliberately
+            // leave ExecutionDate untouched. A customer missed on the route's
+            // original day (e.g. Chengannur's 31-Jul run) and only filled in
+            // later must still be dated 31-Jul, not whatever day the salesman
+            // got around to it — that's the exact same rule
+            // CreateOrderCommandHandler already documents and relies on
+            // (OrderDate = execution.ExecutionDate). Bumping the date here
+            // would silently contradict that and misdate every missed-stop
+            // order taken after a reopen. ──
             execution.Reopen();
         }
         Console.WriteLine($"[ReopenRoute] Reopened {executionsToReopen.Count} execution(s) for {route.Name}");
