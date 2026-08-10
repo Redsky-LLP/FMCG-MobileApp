@@ -131,55 +131,42 @@ export default function OrderEntry() {
   // ── NEW: Show cancel button for ANY existing draft order (even with items) ──
   const canCancel = isDraft && hasExistingOrder;
 
-  // ── PERFORMANCE FIX: this used to call productsApi.getUnitPrices(product.id)
-  // once for EVERY product in the entire active catalog, in sequential batches
-  // of 5 — for a 100-product catalog, that's 20 sequential round-trips just to
-  // open a single order screen, before a salesman could even see an empty "New"
-  // order. Across a cross-cloud connection (app server and DB in different
-  // data centers), each round-trip costs real time, which is exactly what was
-  // causing the several-second delay on opening/saving orders. Replaced with
-  // ONE call to a new batched endpoint that returns every product's default
-  // unit price in a single response — same resulting priceMap shape as before,
-  // just built from one API call instead of N. ──
-  const loadUnitPrices = useCallback(async (products: any[]) => {
-    const priceMap: Record<string, ProductUnitPriceDto> = {};
-    try {
-      const defaults = await productsApi.getDefaultUnitPrices();
-      for (const def of defaults) {
-        priceMap[def.productId] = def;
-      }
-    } catch {}
-    setUnitPrices(priceMap);
-    return priceMap;
-  }, []);
-
   useEffect(() => {
     if (!routeId || !customerId) return;
     const cid = String(customerId);
 
-    Promise.all([customersApi.getById(cid), productsApi.list({ isActive: true })])
-      .then(async ([c, p]) => {
+    Promise.all([
+      customersApi.getById(cid),
+      productsApi.list({ isActive: true }),
+      productsApi.getDefaultUnitPrices().catch(() => []),
+      ordersApi.listByRoute(routeId).catch(() => []),
+    ])
+      .then(async ([c, p, defaults, allOrders]) => {
         setCustomer(c);
         setAllProducts(p);
         setFilteredProducts(p);
-        const priceMap = await loadUnitPrices(p);
 
-        try {
-          const allOrders = await ordersApi.listByRoute(routeId);
-          // ── FIX: this used to only count an order as "the one to edit" if its
-          // orderDate matched today's calendar date. But a Draft order is meant to
-          // stay open and editable across day boundaries until the admin actually
-          // closes it — so filtering by date silently lost yesterday's still-open
-          // order the moment the calendar rolled over, showing an empty "New" order
-          // instead of the real Draft one with items already on it. Filtering by
-          // status (not yet Closed, not locked) instead of date fixes this — the
-          // most recent still-open order for this customer is always found,
-          // regardless of which day it was originally created on. ──
-          const existing  = allOrders
-            .filter(o => String(o.customerId) === cid && o.status !== 'Closed' && !o.isLocked)
-            .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())[0];
+        const priceMap: Record<string, ProductUnitPriceDto> = {};
+        for (const def of defaults) {
+          priceMap[def.productId] = def;
+        }
+        setUnitPrices(priceMap);
 
-          if (existing) {
+        // ── FIX: this used to only count an order as "the one to edit" if its
+        // orderDate matched today's calendar date. But a Draft order is meant to
+        // stay open and editable across day boundaries until the admin actually
+        // closes it — so filtering by date silently lost yesterday's still-open
+        // order the moment the calendar rolled over, showing an empty "New" order
+        // instead of the real Draft one with items already on it. Filtering by
+        // status (not yet Closed, not locked) instead of date fixes this — the
+        // most recent still-open order for this customer is always found,
+        // regardless of which day it was originally created on. ──
+        const existing  = allOrders
+          .filter(o => String(o.customerId) === cid && o.status !== 'Closed' && !o.isLocked)
+          .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())[0];
+
+        if (existing) {
+          try {
             const detail = await ordersApi.getById(existing.id);
             setExistingOrder(detail);
             setRemarks(detail.remarks ?? '');
@@ -208,8 +195,8 @@ export default function OrderEntry() {
             }).filter(Boolean) as LineItem[];
             setLines(mapped);
             return;
-          }
-        } catch {}
+          } catch {}
+        }
 
         try {
           const history = await ordersApi.getCustomerHistory(cid, 10);
@@ -224,7 +211,7 @@ export default function OrderEntry() {
         skipNextAutosaveRef.current = true;
         setTimeout(() => { skipNextAutosaveRef.current = false; }, 0);
       });
-  }, [customerId, routeId, loadUnitPrices]);
+  }, [customerId, routeId]);
 
   // ── Filter products — search-first: no results shown until something is
   // typed, instead of dumping the entire (often 100+) product catalog the

@@ -198,6 +198,19 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             }
         }
 
+        // ── FIX: Duplicate-order guard — a visit already carrying an OrderId means an
+        // order was already created for this customer's stop (e.g. a double-tap/retry
+        // from the salesman app produced two CreateOrder calls back to back). Without
+        // this check, nothing stopped a second, fully independent Order row from being
+        // created for the same visit, and once both got closed they'd both legitimately
+        // show up as separate stops on the Loading Sheet and Billing Sheet. Only blocks
+        // when the visit is already linked to a real order — a visit with no OrderId yet
+        // is unaffected. ──
+        if (visit != null && visit.OrderId.HasValue)
+        {
+            return Result<OrderDetailDto>.Failure("An order already exists for this visit.");
+        }
+
         // ── Generate unique order number via PostgreSQL sequence ───────────────
         // nextval('order_number_seq') is atomic — the DB guarantees each call
         // returns a unique value, even with thousands of concurrent requests.

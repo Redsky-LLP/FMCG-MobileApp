@@ -78,18 +78,6 @@ export default function RouteExecution() {
         return;
       }
 
-      if (exec?.customers) {
-        for (const visit of exec.customers) {
-          if (visit.visitStatus === 'OrderPlaced' && visit.orderId) {
-            try {
-              await ordersApi.getById(String(visit.orderId));
-            } catch {
-              console.warn(`Order ${visit.orderId} not found for customer ${visit.customerName}`);
-            }
-          }
-        }
-      }
-
       setExecution(exec);
       
       if (exec?.customers) {
