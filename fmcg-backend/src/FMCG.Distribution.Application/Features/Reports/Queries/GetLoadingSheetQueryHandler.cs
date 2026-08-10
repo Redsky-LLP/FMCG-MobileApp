@@ -556,15 +556,17 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                         // product table above, so remarks line up directly under the PRODUCT column
                                         // instead of sitting further left than the table.
                                         //
-                                        // FIX: nested a second ShowEntire() around just this block (divider +
-                                        // label + text) on top of the outer one around the whole stop. The outer
-                                        // ShowEntire() wasn't reliably keeping the retail-items tail together with
-                                        // the rest of the stop when a page boundary fell in the middle of it —
-                                        // this makes "don't split this specific block" an explicit guarantee of
-                                        // its own, rather than relying only on the outer wrapper.
+                                        // FIX: ShowEntire() replaced with EnsureSpace() here too — same reasoning
+                                        // as the outer per-stop block above. A long Remarks string on a large
+                                        // order can render taller than a single blank page on its own, and
+                                        // ShowEntire() has no fallback for that: it throws the hard "conflicting
+                                        // size constraints" exception instead of letting this block paginate.
+                                        // EnsureSpace() still keeps the divider/label glued to the start of the
+                                        // remarks text (no orphaned label at the bottom of a page) without
+                                        // requiring the whole block to fit in one page.
                                         if (stop.Remarks != null)
                                         {
-                                            stopCol.Item().ShowEntire().Column(remarksCol =>
+                                            stopCol.Item().EnsureSpace().Column(remarksCol =>
                                             {
                                                 // Using a full-width line with padding to make it visually distinct
                                                 remarksCol.Item().AlignCenter().Width(520).PaddingTop(6).PaddingBottom(4)
@@ -584,12 +586,16 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                     // Also shows the current running totals for 30kg / 26kg / 20kg bags at this
                                     // point in the route, purely so the loader can see where all four bag sizes stand
                                     // together whenever the 50kg alert fires — no threshold logic for these three.
-                                    // ── ShowEntire() keeps the whole alert box together as one unit: if it doesn't
-                                    // fully fit on the current page, the ENTIRE box moves to the next page instead
-                                    // of splitting mid-sentence the way it was before. ──
+                                    // ── FIX: ShowEntire() replaced with EnsureSpace(). A single large order can
+                                    // cross several 110-bag milestones at once (crossedMilestones can hold more
+                                    // than one entry per stop), so this loop can emit multiple alert boxes back
+                                    // to back near the bottom of a page. ShowEntire() forced every one of them to
+                                    // fit entirely within whatever space remained (or fail outright); EnsureSpace()
+                                    // still avoids stranding an alert box's opening line alone at the page bottom,
+                                    // without being able to throw the "conflicting size constraints" exception. ──
                                     foreach (var milestone in stop.FiftyKgThresholdMilestonesCrossed)
                                     {
-                                        routeCol.Item().PaddingTop(6).ShowEntire()
+                                        routeCol.Item().PaddingTop(6).EnsureSpace()
                                             .Background(Colors.Red.Lighten3).Padding(6)
                                             .Text($"⚠ ALERT: 50 KG BAGS HAVE REACHED {milestone}+ (RUNNING TOTAL: {stop.RunningFiftyKgBagTotal}) — AFTER \"{stop.CustomerName.ToUpper()}\" — ALSO CHECK: 30 KG BAGS: {stop.RunningThirtyKgBagTotal}, 26 KG BAGS: {stop.RunningTwentySixKgBagTotal}, 20 KG BAGS: {stop.RunningTwentyKgBagTotal} — VERIFY LOADING CAPACITY")
                                             .Bold().FontSize(18).FontColor(Colors.Red.Darken2);
@@ -597,11 +603,15 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                 }
 
                                 // ── Size Group Summary (end of route) — helps loaders plan bag counts by weight ──
-                                // ShowEntire() here too, for the same reason: the whole summary list should move to
-                                // the next page as one block rather than splitting between entries. ──
+                                // FIX: ShowEntire() replaced with EnsureSpace(). A route built from a large order
+                                // (or many orders) can span enough distinct size groups that this summary no
+                                // longer fits on a single blank page, which is exactly what ShowEntire() cannot
+                                // handle — it demands the entire block fit in one page or throws. EnsureSpace()
+                                // keeps the "📦 SIZE GROUP SUMMARY" heading glued to its first entries while still
+                                // allowing the list itself to paginate normally if it runs long. ──
                                 if (route.SizeGroupSummary.Count > 0)
                                 {
-                                    routeCol.Item().PaddingTop(10).ShowEntire()
+                                    routeCol.Item().PaddingTop(10).EnsureSpace()
                                         .Background(Colors.Blue.Lighten5)
                                         .Padding(8)
                                         .Column(sgCol =>
