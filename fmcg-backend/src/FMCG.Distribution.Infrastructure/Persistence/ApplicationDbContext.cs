@@ -458,6 +458,24 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasIndex(e => e.RouteExecutionId);
             entity.HasIndex(e => e.CustomerId);
             entity.HasIndex(e => new { e.RouteExecutionId, e.SequenceOrder });
+            // FIX: without this, two overlapping requests to
+            // GetCurrentRouteExecutionQueryHandler (e.g. the salesman app
+            // reloading, or a slow network causing a retry) could both decide
+            // a newly-added customer was "missing" a visit and each insert
+            // their own CustomerVisit row for that customer — nothing at the
+            // database level stopped it. This constraint makes a second
+            // insert for the same (execution, customer) pair fail outright,
+            // and the query handler now catches that failure and treats it
+            // as "someone else already added it" instead of erroring.
+            // FIX: needed HasFilter here — CustomerVisit uses soft-delete
+            // (IsDeleted), and a plain unique index enforces uniqueness across
+            // ALL rows including old soft-deleted ones, which would block
+            // legitimate new visits forever once any row for that pair was
+            // ever deleted. Scoping to IsDeleted = false matches the entity's
+            // own HasQueryFilter above, so only currently-active rows count. ──
+            entity.HasIndex(e => new { e.RouteExecutionId, e.CustomerId })
+                  .IsUnique()
+                  .HasFilter("\"IsDeleted\" = false");
 
             entity.HasOne(e => e.RouteExecution)
                   .WithMany(r => r.Visits)

@@ -92,7 +92,28 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
                 .ToList();
 
             await context.CustomerVisits.AddRangeAsync(newVisits, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
+
+            // ── FIX: two overlapping requests can both reach this point believing
+            // the same customer is "missing" a visit (see the unique index added
+            // on CustomerVisits(RouteExecutionId, CustomerId) in
+            // ApplicationDbContext for the actual guarantee). Whichever request
+            // saves second now hits that constraint and throws — that's expected
+            // and means the other request already added the visit, so it's safe
+            // to swallow here rather than surfacing an error to the salesman.
+            // Either way, the reload right below picks up whatever's actually in
+            // the database now. ──
+            try
+            {
+                await context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                foreach (var entry in context.ChangeTracker.Entries<CustomerVisit>())
+                {
+                    if (newVisits.Contains(entry.Entity))
+                        entry.State = EntityState.Detached;
+                }
+            }
 
             // Reload with new visits
             execution = await context.RouteExecutions

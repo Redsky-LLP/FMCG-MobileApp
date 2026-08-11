@@ -461,9 +461,12 @@ interface FormFieldsProps {
   setForm: React.Dispatch<React.SetStateAction<any>>;
   routes: RouteDto[];
   isEdit?: boolean;
+  // ── FIX: lets the parent recompute sequenceOrder when the route changes
+  // during an edit — see the select's onChange below for why this is needed. ──
+  onRouteChange?: (newRouteId: string) => void;
 }
 
-const FormFields = React.memo(({ form, setForm, routes, isEdit = false }: FormFieldsProps) => {
+const FormFields = React.memo(({ form, setForm, routes, isEdit = false, onRouteChange }: FormFieldsProps) => {
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -525,7 +528,19 @@ const FormFields = React.memo(({ form, setForm, routes, isEdit = false }: FormFi
         </label>
         <select
           value={form.routeId}
-          onChange={e => handleChange('routeId', e.target.value)}
+          onChange={e => {
+            handleChange('routeId', e.target.value);
+            // ── FIX: previously, changing the route here left `sequenceOrder`
+            // completely untouched — so a customer's OLD position number (say
+            // 53 on their old route) got carried over and saved as-is on the
+            // NEW route, silently colliding with whatever customer already
+            // held position 53 there. That's what was producing the duplicate
+            // sequence numbers seen across the customer list — and very
+            // likely what was causing a single customer to appear multiple
+            // times in the salesman's route view. Recomputing the sequence
+            // for the newly selected route closes that gap. ──
+            if (isEdit && onRouteChange) onRouteChange(e.target.value);
+          }}
           style={{ ...inputStyle, cursor: 'pointer' }}
           onFocus={e => { e.target.style.borderColor = D.accent; e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`; e.target.style.background = D.surface2; }}
           onBlur={e => { e.target.style.borderColor = D.border; e.target.style.boxShadow = 'none'; e.target.style.background = D.bg; }}
@@ -639,6 +654,21 @@ export function AdminCustomers() {
       sequenceOrder: String(c.sequenceOrder > 0 ? c.sequenceOrder : nextSeq(c.routeId)),
     });
     setEditModal(c);
+  }
+
+  // ── FIX: called when the Route dropdown changes inside the Edit form.
+  // Recomputes sequenceOrder for the NEWLY selected route so it can't collide
+  // with an existing customer's position there. Switching back to the
+  // customer's original route restores their original sequence number
+  // instead of recomputing again, so a same-route no-op edit stays a no-op. ──
+  function handleEditRouteChange(newRouteId: string) {
+    if (!editModal) return;
+    setEditForm(f => ({
+      ...f,
+      sequenceOrder: newRouteId === editModal.routeId
+        ? String(editModal.sequenceOrder > 0 ? editModal.sequenceOrder : nextSeq(newRouteId))
+        : String(nextSeq(newRouteId)),
+    }));
   }
 
   async function handleReorder(customer: CustomerDto, newSeq: number) {
@@ -1026,7 +1056,7 @@ export function AdminCustomers() {
 
               <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
                 {error && <Alert variant="error">{error}</Alert>}
-                <FormFields form={editForm} setForm={setEditForm} routes={routes} isEdit />
+                <FormFields form={editForm} setForm={setEditForm} routes={routes} isEdit onRouteChange={handleEditRouteChange} />
               </div>
 
               <div style={{ padding: '16px 24px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, justifyContent: 'flex-end', flexShrink: 0 }}>
