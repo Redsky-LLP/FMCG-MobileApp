@@ -453,7 +453,8 @@ public class ExampleInstrumentedTest {
 ## File: android/app/src/main/AndroidManifest.xml
 ``````xml
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -466,9 +467,9 @@ public class ExampleInstrumentedTest {
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="false"
+        android:usesCleartextTraffic="true"
+        tools:replace="android:usesCleartextTraffic"
         android:networkSecurityConfig="@xml/network_security_config">
-
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
@@ -859,6 +860,9 @@ public class MainActivity extends BridgeActivity {
 ``````xml
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">141.148.211.66</domain>
+    </domain-config>
     <base-config cleartextTrafficPermitted="false" />
 </network-security-config>
 ``````
@@ -1350,7 +1354,11 @@ ext {
   "appId": "com.fmcg.distribution",
   "appName": "FMCG Distribution",
   "webDir": "dist",
-  "bundledWebRuntime": false
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "http://141.148.211.66",
+    "cleartext": true
+  }
 }
 ``````
 
@@ -1362,6 +1370,20 @@ const config: CapacitorConfig = {
   appId: 'com.fmcg.distribution',
   appName: 'FMCG Distribution',
   webDir: 'dist',
+  // FIX: point the native app at the live server instead of bundling a static
+  // copy of dist/ inside the APK. Without this, every frontend change required
+  // a full rebuild + reinstall on every tablet, since the app had no way to
+  // know the code had changed — it was just running whatever was baked in at
+  // build time. With server.url set, the app behaves like a thin native shell
+  // that always loads the current deployed build, the same way a browser tab
+  // would — so a normal frontend deploy is now enough, no new APK needed.
+  // cleartext: true is required because the server is currently served over
+  // plain HTTP (see the "Not secure" warning in the admin panel) rather than
+  // HTTPS — Android blocks cleartext (non-HTTPS) traffic by default.
+  server: {
+    url: 'http://141.148.211.66',
+    cleartext: true,
+  },
   plugins: {
     // FIX: without this, the Android status bar overlays the app's content
     // instead of pushing it down — CSS env(safe-area-inset-top) can't
@@ -1479,7 +1501,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.omdt11l6dr"
+    "revision": "0.c7dsnspoqs"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -70991,6 +71013,7 @@ body {
 }
 
 /* ── Scrollbar ──────────────────────────────────────────────── */
+/* /* ── Scrollbar ──────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { 
@@ -71590,51 +71613,100 @@ button:active, .btn:active {
 @media (max-width: 768px) {
   .e-btn { min-height: 48px; }
 }
-
 /* ═══════════════════════════════════════════════════════════════
-   FIX: Remove excess bottom padding — CORRECTED VERSION
-   ═══════════════════════════════════════════════════════════════
-   The original version of this section zeroed out padding-bottom on
-   .page-wrapper, .page-root, and main > * using !important — but those
-   same classes carry the legitimate bottom-nav safe-area clearance
-   declared earlier in this file (search "Salesman mobile bottom nav
-   clearance" above). Zeroing them here would silently strip that
-   clearance on every page using those classes, causing content to hide
-   BEHIND the bottom nav instead of leaving blank space below it — the
-   opposite problem. It also set min-height: auto !important on
-   .page-root/.page-wrapper, undoing the min-height: 100vh needed to
-   keep the app's background filling the full screen (see the --bg
-   color-match fix earlier in this file).
-   
-   Scoped down to just .page-content (a plain visual inset, unrelated
-   to bottom-nav clearance) and trailing-margin cleanup on cards —
-   the part of the original intent that's actually safe to apply
-   globally without conflicting with the nav-clearance rules above.
-   The real fix for the page-specific blank-space bug (SalesmanRoutes,
-   RouteExecution, OrderEntry) was at the component level — removing
-   a stray minHeight:'100vh' from each page's own inline styles — not
-   a CSS class, since those pages use inline styles, not these classes.
+   FIX: Remove white scroll/space at bottom of ALL pages
    ═══════════════════════════════════════════════════════════════ */
 
+/* 1. Remove bottom padding from page content */
 .page-content {
   padding: 28px 32px;
-  padding-bottom: 0;
+  padding-bottom: 0 !important;  /* ← Remove bottom padding */
 }
 
+/* 2. Fix page wrapper - remove extra height forcing */
+.page-wrapper {
+  padding-top: var(--nav-h);
+  min-height: 100vh;
+  padding-bottom: 0 !important;  /* ← Remove bottom padding */
+}
+
+/* 3. Fix page root */
+.page-root {
+  min-height: 100vh;
+  padding-bottom: 0 !important;
+}
+
+/* 4. Remove extra space from main content */
+main {
+  padding-top: var(--nav-h);
+  min-height: 100vh;
+  padding-bottom: 0 !important;
+}
+
+/* 5. Fix for mobile - don't add extra bottom padding if content is short */
 @media (max-width: 768px) {
   .page-content {
     padding: 16px 16px;
-    padding-bottom: 0;
+    padding-bottom: 0 !important;
+  }
+  
+  .page-wrapper,
+  .page-root,
+  .min-h-screen {
+    padding-bottom: 0 !important;
   }
 }
 
+/* 6. Ensure the app container doesn't force extra height */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 7. Remove the problematic padding that was added earlier */
+/* Override the earlier rule that added padding-bottom to all pages */
+@media (max-width: 768px) {
+  .page-content, .page-wrapper, main > * {
+    padding-bottom: 0 !important;
+  }
+}
+
+/* 8. Fix for the mobile bottom nav - only add padding when nav exists */
+/* This was the main culprit - it added padding to EVERY page */
+@media (max-width: 768px) {
+  /* Remove the generic padding-bottom rule that affected everything */
+  .page-content, .page-wrapper, main > * {
+    padding-bottom: 0 !important;
+  }
+  
+  /* Only add padding to pages that actually HAVE a bottom nav */
+  .with-bottom-nav {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* 9. Fix the "above-nav" rule - only apply when class is present */
+@media (max-width: 768px) {
+  .above-nav {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px) + var(--mobile-nav-h)) !important;
+  }
+}
+
+/* 10. Ensure cards don't add extra bottom space */
 .card {
   margin-bottom: 0;
 }
 
+/* 11. Remove bottom margin from the last child in content */
 .page-content > *:last-child,
 .card > *:last-child {
   margin-bottom: 0;
+}
+
+/* 12. For the specific white space issue - add this to all pages */
+.page-root, .page-wrapper {
+  min-height: auto !important;  /* Don't force full viewport height */
 }
 ``````
 
@@ -88533,55 +88605,42 @@ export default function OrderEntry() {
   // ── NEW: Show cancel button for ANY existing draft order (even with items) ──
   const canCancel = isDraft && hasExistingOrder;
 
-  // ── PERFORMANCE FIX: this used to call productsApi.getUnitPrices(product.id)
-  // once for EVERY product in the entire active catalog, in sequential batches
-  // of 5 — for a 100-product catalog, that's 20 sequential round-trips just to
-  // open a single order screen, before a salesman could even see an empty "New"
-  // order. Across a cross-cloud connection (app server and DB in different
-  // data centers), each round-trip costs real time, which is exactly what was
-  // causing the several-second delay on opening/saving orders. Replaced with
-  // ONE call to a new batched endpoint that returns every product's default
-  // unit price in a single response — same resulting priceMap shape as before,
-  // just built from one API call instead of N. ──
-  const loadUnitPrices = useCallback(async (products: any[]) => {
-    const priceMap: Record<string, ProductUnitPriceDto> = {};
-    try {
-      const defaults = await productsApi.getDefaultUnitPrices();
-      for (const def of defaults) {
-        priceMap[def.productId] = def;
-      }
-    } catch {}
-    setUnitPrices(priceMap);
-    return priceMap;
-  }, []);
-
   useEffect(() => {
     if (!routeId || !customerId) return;
     const cid = String(customerId);
 
-    Promise.all([customersApi.getById(cid), productsApi.list({ isActive: true })])
-      .then(async ([c, p]) => {
+    Promise.all([
+      customersApi.getById(cid),
+      productsApi.list({ isActive: true }),
+      productsApi.getDefaultUnitPrices().catch(() => []),
+      ordersApi.listByRoute(routeId).catch(() => []),
+    ])
+      .then(async ([c, p, defaults, allOrders]) => {
         setCustomer(c);
         setAllProducts(p);
         setFilteredProducts(p);
-        const priceMap = await loadUnitPrices(p);
 
-        try {
-          const allOrders = await ordersApi.listByRoute(routeId);
-          // ── FIX: this used to only count an order as "the one to edit" if its
-          // orderDate matched today's calendar date. But a Draft order is meant to
-          // stay open and editable across day boundaries until the admin actually
-          // closes it — so filtering by date silently lost yesterday's still-open
-          // order the moment the calendar rolled over, showing an empty "New" order
-          // instead of the real Draft one with items already on it. Filtering by
-          // status (not yet Closed, not locked) instead of date fixes this — the
-          // most recent still-open order for this customer is always found,
-          // regardless of which day it was originally created on. ──
-          const existing  = allOrders
-            .filter(o => String(o.customerId) === cid && o.status !== 'Closed' && !o.isLocked)
-            .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())[0];
+        const priceMap: Record<string, ProductUnitPriceDto> = {};
+        for (const def of defaults) {
+          priceMap[def.productId] = def;
+        }
+        setUnitPrices(priceMap);
 
-          if (existing) {
+        // ── FIX: this used to only count an order as "the one to edit" if its
+        // orderDate matched today's calendar date. But a Draft order is meant to
+        // stay open and editable across day boundaries until the admin actually
+        // closes it — so filtering by date silently lost yesterday's still-open
+        // order the moment the calendar rolled over, showing an empty "New" order
+        // instead of the real Draft one with items already on it. Filtering by
+        // status (not yet Closed, not locked) instead of date fixes this — the
+        // most recent still-open order for this customer is always found,
+        // regardless of which day it was originally created on. ──
+        const existing  = allOrders
+          .filter(o => String(o.customerId) === cid && o.status !== 'Closed' && !o.isLocked)
+          .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())[0];
+
+        if (existing) {
+          try {
             const detail = await ordersApi.getById(existing.id);
             setExistingOrder(detail);
             setRemarks(detail.remarks ?? '');
@@ -88610,8 +88669,8 @@ export default function OrderEntry() {
             }).filter(Boolean) as LineItem[];
             setLines(mapped);
             return;
-          }
-        } catch {}
+          } catch {}
+        }
 
         try {
           const history = await ordersApi.getCustomerHistory(cid, 10);
@@ -88626,7 +88685,7 @@ export default function OrderEntry() {
         skipNextAutosaveRef.current = true;
         setTimeout(() => { skipNextAutosaveRef.current = false; }, 0);
       });
-  }, [customerId, routeId, loadUnitPrices]);
+  }, [customerId, routeId]);
 
   // ── Filter products — search-first: no results shown until something is
   // typed, instead of dumping the entire (often 100+) product catalog the
@@ -89997,18 +90056,6 @@ export default function RouteExecution() {
       if (exec && exec.status && exec.status !== 'InProgress') {
         navigate('/salesman/routes', { replace: true });
         return;
-      }
-
-      if (exec?.customers) {
-        for (const visit of exec.customers) {
-          if (visit.visitStatus === 'OrderPlaced' && visit.orderId) {
-            try {
-              await ordersApi.getById(String(visit.orderId));
-            } catch {
-              console.warn(`Order ${visit.orderId} not found for customer ${visit.customerName}`);
-            }
-          }
-        }
       }
 
       setExecution(exec);
@@ -93688,6 +93735,7 @@ export interface CurrentRouteExecutionDto {
   routeId?:         string;
   routeName?:       string;
   executionDate?:   string;
+  createdAt?: string; // ← ADD THIS
   status?:          string;
   totalCustomers?:  number;
   completedCount?:  number;
@@ -94248,6 +94296,7 @@ export interface ReopenRouteResultDto {
   message?: string;
   ordersUnlocked: number;
   executionsReopened: number;
+  executionDate?: string;
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────────

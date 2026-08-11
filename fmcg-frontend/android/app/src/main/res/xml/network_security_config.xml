@@ -1,4 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">141.148.211.66</domain>
+    </domain-config>
     <base-config cleartextTrafficPermitted="false" />
 </network-security-config>
