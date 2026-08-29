@@ -199,6 +199,8 @@ src/FMCG.Distribution.Application/Features/Reports/Queries/GetLoadingSheetQuery.
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetLoadingSheetQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetProductSummaryReportQuery.cs
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetProductSummaryReportQueryHandler.cs
+src/FMCG.Distribution.Application/Features/Reports/Queries/GetRetailSheetQuery.cs
+src/FMCG.Distribution.Application/Features/Reports/Queries/GetRetailSheetQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetRouteSummaryReportQuery.cs
 src/FMCG.Distribution.Application/Features/Reports/Queries/GetRouteSummaryReportQueryHandler.cs
 src/FMCG.Distribution.Application/Features/Routes/Commands/CloseDayCommand.cs
@@ -343,6 +345,8 @@ src/FMCG.Distribution.Infrastructure/Migrations/20260728070708_AddExecutionIdToO
 src/FMCG.Distribution.Infrastructure/Migrations/20260728070708_AddExecutionIdToOrders.Designer.cs
 src/FMCG.Distribution.Infrastructure/Migrations/20260730075609_RemoveExecutionIdFromOrders.cs
 src/FMCG.Distribution.Infrastructure/Migrations/20260730075609_RemoveExecutionIdFromOrders.Designer.cs
+src/FMCG.Distribution.Infrastructure/Migrations/20260811183348_AddUniqueCustomerVisitIndex.cs
+src/FMCG.Distribution.Infrastructure/Migrations/20260811183348_AddUniqueCustomerVisitIndex.Designer.cs
 src/FMCG.Distribution.Infrastructure/Migrations/ApplicationDbContextModelSnapshot.cs
 src/FMCG.Distribution.Infrastructure/Persistence/ApplicationDbContext.cs
 src/FMCG.Distribution.Infrastructure/Persistence/DbInitializer.cs
@@ -332234,6 +332238,39 @@ public class ReportsController(IMediator mediator) : ControllerBase
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // GET /api/v1/reports/retail-sheet
+    // NEW: Retail Sheet — same filters as Loading Sheet, scoped to retail-only
+    // orders (zero items, remarks present).
+    // ─────────────────────────────────────────────────────────────────────────
+    [HttpGet("retail-sheet")]
+    [Authorize(Roles = "Warehouse,Admin,SuperAdmin,Salesman")]
+    public async Task<IActionResult> GetRetailSheet(
+        [FromQuery] Guid? routeId,
+        [FromQuery] DateTime? date)
+    {
+        var query = new GetRetailSheetQuery
+        {
+            RouteId = routeId,
+            Date = date
+        };
+
+        var result = await mediator.Send(query);
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error });
+        }
+
+        var fileName = $"RetailSheet_{date:yyyyMMdd}.pdf";
+        if (routeId.HasValue)
+        {
+            fileName = $"RetailSheet_Route{routeId}_{date:yyyyMMdd}.pdf";
+        }
+
+        return File(result.Data!, "application/pdf", fileName);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // GET /api/v1/reports/billing-sheet
     // Roles: Accounts, Admin, SuperAdmin
     // ─────────────────────────────────────────────────────────────────────────
@@ -332332,26 +332369,26 @@ public class ReportsController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("incentive-report")]
-public async Task<IActionResult> GetIncentiveReport(
+    public async Task<IActionResult> GetIncentiveReport(
     [FromQuery] string? fromDate,
     [FromQuery] string? toDate)
-{
-    var query = new GetIncentiveReportQuery
     {
-        FromDate = fromDate != null ? DateTime.Parse(fromDate) : null,
-        ToDate = toDate != null ? DateTime.Parse(toDate) : null
-    };
+        var query = new GetIncentiveReportQuery
+        {
+            FromDate = fromDate != null ? DateTime.Parse(fromDate) : null,
+            ToDate = toDate != null ? DateTime.Parse(toDate) : null
+        };
 
-    // ── FIX: Change _mediator to mediator ──
-    var result = await mediator.Send(query);  // ✅ Use 'mediator' not '_mediator'
+        // ── FIX: Change _mediator to mediator ──
+        var result = await mediator.Send(query);  // ✅ Use 'mediator' not '_mediator'
 
-    if (!result.IsSuccess)
-    {
-        return BadRequest(new { error = result.Error });
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error });
+        }
+
+        return File(result.Data!, "application/pdf", $"IncentiveReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
     }
-
-    return File(result.Data!, "application/pdf", $"IncentiveReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
-}
     // ─────────────────────────────────────────────────────────────────────────
     // GET /api/v1/reports/daily-summary
     // Roles: Admin, SuperAdmin, Accounts
@@ -338898,12 +338935,16 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
         // ── Permission matrix ──────────────────────────────────────────────────
         if (request.IsAdmin)
         {
-            // Admin can edit: Draft, PendingApproval, OR Approved orders
-            var adminEditableStatuses = new[] { OrderStatus.Draft, OrderStatus.PendingApproval, OrderStatus.Approved };
+            // Admin can edit: Draft, PendingApproval, Approved, OR Closed orders
+            // FIX: added Closed — this was the actual gap behind "no edit option
+            // for previous/closed orders." The universal IsLocked check above
+            // still applies unconditionally: once admin runs Close Day, nobody
+            // (including admin) can edit regardless of this list.
+            var adminEditableStatuses = new[] { OrderStatus.Draft, OrderStatus.PendingApproval, OrderStatus.Approved, OrderStatus.Closed };
             if (!adminEditableStatuses.Contains(order.Status))
                 return Result<OrderDetailDto>.Failure(
                     $"Cannot modify an order in '{order.Status}' status. " +
-                    "Admin can only edit Draft, Pending Approval, or Approved orders.");
+                    "Admin can only edit Draft, Pending Approval, Approved, or Closed orders.");
         }
         else
         {
@@ -340998,6 +341039,11 @@ public class LoadingSheetItemDto
     // ── NEW: Size Group (e.g. "50 KG", "25 KG") for loading priority & summary ──
     public string? SizeGroupName { get; set; }
     public int SizeGroupSortKey { get; set; } = 999;    // lower = heavier = loaded/listed first
+
+    // ── NEW: Item Group (e.g. "VEGETABLES", "CHILLES") — drives the "X" marker
+    // shown next to these products on the printed sheet. Display-only; does not
+    // affect sorting, priority, or any existing calculation. ──
+    public string? ProductGroupName { get; set; }
 }
 
 public class LoadingSheetStopDto
@@ -341030,6 +341076,10 @@ public class LoadingSheetStopDto
     public int RunningThirtyKgBagTotal { get; set; }
     public int RunningTwentySixKgBagTotal { get; set; }
     public int RunningTwentyKgBagTotal { get; set; }
+
+    // ── NEW: the actual weighted total the threshold is measured against
+    // (50kg bags full weight, 30kg/26kg bags at 0.5 each). ──
+    public decimal RunningWeightedBagTotal { get; set; }
 }
 
 public class LoadingSheetSizeGroupSummaryDto
@@ -341126,6 +341176,9 @@ public class BillingSheetItemDto
     public string ProductName { get; set; } = string.Empty;
     public string? ProductNameMalayalam { get; set; }
     public string? SizeGroupName { get; set; }          // NEW — drives client-specified size-group display order
+    // ── NEW: Item Group (e.g. "VEGETABLES", "CHILLES") — drives the "X" marker
+    // shown next to these products on the printed sheet. Display-only. ──
+    public string? ProductGroupName { get; set; }
     public string UnitSymbol { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public decimal SellingPrice { get; set; }
@@ -341300,6 +341353,22 @@ public class AdditionalRevenueReportDataDto
     public List<AdditionalRevenueReportItemDto> Items { get; set; } = new();
     public decimal GrandTotalAdditionalRevenue { get; set; }
     public int TotalSalesmen { get; set; }
+}
+
+// ── NEW: Retail Sheet report — same-shaped DTOs as the Loading Sheet's
+// per-stop structure, but scoped to retail-only orders (zero items, remarks
+// present). ──
+public class RetailSheetOrderDto
+{
+    public int SequenceOrder { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string Remarks { get; set; } = string.Empty;
+}
+
+public class RetailSheetRouteDto
+{
+    public string RouteName { get; set; } = string.Empty;
+    public List<RetailSheetOrderDto> Orders { get; set; } = [];
 }
 ```````
 
@@ -341648,6 +341717,9 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
             .ThenInclude(i => i.Product!)
                 .ThenInclude(p => p.SizeGroup)
         .Include(o => o.Items!)
+            .ThenInclude(i => i.Product!)
+                .ThenInclude(p => p.ProductGroup)
+        .Include(o => o.Items!)
             .ThenInclude(i => i.Unit)
         .Where(o => !o.IsDeleted
             && (o.Status == OrderStatus.Closed || o.IsLocked)
@@ -341715,6 +341787,12 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                 ProductName = i.ProductNameAtTime ?? i.Product?.NameEnglish ?? string.Empty,
                                 ProductNameMalayalam = i.ProductNameMalayalamAtTime ?? i.Product?.NameMalayalam,
                                 SizeGroupName = i.SizeGroupNameAtTime ?? i.Product?.SizeGroup?.Name,
+                                // ── NEW: Item Group name (VEGETABLES/CHILLES etc.), not snapshotted —
+                                // group membership isn't expected to change day-to-day, same reasoning
+                                // as the loading sheet's identical addition. ──
+                                ProductGroupName = i.Product != null && i.Product.ProductGroup != null
+                                    ? i.Product.ProductGroup.Name
+                                    : null,
                                 UnitSymbol = i.Unit?.Symbol ?? string.Empty,
                                 Quantity = i.Quantity,
                                 SellingPrice = i.SellingPrice,
@@ -341790,6 +341868,15 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
     // still happen there normally (name on one line, bracket on the next, as one unit). ──
     private static string KeepParentheticalTogether(string productName)
         => Regex.Replace(productName, @"\(([^)]*)\)", m => "(" + m.Groups[1].Value.Replace(' ', '\u00A0') + ")");
+
+    // ── NEW: flags products in the VEGETABLES and CHILLES item groups so they can be
+    // marked with an "X" on the printed sheet — same rule as the Loading Sheet, purely
+    // a visual flag for staff. ──
+    private static readonly HashSet<string> FlaggedProductGroups =
+        new(StringComparer.OrdinalIgnoreCase) { "VEGETABLES", "CHILLES" };
+
+    private static bool IsFlaggedProductGroup(string? productGroupName)
+        => productGroupName != null && FlaggedProductGroups.Contains(productGroupName.Trim());
 
     // ── PDF Generator: matching the Loading Sheet style with 3 columns (Product, Qty, Price) ──
     private static byte[] GenerateBillingSheetPdf(BillingSheetDataDto data)
@@ -341912,17 +341999,32 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
 
                                             foreach (var item in order.Items)
                                             {
+                                                // ── FIX: X marker rendered as its own larger, bolder text span
+                                                // within the same cell — was previously plain text at the same
+                                                // size/weight as the product name, which read as too thin. Kept
+                                                // inline (no new column, no layout change) but visibly heavier
+                                                // and bigger, since it's now its own span with a bigger font size.
+                                                var isFlagged = IsFlaggedProductGroup(item.ProductGroupName);
+                                                var productNameText = KeepParentheticalTogether(item.ProductName.ToUpper());
+
                                                 // Product name - left aligned, extra bold and larger for readability
-                                                table.Cell().BorderBottom(0.5f)
+                                                // FIX: separator line made bolder (was 0.5f) per request.
+                                                table.Cell().BorderBottom(1.5f)
                                                     .PaddingVertical(3)
                                                     .PaddingLeft(5)
                                                     .PaddingRight(10)
-                                                    .Text(KeepParentheticalTogether(item.ProductName.ToUpper()))
-                                                    .FontSize(18)
-                                                    .ExtraBold();
+                                                    .Text(text =>
+                                                    {
+                                                        text.Span(productNameText).FontSize(18).ExtraBold();
+                                                        if (isFlagged)
+                                                        {
+                                                            text.Span("  X").FontSize(26).ExtraBold().FontColor(Colors.Black);
+                                                        }
+                                                    });
 
                                                 // Quantity - centered, extra bold and larger for readability
-                                                table.Cell().BorderBottom(0.5f)
+                                                // FIX: separator line made bolder (was 0.5f) per request.
+                                                table.Cell().BorderBottom(1.5f)
                                                     .PaddingVertical(3)
                                                     .PaddingHorizontal(8)
                                                     .AlignCenter()
@@ -341931,7 +342033,8 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                                     .ExtraBold();
 
                                                 // Price - right aligned, extra bold and larger for readability
-                                                table.Cell().BorderBottom(0.5f)
+                                                // FIX: separator line made bolder (was 0.5f) per request.
+                                                table.Cell().BorderBottom(1.5f)
                                                     .PaddingVertical(3)
                                                     .PaddingLeft(8)
                                                     .PaddingRight(5)
@@ -342608,6 +342711,10 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
                 .Include(o => o.Route)
                 .Include(o => o.Items!)
                     .ThenInclude(i => i.Product)
+                        .ThenInclude(p => p!.ProductGroup)
+                .Include(o => o.Items!)
+                    .ThenInclude(i => i.Product)
+                        .ThenInclude(p => p!.SizeGroup)
                 .Include(o => o.Items!)
                     .ThenInclude(i => i.Unit)
                 .Where(o => !o.IsDeleted
@@ -342700,6 +342807,10 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
                             ProductNameMl = i.Product.NameMalayalam,
                             i.UnitId,
                             UnitSymbol = i.Unit?.Symbol ?? string.Empty,
+                            // ── NEW: needed for the X marker on VEGETABLES/CHILLES items ──
+                            ProductGroupName = i.Product.ProductGroup != null ? i.Product.ProductGroup.Name : null,
+                            // ── NEW: needed for the loading-limit alert's bag-weight detection ──
+                            SizeGroupName = i.SizeGroupNameAtTime ?? (i.Product.SizeGroup != null ? i.Product.SizeGroup.Name : null),
                         })
                         .Select(g => new LoadingSheetItemDto
                         {
@@ -342709,6 +342820,8 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
                             TotalQuantity = g.Sum(i => i.Quantity),
                             LoadingPriority = units.GetValueOrDefault(g.Key.UnitId, 99),
                             UnitTypeLabel = GetUnitTypeLabel(g.Key.UnitSymbol),
+                            ProductGroupName = g.Key.ProductGroupName,
+                            SizeGroupName = g.Key.SizeGroupName,
                             QuantityBags = 0,
                             QuantityBoxes = 0,
                             QuantityTins = 0,
@@ -342770,6 +342883,22 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
             return Result<byte[]>.Success(errorPdf);
         }
     }
+
+    // ── NEW: matches a size-group name against a specific weight, same helper as
+    // GetLoadingSheetQueryHandler — used for the loading-limit alert below. ──
+    private static bool MatchesSizeGroupWeight(string? sizeGroupName, int kg)
+        => sizeGroupName != null && System.Text.RegularExpressions.Regex.IsMatch(sizeGroupName, $@"\b{kg}\s*kg\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    // Same threshold as the main Loading Sheet — kept in sync with GetLoadingSheetQueryHandler.
+    private const int BagLoadingThreshold = 130;
+
+    // ── NEW: flags products in the VEGETABLES and CHILLES item groups so they can be
+    // marked with an "X" on the printed sheet — same rule as the other report handlers. ──
+    private static readonly HashSet<string> FlaggedProductGroups =
+        new(StringComparer.OrdinalIgnoreCase) { "VEGETABLES", "CHILLES" };
+
+    private static bool IsFlaggedProductGroup(string? productGroupName)
+        => productGroupName != null && FlaggedProductGroups.Contains(productGroupName.Trim());
 
     private static string GetUnitTypeLabel(string unitName)
     {
@@ -342955,16 +343084,88 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
                                                     header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("QTY").Bold();
                                                 });
 
+                                                // ── NEW: live loading-limit threshold tracking for this route,
+                                                // same rule as the main Loading Sheet (130, 260, 390... with
+                                                // 50kg bags full weight, 30kg/26kg bags at 0.5 each). This
+                                                // table's rows are already one-per-customer (items pre-joined
+                                                // into a single comma-separated cell), so the finest point an
+                                                // alert can land at is right after the customer row whose
+                                                // items caused the crossing — inserted as its own row spanning
+                                                // all 4 columns, rather than splitting into a separate table
+                                                // like the main handler needs to. ──
+                                                // FIX: single running total (cycleWeightedTotal) replaces
+                                                // the old never-reset liveWeightedTotal + separately-reset
+                                                // breakdown counts. That split let overshoot past 130 in one
+                                                // cycle silently vanish from the display counters while still
+                                                // counting toward the never-reset detector — causing later
+                                                // alerts to under-report (a total under 130 while still
+                                                // claiming the limit was crossed). Now everything resets and
+                                                // accumulates together, so they can't drift apart.
+                                                var cycleWeightedTotal = 0m;
+                                                var liveFiftyKg = 0;
+                                                var liveThirtyKg = 0;
+                                                var liveTwentySixKg = 0;
+
                                                 foreach (var stop in route.Stops)
                                                 {
-                                                    var itemNames = string.Join(", ", stop.Items.Select(i =>
-                                                        $"{i.ProductName} ({i.TotalQuantity:N0} {i.UnitSymbol})"
-                                                    ));
-
+                                                    // FIX: X marker now rendered as its own larger, bolder span
+                                                    // per flagged item, instead of a plain "X" character glued
+                                                    // into the joined string at the same size/weight as
+                                                    // everything else — was reading as too thin. Still inline,
+                                                    // still no new column, same cell as before.
                                                     table.Cell().BorderBottom(0.5f).Padding(3).Text($"#{stop.SequenceOrder}");
                                                     table.Cell().BorderBottom(0.5f).Padding(3).Text(stop.CustomerName);
-                                                    table.Cell().BorderBottom(0.5f).Padding(3).Text(itemNames).FontSize(7);
+                                                    table.Cell().BorderBottom(0.5f).Padding(3).Text(text =>
+                                                    {
+                                                        for (var i = 0; i < stop.Items.Count; i++)
+                                                        {
+                                                            var item = stop.Items[i];
+                                                            text.Span($"{item.ProductName} ({item.TotalQuantity:N0} {item.UnitSymbol})").FontSize(7);
+                                                            if (IsFlaggedProductGroup(item.ProductGroupName))
+                                                            {
+                                                                text.Span("  X").FontSize(11).ExtraBold().FontColor(Colors.Black);
+                                                            }
+                                                            if (i < stop.Items.Count - 1)
+                                                            {
+                                                                text.Span(", ").FontSize(7);
+                                                            }
+                                                        }
+                                                    });
                                                     table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{stop.StopTotalQuantity:N0}");
+
+                                                    // ── FIX: loading-limit alert restored for this consolidated
+                                                    // report too — inserted as its own full-width row right
+                                                    // after the customer whose items crossed the threshold. ──
+                                                    foreach (var item in stop.Items)
+                                                    {
+                                                        var weight = MatchesSizeGroupWeight(item.SizeGroupName, 50) ? 1m
+                                                            : (MatchesSizeGroupWeight(item.SizeGroupName, 30) || MatchesSizeGroupWeight(item.SizeGroupName, 26)) ? 0.5m
+                                                            : 0m;
+                                                        var qty = (int)item.TotalQuantity;
+
+                                                        if (MatchesSizeGroupWeight(item.SizeGroupName, 50)) liveFiftyKg += qty;
+                                                        else if (MatchesSizeGroupWeight(item.SizeGroupName, 30)) liveThirtyKg += qty;
+                                                        else if (MatchesSizeGroupWeight(item.SizeGroupName, 26)) liveTwentySixKg += qty;
+
+                                                        cycleWeightedTotal += weight * qty;
+                                                    }
+
+                                                    if (cycleWeightedTotal >= BagLoadingThreshold)
+                                                    {
+                                                        // Alert shows the real total that triggered it — always
+                                                        // consistent with the breakdown counts beside it, since
+                                                        // they're the same numbers this total came from.
+                                                        table.Cell().ColumnSpan(4)
+                                                            .Background(Colors.Red.Lighten3).Padding(5)
+                                                            .Text($"🚨 LOADING LIMIT CROSSED! ({BagLoadingThreshold}) — AFTER \"{stop.CustomerName.ToUpper()}\" — 50KG BAGS: {liveFiftyKg} | 30KG BAGS: {liveThirtyKg} | 26KG BAGS: {liveTwentySixKg} — TOTAL EQUIVALENT: {cycleWeightedTotal:0.#} / {BagLoadingThreshold} ✓ — 🛑 STOP! DO NOT LOAD MORE THAN {BagLoadingThreshold} BAGS!")
+                                                            .Bold().FontSize(8).FontColor(Colors.Red.Darken2);
+
+                                                        // Reset everything together for the next cycle.
+                                                        cycleWeightedTotal = 0m;
+                                                        liveFiftyKg = 0;
+                                                        liveThirtyKg = 0;
+                                                        liveTwentySixKg = 0;
+                                                    }
                                                 }
                                             });
                                         }
@@ -343102,8 +343303,11 @@ namespace FMCG.Distribution.Application.Features.Reports.Queries;
 public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
     : IRequestHandler<GetLoadingSheetQuery, Result<byte[]>>
 {
-    // Loading workers get a highlighted alert once a route's 50kg bag count reaches this.
-    private const int FiftyKgBagThreshold = 110;
+    // Loading workers get a highlighted alert once a route's weighted bag count reaches this.
+    // FIX: threshold changed from 110 to 130, and now weighs 30kg/26kg bags at 0.5 each
+    // toward the total instead of only counting literal 50kg bags — see the weighting
+    // logic below where this constant is used.
+    private const int BagLoadingThreshold = 130;
 
     // ── FALLBACK ONLY: the client's originally hand-written "Size Group Priority" list.
     // The real, editable priority now lives on SizeGroup.SortOrder in the database (set
@@ -343137,6 +343341,9 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 .Include(o => o.Items!)
                     .ThenInclude(i => i.Product!)
                         .ThenInclude(p => p.SizeGroup)
+                .Include(o => o.Items!)
+                    .ThenInclude(i => i.Product!)
+                        .ThenInclude(p => p.ProductGroup)
                 .Include(o => o.Items!)
                     .ThenInclude(i => i.Unit)
                 .Where(o => !o.IsDeleted
@@ -343266,6 +343473,10 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 var runningThirtyKgBags = 0;
                 var runningTwentySixKgBags = 0;
                 var runningTwentyKgBags = 0;
+                // ── NEW: the actual threshold-tracked total — 50kg bags at full weight,
+                // 30kg/26kg bags at half weight each (see below). Decimal because half-weights
+                // accumulate in 0.5 steps. ──
+                var runningWeightedBags = 0m;
                 var announcedMilestoneCount = 0;
 
                 foreach (var order in orderedOrders)
@@ -343284,6 +343495,10 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                             i.UnitId,
                             UnitSymbol = i.Unit?.Symbol ?? string.Empty,
                             SizeGroupName = i.SizeGroupNameAtTime ?? i.Product.SizeGroup?.Name,
+                            // ── NEW: Item Group name (VEGETABLES/CHILLES etc.) — not snapshotted like
+                            // price/name are, since group membership isn't expected to change day-to-day
+                            // and doesn't affect anything already printed on past sheets. ──
+                            ProductGroupName = i.Product.ProductGroup != null ? i.Product.ProductGroup.Name : null,
                         })
                         .Select(g => new LoadingSheetItemDto
                         {
@@ -343295,6 +343510,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                             UnitTypeLabel = GetUnitTypeLabel(g.Key.UnitSymbol),
                             SizeGroupName = g.Key.SizeGroupName,
                             SizeGroupSortKey = ResolveSizeGroupSortKey(g.Key.SizeGroupName, sizeGroupPriorities),
+                            ProductGroupName = g.Key.ProductGroupName,
                             QuantityBags = 0,
                             QuantityBoxes = 0,
                             QuantityTins = 0,
@@ -343315,8 +343531,8 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                         .Sum(i => i.QuantityBags ?? (int)i.Quantity);
                     runningFiftyKgBags += fiftyKgBagsThisStop;
 
-                    // ── Running totals for 30kg / 26kg / 20kg bags — tracked purely for
-                    // display alongside the 50kg alert, no threshold logic of their own. ──
+                    // ── Running totals for 30kg / 26kg / 20kg bags — still tracked and shown
+                    // alongside the alert for the loader's situational awareness. ──
                     var thirtyKgBagsThisStop = order.Items
                         .Where(i => MatchesSizeGroupWeight(i.SizeGroupNameAtTime ?? i.Product?.SizeGroup?.Name, 30))
                         .Sum(i => i.QuantityBags ?? (int)i.Quantity);
@@ -343332,12 +343548,22 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                         .Sum(i => i.QuantityBags ?? (int)i.Quantity);
                     runningTwentyKgBags += twentyKgBagsThisStop;
 
-                    // ── Repeats every time cumulative bags cross another multiple of the threshold ──
-                    var currentMilestoneCount = runningFiftyKgBags / FiftyKgBagThreshold;
+                    // ── FIX: the threshold now weighs bag sizes instead of only counting literal
+                    // 50kg bags — two 30kg bags or two 26kg bags count as one "50kg-equivalent"
+                    // bag (0.5 each), matching actual truck loading capacity rather than a literal
+                    // kg count. 20kg bags are unchanged — still tracked for display only, no
+                    // weighting rule was given for them. ──
+                    runningWeightedBags += fiftyKgBagsThisStop
+                        + (0.5m * thirtyKgBagsThisStop)
+                        + (0.5m * twentySixKgBagsThisStop);
+
+                    // ── Repeats every time cumulative weighted bags cross another multiple of
+                    // the threshold (now 130, was 110) ──
+                    var currentMilestoneCount = (int)(runningWeightedBags / BagLoadingThreshold);
                     var crossedMilestones = new List<int>();
                     for (var m = announcedMilestoneCount + 1; m <= currentMilestoneCount; m++)
                     {
-                        crossedMilestones.Add(m * FiftyKgBagThreshold);
+                        crossedMilestones.Add(m * BagLoadingThreshold);
                     }
                     announcedMilestoneCount = Math.Max(announcedMilestoneCount, currentMilestoneCount);
 
@@ -343360,6 +343586,7 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                         RunningThirtyKgBagTotal = runningThirtyKgBags,
                         RunningTwentySixKgBagTotal = runningTwentySixKgBags,
                         RunningTwentyKgBagTotal = runningTwentyKgBags,
+                        RunningWeightedBagTotal = runningWeightedBags,
                     });
 
                     stopNumber++;
@@ -343480,6 +343707,16 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
     private static bool MatchesSizeGroupWeight(string? sizeGroupName, int kg)
         => sizeGroupName != null && Regex.IsMatch(sizeGroupName, $@"\b{kg}\s*kg\b", RegexOptions.IgnoreCase);
 
+    // ── NEW: flags products in the VEGETABLES and CHILLES item groups so they can be
+    // marked with an "X" on the printed sheet — purely a visual flag for staff, no effect
+    // on ordering, pricing, or anything else. Case-insensitive since admin-entered group
+    // names could vary in casing. ──
+    private static readonly HashSet<string> FlaggedProductGroups =
+        new(StringComparer.OrdinalIgnoreCase) { "VEGETABLES", "CHILLES" };
+
+    private static bool IsFlaggedProductGroup(string? productGroupName)
+        => productGroupName != null && FlaggedProductGroups.Contains(productGroupName.Trim());
+
     // ── PDF Generator: original block-per-stop layout (mirrors the Billing Sheet's style) —
     // route header, then one block per customer stop with a Product/Qty table underneath.
     // Order # is intentionally not shown anywhere in this layout, and retail/weigh remarks
@@ -343526,6 +343763,90 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                     .AlignCenter()
                                     .Text($"{route.RouteName.ToUpper()}").FontSize(18).Bold();
 
+                                // ── NEW: live, per-item threshold tracking for this route — replaces the
+                                // old per-STOP-only check. Weighted bags accumulate as each grouped product
+                                // line is about to be rendered, and the moment a multiple of the threshold
+                                // (130, 260, 390...) is crossed, an alert is inserted right there — between
+                                // that item and the next one — instead of only ever appearing once, after
+                                // the whole customer's order was already fully printed. Declared per-route
+                                // since the threshold applies across the whole route, same as before.
+                                //
+                                // FIX: this used to track TWO separate running totals — a never-reset
+                                // liveWeightedTotal for detecting crossings, and separately-reset breakdown
+                                // counts (50/30/26kg) for display. Every time a cycle overshot past 130
+                                // (e.g. actually reached 139), that 9-unit overshoot stayed baked into the
+                                // never-reset detector but was silently discarded when the display counters
+                                // reset to zero. That lost overshoot compounded with every cycle, so later
+                                // alerts could show a total UNDER 130 while still claiming the limit was
+                                // crossed. Now there's just ONE running total (cycleWeightedTotal) used for
+                                // both deciding when to fire an alert and what to display — they can never
+                                // diverge from each other again. ──
+                                var cycleWeightedTotal = 0m;
+                                var liveFiftyKg = 0;
+                                var liveThirtyKg = 0;
+                                var liveTwentySixKg = 0;
+                                var liveTwentyKg = 0;
+
+                                // ── Renders one segment of a stop's item table. `showHeader` is false for
+                                // continuation segments (after an alert splits a stop's items) so the "QTY"
+                                // header doesn't repeat mid-customer — same table styling either way. ──
+                                void RenderItemSegment(QuestPDF.Infrastructure.IContainer container, List<LoadingSheetItemDto> segmentItems, bool showHeader)
+                                {
+                                    // ── FIX: switched from Table() to individual Row()-per-item, each
+                                    // wrapped in ShowEntire(). QuestPDF's Table rows were splitting mid-row
+                                    // across a page boundary in this nested context (product name on one
+                                    // page, qty on the next) — visually broken. ShowEntire() on the WHOLE
+                                    // table was already ruled out earlier (that's what caused the original
+                                    // "conflicting size constraints" crash on large orders). Applying it to
+                                    // just ONE row at a time is safe: a single Product/Qty line is tiny and
+                                    // will always fit somewhere, so it can never trigger that crash — while
+                                    // the Column as a whole still paginates freely between rows exactly like
+                                    // before, so large orders still split page-to-page between items, just
+                                    // never mid-item anymore. ──
+                                    container.AlignCenter().Width(360).PaddingTop(4).Column(itemsCol =>
+                                    {
+                                        if (showHeader)
+                                        {
+                                            itemsCol.Item().ShowEntire().Row(row =>
+                                            {
+                                                row.RelativeItem(3).BorderBottom(1).PaddingVertical(4).PaddingLeft(5).Text("");
+                                                row.RelativeItem(1).BorderBottom(1).PaddingVertical(4).PaddingRight(5)
+                                                    .AlignRight().Text("QTY").Bold().FontSize(18);
+                                            });
+                                        }
+
+                                        foreach (var item in segmentItems)
+                                        {
+                                            var isFlagged = IsFlaggedProductGroup(item.ProductGroupName);
+                                            var productNameText = item.ProductName.ToUpper();
+
+                                            itemsCol.Item().ShowEntire().Row(row =>
+                                            {
+                                                // FIX: X marker rendered as its own larger, bolder text span
+                                                // within the same cell — was previously just appended as plain
+                                                // text at the same size/weight as the product name, which read
+                                                // as too thin. This keeps it inline (no new column, no layout
+                                                // change) but visibly heavier and bigger than the surrounding
+                                                // text, since it's now its own span with a bigger font size.
+                                                row.RelativeItem(3).BorderBottom(1.5f)
+                                                    .PaddingVertical(3).PaddingLeft(5)
+                                                    .Text(text =>
+                                                    {
+                                                        text.Span(productNameText).FontSize(18).ExtraBold();
+                                                        if (isFlagged)
+                                                        {
+                                                            text.Span("  X").FontSize(26).ExtraBold().FontColor(Colors.Black);
+                                                        }
+                                                    });
+
+                                                row.RelativeItem(1).BorderBottom(1.5f)
+                                                    .PaddingVertical(3).PaddingRight(5).AlignRight()
+                                                    .Text($"{item.TotalQuantity:N0} {item.UnitSymbol}").FontSize(18).ExtraBold();
+                                            });
+                                        }
+                                    });
+                                }
+
                                 // ── One block per customer stop (numbering stays left, name centered & large) ──
                                 // ShowEntire() keeps a stop's header + product table + remarks together as one
                                 // unit — if it doesn't fully fit on the current page, the whole block moves to
@@ -343569,62 +343890,71 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
 
                                         if (stop.Items.Count > 0)
                                         {
-                                            // Narrower, centered table: capping the width tightens the gap between
-                                            // the PRODUCT and QTY columns further, pushing the leftover space out
-                                            // to equal left/right margins instead of sitting between the columns.
-                                            stopCol.Item().AlignCenter().Width(360).PaddingTop(4).Table(table =>
+                                            // ── FIX: restored the loading-limit alert to fire at the EXACT
+                                            // item where a threshold (130, 260, 390...) is crossed, instead
+                                            // of only once after the customer's whole order was already
+                                            // printed. Walks this stop's items one grouped product-line at a
+                                            // time, accumulating the weighted bag total; the moment a new
+                                            // multiple of the threshold is crossed, the items rendered so far
+                                            // are drawn as their own table segment, the alert box is inserted
+                                            // right there, and the remaining items continue in a fresh segment
+                                            // below it — still inside this same customer's block. ──
+                                            var segment = new List<LoadingSheetItemDto>();
+                                            var segmentIndex = 0;
+
+                                            foreach (var item in stop.Items)
                                             {
-                                                table.ColumnsDefinition(columns =>
+                                                segment.Add(item);
+
+                                                var weight = MatchesSizeGroupWeight(item.SizeGroupName, 50) ? 1m
+                                                    : (MatchesSizeGroupWeight(item.SizeGroupName, 30) || MatchesSizeGroupWeight(item.SizeGroupName, 26)) ? 0.5m
+                                                    : 0m;
+                                                var qty = (int)item.TotalQuantity;
+
+                                                if (MatchesSizeGroupWeight(item.SizeGroupName, 50)) liveFiftyKg += qty;
+                                                else if (MatchesSizeGroupWeight(item.SizeGroupName, 30)) liveThirtyKg += qty;
+                                                else if (MatchesSizeGroupWeight(item.SizeGroupName, 26)) liveTwentySixKg += qty;
+                                                else if (MatchesSizeGroupWeight(item.SizeGroupName, 20)) liveTwentyKg += qty;
+
+                                                // FIX: single running total drives BOTH the crossing check and
+                                                // the displayed number — see the declaration above for why the
+                                                // old two-total approach caused later alerts to under-report.
+                                                cycleWeightedTotal += weight * qty;
+
+                                                if (cycleWeightedTotal >= BagLoadingThreshold)
                                                 {
-                                                    columns.RelativeColumn(3);  // Product ≈ 75%
-                                                    columns.RelativeColumn(1);  // Qty ≈ 25%
-                                                });
+                                                    // Draw everything accumulated so far as its own segment...
+                                                    stopCol.Item().Element(c => RenderItemSegment(c, segment, segmentIndex == 0));
+                                                    segment = [];
+                                                    segmentIndex++;
 
-                                                table.Header(header =>
-                                                {
-                                                    // "PRODUCT" label intentionally omitted on the loading sheet —
-                                                    // item names are self-explanatory and the label just adds
-                                                    // noise. The cell (and its bottom border) stays so column
-                                                    // widths and the underline still line up with the QTY header.
-                                                    header.Cell().BorderBottom(1)
-                                                        .PaddingVertical(4)
-                                                        .PaddingLeft(5)
-                                                        .Text("");
+                                                    // ...then the alert, showing the real total that triggered
+                                                    // it (e.g. 155/130 if 155 fifty-kg-equivalent bags actually
+                                                    // accumulated this cycle) — always consistent with the
+                                                    // breakdown counts shown right beside it, since they're the
+                                                    // same numbers this total was computed from.
+                                                    stopCol.Item().PaddingTop(6).EnsureSpace()
+                                                        .Background(Colors.Red.Lighten3).Padding(6)
+                                                        .Text($"🚨 LOADING LIMIT CROSSED! ({BagLoadingThreshold}) — AFTER \"{stop.CustomerName.ToUpper()}\" — 50KG BAGS: {liveFiftyKg} | 30KG BAGS: {liveThirtyKg} | 26KG BAGS: {liveTwentySixKg} — TOTAL EQUIVALENT: {cycleWeightedTotal:0.#} / {BagLoadingThreshold} ✓ — 🛑 STOP! DO NOT LOAD MORE THAN {BagLoadingThreshold} BAGS!")
+                                                        .Bold().FontSize(18).FontColor(Colors.Red.Darken2);
 
-                                                    header.Cell().BorderBottom(1)
-                                                        .PaddingVertical(4)
-                                                        .PaddingRight(5)
-                                                        .AlignRight()
-                                                        .Text("QTY")
-                                                        .Bold()
-                                                        .FontSize(18);
-                                                });
-
-                                                foreach (var item in stop.Items)
-                                                {
-                                                    // Product name - left aligned, extra bold and larger for readability
-                                                    // NOTE: size-group name is intentionally NOT appended here anymore
-                                                    // (admin already conveys size via the product name/entry itself).
-                                                    // This is purely a display change — item.SizeGroupSortKey still
-                                                    // drives the ordering above and the Size Group Summary below,
-                                                    // nothing about the backend priority logic changed.
-                                                    table.Cell().BorderBottom(0.5f)
-                                                        .PaddingVertical(3)
-                                                        .PaddingLeft(5)
-                                                        .Text(item.ProductName.ToUpper())
-                                                        .FontSize(18)
-                                                        .ExtraBold();
-
-                                                    // Quantity right aligned, extra bold and larger for readability
-                                                    table.Cell().BorderBottom(0.5f)
-                                                        .PaddingVertical(3)
-                                                        .PaddingRight(5)
-                                                        .AlignRight()
-                                                        .Text($"{item.TotalQuantity:N0} {item.UnitSymbol}")
-                                                        .FontSize(18)
-                                                        .ExtraBold();
+                                                    // Reset everything together for the next cycle — total and
+                                                    // breakdown counts always move in lockstep now, so they can
+                                                    // never drift apart from each other again.
+                                                    cycleWeightedTotal = 0m;
+                                                    liveFiftyKg = 0;
+                                                    liveThirtyKg = 0;
+                                                    liveTwentySixKg = 0;
+                                                    liveTwentyKg = 0;
                                                 }
-                                            });
+                                            }
+
+                                            // Whatever's left after the last crossing (or the whole list, if
+                                            // no threshold was crossed in this stop at all).
+                                            if (segment.Count > 0)
+                                            {
+                                                stopCol.Item().Element(c => RenderItemSegment(c, segment, segmentIndex == 0));
+                                            }
                                         }
                                         else if (stop.Remarks == null)
                                         {
@@ -343635,76 +343965,32 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                         // Wrapped with the same AlignCenter().Width(360) + PaddingLeft(5) as the
                                         // product table above, so remarks line up directly under the PRODUCT column
                                         // instead of sitting further left than the table.
-                                        //
-                                        // FIX: ShowEntire() replaced with EnsureSpace() here too — same reasoning
-                                        // as the outer per-stop block above. A long Remarks string on a large
-                                        // order can render taller than a single blank page on its own, and
-                                        // ShowEntire() has no fallback for that: it throws the hard "conflicting
-                                        // size constraints" exception instead of letting this block paginate.
-                                        // EnsureSpace() still keeps the divider/label glued to the start of the
-                                        // remarks text (no orphaned label at the bottom of a page) without
-                                        // requiring the whole block to fit in one page.
                                         if (stop.Remarks != null)
                                         {
                                             stopCol.Item().EnsureSpace().Column(remarksCol =>
                                             {
                                                 // Using a full-width line with padding to make it visually distinct
                                                 remarksCol.Item().AlignCenter().Width(520).PaddingTop(6).PaddingBottom(4)
-                                                    .LineHorizontal(2.5f);  // Thicker than default (2.5pt)
+                                                    .LineHorizontal(2.5f);
                                                 // ── RETAIL ITEMS LABEL ──
                                                 remarksCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(2)
                                                     .Text("RETAIL ITEMS:").FontSize(14).ExtraBold().FontColor(Colors.Grey.Darken2);
-                                                // Extra bold + 18pt for stronger readability, matching the product/qty rows.
                                                 remarksCol.Item().AlignCenter().Width(520).PaddingLeft(5).PaddingTop(4)
                                                     .Text(stop.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
                                             });
                                         }
                                     });
 
-                                    // ── 50kg bag threshold alert(s), inserted right after the stop that crossed them ──
-                                    // Repeats every time cumulative bags cross another multiple (110, 220, 330...).
-                                    // Also shows the current running totals for 30kg / 26kg / 20kg bags at this
-                                    // point in the route, purely so the loader can see where all four bag sizes stand
-                                    // together whenever the 50kg alert fires — no threshold logic for these three.
-                                    // ── FIX: ShowEntire() replaced with EnsureSpace(). A single large order can
-                                    // cross several 110-bag milestones at once (crossedMilestones can hold more
-                                    // than one entry per stop), so this loop can emit multiple alert boxes back
-                                    // to back near the bottom of a page. ShowEntire() forced every one of them to
-                                    // fit entirely within whatever space remained (or fail outright); EnsureSpace()
-                                    // still avoids stranding an alert box's opening line alone at the page bottom,
-                                    // without being able to throw the "conflicting size constraints" exception. ──
-                                    foreach (var milestone in stop.FiftyKgThresholdMilestonesCrossed)
-                                    {
-                                        routeCol.Item().PaddingTop(6).EnsureSpace()
-                                            .Background(Colors.Red.Lighten3).Padding(6)
-                                            .Text($"⚠ ALERT: 50 KG BAGS HAVE REACHED {milestone}+ (RUNNING TOTAL: {stop.RunningFiftyKgBagTotal}) — AFTER \"{stop.CustomerName.ToUpper()}\" — ALSO CHECK: 30 KG BAGS: {stop.RunningThirtyKgBagTotal}, 26 KG BAGS: {stop.RunningTwentySixKgBagTotal}, 20 KG BAGS: {stop.RunningTwentyKgBagTotal} — VERIFY LOADING CAPACITY")
-                                            .Bold().FontSize(18).FontColor(Colors.Red.Darken2);
-                                    }
+                                    // ── FIX: the old post-stop alert loop that lived here has been removed —
+                                    // replaced by the live, per-item alert insertion above (inside stopCol),
+                                    // which fires at the exact item where a threshold is crossed instead of
+                                    // only once after the whole customer's order was already printed. ──
                                 }
 
-                                // ── Size Group Summary (end of route) — helps loaders plan bag counts by weight ──
-                                // FIX: ShowEntire() replaced with EnsureSpace(). A route built from a large order
-                                // (or many orders) can span enough distinct size groups that this summary no
-                                // longer fits on a single blank page, which is exactly what ShowEntire() cannot
-                                // handle — it demands the entire block fit in one page or throws. EnsureSpace()
-                                // keeps the "📦 SIZE GROUP SUMMARY" heading glued to its first entries while still
-                                // allowing the list itself to paginate normally if it runs long. ──
-                                if (route.SizeGroupSummary.Count > 0)
-                                {
-                                    routeCol.Item().PaddingTop(10).EnsureSpace()
-                                        .Background(Colors.Blue.Lighten5)
-                                        .Padding(8)
-                                        .Column(sgCol =>
-                                        {
-                                            sgCol.Item().Text("📦 SIZE GROUP SUMMARY").FontSize(18).Bold();
-                                            var i = 1;
-                                            foreach (var sg in route.SizeGroupSummary)
-                                            {
-                                                sgCol.Item().PaddingTop(2).Text($"{i}. {sg.SizeGroupName.ToUpper()} — {sg.TotalQuantity:N0} {sg.UnitTypeLabel}").FontSize(18).Bold();
-                                                i++;
-                                            }
-                                        });
-                                }
+                                // FIX: Size Group Summary removed from the end of the loading sheet per
+                                // request — it's no longer shown here. (route.SizeGroupSummary itself is
+                                // still computed upstream and untouched, in case anything else relies on
+                                // it; this only removes its rendering on this particular report.)
 
                                 if (route != routes.Last())
                                 {
@@ -344010,6 +344296,293 @@ public class GetSummaryReportQueryHandler : IRequestHandler<GetSummaryReportQuer
                     });
             });
         }).GeneratePdf();
+    }
+}
+```````
+
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetRetailSheetQuery.cs
+```````csharp
+// PATH: src/FMCG.Distribution.Application/Features/Reports/Queries/GetRetailSheetQuery.cs
+
+using MediatR;
+using FMCG.Distribution.Application.Common;
+
+namespace FMCG.Distribution.Application.Features.Reports.Queries;
+
+public class GetRetailSheetQuery : IRequest<Result<byte[]>>
+{
+    public Guid? RouteId { get; set; }
+    public DateTime? Date { get; set; }
+}
+```````
+
+## File: src/FMCG.Distribution.Application/Features/Reports/Queries/GetRetailSheetQueryHandler.cs
+```````csharp
+// PATH: src/FMCG.Distribution.Application/Features/Reports/Queries/GetRetailSheetQueryHandler.cs
+//
+// NEW: Retail Sheet report — same overall shape as the Loading Sheet (route
+// filter, date filter, grouped by route, customer stop numbering matching
+// their assigned delivery sequence), but scoped to ONLY retail items: orders
+// with zero products and a non-empty Remarks note. Same "Closed or Locked
+// orders only" rule as every other finalized report in this app (Loading
+// Sheet, Billing Sheet) — this is a production/reference document generated
+// after the day's orders are finalized, not a live in-progress tracker.
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using FMCG.Distribution.Application.Common;
+using FMCG.Distribution.Application.Common.Interfaces;
+using FMCG.Distribution.Application.Features.Reports.DTOs;
+using FMCG.Distribution.Domain.Enums;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+using PdfUnit = QuestPDF.Infrastructure.Unit;
+
+namespace FMCG.Distribution.Application.Features.Reports.Queries;
+
+public class GetRetailSheetQueryHandler(IApplicationDbContext context)
+    : IRequestHandler<GetRetailSheetQuery, Result<byte[]>>
+{
+    public async Task<Result<byte[]>> Handle(GetRetailSheetQuery request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var targetDate = request.Date?.Date ?? DateTime.UtcNow.Date;
+
+            // ── FIX: "retail items" are the free-text remarks a salesman jots down for
+            // non-catalog items — matched by remarks alone, regardless of whether that
+            // same order also has real catalog products on it. The original spec's
+            // literal "zero items AND remarks" definition returned nothing against real
+            // data, because remarks are typically attached to orders that ALSO have
+            // regular products (e.g. a customer's usual rice order plus a note for
+            // "2kg carrots, 1kg beetroot"). This matches the same widened rule already
+            // applied to the Loading Sheet's retail-items handling, for consistency —
+            // this report only DISPLAYS the remarks text either way, never the order's
+            // regular items, so it stays focused on retail items specifically. ──
+            var retailOrdersQuery = context.Orders
+                .AsNoTracking()
+                .Include(o => o.Customer)
+                .Include(o => o.Route)
+                .Where(o => !o.IsDeleted
+                    && (o.Status == OrderStatus.Closed || o.IsLocked)
+                    && o.OrderDate.Date == targetDate.Date
+                    && !string.IsNullOrWhiteSpace(o.Remarks));
+
+            if (request.RouteId.HasValue)
+            {
+                retailOrdersQuery = retailOrdersQuery.Where(o => o.RouteId == request.RouteId.Value);
+            }
+
+            var retailOrders = await retailOrdersQuery.ToListAsync(cancellationToken);
+
+            if (retailOrders.Count == 0)
+            {
+                var emptyPdf = GenerateEmptyRetailSheet(
+                    targetDate,
+                    request.RouteId.HasValue ? "No retail items found for the selected route/date." : "No retail items found for this date."
+                );
+                return Result<byte[]>.Success(emptyPdf);
+            }
+
+            // ── Group by route, customers ordered by their assigned delivery sequence —
+            // same convention as the Loading Sheet, so stop numbers stay consistent
+            // between the two reports for the same route/day. ──
+            var routeGroups = retailOrders
+                .Where(o => o.Route != null)
+                .GroupBy(o => new { o.RouteId, RouteName = o.Route?.Name ?? "Unknown" })
+                .OrderBy(g => g.Key.RouteName)
+                .ToList();
+
+            var routes = new List<RetailSheetRouteDto>();
+            foreach (var routeGroup in routeGroups)
+            {
+                var orderedOrders = routeGroup
+                    .OrderBy(o => o.Customer?.SequenceOrder ?? 0)
+                    .ToList();
+
+                var orders = new List<RetailSheetOrderDto>();
+                var stopNumber = 1;
+                foreach (var order in orderedOrders)
+                {
+                    orders.Add(new RetailSheetOrderDto
+                    {
+                        SequenceOrder = stopNumber,
+                        CustomerName = order.Customer?.NameEnglish ?? "Unknown Customer",
+                        Remarks = order.Remarks ?? string.Empty,
+                    });
+                    stopNumber++;
+                }
+
+                routes.Add(new RetailSheetRouteDto
+                {
+                    RouteName = routeGroup.Key.RouteName,
+                    Orders = orders,
+                });
+            }
+
+            var isSingleRoute = request.RouteId.HasValue;
+            var pdfBytes = GenerateRetailSheetPdf(routes, targetDate, isSingleRoute);
+            return Result<byte[]>.Success(pdfBytes);
+        }
+        catch (Exception ex)
+        {
+            return Result<byte[]>.Failure($"Failed to generate retail sheet: {ex.Message}");
+        }
+    }
+
+    private static byte[] GenerateRetailSheetPdf(List<RetailSheetRouteDto> routes, DateTime targetDate, bool isSingleRoute)
+    {
+        try
+        {
+            return Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(0.5f, PdfUnit.Centimetre);
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Serif"));
+
+                    // ── Header ──
+                    page.Header()
+                        .BorderBottom(0.5f)
+                        .PaddingBottom(5)
+                        .Column(col =>
+                        {
+                            col.Item().Text("📝 RETAIL SHEET").FontSize(16).Bold().Underline();
+                            col.Item().Text($"Date: {targetDate:dd-MM-yyyy}").FontSize(10);
+                            if (isSingleRoute && routes.Count == 1)
+                            {
+                                col.Item().Text($"Route: {routes[0].RouteName.ToUpper()}").FontSize(11).Bold();
+                            }
+                        });
+
+                    // ── Content ──
+                    page.Content().Column(contentCol =>
+                    {
+                        foreach (var route in routes)
+                        {
+                            contentCol.Item().PaddingTop(10).Column(routeCol =>
+                            {
+                                routeCol.Item().Background(Colors.Grey.Lighten2)
+                                    .Padding(6)
+                                    .AlignCenter()
+                                    .Text($"{route.RouteName.ToUpper()}").FontSize(18).Bold();
+
+                                foreach (var order in route.Orders)
+                                {
+                                    // Same visual language as the Loading Sheet's per-stop banner and
+                                    // the retail-items block that used to appear inline there — kept
+                                    // consistent so this reads as "the same data, filtered" rather than
+                                    // a differently-styled report. ShowEntire() is safe here (unlike the
+                                    // Loading Sheet's full item tables) since one customer's remarks
+                                    // block is always small enough to fit on a single page.
+                                    // FIX: gap between customers reduced from 2cm down to 10pt.
+                                    routeCol.Item().PaddingTop(10).ShowEntire().Column(orderCol =>
+                                    {
+                                        orderCol.Item().Background(Colors.Grey.Lighten3)
+                                            .Padding(4)
+                                            .Text($"{order.SequenceOrder}) {order.CustomerName.ToUpper()}").FontSize(18).ExtraBold();
+
+                                        orderCol.Item().PaddingTop(4).PaddingLeft(5)
+                                            .Text(order.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
+                                    });
+                                }
+
+                                if (route != routes.Last())
+                                {
+                                    routeCol.Item().PageBreak();
+                                }
+                            });
+                        }
+                    });
+
+                    // ── Footer ──
+                    page.Footer()
+                        .BorderTop(0.5f)
+                        .PaddingTop(5)
+                        .AlignCenter()
+                        .Text(x =>
+                        {
+                            x.Span("Page ");
+                            x.CurrentPageNumber();
+                            x.Span(" of ");
+                            x.TotalPages();
+                            x.Span($" | Generated: {DateTime.UtcNow:HH:mm:ss}");
+                        });
+                });
+            }).GeneratePdf();
+        }
+        catch
+        {
+            return Array.Empty<byte>();
+        }
+    }
+
+    private static byte[] GenerateEmptyRetailSheet(DateTime targetDate, string message)
+    {
+        try
+        {
+            return Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(0.5f, PdfUnit.Centimetre);
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Serif"));
+
+                    page.Header()
+                        .BorderBottom(0.5f)
+                        .PaddingBottom(5)
+                        .Row(row =>
+                        {
+                            row.RelativeItem().Column(col =>
+                            {
+                                col.Item().Text("📝 RETAIL SHEET").FontSize(14).Bold();
+                                col.Item().Text($"Date: {targetDate:dd-MM-yyyy}");
+                            });
+                            row.RelativeItem().AlignRight().Column(col =>
+                            {
+                                col.Item().Text($"Generated: {DateTime.UtcNow:dd-MM-yyyy HH:mm}");
+                            });
+                        });
+
+                    page.Content()
+                        .PaddingTop(40)
+                        .AlignCenter()
+                        .Column(col =>
+                        {
+                            col.Item().Text("⚠️ No Retail Items").FontSize(14).Bold().FontColor(Colors.Orange.Medium);
+                            col.Item().Text(message).FontSize(10).FontColor(Colors.Grey.Medium);
+                            col.Item().PaddingTop(20).Text("Possible reasons:").FontSize(9).FontColor(Colors.Grey.Medium);
+                            col.Item().Text("• No orders with remarks-only (no products) were found for this route/date").FontSize(9).FontColor(Colors.Grey.Medium);
+                            col.Item().Text("• Orders are still in Draft or Approved status").FontSize(9).FontColor(Colors.Grey.Medium);
+                            col.Item().Text("• Admin must close orders before retail sheet generation").FontSize(9).FontColor(Colors.Grey.Medium);
+                        });
+
+                    page.Footer()
+                        .BorderTop(0.5f)
+                        .PaddingTop(5)
+                        .AlignCenter()
+                        .Text(x =>
+                        {
+                            x.Span("Page ");
+                            x.CurrentPageNumber();
+                            x.Span(" of ");
+                            x.TotalPages();
+                        });
+                });
+            }).GeneratePdf();
+        }
+        catch
+        {
+            return Array.Empty<byte>();
+        }
     }
 }
 ```````
@@ -345518,6 +346091,25 @@ public class CurrentRouteExecutionDto
     public int CompletedCount { get; set; }
     public int PendingCount { get; set; }
     public List<CustomerVisitStatusDto> Customers { get; set; } = [];   // IDE0028
+
+    // ── NEW: real-time bag-loading breakdown for this route/day, computed
+    // server-side from closed/locked orders — see BagsBreakdownDto below. ──
+    public BagsBreakdownDto BagsBreakdown { get; set; } = new();
+}
+
+// ── NEW: physical bag counts (by weight) plus the weighted 50kg-equivalent
+// total used for the loading-limit alert/display. 50kg bags count fully;
+// 30kg and 26kg bags count as 0.5 each toward the equivalent total.
+// Remaining/percent-to-next-threshold are computed in the frontend from
+// TotalEquivalentBags and Threshold — simple arithmetic, no need to
+// duplicate it here. ──
+public class BagsBreakdownDto
+{
+    public int Count50Kg { get; set; }
+    public int Count30Kg { get; set; }
+    public int Count26Kg { get; set; }
+    public decimal TotalEquivalentBags { get; set; }
+    public int Threshold { get; set; } = 130;
 }
 
 public class CustomerVisitStatusDto
@@ -345551,6 +346143,7 @@ public class CustomerVisitStatusDto
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
 using FMCG.Distribution.Domain.Entities;
@@ -345632,7 +346225,28 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
                 .ToList();
 
             await context.CustomerVisits.AddRangeAsync(newVisits, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
+
+            // ── FIX: two overlapping requests can both reach this point believing
+            // the same customer is "missing" a visit (see the unique index added
+            // on CustomerVisits(RouteExecutionId, CustomerId) in
+            // ApplicationDbContext for the actual guarantee). Whichever request
+            // saves second now hits that constraint and throws — that's expected
+            // and means the other request already added the visit, so it's safe
+            // to swallow here rather than surfacing an error to the salesman.
+            // Either way, the reload right below picks up whatever's actually in
+            // the database now. ──
+            try
+            {
+                await context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                foreach (var entry in context.ChangeTracker.Entries<CustomerVisit>())
+                {
+                    if (newVisits.Contains(entry.Entity))
+                        entry.State = EntityState.Detached;
+                }
+            }
 
             // Reload with new visits
             execution = await context.RouteExecutions
@@ -345671,6 +346285,66 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
             SkipReason = v.SkipReason,
         }).ToList();
 
+        // ── NEW: bags breakdown for this route/day.
+        //
+        // FIX: no longer restricted to Closed/Locked orders. Salesman orders
+        // sit in Draft status for the entire working day — they only become
+        // Closed once admin closes the route/day, often hours later. Since
+        // this is a live "how many bags have I loaded so far" indicator for
+        // the salesman DURING their route (not a financial report), it needs
+        // to count an order the moment it's saved, not wait for a closure
+        // that hasn't happened yet — otherwise this shows 0 all day.
+        //
+        // FIX: matching by OrderDate == ExecutionDate was also wrong on its
+        // own — this handler's class-level comment explains an execution can
+        // legitimately stay "current" across a calendar-day rollover until
+        // admin closes it, so ExecutionDate can still be yesterday's date
+        // while a just-placed order already has today's OrderDate. That
+        // silently excluded every order placed after midnight. Matching
+        // directly against this execution's own visits (v.OrderId) instead
+        // is unambiguous — it only counts orders actually recorded against
+        // THIS execution, with no date comparison involved at all.
+        //
+        // FIX: switched from Unit.BaseUnitValue to SizeGroupName text
+        // matching. BaseUnitValue looked like the cleaner, more reliable
+        // field on paper, but it's actually NULL across this app's real
+        // data — nobody ever populates it through the admin UI. SizeGroup
+        // (e.g. "50 KG BAG") is what's actually set and what the Loading
+        // Sheet report already successfully keys off of, so this now uses
+        // the same MatchesSizeGroupWeight-style regex match instead. ──
+        var bagsBreakdown = new BagsBreakdownDto();
+        var executionOrderIds = (execution.Visits ?? [])
+            .Where(v => v.OrderId.HasValue)
+            .Select(v => v.OrderId!.Value)
+            .ToHashSet();
+
+        var routeOrdersToday = executionOrderIds.Count == 0
+            ? []
+            : await context.Orders
+                .AsNoTracking()
+                .Include(o => o.Items!)
+                    .ThenInclude(i => i.Product!)
+                        .ThenInclude(p => p.SizeGroup)
+                .Where(o => !o.IsDeleted && executionOrderIds.Contains(o.Id))
+                .ToListAsync(cancellationToken);
+
+        foreach (var order in routeOrdersToday)
+        {
+            if (order.Items == null) continue;
+            foreach (var item in order.Items)
+            {
+                var sizeGroupName = item.SizeGroupNameAtTime ?? item.Product?.SizeGroup?.Name;
+                var qty = (int)item.Quantity;
+                if (MatchesSizeGroupWeight(sizeGroupName, 50)) bagsBreakdown.Count50Kg += qty;
+                else if (MatchesSizeGroupWeight(sizeGroupName, 30)) bagsBreakdown.Count30Kg += qty;
+                else if (MatchesSizeGroupWeight(sizeGroupName, 26)) bagsBreakdown.Count26Kg += qty;
+            }
+        }
+        bagsBreakdown.TotalEquivalentBags =
+            bagsBreakdown.Count50Kg
+            + (0.5m * bagsBreakdown.Count30Kg)
+            + (0.5m * bagsBreakdown.Count26Kg);
+
         return Result<CurrentRouteExecutionDto>.Success(new CurrentRouteExecutionDto
         {
             HasActiveExecution = true,
@@ -345682,8 +346356,15 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
             CompletedCount = completed,
             PendingCount = pending,
             Customers = customers,
+            BagsBreakdown = bagsBreakdown,
         });
     }
+
+    // ── Matches a size-group name like "50 KG BAG" or "50 KG" against a
+    // specific weight, regardless of trailing words — same helper pattern
+    // already used successfully in GetLoadingSheetQueryHandler. ──
+    private static bool MatchesSizeGroupWeight(string? sizeGroupName, int kg)
+        => sizeGroupName != null && Regex.IsMatch(sizeGroupName, $@"\b{kg}\s*kg\b", RegexOptions.IgnoreCase);
 }
 ```````
 
@@ -391476,6 +392157,1659 @@ namespace FMCG.Distribution.Infrastructure.Migrations
 }
 ```````
 
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260811183348_AddUniqueCustomerVisitIndex.cs
+```````csharp
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace FMCG.Distribution.Infrastructure.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddUniqueCustomerVisitIndex : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.CreateIndex(
+                name: "IX_CustomerVisits_RouteExecutionId_CustomerId",
+                table: "CustomerVisits",
+                columns: new[] { "RouteExecutionId", "CustomerId" },
+                unique: true,
+                filter: "\"IsDeleted\" = false");
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropIndex(
+                name: "IX_CustomerVisits_RouteExecutionId_CustomerId",
+                table: "CustomerVisits");
+        }
+    }
+}
+```````
+
+## File: src/FMCG.Distribution.Infrastructure/Migrations/20260811183348_AddUniqueCustomerVisitIndex.Designer.cs
+```````csharp
+// <auto-generated />
+using System;
+using FMCG.Distribution.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+
+#nullable disable
+
+namespace FMCG.Distribution.Infrastructure.Migrations
+{
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260811183348_AddUniqueCustomerVisitIndex")]
+    partial class AddUniqueCustomerVisitIndex
+    {
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        {
+#pragma warning disable 612, 618
+            modelBuilder
+                .HasAnnotation("ProductVersion", "8.0.0")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.BasePrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("EffectiveDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EffectiveDate");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductId", "IsActive");
+
+                    b.ToTable("BasePrices");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Customer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NameEnglish")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NameMalayalam")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SequenceOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NameMalayalam");
+
+                    b.HasIndex("RouteId", "SequenceOrder");
+
+                    b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.CustomerVisit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RouteExecutionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SequenceOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SkipReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("VisitedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("RouteExecutionId");
+
+                    b.HasIndex("RouteExecutionId", "CustomerId")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.HasIndex("RouteExecutionId", "SequenceOrder");
+
+                    b.ToTable("CustomerVisits");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.DailyClosure", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ClosedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("ClosedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ClosureDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("ExpectedCash")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RouteName")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("TotalOutstanding")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalSales")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClosedByUserId");
+
+                    b.HasIndex("ClosureDate");
+
+                    b.ToTable("DailyClosures");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Order", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("ClosedByRouteClosure")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CustomerVisitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ExecutionDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("ExecutionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("ExpectedPaymentAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("PackedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("PackedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("PackingStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SettlementStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("CustomerVisitId");
+
+                    b.HasIndex("IsLocked");
+
+                    b.HasIndex("OrderNumber")
+                        .IsUnique();
+
+                    b.HasIndex("RouteId");
+
+                    b.HasIndex("SalesmanId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("CustomerId", "OrderDate");
+
+                    b.HasIndex("RouteId", "Status");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.OrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BasePriceAtTime")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProductNameAtTime")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProductNameMalayalamAtTime")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<int?>("QuantityBags")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("QuantityBoxes")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("QuantityTins")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("SellingPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("SizeGroupNameAtTime")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UnitId");
+
+                    b.ToTable("OrderItems");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Outstanding", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("OutstandingAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("SettledAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("SettlementReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SettlementStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("SettlementStatus");
+
+                    b.ToTable("Outstandings");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.PricingAuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Action")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("NewPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("OldPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Action");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("PricingAuditLogs");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Product", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BasePrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("ClosingStock")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("DefaultUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("HSNCode")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("Incentive")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsOutOfStock")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ItemCode")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("MaxOrderQty")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal?>("MinOrderQty")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("NameEnglish")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NameMalayalam")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("OutOfStockMarkedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("OutOfStockReason")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ProductGroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SizeGroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Sku")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Supplier")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("UnitSize")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DefaultUnitId");
+
+                    b.HasIndex("NameMalayalam");
+
+                    b.HasIndex("ProductGroupId");
+
+                    b.HasIndex("SizeGroupId");
+
+                    b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NameMl")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ProductGroups");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductIncentive", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("EffectiveDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("IncentiveType")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("IncentiveValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EffectiveDate");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductId", "EffectiveDate");
+
+                    b.HasIndex("ProductId", "IsActive");
+
+                    b.ToTable("ProductIncentives");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Abbreviation")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BaseUnitName")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("BaseUnitValue")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("LoadingPriority")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MeasurementType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Symbol")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("UQC")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ProductUnits");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnitPrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Discount1")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Discount2")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Discount3")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Discount4")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("FloodCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("LandingCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("MOP")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("MRP")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PurchaseRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice2")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice3")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SalePrice4")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("UnitSize")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<string>("UnitSizeLabel")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("VAT")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDefault");
+
+                    b.HasIndex("ProductUnitId");
+
+                    b.HasIndex("ProductId", "ProductUnitId");
+
+                    b.ToTable("ProductUnitPrices");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Route", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AssignedSalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SequenceOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedSalesmanId");
+
+                    b.ToTable("Routes");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AssignmentDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsOverride")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SalesmanId");
+
+                    b.HasIndex("RouteId", "AssignmentDate")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("RouteAssignments");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteExecution", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExecutionDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("ExecutionType")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SalesmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SalesmanId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("RouteId", "ExecutionDate");
+
+                    b.ToTable("RouteExecutions");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.SettlementPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("PaymentMode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PaymentReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("RecordedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("PaymentDate");
+
+                    b.HasIndex("RecordedByUserId");
+
+                    b.ToTable("SettlementPayments");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.SizeGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NameMl")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SizeGroups");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MasterAccessPinHash")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("PinFailCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PinHash")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PinLockedUntil")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("PinRequiresUpdate")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RefreshToken")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("RefreshTokenExpiry")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("UserName")
+                        .IsUnique()
+                        .HasFilter("\"UserName\" IS NOT NULL");
+
+                    b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.UserSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceHint")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LoginAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("LoginMethod")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LogoutAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserSessions");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.BasePrice", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Customer", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany("Customers")
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Route");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.CustomerVisit", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.RouteExecution", "RouteExecution")
+                        .WithMany("Visits")
+                        .HasForeignKey("RouteExecutionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("RouteExecution");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.DailyClosure", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "ClosedByUser")
+                        .WithMany()
+                        .HasForeignKey("ClosedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ClosedByUser");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Order", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.CustomerVisit", "CustomerVisit")
+                        .WithMany()
+                        .HasForeignKey("CustomerVisitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany()
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "Salesman")
+                        .WithMany()
+                        .HasForeignKey("SalesmanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("CustomerVisit");
+
+                    b.Navigation("Route");
+
+                    b.Navigation("Salesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.OrderItem", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Order", "Order")
+                        .WithMany("Items")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductUnit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Outstanding", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.PricingAuditLog", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Product", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductUnit", "DefaultUnit")
+                        .WithMany("Products")
+                        .HasForeignKey("DefaultUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductGroup", "ProductGroup")
+                        .WithMany("Products")
+                        .HasForeignKey("ProductGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.SizeGroup", "SizeGroup")
+                        .WithMany("Products")
+                        .HasForeignKey("SizeGroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DefaultUnit");
+
+                    b.Navigation("ProductGroup");
+
+                    b.Navigation("SizeGroup");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductIncentive", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnitPrice", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Product", "Product")
+                        .WithMany("UnitPrices")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.ProductUnit", "ProductUnit")
+                        .WithMany()
+                        .HasForeignKey("ProductUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ProductUnit");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Route", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "AssignedSalesman")
+                        .WithMany("AssignedRoutes")
+                        .HasForeignKey("AssignedSalesmanId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("AssignedSalesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteAssignment", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany()
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "Salesman")
+                        .WithMany()
+                        .HasForeignKey("SalesmanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Route");
+
+                    b.Navigation("Salesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteExecution", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Route", "Route")
+                        .WithMany()
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "Salesman")
+                        .WithMany()
+                        .HasForeignKey("SalesmanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Route");
+
+                    b.Navigation("Salesman");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.SettlementPayment", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "RecordedByUser")
+                        .WithMany()
+                        .HasForeignKey("RecordedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("RecordedByUser");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.UserSession", b =>
+                {
+                    b.HasOne("FMCG.Distribution.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Order", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Product", b =>
+                {
+                    b.Navigation("UnitPrices");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductGroup", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.ProductUnit", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.Route", b =>
+                {
+                    b.Navigation("Customers");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.RouteExecution", b =>
+                {
+                    b.Navigation("Visits");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.SizeGroup", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("FMCG.Distribution.Domain.Entities.User", b =>
+                {
+                    b.Navigation("AssignedRoutes");
+                });
+#pragma warning restore 612, 618
+        }
+    }
+}
+```````
+
 ## File: src/FMCG.Distribution.Infrastructure/Migrations/ApplicationDbContextModelSnapshot.cs
 ```````csharp
 // <auto-generated />
@@ -391659,6 +393993,10 @@ namespace FMCG.Distribution.Infrastructure.Migrations
                     b.HasIndex("OrderId");
 
                     b.HasIndex("RouteExecutionId");
+
+                    b.HasIndex("RouteExecutionId", "CustomerId")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.HasIndex("RouteExecutionId", "SequenceOrder");
 
@@ -393551,6 +395889,24 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasIndex(e => e.RouteExecutionId);
             entity.HasIndex(e => e.CustomerId);
             entity.HasIndex(e => new { e.RouteExecutionId, e.SequenceOrder });
+            // FIX: without this, two overlapping requests to
+            // GetCurrentRouteExecutionQueryHandler (e.g. the salesman app
+            // reloading, or a slow network causing a retry) could both decide
+            // a newly-added customer was "missing" a visit and each insert
+            // their own CustomerVisit row for that customer — nothing at the
+            // database level stopped it. This constraint makes a second
+            // insert for the same (execution, customer) pair fail outright,
+            // and the query handler now catches that failure and treats it
+            // as "someone else already added it" instead of erroring.
+            // FIX: needed HasFilter here — CustomerVisit uses soft-delete
+            // (IsDeleted), and a plain unique index enforces uniqueness across
+            // ALL rows including old soft-deleted ones, which would block
+            // legitimate new visits forever once any row for that pair was
+            // ever deleted. Scoping to IsDeleted = false matches the entity's
+            // own HasQueryFilter above, so only currently-active rows count. ──
+            entity.HasIndex(e => new { e.RouteExecutionId, e.CustomerId })
+                  .IsUnique()
+                  .HasFilter("\"IsDeleted\" = false");
 
             entity.HasOne(e => e.RouteExecution)
                   .WithMany(r => r.Visits)

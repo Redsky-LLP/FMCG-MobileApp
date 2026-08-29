@@ -1501,7 +1501,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.c7dsnspoqs"
+    "revision": "0.4unfmaok4mo"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -74465,9 +74465,12 @@ interface FormFieldsProps {
   setForm: React.Dispatch<React.SetStateAction<any>>;
   routes: RouteDto[];
   isEdit?: boolean;
+  // ── FIX: lets the parent recompute sequenceOrder when the route changes
+  // during an edit — see the select's onChange below for why this is needed. ──
+  onRouteChange?: (newRouteId: string) => void;
 }
 
-const FormFields = React.memo(({ form, setForm, routes, isEdit = false }: FormFieldsProps) => {
+const FormFields = React.memo(({ form, setForm, routes, isEdit = false, onRouteChange }: FormFieldsProps) => {
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -74529,7 +74532,19 @@ const FormFields = React.memo(({ form, setForm, routes, isEdit = false }: FormFi
         </label>
         <select
           value={form.routeId}
-          onChange={e => handleChange('routeId', e.target.value)}
+          onChange={e => {
+            handleChange('routeId', e.target.value);
+            // ── FIX: previously, changing the route here left `sequenceOrder`
+            // completely untouched — so a customer's OLD position number (say
+            // 53 on their old route) got carried over and saved as-is on the
+            // NEW route, silently colliding with whatever customer already
+            // held position 53 there. That's what was producing the duplicate
+            // sequence numbers seen across the customer list — and very
+            // likely what was causing a single customer to appear multiple
+            // times in the salesman's route view. Recomputing the sequence
+            // for the newly selected route closes that gap. ──
+            if (isEdit && onRouteChange) onRouteChange(e.target.value);
+          }}
           style={{ ...inputStyle, cursor: 'pointer' }}
           onFocus={e => { e.target.style.borderColor = D.accent; e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`; e.target.style.background = D.surface2; }}
           onBlur={e => { e.target.style.borderColor = D.border; e.target.style.boxShadow = 'none'; e.target.style.background = D.bg; }}
@@ -74643,6 +74658,21 @@ export function AdminCustomers() {
       sequenceOrder: String(c.sequenceOrder > 0 ? c.sequenceOrder : nextSeq(c.routeId)),
     });
     setEditModal(c);
+  }
+
+  // ── FIX: called when the Route dropdown changes inside the Edit form.
+  // Recomputes sequenceOrder for the NEWLY selected route so it can't collide
+  // with an existing customer's position there. Switching back to the
+  // customer's original route restores their original sequence number
+  // instead of recomputing again, so a same-route no-op edit stays a no-op. ──
+  function handleEditRouteChange(newRouteId: string) {
+    if (!editModal) return;
+    setEditForm(f => ({
+      ...f,
+      sequenceOrder: newRouteId === editModal.routeId
+        ? String(editModal.sequenceOrder > 0 ? editModal.sequenceOrder : nextSeq(newRouteId))
+        : String(nextSeq(newRouteId)),
+    }));
   }
 
   async function handleReorder(customer: CustomerDto, newSeq: number) {
@@ -75030,7 +75060,7 @@ export function AdminCustomers() {
 
               <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
                 {error && <Alert variant="error">{error}</Alert>}
-                <FormFields form={editForm} setForm={setEditForm} routes={routes} isEdit />
+                <FormFields form={editForm} setForm={setEditForm} routes={routes} isEdit onRouteChange={handleEditRouteChange} />
               </div>
 
               <div style={{ padding: '16px 24px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, justifyContent: 'flex-end', flexShrink: 0 }}>
@@ -78370,8 +78400,11 @@ function generateItemCode(prefix: string, priceStr: string): string {
 }
 
 // ── Helper: Extract prefix from item code ─────────────────────
+// FIX: default prefix changed from "1000-" to "6387-" per the new item code
+// format request. Existing products keep whatever prefix they already have —
+// this only affects the fallback used for new products or malformed codes.
 function extractItemCodePrefix(code: string): string {
-  if (!code || !code.includes('-')) return '1000-';
+  if (!code || !code.includes('-')) return '6387-';
   const lastDashIndex = code.lastIndexOf('-');
   return code.substring(0, lastDashIndex + 1);
 }
@@ -78520,7 +78553,7 @@ function ProductFormFields({
       if (!isNaN(priceNum) && priceNum >= 0) {
         const prefix = p.itemCode && p.itemCode.includes('-')
           ? extractItemCodePrefix(p.itemCode)
-          : '1000-';
+          : '6387-';
         updated.itemCode = generateItemCode(prefix, newPrice);
       }
       return updated;
@@ -78544,7 +78577,7 @@ function ProductFormFields({
   const isValidPrice = !isNaN(currentPrice) && currentPrice >= 0;
   const currentPrefix = form.itemCode && form.itemCode.includes('-') 
     ? extractItemCodePrefix(form.itemCode) 
-    : '1000-';
+    : '6387-';
   // Pass form.basePrice (the raw string) so the preview matches the field exactly.
   const autoGeneratedCode = isValidPrice ? generateItemCode(currentPrefix, form.basePrice) : '';
 
@@ -78652,7 +78685,7 @@ function ProductFormFields({
           onFocus={onFoc} onBlur={onBlr} 
         />
         <p style={{ margin: '8px 0 0', fontSize: 11, color: D.sub }}>
-          Format: <strong>code-price</strong> — the number after the last dash is the price. "1000-90" → price ₹90.
+          Format: <strong>code-price</strong> — the number after the last dash is the price. "6387-90" → price ₹90.
         </p>
         {(() => {
           const parsed = parsePriceFromItemCode(form.itemCode);
@@ -78702,7 +78735,10 @@ export function AdminProducts() {
   const [priceReason, setPriceReason] = useState('');
   const addCardRef = useRef<HTMLDivElement>(null);
 
-  const DEFAULT_ITEM_CODE_PREFIX = '1000-';
+  // FIX: default item code prefix changed from "1000-" to "6387-" per request.
+  // Only affects NEW products going forward — existing products keep their
+  // current item code untouched, no forced backfill/migration.
+  const DEFAULT_ITEM_CODE_PREFIX = '6387-';
 
   // ── Default unit ID (set from first available unit) ──
   const [defaultUnitId, setDefaultUnitId] = useState('');
@@ -80005,6 +80041,17 @@ export function AdminReports() {
   const [prodTo,    setProdTo]      = useState(today);
   // const [dailyDate, setDailyDate]   = useState(today);
 
+  // ── Auto-scroll to top when message appears ──
+  useEffect(() => {
+    if (msg || error) {
+      // Delay ensures the toast is rendered before scrolling to the top.
+      const timer = setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [msg, error]);
+
   useEffect(() => {
     Promise.all([routesApi.getAll(), productGroupsApi.getAll()])
       .then(([r, g]) => { setRoutes(r); setGroups(g); })
@@ -80441,8 +80488,43 @@ export function AdminReports() {
           </Link>
         </div>
 
-        {error && <Alert variant="error">{error}</Alert>}
-        {msg   && <Alert variant="success">{msg}</Alert>}
+        {error && (
+          <div style={{
+            padding: '12px 20px',
+            borderRadius: 10,
+            background: '#ef4444',
+            border: '1px solid #dc2626',
+            color: '#ffffff',
+            fontSize: 14,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            marginBottom: 16,
+          }}>
+            <AlertCircle size={18} color="#ffffff" />
+            {error}
+          </div>
+        )}
+        {msg && (
+          <div style={{
+            padding: '12px 20px',
+            borderRadius: 10,
+            background: '#22c55e',
+            border: '1px solid #16a34a',
+            color: '#ffffff',
+            fontSize: 14,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            marginBottom: 16,
+            boxShadow: '0 4px 12px rgba(34, 197, 94, 0.4)',
+          }}>
+            <CheckCircle size={18} color="#ffffff" />
+            {msg}
+          </div>
+        )}
 
         {/* Report Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -89987,6 +90069,7 @@ import {
   ShoppingCart, ArrowLeft, Flag, Home,
   CheckCircle2, XCircle, Clock, Phone, MapPin,
   AlertCircle, Eye, CalendarDays, ChevronRight, Search, X, RotateCcw, Check,
+  Package,
 } from 'lucide-react';
 import { routesApi, ordersApi } from '../../api/services';
 import type { CurrentRouteExecutionDto, CustomerVisitDto, VisitStatus, CompleteRouteExecutionResponse } from '../../types';
@@ -90067,6 +90150,7 @@ export default function RouteExecution() {
           setNextCustomer(nextPending.customerName);
         }
       }
+
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load route');
     } finally { setLoading(false); }
@@ -90078,6 +90162,20 @@ export default function RouteExecution() {
     }
     load();
   }, [routeId]);
+
+  // ── NEW: bags breakdown now comes directly from the backend on `execution`
+  // (execution.bagsBreakdown) — computed server-side from Unit.BaseUnitValue,
+  // refreshed every time load() runs (i.e. after every completed/skipped/
+  // no-order stop). No client-side computation needed anymore. ──
+  const bags = execution?.bagsBreakdown;
+  const threshold = bags?.threshold ?? 130;
+  const totalEquivalent = bags?.totalEquivalentBags ?? 0;
+  // Progress within the CURRENT threshold window (resets after each 130 crossed).
+  const progressInWindow = threshold > 0
+    ? (totalEquivalent > 0 && totalEquivalent % threshold === 0 ? threshold : totalEquivalent % threshold)
+    : 0;
+  const bagsPercent = threshold > 0 ? Math.min(100, Math.round((progressInWindow / threshold) * 100)) : 0;
+  const bagsRemaining = Math.max(0, threshold - progressInWindow);
 
   function getNextPendingCustomer(currentCustomerId: string): CustomerVisitDto | null {
     if (!execution?.customers) return null;
@@ -90501,6 +90599,52 @@ export default function RouteExecution() {
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
             <span style={{ fontSize: 9, fontWeight: 700, color: allDone ? D.green : D.accent }}>{progress}%</span>
             <span style={{ fontSize: 9, color: D.sub }}>{allDone ? 'All done!' : `${pendingCount} remaining`}</span>
+          </div>
+          {/* ── NEW: Bags Breakdown card — 50kg physical count, weighted
+              50kg-equivalent total, threshold, remaining, and a progress bar.
+              FIX: 30kg/26kg individual counts removed per request — only the
+              50kg count is shown now, alongside the weighted total (which
+              still correctly factors in 30kg/26kg bags behind the scenes,
+              just without breaking them out as separate lines). Data comes
+              straight from execution.bagsBreakdown (backend-computed),
+              refreshed after every completed stop since load() re-fetches
+              the execution each time. ── */}
+          <div style={{
+            marginTop: 8, padding: '10px 12px', borderRadius: 10,
+            background: D.surface, border: `1px solid ${D.border}`,
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
+              fontSize: 11, fontWeight: 800, color: D.text,
+            }}>
+              <Package size={13} />
+              <span>Bags Breakdown</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: D.muted }}>
+                <span>50kg bags</span>
+                <span style={{ fontWeight: 700, color: D.text }}>{bags?.count50Kg ?? 0}</span>
+              </div>
+            </div>
+
+            <div style={{ borderTop: `1px solid ${D.border}`, paddingTop: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 800, color: D.text, marginBottom: 4 }}>
+                <span>Total (50kg eq)</span>
+                <span>{totalEquivalent % 1 === 0 ? totalEquivalent : totalEquivalent.toFixed(1)} / {threshold}</span>
+              </div>
+              <div style={{ height: 6, background: D.bg, borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{
+                  width: `${bagsPercent}%`, height: '100%',
+                  background: bagsPercent >= 90 ? D.red : D.accent,
+                  transition: 'width 0.3s',
+                }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3, fontSize: 9, color: D.sub }}>
+                <span>{bagsPercent}% of next {threshold}</span>
+                <span>{bagsRemaining % 1 === 0 ? bagsRemaining : bagsRemaining.toFixed(1)} remaining</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -93741,6 +93885,17 @@ export interface CurrentRouteExecutionDto {
   completedCount?:  number;
   pendingCount?:    number;
   customers?:       CustomerVisitDto[];
+  bagsBreakdown?:   BagsBreakdownDto;   // ← ADD THIS
+}
+
+// ── NEW: real-time bag-loading breakdown for a route/day, computed server-side.
+// 50kg bags count fully; 30kg/26kg bags count as 0.5 each toward the total. ──
+export interface BagsBreakdownDto {
+  count50Kg:            number;
+  count30Kg:             number;
+  count26Kg:             number;
+  totalEquivalentBags:  number;
+  threshold:            number;
 }
 
 export interface StartRouteExecutionResponse {

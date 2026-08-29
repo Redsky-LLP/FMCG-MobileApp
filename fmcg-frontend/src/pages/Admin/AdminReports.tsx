@@ -445,6 +445,9 @@ export function AdminReports() {
   // Filters per report
   const [loadRoute,  setLoadRoute]  = useState('');
   const [loadDate,   setLoadDate]   = useState(today);
+  // ── NEW: Retail Sheet filters ──
+  const [retailRoute, setRetailRoute] = useState('');
+  const [retailDate,  setRetailDate]  = useState(today);
   const [billRoute,  setBillRoute]  = useState('');
   const [billDate,   setBillDate]   = useState(today);
   // const [routeRptRoute, setRouteRptRoute] = useState('');
@@ -460,6 +463,17 @@ export function AdminReports() {
   const [prodFrom,  setProdFrom]    = useState(thirtyDaysAgo);
   const [prodTo,    setProdTo]      = useState(today);
   // const [dailyDate, setDailyDate]   = useState(today);
+
+  // ── Auto-scroll to top when message appears ──
+  useEffect(() => {
+    if (msg || error) {
+      // Delay ensures the toast is rendered before scrolling to the top.
+      const timer = setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [msg, error]);
 
   useEffect(() => {
     Promise.all([routesApi.getAll(), productGroupsApi.getAll()])
@@ -603,6 +617,43 @@ export function AdminReports() {
         const downloadFn = () => download('loading', fn, `LoadingSheet_${loadDate}.pdf`);
         const routeName = loadRoute ? routes.find(r => r.id === loadRoute)?.name : 'All Routes';
         previewReport('loading', `Loading Sheet - ${loadDate} (${routeName})`, fn, downloadFn);
+      },
+    },
+    {
+      // ── NEW: Retail Sheet — same shape as Loading Sheet, scoped to retail
+      // items only (orders with remarks but no products). ──
+      key: 'retail',
+      title: 'Retail Sheet',
+      desc: 'Retail items list (remarks-only orders, no products)',
+      icon: '📝',
+      color: '#8B5CF6',
+      roles: 'Warehouse / Admin',
+      filters: (
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <select
+            className="input"
+            value={retailRoute}
+            onChange={(e) => setRetailRoute(e.target.value)}
+            style={selectStyle(isMobile)}
+          >
+            <option value="">🌍 All Routes</option>
+            {routes.map((r) => <option key={r.id} value={r.id}>📍 {r.name}</option>)}
+          </select>
+          <input
+            className="input"
+            type="date"
+            value={retailDate}
+            onChange={(e) => setRetailDate(e.target.value)}
+            style={dateInputStyle(isMobile)}
+          />
+        </div>
+      ),
+      onDownload: () => download('retail', () => reportsApi.downloadRetailSheet(retailRoute || undefined, retailDate), `RetailSheet_${retailDate}.pdf`),
+      onPreview: () => {
+        const fn = () => reportsApi.downloadRetailSheet(retailRoute || undefined, retailDate);
+        const downloadFn = () => download('retail', fn, `RetailSheet_${retailDate}.pdf`);
+        const routeName = retailRoute ? routes.find(r => r.id === retailRoute)?.name : 'All Routes';
+        previewReport('retail', `Retail Sheet - ${retailDate} (${routeName})`, fn, downloadFn);
       },
     },
     {
@@ -897,8 +948,43 @@ export function AdminReports() {
           </Link>
         </div>
 
-        {error && <Alert variant="error">{error}</Alert>}
-        {msg   && <Alert variant="success">{msg}</Alert>}
+        {error && (
+          <div style={{
+            padding: '12px 20px',
+            borderRadius: 10,
+            background: '#ef4444',
+            border: '1px solid #dc2626',
+            color: '#ffffff',
+            fontSize: 14,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            marginBottom: 16,
+          }}>
+            <AlertCircle size={18} color="#ffffff" />
+            {error}
+          </div>
+        )}
+        {msg && (
+          <div style={{
+            padding: '12px 20px',
+            borderRadius: 10,
+            background: '#22c55e',
+            border: '1px solid #16a34a',
+            color: '#ffffff',
+            fontSize: 14,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            marginBottom: 16,
+            boxShadow: '0 4px 12px rgba(34, 197, 94, 0.4)',
+          }}>
+            <CheckCircle size={18} color="#ffffff" />
+            {msg}
+          </div>
+        )}
 
         {/* Report Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

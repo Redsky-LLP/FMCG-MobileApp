@@ -7,12 +7,17 @@ import {
   ShoppingCart, ArrowLeft, Flag, Home,
   CheckCircle2, XCircle, Clock, Phone, MapPin,
   AlertCircle, Eye, CalendarDays, ChevronRight, Search, X, RotateCcw, Check,
+  Package,
 } from 'lucide-react';
 import { routesApi, ordersApi } from '../../api/services';
 import type { CurrentRouteExecutionDto, CustomerVisitDto, VisitStatus, CompleteRouteExecutionResponse } from '../../types';
 import { OrderStatus } from '../../types';
 import { Spinner } from '../../components/ui';
 import { useIsMobile } from '../../hooks/useIsMobile';
+// ── FIX: this file was using a hardcoded, disconnected "70px" for the bottom
+// nav bar's height instead of the real shared constant — same class of drift
+// bug already fixed once in OrderEntry.tsx. Importing the real value here too. ──
+import { MOBILE_NAV_HEIGHT } from '../../components/layout/MobileLayout';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -87,6 +92,7 @@ export default function RouteExecution() {
           setNextCustomer(nextPending.customerName);
         }
       }
+
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load route');
     } finally { setLoading(false); }
@@ -98,6 +104,15 @@ export default function RouteExecution() {
     }
     load();
   }, [routeId]);
+
+  // ── FIX: simplified per updated request — no more separate 50kg count vs
+  // weighted-equivalent display, no threshold/progress bar. Just one merged,
+  // rounded number reflecting total bags loaded so far today on this route.
+  // Still backend-computed (execution.bagsBreakdown), just displayed as one
+  // number instead of a breakdown. ──
+  const bags = execution?.bagsBreakdown;
+  const totalEquivalent = bags?.totalEquivalentBags ?? 0;
+  const mergedBagCount = Math.round(totalEquivalent);
 
   function getNextPendingCustomer(currentCustomerId: string): CustomerVisitDto | null {
     if (!execution?.customers) return null;
@@ -494,7 +509,18 @@ export default function RouteExecution() {
   ];
 
   return (
-    <div style={{ background: D.bg, paddingBottom: allDone ? 130 : 32 }}>
+    <div style={{
+      background: D.bg,
+      // FIX: the bottom bar is now always visible (not just when allDone —
+      // see below), so this needs to reserve space in both states: a
+      // smaller amount for the simpler "Back to My Routes" bar shown while
+      // stops are still pending, and the same as before for the fuller
+      // "all done" banner + CTA once everything's visited. Accounts for the
+      // nav bar only when it's actually present (isMobile — phone/tablet).
+      paddingBottom: isMobile
+        ? (allDone ? 190 : 150)
+        : (allDone ? 140 : 100),
+    }}>
       <div style={{ background: D.bg, borderBottom: `1px solid ${D.border}`, marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px 4px' }}>
           <button
@@ -521,6 +547,17 @@ export default function RouteExecution() {
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
             <span style={{ fontSize: 9, fontWeight: 700, color: allDone ? D.green : D.accent }}>{progress}%</span>
             <span style={{ fontSize: 9, color: D.sub }}>{allDone ? 'All done!' : `${pendingCount} remaining`}</span>
+          </div>
+          {/* ── FIX: replaced the multi-line breakdown card with a single, minimal
+              merged count per updated request — one rounded number, prominent,
+              no separate 50kg/eq split and no progress bar. Still refreshed from
+              execution.bagsBreakdown after every completed stop. ── */}
+          <div style={{
+            marginTop: 8, display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 12, fontWeight: 800, color: D.text,
+          }}>
+            <Package size={13} />
+            <span>[Bags: {mergedBagCount}]</span>
           </div>
         </div>
 
@@ -721,27 +758,52 @@ export default function RouteExecution() {
         })}
       </div>
 
-      {/* ── Bottom CTA ── */}
-      {allDone && !summary && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 55, background: D.surface, borderTop: `1px solid ${D.border}`, padding: '14px 20px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px) + 70px)', boxShadow: '0 -4px 20px rgba(0,0,0,0.3)' }}>
-          <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, background: 'rgba(34,197,94,0.10)', border: `1px solid rgba(34,197,94,0.20)`, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <CheckCircle2 size={15} color={D.green} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: D.green }}>All {total} shops visited! {ordersCount} orders saved.</span>
-          </div>
-          {executionMode === 'order-taking' ? (
+      {/* ── Bottom CTA — FIX: was gated on `allDone`, so it disappeared entirely
+          while any stops were still pending. Now always shown (except on the
+          summary screen, which has its own dedicated button) — a simpler,
+          compact "Back to My Routes" bar while stops are pending, and the
+          full "all done" banner + CTA once everything's visited, same as
+          before. ── */}
+      {!summary && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 55,
+          background: D.surface, borderTop: `1px solid ${D.border}`,
+          padding: '10px 20px',
+          // Was a hardcoded, disconnected "70px" — now uses the real
+          // MOBILE_NAV_HEIGHT constant, only reserved when a nav bar is
+          // actually present (isMobile — covers phone and tablet).
+          paddingBottom: isMobile
+            ? `calc(10px + env(safe-area-inset-bottom, 0px) + ${MOBILE_NAV_HEIGHT}px)`
+            : 'calc(10px + env(safe-area-inset-bottom, 0px))',
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.3)',
+        }}>
+          {allDone && (
+            <div style={{ marginBottom: 8, padding: '7px 12px', borderRadius: 9, background: 'rgba(34,197,94,0.10)', border: `1px solid rgba(34,197,94,0.20)`, display: 'flex', alignItems: 'center', gap: 7 }}>
+              <CheckCircle2 size={14} color={D.green} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: D.green }}>All {total} shops visited! {ordersCount} orders saved.</span>
+            </div>
+          )}
+          {!allDone ? (
             <button
               onClick={() => navigate('/salesman/routes')}
-              style={{ width: '100%', padding: '14px', background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', boxShadow: `0 4px 14px ${D.accentGlow}` }}
+              style={{ width: '100%', padding: '11px', background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, color: '#fff', border: 'none', borderRadius: 11, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', boxShadow: `0 4px 14px ${D.accentGlow}` }}
             >
-              <Home size={17} /> Back to My Routes
+              <Home size={15} /> Back to My Routes
+            </button>
+          ) : executionMode === 'order-taking' ? (
+            <button
+              onClick={() => navigate('/salesman/routes')}
+              style={{ width: '100%', padding: '12px', background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, color: '#fff', border: 'none', borderRadius: 11, fontSize: 14, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', boxShadow: `0 4px 14px ${D.accentGlow}` }}
+            >
+              <Home size={16} /> Back to My Routes
             </button>
           ) : (
             <button
               onClick={() => setShowConfirm(true)}
               disabled={completing}
-              style={{ width: '100%', padding: '14px', background: completing ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: completing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', boxShadow: completing ? 'none' : `0 4px 14px ${D.accentGlow}` }}
+              style={{ width: '100%', padding: '12px', background: completing ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, color: '#fff', border: 'none', borderRadius: 11, fontSize: 14, fontWeight: 800, cursor: completing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', boxShadow: completing ? 'none' : `0 4px 14px ${D.accentGlow}` }}
             >
-              {completing ? <Spinner size={17} /> : <><Flag size={17} /> Complete Delivery Route</>}
+              {completing ? <Spinner size={16} /> : <><Flag size={16} /> Complete Delivery Route</>}
             </button>
           )}
         </div>

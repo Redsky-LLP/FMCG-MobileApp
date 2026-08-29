@@ -11,6 +11,7 @@
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 using FMCG.Distribution.Application.Common;
 using FMCG.Distribution.Application.Common.Interfaces;
 using FMCG.Distribution.Domain.Entities;
@@ -152,6 +153,66 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
             SkipReason = v.SkipReason,
         }).ToList();
 
+        // ── NEW: bags breakdown for this route/day.
+        //
+        // FIX: no longer restricted to Closed/Locked orders. Salesman orders
+        // sit in Draft status for the entire working day — they only become
+        // Closed once admin closes the route/day, often hours later. Since
+        // this is a live "how many bags have I loaded so far" indicator for
+        // the salesman DURING their route (not a financial report), it needs
+        // to count an order the moment it's saved, not wait for a closure
+        // that hasn't happened yet — otherwise this shows 0 all day.
+        //
+        // FIX: matching by OrderDate == ExecutionDate was also wrong on its
+        // own — this handler's class-level comment explains an execution can
+        // legitimately stay "current" across a calendar-day rollover until
+        // admin closes it, so ExecutionDate can still be yesterday's date
+        // while a just-placed order already has today's OrderDate. That
+        // silently excluded every order placed after midnight. Matching
+        // directly against this execution's own visits (v.OrderId) instead
+        // is unambiguous — it only counts orders actually recorded against
+        // THIS execution, with no date comparison involved at all.
+        //
+        // FIX: switched from Unit.BaseUnitValue to SizeGroupName text
+        // matching. BaseUnitValue looked like the cleaner, more reliable
+        // field on paper, but it's actually NULL across this app's real
+        // data — nobody ever populates it through the admin UI. SizeGroup
+        // (e.g. "50 KG BAG") is what's actually set and what the Loading
+        // Sheet report already successfully keys off of, so this now uses
+        // the same MatchesSizeGroupWeight-style regex match instead. ──
+        var bagsBreakdown = new BagsBreakdownDto();
+        var executionOrderIds = (execution.Visits ?? [])
+            .Where(v => v.OrderId.HasValue)
+            .Select(v => v.OrderId!.Value)
+            .ToHashSet();
+
+        var routeOrdersToday = executionOrderIds.Count == 0
+            ? []
+            : await context.Orders
+                .AsNoTracking()
+                .Include(o => o.Items!)
+                    .ThenInclude(i => i.Product!)
+                        .ThenInclude(p => p.SizeGroup)
+                .Where(o => !o.IsDeleted && executionOrderIds.Contains(o.Id))
+                .ToListAsync(cancellationToken);
+
+        foreach (var order in routeOrdersToday)
+        {
+            if (order.Items == null) continue;
+            foreach (var item in order.Items)
+            {
+                var sizeGroupName = item.SizeGroupNameAtTime ?? item.Product?.SizeGroup?.Name;
+                var qty = (int)item.Quantity;
+                if (MatchesSizeGroupWeight(sizeGroupName, 50)) bagsBreakdown.Count50Kg += qty;
+                else if (MatchesSizeGroupWeight(sizeGroupName, 30)) bagsBreakdown.Count30Kg += qty;
+                else if (MatchesSizeGroupWeight(sizeGroupName, 26)) bagsBreakdown.Count26Kg += qty;
+            }
+        }
+        bagsBreakdown.TotalEquivalentBags =
+            bagsBreakdown.Count50Kg
+            + (0.5m * bagsBreakdown.Count30Kg)
+            + (0.5m * bagsBreakdown.Count26Kg);
+
         return Result<CurrentRouteExecutionDto>.Success(new CurrentRouteExecutionDto
         {
             HasActiveExecution = true,
@@ -163,6 +224,13 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
             CompletedCount = completed,
             PendingCount = pending,
             Customers = customers,
+            BagsBreakdown = bagsBreakdown,
         });
     }
+
+    // ── Matches a size-group name like "50 KG BAG" or "50 KG" against a
+    // specific weight, regardless of trailing words — same helper pattern
+    // already used successfully in GetLoadingSheetQueryHandler. ──
+    private static bool MatchesSizeGroupWeight(string? sizeGroupName, int kg)
+        => sizeGroupName != null && Regex.IsMatch(sizeGroupName, $@"\b{kg}\s*kg\b", RegexOptions.IgnoreCase);
 }

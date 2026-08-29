@@ -194,10 +194,16 @@ export default function OrderEntry() {
               };
             }).filter(Boolean) as LineItem[];
             setLines(mapped);
-            return;
           } catch {}
         }
 
+        // ── FIX: this used to sit inside an `else` (only reached when no existing
+        // order was found), and the branch above returned early — so the moment a
+        // customer had any draft/existing order (i.e. right after saving, or on
+        // reopening a customer already in progress), this fetch never ran and
+        // previousOrders stayed empty, hiding the "Previous Order" button entirely.
+        // It now always runs regardless of whether an existing order was found, so
+        // the button reliably has data before AND after saving. ──
         try {
           const history = await ordersApi.getCustomerHistory(cid, 10);
           if (history?.length) setPreviousOrders(history);

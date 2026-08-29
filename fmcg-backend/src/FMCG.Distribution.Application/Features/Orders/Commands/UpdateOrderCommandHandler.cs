@@ -59,22 +59,27 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
             return Result<OrderDetailDto>.Failure("Order not found.");
 
         // ── Permission matrix ──────────────────────────────────────────────────
-        // ── Universal lock check — applies to admin and salesman alike.
-        // Once admin runs Close Day, IsLocked is true on this order and
-        // nobody edits it anymore, regardless of role or status. ──
-        if (order.IsLocked)
+        // ── Universal lock check — FIX: scoped to salesmen only now. Admin can
+        // edit past the daily-closure lock too (Edit Previous Orders feature) —
+        // this is a permission change ONLY: the IsLocked flag itself is never
+        // touched or cleared here, so everything else that reads it elsewhere
+        // (settlement calculations, the route Close/Reopen toggle, any other
+        // gate) behaves exactly as it always has. Salesmen remain fully blocked
+        // once an order is locked, with no exception. ──
+        if (order.IsLocked && !request.IsAdmin)
             return Result<OrderDetailDto>.Failure(
                 "This order is locked after daily closing and cannot be modified.");
 
         // ── Permission matrix ──────────────────────────────────────────────────
         if (request.IsAdmin)
         {
-            // Admin can edit: Draft, PendingApproval, OR Approved orders
-            var adminEditableStatuses = new[] { OrderStatus.Draft, OrderStatus.PendingApproval, OrderStatus.Approved };
+            // Admin can edit: Draft, PendingApproval, Approved, OR Closed orders
+            // — regardless of IsLocked, per the check above.
+            var adminEditableStatuses = new[] { OrderStatus.Draft, OrderStatus.PendingApproval, OrderStatus.Approved, OrderStatus.Closed };
             if (!adminEditableStatuses.Contains(order.Status))
                 return Result<OrderDetailDto>.Failure(
                     $"Cannot modify an order in '{order.Status}' status. " +
-                    "Admin can only edit Draft, Pending Approval, or Approved orders.");
+                    "Admin can only edit Draft, Pending Approval, Approved, or Closed orders.");
         }
         else
         {

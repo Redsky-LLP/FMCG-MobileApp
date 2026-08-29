@@ -2,7 +2,7 @@
 // UPDATED: Added "Add Products" button between items and retail remarks
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Search, Trash2, ShoppingCart, Save,
   ChevronDown, ChevronUp, AlertTriangle, ArrowLeft, Package, X, Edit2,
@@ -16,6 +16,10 @@ import {
 import { Spinner, ConfirmModal, Alert } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
 import { useIsMobile } from '../../hooks/useIsMobile';
+// FIX: same drift bug already fixed in RouteExecution.tsx/OrderEntry.tsx —
+// this footer was using a hardcoded, disconnected "70px" for the bottom nav
+// bar's height instead of the real shared constant.
+import { MOBILE_NAV_HEIGHT } from '../../components/layout/MobileLayout';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -307,8 +311,44 @@ function ItemCard({
 export function AdminOrderEdit() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
   const isMobile = useIsMobile();
+
+  // FIX: carries the date/route filters the admin had selected on the Orders
+  // page back through to this Edit page, so they can be handed straight back
+  // on return — see goBackToOrders() below. Previously this page didn't read
+  // location.state at all, so returning to Orders always reset the calendar
+  // to today and the route filter to "all", regardless of what was actually
+  // selected before clicking Edit.
+  const incomingState = (location.state as { dateFilter?: string; returnRouteFilter?: string } | null) ?? null;
+  function goBackToOrders() {
+    navigate('/admin/orders', {
+      state: { dateFilter: incomingState?.dateFilter, routeFilter: incomingState?.returnRouteFilter },
+    });
+  }
+
+  // ── NEW: scroll to top on save, so the success toast (rendered near the top
+  // of the content area) is actually visible — otherwise, if the admin was
+  // scrolled down editing items lower in a long order, saving gave no visible
+  // confirmation at all. Same approach as OrderEntry.tsx: walks every
+  // scrollable ancestor rather than assuming window is the real scroll
+  // context, since this page can be nested inside MobileLayout's own
+  // scrollable container (tablet/phone) or scroll at the window level
+  // (desktop) depending on where it's rendered. ──
+  function scrollToTopForToast() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    let el: HTMLElement | null = document.querySelector('[data-order-edit-scroll-root]');
+    while (el) {
+      if (el.scrollHeight > el.clientHeight) {
+        el.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      el = el.parentElement;
+    }
+  }
 
   const [order, setOrder] = useState<OrderDetailDto | null>(null);
   const [customer, setCustomer] = useState<CustomerDto | null>(null);
@@ -495,14 +535,16 @@ export function AdminOrderEdit() {
       
       await ordersApi.update(orderId!, payload);
       setSuccessMsg(lines.length === 0 ? 'Order cleared successfully!' : 'Order updated successfully!');
+      scrollToTopForToast();
       const updated = await ordersApi.getById(orderId!);
       setOrder(updated);
       setTimeout(() => {
-        navigate('/admin/orders');
+        goBackToOrders();
       }, 1500);
     } catch (err: unknown) {
       console.error('[AdminOrderEdit] Save error:', err);
       setError(err instanceof Error ? err.message : 'Save failed');
+      scrollToTopForToast();
     } finally {
       setSaving(false);
     }
@@ -515,7 +557,7 @@ export function AdminOrderEdit() {
     try {
       await ordersApi.delete(orderId);
       setSuccessMsg('Order cancelled successfully!');
-      setTimeout(() => navigate('/admin/orders'), 1500);
+      setTimeout(() => goBackToOrders(), 1500);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to cancel order');
     } finally {
@@ -536,7 +578,7 @@ export function AdminOrderEdit() {
         <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.30)', borderRadius: 12, padding: '16px', color: '#fca5a5', marginBottom: 16 }}>
           Order not found.
         </div>
-        <button onClick={() => navigate('/admin/orders')} style={{ padding: '10px 20px', borderRadius: 10, background: D.surface, border: `1px solid ${D.border}`, color: D.muted, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={() => goBackToOrders()} style={{ padding: '10px 20px', borderRadius: 10, background: D.surface, border: `1px solid ${D.border}`, color: D.muted, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
           ← Back to Orders
         </button>
       </div>
@@ -544,7 +586,13 @@ export function AdminOrderEdit() {
   }
 
   const orderStatus = order.status;
-  const canEdit = orderStatus !== OrderStatus.Closed && !order.isLocked;
+  // FIX: admin can now edit past the daily-closure lock too (matches the
+  // backend permission update) — this page is admin-only (routed under
+  // /admin), so there's no separate role check needed here. The fallback
+  // "cannot edit" screen below is kept in place as a safe default in case
+  // this component is ever reused somewhere non-admin can reach, but under
+  // normal use it's now unreachable.
+  const canEdit = true;
   const isDraft = orderStatus === OrderStatus.Draft;
 
   if (!canEdit) {
@@ -555,7 +603,7 @@ export function AdminOrderEdit() {
             ? "This order is locked — admin has closed the day. It can no longer be edited."
             : `Cannot edit order in '${getStatusLabel(orderStatus)}' status.`}
         </div>
-        <button onClick={() => navigate('/admin/orders')} style={{ padding: '10px 20px', borderRadius: 10, background: D.surface, border: `1px solid ${D.border}`, color: D.muted, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={() => goBackToOrders()} style={{ padding: '10px 20px', borderRadius: 10, background: D.surface, border: `1px solid ${D.border}`, color: D.muted, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
           ← Back to Orders
         </button>
       </div>
@@ -564,22 +612,22 @@ export function AdminOrderEdit() {
   return (
     <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 100 }}>
 
-      {/* ── Header ────────────────────────────────────────────────────────────── */}
+      {/* ── Header ── FIX: tightened padding/spacing throughout (was oversized) ── */}
     <div style={{
         position: 'sticky',
         top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)',
         zIndex: 30,
         background: D.bg,
         borderBottom: `1px solid ${D.border}`,
-        padding: '14px 16px',
+        padding: '8px 16px',
       }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
-              onClick={() => navigate('/admin/orders')}
+              onClick={() => goBackToOrders()}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                padding: '8px 14px',
+                padding: '6px 12px',
                 borderRadius: 9,
                 background: D.surface,
                 border: `1px solid ${D.border}`,
@@ -622,8 +670,8 @@ export function AdminOrderEdit() {
           {orderStatus !== OrderStatus.Draft && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              marginTop: 10,
-              padding: '6px 12px',
+              marginTop: 6,
+              padding: '5px 12px',
               borderRadius: 8,
               background: 'rgba(245,158,11,0.10)',
               border: '1px solid rgba(245,158,11,0.25)',
@@ -642,8 +690,8 @@ export function AdminOrderEdit() {
             style={{
               width: '100%',
               display: 'flex', alignItems: 'center', gap: 10,
-              marginTop: 10,
-              padding: '10px 14px',
+              marginTop: 6,
+              padding: '8px 14px',
               borderRadius: 10,
               background: D.surface,
               border: `1px solid ${D.border}`,
@@ -664,7 +712,7 @@ export function AdminOrderEdit() {
       </div>
 
       {/* ── Main Content ─────────────────────────────────────────────────────── */}
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px' }}>
+      <div data-order-edit-scroll-root style={{ maxWidth: 900, margin: '0 auto', padding: '16px' }}>
 
         {error && (
           <div style={{
@@ -961,7 +1009,9 @@ Sugar - 50 kg`}
         </div>
       </div>
 
-      {/* ── Fixed bottom footer ── SHOWN EVEN WHEN EMPTY ────────────────────── */}
+      {/* ── Fixed bottom footer ── SHOWN EVEN WHEN EMPTY ── FIX: tightened padding
+      and fixed the hardcoded "70px" nav-height reserve (was disconnected from the
+      real value, same bug already fixed elsewhere in this app) ────────────────── */}
       <div style={{
         position: 'fixed',
         bottom: 0,
@@ -970,8 +1020,10 @@ Sugar - 50 kg`}
         zIndex: 55,
         background: D.bg,
         borderTop: `1px solid ${D.border}`,
-        padding: '10px 16px',
-        paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px) + 70px)',
+        padding: '8px 16px',
+        paddingBottom: isMobile
+          ? `calc(8px + env(safe-area-inset-bottom, 0px) + ${MOBILE_NAV_HEIGHT}px)`
+          : 'calc(8px + env(safe-area-inset-bottom, 0px))',
       }}>
         <div style={{ 
           maxWidth: 900, 

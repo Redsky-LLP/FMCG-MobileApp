@@ -34,6 +34,10 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
                 .Include(o => o.Route)
                 .Include(o => o.Items!)
                     .ThenInclude(i => i.Product)
+                        .ThenInclude(p => p!.ProductGroup)
+                .Include(o => o.Items!)
+                    .ThenInclude(i => i.Product)
+                        .ThenInclude(p => p!.SizeGroup)
                 .Include(o => o.Items!)
                     .ThenInclude(i => i.Unit)
                 .Where(o => !o.IsDeleted
@@ -126,6 +130,10 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
                             ProductNameMl = i.Product.NameMalayalam,
                             i.UnitId,
                             UnitSymbol = i.Unit?.Symbol ?? string.Empty,
+                            // ── NEW: needed for the X marker on VEGETABLES/CHILLES items ──
+                            ProductGroupName = i.Product.ProductGroup != null ? i.Product.ProductGroup.Name : null,
+                            // ── NEW: needed for the loading-limit alert's bag-weight detection ──
+                            SizeGroupName = i.SizeGroupNameAtTime ?? (i.Product.SizeGroup != null ? i.Product.SizeGroup.Name : null),
                         })
                         .Select(g => new LoadingSheetItemDto
                         {
@@ -135,6 +143,8 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
                             TotalQuantity = g.Sum(i => i.Quantity),
                             LoadingPriority = units.GetValueOrDefault(g.Key.UnitId, 99),
                             UnitTypeLabel = GetUnitTypeLabel(g.Key.UnitSymbol),
+                            ProductGroupName = g.Key.ProductGroupName,
+                            SizeGroupName = g.Key.SizeGroupName,
                             QuantityBags = 0,
                             QuantityBoxes = 0,
                             QuantityTins = 0,
@@ -196,6 +206,22 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
             return Result<byte[]>.Success(errorPdf);
         }
     }
+
+    // ── NEW: matches a size-group name against a specific weight, same helper as
+    // GetLoadingSheetQueryHandler — used for the loading-limit alert below. ──
+    private static bool MatchesSizeGroupWeight(string? sizeGroupName, int kg)
+        => sizeGroupName != null && System.Text.RegularExpressions.Regex.IsMatch(sizeGroupName, $@"\b{kg}\s*kg\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    // Same threshold as the main Loading Sheet — kept in sync with GetLoadingSheetQueryHandler.
+    private const int BagLoadingThreshold = 130;
+
+    // ── NEW: flags products in the VEGETABLES and CHILLES item groups so they can be
+    // marked with an "X" on the printed sheet — same rule as the other report handlers. ──
+    private static readonly HashSet<string> FlaggedProductGroups =
+        new(StringComparer.OrdinalIgnoreCase) { "VEGETABLES", "CHILLES" };
+
+    private static bool IsFlaggedProductGroup(string? productGroupName)
+        => productGroupName != null && FlaggedProductGroups.Contains(productGroupName.Trim());
 
     private static string GetUnitTypeLabel(string unitName)
     {
@@ -381,16 +407,88 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
                                                     header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("QTY").Bold();
                                                 });
 
+                                                // ── NEW: live loading-limit threshold tracking for this route,
+                                                // same rule as the main Loading Sheet (130, 260, 390... with
+                                                // 50kg bags full weight, 30kg/26kg bags at 0.5 each). This
+                                                // table's rows are already one-per-customer (items pre-joined
+                                                // into a single comma-separated cell), so the finest point an
+                                                // alert can land at is right after the customer row whose
+                                                // items caused the crossing — inserted as its own row spanning
+                                                // all 4 columns, rather than splitting into a separate table
+                                                // like the main handler needs to. ──
+                                                // FIX: single running total (cycleWeightedTotal) replaces
+                                                // the old never-reset liveWeightedTotal + separately-reset
+                                                // breakdown counts. That split let overshoot past 130 in one
+                                                // cycle silently vanish from the display counters while still
+                                                // counting toward the never-reset detector — causing later
+                                                // alerts to under-report (a total under 130 while still
+                                                // claiming the limit was crossed). Now everything resets and
+                                                // accumulates together, so they can't drift apart.
+                                                var cycleWeightedTotal = 0m;
+                                                var liveFiftyKg = 0;
+                                                var liveThirtyKg = 0;
+                                                var liveTwentySixKg = 0;
+
                                                 foreach (var stop in route.Stops)
                                                 {
-                                                    var itemNames = string.Join(", ", stop.Items.Select(i =>
-                                                        $"{i.ProductName} ({i.TotalQuantity:N0} {i.UnitSymbol})"
-                                                    ));
-
+                                                    // FIX: X marker now rendered as its own larger, bolder span
+                                                    // per flagged item, instead of a plain "X" character glued
+                                                    // into the joined string at the same size/weight as
+                                                    // everything else — was reading as too thin. Still inline,
+                                                    // still no new column, same cell as before.
                                                     table.Cell().BorderBottom(0.5f).Padding(3).Text($"#{stop.SequenceOrder}");
                                                     table.Cell().BorderBottom(0.5f).Padding(3).Text(stop.CustomerName);
-                                                    table.Cell().BorderBottom(0.5f).Padding(3).Text(itemNames).FontSize(7);
+                                                    table.Cell().BorderBottom(0.5f).Padding(3).Text(text =>
+                                                    {
+                                                        for (var i = 0; i < stop.Items.Count; i++)
+                                                        {
+                                                            var item = stop.Items[i];
+                                                            text.Span($"{item.ProductName} ({item.TotalQuantity:N0} {item.UnitSymbol})").FontSize(7);
+                                                            if (IsFlaggedProductGroup(item.ProductGroupName))
+                                                            {
+                                                                text.Span("  X").FontSize(11).ExtraBold().FontColor(Colors.Black);
+                                                            }
+                                                            if (i < stop.Items.Count - 1)
+                                                            {
+                                                                text.Span(", ").FontSize(7);
+                                                            }
+                                                        }
+                                                    });
                                                     table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{stop.StopTotalQuantity:N0}");
+
+                                                    // ── FIX: loading-limit alert restored for this consolidated
+                                                    // report too — inserted as its own full-width row right
+                                                    // after the customer whose items crossed the threshold. ──
+                                                    foreach (var item in stop.Items)
+                                                    {
+                                                        var weight = MatchesSizeGroupWeight(item.SizeGroupName, 50) ? 1m
+                                                            : (MatchesSizeGroupWeight(item.SizeGroupName, 30) || MatchesSizeGroupWeight(item.SizeGroupName, 26)) ? 0.5m
+                                                            : 0m;
+                                                        var qty = (int)item.TotalQuantity;
+
+                                                        if (MatchesSizeGroupWeight(item.SizeGroupName, 50)) liveFiftyKg += qty;
+                                                        else if (MatchesSizeGroupWeight(item.SizeGroupName, 30)) liveThirtyKg += qty;
+                                                        else if (MatchesSizeGroupWeight(item.SizeGroupName, 26)) liveTwentySixKg += qty;
+
+                                                        cycleWeightedTotal += weight * qty;
+                                                    }
+
+                                                    if (cycleWeightedTotal >= BagLoadingThreshold)
+                                                    {
+                                                        // Alert shows the real total that triggered it — always
+                                                        // consistent with the breakdown counts beside it, since
+                                                        // they're the same numbers this total came from.
+                                                        table.Cell().ColumnSpan(4)
+                                                            .Background(Colors.Red.Lighten3).Padding(5)
+                                                            .Text($"🚨 LOADING LIMIT CROSSED! ({BagLoadingThreshold}) — AFTER \"{stop.CustomerName.ToUpper()}\" — 50KG BAGS: {liveFiftyKg} | 30KG BAGS: {liveThirtyKg} | 26KG BAGS: {liveTwentySixKg} — TOTAL EQUIVALENT: {cycleWeightedTotal:0.#} / {BagLoadingThreshold} ✓ — 🛑 STOP! DO NOT LOAD MORE THAN {BagLoadingThreshold} BAGS!")
+                                                            .Bold().FontSize(8).FontColor(Colors.Red.Darken2);
+
+                                                        // Reset everything together for the next cycle.
+                                                        cycleWeightedTotal = 0m;
+                                                        liveFiftyKg = 0;
+                                                        liveThirtyKg = 0;
+                                                        liveTwentySixKg = 0;
+                                                    }
                                                 }
                                             });
                                         }

@@ -43,6 +43,39 @@ public class ReportsController(IMediator mediator) : ControllerBase
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // GET /api/v1/reports/retail-sheet
+    // NEW: Retail Sheet — same filters as Loading Sheet, scoped to retail-only
+    // orders (zero items, remarks present).
+    // ─────────────────────────────────────────────────────────────────────────
+    [HttpGet("retail-sheet")]
+    [Authorize(Roles = "Warehouse,Admin,SuperAdmin,Salesman")]
+    public async Task<IActionResult> GetRetailSheet(
+        [FromQuery] Guid? routeId,
+        [FromQuery] DateTime? date)
+    {
+        var query = new GetRetailSheetQuery
+        {
+            RouteId = routeId,
+            Date = date
+        };
+
+        var result = await mediator.Send(query);
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error });
+        }
+
+        var fileName = $"RetailSheet_{date:yyyyMMdd}.pdf";
+        if (routeId.HasValue)
+        {
+            fileName = $"RetailSheet_Route{routeId}_{date:yyyyMMdd}.pdf";
+        }
+
+        return File(result.Data!, "application/pdf", fileName);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // GET /api/v1/reports/billing-sheet
     // Roles: Accounts, Admin, SuperAdmin
     // ─────────────────────────────────────────────────────────────────────────
@@ -141,26 +174,26 @@ public class ReportsController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("incentive-report")]
-public async Task<IActionResult> GetIncentiveReport(
+    public async Task<IActionResult> GetIncentiveReport(
     [FromQuery] string? fromDate,
     [FromQuery] string? toDate)
-{
-    var query = new GetIncentiveReportQuery
     {
-        FromDate = fromDate != null ? DateTime.Parse(fromDate) : null,
-        ToDate = toDate != null ? DateTime.Parse(toDate) : null
-    };
+        var query = new GetIncentiveReportQuery
+        {
+            FromDate = fromDate != null ? DateTime.Parse(fromDate) : null,
+            ToDate = toDate != null ? DateTime.Parse(toDate) : null
+        };
 
-    // ── FIX: Change _mediator to mediator ──
-    var result = await mediator.Send(query);  // ✅ Use 'mediator' not '_mediator'
+        // ── FIX: Change _mediator to mediator ──
+        var result = await mediator.Send(query);  // ✅ Use 'mediator' not '_mediator'
 
-    if (!result.IsSuccess)
-    {
-        return BadRequest(new { error = result.Error });
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error });
+        }
+
+        return File(result.Data!, "application/pdf", $"IncentiveReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
     }
-
-    return File(result.Data!, "application/pdf", $"IncentiveReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
-}
     // ─────────────────────────────────────────────────────────────────────────
     // GET /api/v1/reports/daily-summary
     // Roles: Admin, SuperAdmin, Accounts

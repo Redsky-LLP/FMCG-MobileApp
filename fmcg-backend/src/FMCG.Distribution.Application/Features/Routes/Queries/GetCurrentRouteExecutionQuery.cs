@@ -23,6 +23,25 @@ public class CurrentRouteExecutionDto
     public int CompletedCount { get; set; }
     public int PendingCount { get; set; }
     public List<CustomerVisitStatusDto> Customers { get; set; } = [];   // IDE0028
+
+    // ── NEW: real-time bag-loading breakdown for this route/day, computed
+    // server-side from closed/locked orders — see BagsBreakdownDto below. ──
+    public BagsBreakdownDto BagsBreakdown { get; set; } = new();
+}
+
+// ── NEW: physical bag counts (by weight) plus the weighted 50kg-equivalent
+// total used for the loading-limit alert/display. 50kg bags count fully;
+// 30kg and 26kg bags count as 0.5 each toward the equivalent total.
+// Remaining/percent-to-next-threshold are computed in the frontend from
+// TotalEquivalentBags and Threshold — simple arithmetic, no need to
+// duplicate it here. ──
+public class BagsBreakdownDto
+{
+    public int Count50Kg { get; set; }
+    public int Count30Kg { get; set; }
+    public int Count26Kg { get; set; }
+    public decimal TotalEquivalentBags { get; set; }
+    public int Threshold { get; set; } = 130;
 }
 
 public class CustomerVisitStatusDto

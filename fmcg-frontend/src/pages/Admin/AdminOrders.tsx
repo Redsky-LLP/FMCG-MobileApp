@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   ShoppingCart, RefreshCw, CheckCircle, Search,
   Package, Eye, Edit2, Clock, X,
@@ -99,6 +99,7 @@ const selectStyle = {
 
 export function AdminOrders() {
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useIsMobile();
   const [orders,         setOrders]         = useState<OrderDto[]>([]);
   const [routes,         setRoutes]         = useState<RouteDto[]>([]);
@@ -140,7 +141,14 @@ export function AdminOrders() {
   const today = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
-    if (!dateFilter) setDateFilter(today);
+    // FIX: previously always defaulted to today, even when returning from the
+    // Edit page after editing an order for a DIFFERENT date — the calendar
+    // would silently jump back to today instead of staying on whatever date
+    // was actually selected before. Now prefers the date passed back via
+    // navigation state (see handleEdit below / AdminOrderEdit's return
+    // navigation), falling back to today only when nothing was passed
+    // (i.e. a fresh visit to this page, not a return trip).
+    if (!dateFilter) setDateFilter((location.state as any)?.dateFilter || today);
     const now = new Date();
     setCurrentDate(now.toLocaleDateString('en-IN', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
@@ -181,7 +189,14 @@ export function AdminOrders() {
   }
 
   async function loadRoutes() {
-    try { const r = await routesApi.getAll(); setRoutes(r); setRouteFilter('all'); }
+    try {
+      const r = await routesApi.getAll();
+      setRoutes(r);
+      // FIX: same reasoning as the date filter above — preserve the route
+      // selection passed back from the Edit page, instead of always
+      // resetting to "all" on every remount.
+      setRouteFilter((location.state as any)?.routeFilter || 'all');
+    }
     catch { setError('Failed to load routes'); }
   }
 
@@ -307,7 +322,9 @@ export function AdminOrders() {
 
   function handleEdit(orderId: string, customerId: string) {
     navigate(`/admin/orders/${orderId}/edit`, {
-      state: { orderId, customerId, routeId: routeFilter === 'all' ? undefined : routeFilter }
+      // FIX: added dateFilter/returnRouteFilter so the Edit page can hand
+      // them straight back on its own return navigation — see AdminOrderEdit.tsx.
+      state: { orderId, customerId, routeId: routeFilter === 'all' ? undefined : routeFilter, dateFilter, returnRouteFilter: routeFilter }
     });
   }
 
@@ -758,6 +775,18 @@ export function AdminOrders() {
                                 style={actionBtn(D.surface, D.muted)}
                               >
                                 <Eye size={13} /> Review
+                              </button>
+
+                              {/* ── NEW: Edit option for previous/closed orders. handleEdit()
+                              already existed in this file but was never wired to a button —
+                              this page is admin-only (routed under /admin), matching the
+                              "Admin/SuperAdmin only" requirement without needing an extra
+                              role check here; the backend enforces this too. ── */}
+                              <button
+                                onClick={() => handleEdit(String(order.id), String(order.customerId))}
+                                style={actionBtn(D.surface, D.muted)}
+                              >
+                                <Edit2 size={13} /> Edit
                               </button>
 
                               {isPending && (

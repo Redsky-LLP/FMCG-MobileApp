@@ -480,6 +480,17 @@ downloadAdditionalRevenueReport: async (fromDate?: string, toDate?: string) => {
     });
     return res.data as Blob;
   },
+  // ── NEW: Retail Sheet — same shape as downloadLoadingSheet ──
+  downloadRetailSheet: async (routeId?: string, date?: string) => {
+    const params: Record<string, string> = {};
+    if (routeId) params.routeId = routeId;
+    if (date) params.date = date;
+    const res = await apiClient.get('/api/v1/reports/retail-sheet', {
+      params,
+      responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
   downloadBillingSheet: async (routeId?: string, date?: string) => {
     const params: Record<string, string> = {};
     if (routeId) params.routeId = routeId;

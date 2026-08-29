@@ -56,6 +56,9 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
             .ThenInclude(i => i.Product!)
                 .ThenInclude(p => p.SizeGroup)
         .Include(o => o.Items!)
+            .ThenInclude(i => i.Product!)
+                .ThenInclude(p => p.ProductGroup)
+        .Include(o => o.Items!)
             .ThenInclude(i => i.Unit)
         .Where(o => !o.IsDeleted
             && (o.Status == OrderStatus.Closed || o.IsLocked)
@@ -123,6 +126,12 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                 ProductName = i.ProductNameAtTime ?? i.Product?.NameEnglish ?? string.Empty,
                                 ProductNameMalayalam = i.ProductNameMalayalamAtTime ?? i.Product?.NameMalayalam,
                                 SizeGroupName = i.SizeGroupNameAtTime ?? i.Product?.SizeGroup?.Name,
+                                // ── NEW: Item Group name (VEGETABLES/CHILLES etc.), not snapshotted —
+                                // group membership isn't expected to change day-to-day, same reasoning
+                                // as the loading sheet's identical addition. ──
+                                ProductGroupName = i.Product != null && i.Product.ProductGroup != null
+                                    ? i.Product.ProductGroup.Name
+                                    : null,
                                 UnitSymbol = i.Unit?.Symbol ?? string.Empty,
                                 Quantity = i.Quantity,
                                 SellingPrice = i.SellingPrice,
@@ -198,6 +207,15 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
     // still happen there normally (name on one line, bracket on the next, as one unit). ──
     private static string KeepParentheticalTogether(string productName)
         => Regex.Replace(productName, @"\(([^)]*)\)", m => "(" + m.Groups[1].Value.Replace(' ', '\u00A0') + ")");
+
+    // ── NEW: flags products in the VEGETABLES and CHILLES item groups so they can be
+    // marked with an "X" on the printed sheet — same rule as the Loading Sheet, purely
+    // a visual flag for staff. ──
+    private static readonly HashSet<string> FlaggedProductGroups =
+        new(StringComparer.OrdinalIgnoreCase) { "VEGETABLES", "CHILLES" };
+
+    private static bool IsFlaggedProductGroup(string? productGroupName)
+        => productGroupName != null && FlaggedProductGroups.Contains(productGroupName.Trim());
 
     // ── PDF Generator: matching the Loading Sheet style with 3 columns (Product, Qty, Price) ──
     private static byte[] GenerateBillingSheetPdf(BillingSheetDataDto data)
@@ -320,17 +338,32 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
 
                                             foreach (var item in order.Items)
                                             {
+                                                // ── FIX: X marker rendered as its own larger, bolder text span
+                                                // within the same cell — was previously plain text at the same
+                                                // size/weight as the product name, which read as too thin. Kept
+                                                // inline (no new column, no layout change) but visibly heavier
+                                                // and bigger, since it's now its own span with a bigger font size.
+                                                var isFlagged = IsFlaggedProductGroup(item.ProductGroupName);
+                                                var productNameText = KeepParentheticalTogether(item.ProductName.ToUpper());
+
                                                 // Product name - left aligned, extra bold and larger for readability
-                                                table.Cell().BorderBottom(0.5f)
+                                                // FIX: separator line made bolder (was 0.5f) per request.
+                                                table.Cell().BorderBottom(1.5f)
                                                     .PaddingVertical(3)
                                                     .PaddingLeft(5)
                                                     .PaddingRight(10)
-                                                    .Text(KeepParentheticalTogether(item.ProductName.ToUpper()))
-                                                    .FontSize(18)
-                                                    .ExtraBold();
+                                                    .Text(text =>
+                                                    {
+                                                        text.Span(productNameText).FontSize(18).ExtraBold();
+                                                        if (isFlagged)
+                                                        {
+                                                            text.Span("  X").FontSize(26).ExtraBold().FontColor(Colors.Black);
+                                                        }
+                                                    });
 
                                                 // Quantity - centered, extra bold and larger for readability
-                                                table.Cell().BorderBottom(0.5f)
+                                                // FIX: separator line made bolder (was 0.5f) per request.
+                                                table.Cell().BorderBottom(1.5f)
                                                     .PaddingVertical(3)
                                                     .PaddingHorizontal(8)
                                                     .AlignCenter()
@@ -339,7 +372,8 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                                                     .ExtraBold();
 
                                                 // Price - right aligned, extra bold and larger for readability
-                                                table.Cell().BorderBottom(0.5f)
+                                                // FIX: separator line made bolder (was 0.5f) per request.
+                                                table.Cell().BorderBottom(1.5f)
                                                     .PaddingVertical(3)
                                                     .PaddingLeft(8)
                                                     .PaddingRight(5)

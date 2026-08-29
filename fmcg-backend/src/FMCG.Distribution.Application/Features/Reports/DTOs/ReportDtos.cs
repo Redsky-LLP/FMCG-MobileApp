@@ -21,6 +21,11 @@ public class LoadingSheetItemDto
     // ── NEW: Size Group (e.g. "50 KG", "25 KG") for loading priority & summary ──
     public string? SizeGroupName { get; set; }
     public int SizeGroupSortKey { get; set; } = 999;    // lower = heavier = loaded/listed first
+
+    // ── NEW: Item Group (e.g. "VEGETABLES", "CHILLES") — drives the "X" marker
+    // shown next to these products on the printed sheet. Display-only; does not
+    // affect sorting, priority, or any existing calculation. ──
+    public string? ProductGroupName { get; set; }
 }
 
 public class LoadingSheetStopDto
@@ -53,6 +58,10 @@ public class LoadingSheetStopDto
     public int RunningThirtyKgBagTotal { get; set; }
     public int RunningTwentySixKgBagTotal { get; set; }
     public int RunningTwentyKgBagTotal { get; set; }
+
+    // ── NEW: the actual weighted total the threshold is measured against
+    // (50kg bags full weight, 30kg/26kg bags at 0.5 each). ──
+    public decimal RunningWeightedBagTotal { get; set; }
 }
 
 public class LoadingSheetSizeGroupSummaryDto
@@ -149,6 +158,9 @@ public class BillingSheetItemDto
     public string ProductName { get; set; } = string.Empty;
     public string? ProductNameMalayalam { get; set; }
     public string? SizeGroupName { get; set; }          // NEW — drives client-specified size-group display order
+    // ── NEW: Item Group (e.g. "VEGETABLES", "CHILLES") — drives the "X" marker
+    // shown next to these products on the printed sheet. Display-only. ──
+    public string? ProductGroupName { get; set; }
     public string UnitSymbol { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public decimal SellingPrice { get; set; }
@@ -323,4 +335,20 @@ public class AdditionalRevenueReportDataDto
     public List<AdditionalRevenueReportItemDto> Items { get; set; } = new();
     public decimal GrandTotalAdditionalRevenue { get; set; }
     public int TotalSalesmen { get; set; }
+}
+
+// ── NEW: Retail Sheet report — same-shaped DTOs as the Loading Sheet's
+// per-stop structure, but scoped to retail-only orders (zero items, remarks
+// present). ──
+public class RetailSheetOrderDto
+{
+    public int SequenceOrder { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string Remarks { get; set; } = string.Empty;
+}
+
+public class RetailSheetRouteDto
+{
+    public string RouteName { get; set; } = string.Empty;
+    public List<RetailSheetOrderDto> Orders { get; set; } = [];
 }

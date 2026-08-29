@@ -33,6 +33,17 @@ export interface CurrentRouteExecutionDto {
   completedCount?:  number;
   pendingCount?:    number;
   customers?:       CustomerVisitDto[];
+  bagsBreakdown?:   BagsBreakdownDto;   // ← ADD THIS
+}
+
+// ── NEW: real-time bag-loading breakdown for a route/day, computed server-side.
+// 50kg bags count fully; 30kg/26kg bags count as 0.5 each toward the total. ──
+export interface BagsBreakdownDto {
+  count50Kg:            number;
+  count30Kg:             number;
+  count26Kg:             number;
+  totalEquivalentBags:  number;
+  threshold:            number;
 }
 
 export interface StartRouteExecutionResponse {
