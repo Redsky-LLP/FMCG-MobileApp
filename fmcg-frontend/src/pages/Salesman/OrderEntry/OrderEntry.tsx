@@ -120,6 +120,18 @@ export default function OrderEntry() {
   const [autosaving,     setAutosaving]     = useState(false);
   const [lastAutosavedAt, setLastAutosavedAt] = useState<Date | null>(null);
   const autosaveTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // ── FIX: closes a real data-loss window — previously, if the salesman
+  // edited fast enough that a new autosave got scheduled while an EARLIER
+  // one was still in flight (network round-trip in progress), the newer
+  // attempt was silently dropped via the `autosaving` guard below, with
+  // nothing scheduled to ever retry it. If the salesman then navigated away
+  // without making one more edit (or tapping the manual Save button), that
+  // last batch of changes never got persisted — while the UI still showed
+  // "Auto-saved" from the EARLIER, now-outdated save. This ref remembers
+  // that a save was requested and skipped, so it can be retried immediately
+  // once the in-flight one finishes, using whatever `lines`/`remarks` are
+  // current at that point (not stale). ──
+  const pendingAutosaveRetryRef = useRef(false);
   const skipNextAutosaveRef = useRef(true); // true until the initial data load finishes
 
   // ── FIX: Declare hasExistingOrder BEFORE using it in canCancel ──
@@ -324,6 +336,20 @@ export default function OrderEntry() {
     return committedPrice;
   };
 
+  // ── FIX: same idea as getEffectivePrice, for quantity. Autosave needs to
+  // see what's actually been typed into the Qty box, not just the last
+  // value that was committed to `lines` on blur — otherwise it has no way
+  // to know a fresh item's quantity has been filled in until the salesman
+  // taps away from the field. ──
+  const getEffectiveQty = (productId: string, committedQty: number): number => {
+    const tmp = tempQuantities[productId];
+    if (tmp !== undefined) {
+      const n = parseInt(tmp, 10);
+      if (!isNaN(n) && n >= 0) return n;
+    }
+    return committedQty;
+  };
+
   // ── RESTORED: selling price must stay within ±10% of base price. Returns
   // true when it's outside that band — used both to show the warning badge
   // and to block Save until it's corrected. ──
@@ -375,11 +401,16 @@ export default function OrderEntry() {
   customerId:      String(customerId),
   routeId:         String(routeId),
   orderDate:       new Date().toISOString(),
+  // ── FIX: read the EFFECTIVE (live-typed, pre-blur) qty/price rather than
+  // only what's already committed to `lines`. No-op for the manual Save
+  // button (its click already blurred whatever was focused, so the staging
+  // maps are empty by the time this runs) — this only changes what
+  // autosave sees while the salesman is still actively typing. ──
   items:           lines.map(l => ({ 
     productId: l.product.id, 
-    quantity: l.qty, 
+    quantity: getEffectiveQty(l.product.id, l.qty), 
     unitId: l.product.productUnitId, 
-    sellingPrice: l.sellingPrice 
+    sellingPrice: getEffectivePrice(l.product.id, l.sellingPrice) 
   })),
   executionId:     executionContext?.executionId,
   customerVisitId: executionContext?.customerVisitId,
@@ -392,16 +423,40 @@ export default function OrderEntry() {
   // the salesman is still mid-edit — it'll catch up on the next debounce
   // cycle once they finish typing. ──
   const performAutosave = async () => {
-    if (!canEdit || saving || autosaving) return;
+    if (!canEdit || saving) return;
+    if (autosaving) {
+      // FIX: an autosave is already in flight — don't start a second
+      // overlapping request, but remember that this one was requested so
+      // it isn't silently lost. Retried automatically in the `finally`
+      // block below, right after the in-flight save completes.
+      pendingAutosaveRetryRef.current = true;
+      return;
+    }
     if (lines.length === 0 && !remarks.trim()) return;
 
-    const incomplete = lines.some(l => !l.qty || !l.sellingPrice);
+    // ── FIX: check the EFFECTIVE (live-typed) qty/price, not just what's
+    // already committed to `lines`. Previously this only saw a freshly-typed
+    // quantity or price once the field lost focus (blur), which meant
+    // autosave stayed silent — looking like it needed "a click somewhere" —
+    // right up until the salesman happened to tap elsewhere on the screen. ──
+    const incomplete = lines.some(l =>
+      !getEffectiveQty(l.product.id, l.qty) || !getEffectivePrice(l.product.id, l.sellingPrice)
+    );
     if (incomplete) return;
 
-    const outOfRange = lines.some(l =>
-      getPriceRangeIssue(l.product.basePrice, getEffectivePrice(l.product.id, l.sellingPrice))
-    );
-    if (outOfRange) return;
+    // ── FIX: autosave no longer blocks on the ±10% price-range check. That
+    // rule exists to stop a salesman from SUBMITTING an order with a price
+    // outside the allowed band — it's a submission-time business rule, not a
+    // data-loss concern, and it's still fully enforced in handleSave below.
+    // Gating autosave on it too meant that the moment a price drifted out of
+    // range, autosave went silent and stayed silent until the price was
+    // corrected — surfacing as an unpredictable "sometimes it saves,
+    // sometimes there's a long delay" rather than an actual performance
+    // regression. Autosave's only job is protecting whatever the salesman
+    // has typed so far (e.g. against a Master PIN admin login ending their
+    // session), so it should persist an out-of-range price as-is, the same
+    // as any other in-progress draft value — the order must never be lost
+    // regardless of whether the price happens to pass this rule yet. ──
 
     setAutosaving(true);
     try {
@@ -420,25 +475,45 @@ export default function OrderEntry() {
       // retry, and manual Save still surfaces real errors normally.
     } finally {
       setAutosaving(false);
+      // FIX: if an edit came in while this save was in flight and got
+      // deferred above, run it now — using buildPayload()'s fresh read of
+      // the CURRENT lines/remarks (not a stale snapshot), so whatever the
+      // salesman typed during the in-flight request is never left unsaved.
+      if (pendingAutosaveRetryRef.current) {
+        pendingAutosaveRetryRef.current = false;
+        performAutosave();
+      }
     }
   };
 
   // Debounced: waits for a pause in editing before autosaving, rather than
   // firing on every keystroke/qty change.
+  //
+  // ── FIX: also watches tempQuantities/tempPrices (the live-typed staging
+  // state), not just lines/remarks. Quantity and price only get copied into
+  // `lines` on blur, so watching `lines` alone meant this effect never even
+  // scheduled a save while the salesman was typing into a fresh item's Qty
+  // or Price box — it silently waited for a blur (i.e. tapping elsewhere on
+  // the screen) before it had any signal that something had changed at all.
+  // Now every keystroke in those fields resets the same 800ms debounce
+  // timer, exactly like an edit to `lines` already did. ──
   useEffect(() => {
     if (skipNextAutosaveRef.current) return;
     if (!canEdit) return;
 
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    // FIX: shortened from 2500ms to 800ms, per request — resets on every
+    // edit, so it still won't fire mid-keystroke, but now catches up much
+    // faster once the salesman actually pauses.
     autosaveTimerRef.current = setTimeout(() => {
       performAutosave();
-    }, 2500);
+    }, 800);
 
     return () => {
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lines, remarks]);
+  }, [lines, remarks, tempQuantities, tempPrices]);
 
   const handleSave = async () => {
   if (!canEdit) { 

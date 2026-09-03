@@ -338925,10 +338925,14 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
             return Result<OrderDetailDto>.Failure("Order not found.");
 
         // ── Permission matrix ──────────────────────────────────────────────────
-        // ── Universal lock check — applies to admin and salesman alike.
-        // Once admin runs Close Day, IsLocked is true on this order and
-        // nobody edits it anymore, regardless of role or status. ──
-        if (order.IsLocked)
+        // ── Universal lock check — FIX: scoped to salesmen only now. Admin can
+        // edit past the daily-closure lock too (Edit Previous Orders feature) —
+        // this is a permission change ONLY: the IsLocked flag itself is never
+        // touched or cleared here, so everything else that reads it elsewhere
+        // (settlement calculations, the route Close/Reopen toggle, any other
+        // gate) behaves exactly as it always has. Salesmen remain fully blocked
+        // once an order is locked, with no exception. ──
+        if (order.IsLocked && !request.IsAdmin)
             return Result<OrderDetailDto>.Failure(
                 "This order is locked after daily closing and cannot be modified.");
 
@@ -338936,10 +338940,7 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
         if (request.IsAdmin)
         {
             // Admin can edit: Draft, PendingApproval, Approved, OR Closed orders
-            // FIX: added Closed — this was the actual gap behind "no edit option
-            // for previous/closed orders." The universal IsLocked check above
-            // still applies unconditionally: once admin runs Close Day, nobody
-            // (including admin) can edit regardless of this list.
+            // — regardless of IsLocked, per the check above.
             var adminEditableStatuses = new[] { OrderStatus.Draft, OrderStatus.PendingApproval, OrderStatus.Approved, OrderStatus.Closed };
             if (!adminEditableStatuses.Contains(order.Status))
                 return Result<OrderDetailDto>.Failure(
@@ -338992,6 +338993,19 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
             .Include(p => p.SizeGroup)
             .Where(p => requestedProductIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, cancellationToken);
+
+        // ── PERFORMANCE FIX: same batching approach as productsById above —
+        // fetched once here so the response DTO can be built entirely from
+        // in-memory data at the end of this method, instead of the full
+        // re-fetch of the order (with two .ThenInclude() calls) that used
+        // to happen after SaveChangesAsync. That re-fetch was one of the
+        // most expensive individual queries in this whole request, and was
+        // entirely redundant — every field it needed (Product via
+        // productsById, Unit via this dictionary) was already available. ──
+        var requestedUnitIds = request.Items.Select(i => i.UnitId).Distinct().ToList();
+        var unitsById = await context.ProductUnits
+            .Where(u => requestedUnitIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, cancellationToken);
 
         foreach (var itemDto in request.Items)
         {
@@ -339102,23 +339116,28 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
             }
         }
 
-        var updatedOrder = await context.Orders
-            .Include(o => o.Items!)
-                .ThenInclude(i => i.Product)
-            .Include(o => o.Items!)
-                .ThenInclude(i => i.Unit)
-            .FirstOrDefaultAsync(o => o.Id == order.Id, cancellationToken);
-
         var route = await context.Routes
             .FirstOrDefaultAsync(r => r.Id == order.RouteId && !r.IsDeleted, cancellationToken);
 
-        // ── PERFORMANCE FIX: Product/Unit already eagerly loaded above via
-        // .ThenInclude() — no need to re-query per item here. ──
+        // ── PERFORMANCE FIX: this used to re-fetch the whole order from the
+        // database (with two .ThenInclude() calls for Product and Unit) just
+        // to build this response — one of the most expensive individual
+        // queries in the whole request, and entirely avoidable. Every field
+        // it needed is already sitting in memory: surviving existing items
+        // come from order.Items (filtered to updatedItemIds — the ones NOT
+        // removed above), freshly-added ones from itemsToAdd, and their
+        // Product/Unit details from the productsById/unitsById dictionaries
+        // batched earlier in this same method. Building the DTO from these
+        // instead removes an entire round-trip from every save. ──
+        var finalItems = (order.Items?.Where(i => updatedItemIds.Contains(i.Id)) ?? [])
+            .Concat(itemsToAdd)
+            .ToList();
+
         var itemDtos = new List<OrderItemDto>();
-        foreach (var item in updatedOrder?.Items ?? [])
+        foreach (var item in finalItems)
         {
-            var product = item.Product;
-            var unit = item.Unit;
+            productsById.TryGetValue(item.ProductId, out var product);
+            unitsById.TryGetValue(item.UnitId, out var unit);
 
             itemDtos.Add(new OrderItemDto
             {
@@ -341878,6 +341897,23 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
     private static bool IsFlaggedProductGroup(string? productGroupName)
         => productGroupName != null && FlaggedProductGroups.Contains(productGroupName.Trim());
 
+    // ── NEW: pulls the leading number out of a size-group name (e.g. "50 KG
+    // BAG" → 50, "10 LTR" → 10), used to sort the Size Group Summary from
+    // largest to smallest rather than alphabetically (which would put "10
+    // LTR" before "50 KG BAG"). Falls back to 0 for anything unparsable, so
+    // it sorts last rather than throwing. ──
+    private static int ExtractLeadingNumber(string sizeGroupName)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(sizeGroupName, @"\d+");
+        return match.Success && int.TryParse(match.Value, out var n) ? n : 0;
+    }
+
+    // ── Matches a size-group name against a specific weight (e.g. "50 KG BAG"
+    // matches 50) — needed to combine 50/30/26kg into one equivalent total in
+    // the Size Group Summary, same helper used for this purpose elsewhere. ──
+    private static bool MatchesSizeGroupWeight(string? sizeGroupName, int kg)
+        => sizeGroupName != null && Regex.IsMatch(sizeGroupName, $@"\b{kg}\s*kg\b", RegexOptions.IgnoreCase);
+
     // ── PDF Generator: matching the Loading Sheet style with 3 columns (Product, Qty, Price) ──
     private static byte[] GenerateBillingSheetPdf(BillingSheetDataDto data)
     {
@@ -342084,6 +342120,62 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                             if (route != data.Routes.Last())
                             {
                                 routeCol.Item().PageBreak();
+                            }
+                        });
+                    }
+
+                    // ── UPDATED: Size Group Summary — billing sheet ONLY. 50KG, 30KG, and
+                    // 26KG groups are now combined into a single equivalent-total line
+                    // (same 1.0 / 0.5 / 0.5 weighting used everywhere else in this app —
+                    // Loading Sheet threshold alerts, salesman bag tracker), since these
+                    // three specifically represent interchangeable loading capacity. Every
+                    // OTHER size group (25kg, 20kg, 10ltr, 5ltr, etc.) still gets its own
+                    // individual line with a plain raw count, unchanged from before. ──
+                    var allSummaryItems = data.Routes
+                        .SelectMany(r => r.Orders)
+                        .SelectMany(o => o.Items)
+                        .Where(i => !string.IsNullOrWhiteSpace(i.SizeGroupName))
+                        .ToList();
+
+                    var weightedItems = allSummaryItems
+                        .Where(i => MatchesSizeGroupWeight(i.SizeGroupName, 50)
+                            || MatchesSizeGroupWeight(i.SizeGroupName, 30)
+                            || MatchesSizeGroupWeight(i.SizeGroupName, 26))
+                        .ToList();
+
+                    var combinedEquivalentTotal = weightedItems.Sum(i =>
+                        MatchesSizeGroupWeight(i.SizeGroupName, 50) ? i.Quantity : i.Quantity * 0.5m);
+
+                    var individualGroupCounts = allSummaryItems
+                        .Except(weightedItems)
+                        .GroupBy(i => i.SizeGroupName!.Trim(), StringComparer.OrdinalIgnoreCase)
+                        .Select(g => new { SizeGroupName = g.Key, TotalQuantity = g.Sum(i => i.Quantity) })
+                        .OrderByDescending(g => ExtractLeadingNumber(g.SizeGroupName))
+                        .ToList();
+
+                    if (weightedItems.Count > 0 || individualGroupCounts.Count > 0)
+                    {
+                        contentCol.Item().PaddingTop(14).EnsureSpace().Column(summaryCol =>
+                        {
+                            summaryCol.Item().Background(Colors.Grey.Lighten3).Padding(8)
+                                .Text("📦 SIZE GROUP SUMMARY").FontSize(16).Bold();
+
+                            if (weightedItems.Count > 0)
+                            {
+                                summaryCol.Item().PaddingTop(3).PaddingLeft(8)
+                                    .Text($"50KG + 30KG + 26KG (EQUIVALENT) — {combinedEquivalentTotal:0.#} BAGS")
+                                    .FontSize(13).Bold();
+                            }
+
+                            foreach (var g in individualGroupCounts)
+                            {
+                                var unitLabel = g.SizeGroupName.Contains("LTR", StringComparison.OrdinalIgnoreCase)
+                                    ? "TINS"
+                                    : "BAGS";
+
+                                summaryCol.Item().PaddingTop(3).PaddingLeft(8)
+                                    .Text($"{g.SizeGroupName.ToUpper()} — {g.TotalQuantity:N0} {unitLabel}")
+                                    .FontSize(13).Bold();
                             }
                         });
                     }
@@ -342890,7 +342982,8 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
         => sizeGroupName != null && System.Text.RegularExpressions.Regex.IsMatch(sizeGroupName, $@"\b{kg}\s*kg\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
     // Same threshold as the main Loading Sheet — kept in sync with GetLoadingSheetQueryHandler.
-    private const int BagLoadingThreshold = 130;
+    // FIX: threshold changed from 130 to 125, per updated request.
+    private const int BagLoadingThreshold = 125;
 
     // ── NEW: flags products in the VEGETABLES and CHILLES item groups so they can be
     // marked with an "X" on the printed sheet — same rule as the other report handlers. ──
@@ -343152,12 +343245,11 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
 
                                                     if (cycleWeightedTotal >= BagLoadingThreshold)
                                                     {
-                                                        // Alert shows the real total that triggered it — always
-                                                        // consistent with the breakdown counts beside it, since
-                                                        // they're the same numbers this total came from.
+                                                        // FIX: alert message shortened to a single line, per
+                                                        // updated request — same fix as the main handler.
                                                         table.Cell().ColumnSpan(4)
                                                             .Background(Colors.Red.Lighten3).Padding(5)
-                                                            .Text($"🚨 LOADING LIMIT CROSSED! ({BagLoadingThreshold}) — AFTER \"{stop.CustomerName.ToUpper()}\" — 50KG BAGS: {liveFiftyKg} | 30KG BAGS: {liveThirtyKg} | 26KG BAGS: {liveTwentySixKg} — TOTAL EQUIVALENT: {cycleWeightedTotal:0.#} / {BagLoadingThreshold} ✓ — 🛑 STOP! DO NOT LOAD MORE THAN {BagLoadingThreshold} BAGS!")
+                                                            .Text($"Combined total (26kg + 30kg + 50kg) has reached {cycleWeightedTotal:0.#} bags. Threshold limit is {BagLoadingThreshold}. Do not load more than {BagLoadingThreshold} bags.")
                                                             .Bold().FontSize(8).FontColor(Colors.Red.Darken2);
 
                                                         // Reset everything together for the next cycle.
@@ -343304,10 +343396,8 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
     : IRequestHandler<GetLoadingSheetQuery, Result<byte[]>>
 {
     // Loading workers get a highlighted alert once a route's weighted bag count reaches this.
-    // FIX: threshold changed from 110 to 130, and now weighs 30kg/26kg bags at 0.5 each
-    // toward the total instead of only counting literal 50kg bags — see the weighting
-    // logic below where this constant is used.
-    private const int BagLoadingThreshold = 130;
+    // FIX: threshold changed from 130 to 125, per updated request.
+    private const int BagLoadingThreshold = 125;
 
     // ── FALLBACK ONLY: the client's originally hand-written "Size Group Priority" list.
     // The real, editable priority now lives on SizeGroup.SortOrder in the database (set
@@ -343928,15 +344018,16 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                                     segment = [];
                                                     segmentIndex++;
 
-                                                    // ...then the alert, showing the real total that triggered
-                                                    // it (e.g. 155/130 if 155 fifty-kg-equivalent bags actually
-                                                    // accumulated this cycle) — always consistent with the
-                                                    // breakdown counts shown right beside it, since they're the
-                                                    // same numbers this total was computed from.
+                                                    // FIX: alert message shortened to a single line, per
+                                                    // updated request — removed the per-type breakdown and
+                                                    // "STOP" wording. Still uses cycleWeightedTotal (same
+                                                    // number that triggers the alert) as [X], so the message
+                                                    // can never show a value inconsistent with what actually
+                                                    // crossed the threshold.
                                                     stopCol.Item().PaddingTop(6).EnsureSpace()
                                                         .Background(Colors.Red.Lighten3).Padding(6)
-                                                        .Text($"🚨 LOADING LIMIT CROSSED! ({BagLoadingThreshold}) — AFTER \"{stop.CustomerName.ToUpper()}\" — 50KG BAGS: {liveFiftyKg} | 30KG BAGS: {liveThirtyKg} | 26KG BAGS: {liveTwentySixKg} — TOTAL EQUIVALENT: {cycleWeightedTotal:0.#} / {BagLoadingThreshold} ✓ — 🛑 STOP! DO NOT LOAD MORE THAN {BagLoadingThreshold} BAGS!")
-                                                        .Bold().FontSize(18).FontColor(Colors.Red.Darken2);
+                                                        .Text($"Combined total (50kg) has reached {cycleWeightedTotal:0.#} bags. Threshold limit is {BagLoadingThreshold}. Do not load more than {BagLoadingThreshold} bags.")
+                                                        .Bold().FontSize(16).FontColor(Colors.Red.Darken2);
 
                                                     // Reset everything together for the next cycle — total and
                                                     // breakdown counts always move in lockstep now, so they can
@@ -344402,19 +344493,34 @@ public class GetRetailSheetQueryHandler(IApplicationDbContext context)
             var routes = new List<RetailSheetRouteDto>();
             foreach (var routeGroup in routeGroups)
             {
-                var orderedOrders = routeGroup
-                    .OrderBy(o => o.Customer?.SequenceOrder ?? 0)
+                // ── FIX: was grouping by ORDER, not by customer — if a customer had more
+                // than one order with remarks on the same date (e.g. one order edited
+                // into a second one, or genuinely two separate orders), each order became
+                // its own entry, showing that customer multiple times on the sheet. Now
+                // grouped by customer first, so each customer gets exactly ONE entry per
+                // day, with remarks from all of their orders that day combined together. ──
+                var groupedByCustomer = routeGroup
+                    .GroupBy(o => o.CustomerId)
+                    .Select(g => new
+                    {
+                        Customer = g.First().Customer,
+                        SequenceOrder = g.First().Customer?.SequenceOrder ?? 0,
+                        CombinedRemarks = string.Join("\n", g
+                            .Select(o => o.Remarks)
+                            .Where(r => !string.IsNullOrWhiteSpace(r))),
+                    })
+                    .OrderBy(x => x.SequenceOrder)
                     .ToList();
 
                 var orders = new List<RetailSheetOrderDto>();
                 var stopNumber = 1;
-                foreach (var order in orderedOrders)
+                foreach (var group in groupedByCustomer)
                 {
                     orders.Add(new RetailSheetOrderDto
                     {
                         SequenceOrder = stopNumber,
-                        CustomerName = order.Customer?.NameEnglish ?? "Unknown Customer",
-                        Remarks = order.Remarks ?? string.Empty,
+                        CustomerName = group.Customer?.NameEnglish ?? "Unknown Customer",
+                        Remarks = group.CombinedRemarks,
                     });
                     stopNumber++;
                 }

@@ -213,7 +213,8 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
         => sizeGroupName != null && System.Text.RegularExpressions.Regex.IsMatch(sizeGroupName, $@"\b{kg}\s*kg\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
     // Same threshold as the main Loading Sheet — kept in sync with GetLoadingSheetQueryHandler.
-    private const int BagLoadingThreshold = 130;
+    // FIX: threshold changed from 130 to 125, per updated request.
+    private const int BagLoadingThreshold = 125;
 
     // ── NEW: flags products in the VEGETABLES and CHILLES item groups so they can be
     // marked with an "X" on the printed sheet — same rule as the other report handlers. ──
@@ -475,12 +476,11 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
 
                                                     if (cycleWeightedTotal >= BagLoadingThreshold)
                                                     {
-                                                        // Alert shows the real total that triggered it — always
-                                                        // consistent with the breakdown counts beside it, since
-                                                        // they're the same numbers this total came from.
+                                                        // FIX: alert message shortened to a single line, per
+                                                        // updated request — same fix as the main handler.
                                                         table.Cell().ColumnSpan(4)
                                                             .Background(Colors.Red.Lighten3).Padding(5)
-                                                            .Text($"🚨 LOADING LIMIT CROSSED! ({BagLoadingThreshold}) — AFTER \"{stop.CustomerName.ToUpper()}\" — 50KG BAGS: {liveFiftyKg} | 30KG BAGS: {liveThirtyKg} | 26KG BAGS: {liveTwentySixKg} — TOTAL EQUIVALENT: {cycleWeightedTotal:0.#} / {BagLoadingThreshold} ✓ — 🛑 STOP! DO NOT LOAD MORE THAN {BagLoadingThreshold} BAGS!")
+                                                            .Text($"Combined total (26kg + 30kg + 50kg) has reached {cycleWeightedTotal:0.#} bags. Threshold limit is {BagLoadingThreshold}. Do not load more than {BagLoadingThreshold} bags.")
                                                             .Bold().FontSize(8).FontColor(Colors.Red.Darken2);
 
                                                         // Reset everything together for the next cycle.

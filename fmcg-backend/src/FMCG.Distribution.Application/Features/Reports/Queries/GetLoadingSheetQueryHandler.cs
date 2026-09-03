@@ -23,10 +23,8 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
     : IRequestHandler<GetLoadingSheetQuery, Result<byte[]>>
 {
     // Loading workers get a highlighted alert once a route's weighted bag count reaches this.
-    // FIX: threshold changed from 110 to 130, and now weighs 30kg/26kg bags at 0.5 each
-    // toward the total instead of only counting literal 50kg bags — see the weighting
-    // logic below where this constant is used.
-    private const int BagLoadingThreshold = 130;
+    // FIX: threshold changed from 130 to 125, per updated request.
+    private const int BagLoadingThreshold = 125;
 
     // ── FALLBACK ONLY: the client's originally hand-written "Size Group Priority" list.
     // The real, editable priority now lives on SizeGroup.SortOrder in the database (set
@@ -647,15 +645,16 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                                                     segment = [];
                                                     segmentIndex++;
 
-                                                    // ...then the alert, showing the real total that triggered
-                                                    // it (e.g. 155/130 if 155 fifty-kg-equivalent bags actually
-                                                    // accumulated this cycle) — always consistent with the
-                                                    // breakdown counts shown right beside it, since they're the
-                                                    // same numbers this total was computed from.
+                                                    // FIX: alert message shortened to a single line, per
+                                                    // updated request — removed the per-type breakdown and
+                                                    // "STOP" wording. Still uses cycleWeightedTotal (same
+                                                    // number that triggers the alert) as [X], so the message
+                                                    // can never show a value inconsistent with what actually
+                                                    // crossed the threshold.
                                                     stopCol.Item().PaddingTop(6).EnsureSpace()
                                                         .Background(Colors.Red.Lighten3).Padding(6)
-                                                        .Text($"🚨 LOADING LIMIT CROSSED! ({BagLoadingThreshold}) — AFTER \"{stop.CustomerName.ToUpper()}\" — 50KG BAGS: {liveFiftyKg} | 30KG BAGS: {liveThirtyKg} | 26KG BAGS: {liveTwentySixKg} — TOTAL EQUIVALENT: {cycleWeightedTotal:0.#} / {BagLoadingThreshold} ✓ — 🛑 STOP! DO NOT LOAD MORE THAN {BagLoadingThreshold} BAGS!")
-                                                        .Bold().FontSize(18).FontColor(Colors.Red.Darken2);
+                                                        .Text($"Combined total (50kg) has reached {cycleWeightedTotal:0.#} bags. Threshold limit is {BagLoadingThreshold}. Do not load more than {BagLoadingThreshold} bags.")
+                                                        .Bold().FontSize(16).FontColor(Colors.Red.Darken2);
 
                                                     // Reset everything together for the next cycle — total and
                                                     // breakdown counts always move in lockstep now, so they can

@@ -217,6 +217,23 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
     private static bool IsFlaggedProductGroup(string? productGroupName)
         => productGroupName != null && FlaggedProductGroups.Contains(productGroupName.Trim());
 
+    // ── NEW: pulls the leading number out of a size-group name (e.g. "50 KG
+    // BAG" → 50, "10 LTR" → 10), used to sort the Size Group Summary from
+    // largest to smallest rather than alphabetically (which would put "10
+    // LTR" before "50 KG BAG"). Falls back to 0 for anything unparsable, so
+    // it sorts last rather than throwing. ──
+    private static int ExtractLeadingNumber(string sizeGroupName)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(sizeGroupName, @"\d+");
+        return match.Success && int.TryParse(match.Value, out var n) ? n : 0;
+    }
+
+    // ── Matches a size-group name against a specific weight (e.g. "50 KG BAG"
+    // matches 50) — needed to combine 50/30/26kg into one equivalent total in
+    // the Size Group Summary, same helper used for this purpose elsewhere. ──
+    private static bool MatchesSizeGroupWeight(string? sizeGroupName, int kg)
+        => sizeGroupName != null && Regex.IsMatch(sizeGroupName, $@"\b{kg}\s*kg\b", RegexOptions.IgnoreCase);
+
     // ── PDF Generator: matching the Loading Sheet style with 3 columns (Product, Qty, Price) ──
     private static byte[] GenerateBillingSheetPdf(BillingSheetDataDto data)
     {
@@ -423,6 +440,62 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                             if (route != data.Routes.Last())
                             {
                                 routeCol.Item().PageBreak();
+                            }
+                        });
+                    }
+
+                    // ── UPDATED: Size Group Summary — billing sheet ONLY. 50KG, 30KG, and
+                    // 26KG groups are now combined into a single equivalent-total line
+                    // (same 1.0 / 0.5 / 0.5 weighting used everywhere else in this app —
+                    // Loading Sheet threshold alerts, salesman bag tracker), since these
+                    // three specifically represent interchangeable loading capacity. Every
+                    // OTHER size group (25kg, 20kg, 10ltr, 5ltr, etc.) still gets its own
+                    // individual line with a plain raw count, unchanged from before. ──
+                    var allSummaryItems = data.Routes
+                        .SelectMany(r => r.Orders)
+                        .SelectMany(o => o.Items)
+                        .Where(i => !string.IsNullOrWhiteSpace(i.SizeGroupName))
+                        .ToList();
+
+                    var weightedItems = allSummaryItems
+                        .Where(i => MatchesSizeGroupWeight(i.SizeGroupName, 50)
+                            || MatchesSizeGroupWeight(i.SizeGroupName, 30)
+                            || MatchesSizeGroupWeight(i.SizeGroupName, 26))
+                        .ToList();
+
+                    var combinedEquivalentTotal = weightedItems.Sum(i =>
+                        MatchesSizeGroupWeight(i.SizeGroupName, 50) ? i.Quantity : i.Quantity * 0.5m);
+
+                    var individualGroupCounts = allSummaryItems
+                        .Except(weightedItems)
+                        .GroupBy(i => i.SizeGroupName!.Trim(), StringComparer.OrdinalIgnoreCase)
+                        .Select(g => new { SizeGroupName = g.Key, TotalQuantity = g.Sum(i => i.Quantity) })
+                        .OrderByDescending(g => ExtractLeadingNumber(g.SizeGroupName))
+                        .ToList();
+
+                    if (weightedItems.Count > 0 || individualGroupCounts.Count > 0)
+                    {
+                        contentCol.Item().PaddingTop(14).EnsureSpace().Column(summaryCol =>
+                        {
+                            summaryCol.Item().Background(Colors.Grey.Lighten3).Padding(8)
+                                .Text("📦 SIZE GROUP SUMMARY").FontSize(16).Bold();
+
+                            if (weightedItems.Count > 0)
+                            {
+                                summaryCol.Item().PaddingTop(3).PaddingLeft(8)
+                                    .Text($"50KG + 30KG + 26KG (EQUIVALENT) — {combinedEquivalentTotal:0.#} BAGS")
+                                    .FontSize(13).Bold();
+                            }
+
+                            foreach (var g in individualGroupCounts)
+                            {
+                                var unitLabel = g.SizeGroupName.Contains("LTR", StringComparison.OrdinalIgnoreCase)
+                                    ? "TINS"
+                                    : "BAGS";
+
+                                summaryCol.Item().PaddingTop(3).PaddingLeft(8)
+                                    .Text($"{g.SizeGroupName.ToUpper()} — {g.TotalQuantity:N0} {unitLabel}")
+                                    .FontSize(13).Bold();
                             }
                         });
                     }

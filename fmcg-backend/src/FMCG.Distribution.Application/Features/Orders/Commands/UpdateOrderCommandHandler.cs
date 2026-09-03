@@ -128,6 +128,19 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
             .Where(p => requestedProductIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, cancellationToken);
 
+        // ── PERFORMANCE FIX: same batching approach as productsById above —
+        // fetched once here so the response DTO can be built entirely from
+        // in-memory data at the end of this method, instead of the full
+        // re-fetch of the order (with two .ThenInclude() calls) that used
+        // to happen after SaveChangesAsync. That re-fetch was one of the
+        // most expensive individual queries in this whole request, and was
+        // entirely redundant — every field it needed (Product via
+        // productsById, Unit via this dictionary) was already available. ──
+        var requestedUnitIds = request.Items.Select(i => i.UnitId).Distinct().ToList();
+        var unitsById = await context.ProductUnits
+            .Where(u => requestedUnitIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, cancellationToken);
+
         foreach (var itemDto in request.Items)
         {
             if (itemDto.Id.HasValue)
@@ -144,19 +157,43 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
                     // Quantity can be 0 only if there are no other items and remarks exist
                     if (qty < 0) return Result<OrderDetailDto>.Failure("Quantity cannot be negative.");
 
-                    existingItem.ProductId = itemDto.ProductId;
-                    existingItem.Quantity = qty;
-                    existingItem.UnitId = itemDto.UnitId;
-                    existingItem.SellingPrice = itemDto.SellingPrice;
-                    existingItem.QuantityBags = itemDto.QuantityBags;
-                    existingItem.QuantityBoxes = itemDto.QuantityBoxes;
-                    existingItem.QuantityTins = itemDto.QuantityTins;
-                    // ── NOTE: BasePriceAtTime, ProductNameAtTime, ProductNameMalayalamAtTime,
-                    // and SizeGroupNameAtTime are deliberately NOT touched here — they were
-                    // set once when this item was first created and stay frozen through any
-                    // number of edits, reopens, or re-closes. Only genuinely new items (below)
-                    // get a fresh snapshot. ──
-                    existingItem.UpdateTimestamp(request.SalesmanId.ToString());
+                    // ── PERFORMANCE FIX: autosave re-sends EVERY item currently on the
+                    // order on every save cycle, not just the one the salesman is
+                    // actively editing. This used to unconditionally assign all fields
+                    // and call UpdateTimestamp() on every existing item regardless of
+                    // whether anything about it had actually changed — which marks the
+                    // entity dirty in EF's change tracker and generates its own UPDATE
+                    // statement. An order with 8-10 items meant 8-10 UPDATE statements
+                    // on every single autosave, even though only the newest item was
+                    // really changing, so autosave got noticeably slower the longer a
+                    // salesman had been working on an order. Only touching (and
+                    // timestamping) items that actually changed restores the original
+                    // "write only what changed" behavior regardless of order size. ──
+                    var changed =
+                        existingItem.ProductId != itemDto.ProductId ||
+                        existingItem.Quantity != qty ||
+                        existingItem.UnitId != itemDto.UnitId ||
+                        existingItem.SellingPrice != itemDto.SellingPrice ||
+                        existingItem.QuantityBags != itemDto.QuantityBags ||
+                        existingItem.QuantityBoxes != itemDto.QuantityBoxes ||
+                        existingItem.QuantityTins != itemDto.QuantityTins;
+
+                    if (changed)
+                    {
+                        existingItem.ProductId = itemDto.ProductId;
+                        existingItem.Quantity = qty;
+                        existingItem.UnitId = itemDto.UnitId;
+                        existingItem.SellingPrice = itemDto.SellingPrice;
+                        existingItem.QuantityBags = itemDto.QuantityBags;
+                        existingItem.QuantityBoxes = itemDto.QuantityBoxes;
+                        existingItem.QuantityTins = itemDto.QuantityTins;
+                        // ── NOTE: BasePriceAtTime, ProductNameAtTime, ProductNameMalayalamAtTime,
+                        // and SizeGroupNameAtTime are deliberately NOT touched here — they were
+                        // set once when this item was first created and stay frozen through any
+                        // number of edits, reopens, or re-closes. Only genuinely new items (below)
+                        // get a fresh snapshot. ──
+                        existingItem.UpdateTimestamp(request.SalesmanId.ToString());
+                    }
                     updatedItemIds.Add(existingItem.Id);
                 }
             }
@@ -237,23 +274,28 @@ public class UpdateOrderCommandHandler(IApplicationDbContext context)
             }
         }
 
-        var updatedOrder = await context.Orders
-            .Include(o => o.Items!)
-                .ThenInclude(i => i.Product)
-            .Include(o => o.Items!)
-                .ThenInclude(i => i.Unit)
-            .FirstOrDefaultAsync(o => o.Id == order.Id, cancellationToken);
-
         var route = await context.Routes
             .FirstOrDefaultAsync(r => r.Id == order.RouteId && !r.IsDeleted, cancellationToken);
 
-        // ── PERFORMANCE FIX: Product/Unit already eagerly loaded above via
-        // .ThenInclude() — no need to re-query per item here. ──
+        // ── PERFORMANCE FIX: this used to re-fetch the whole order from the
+        // database (with two .ThenInclude() calls for Product and Unit) just
+        // to build this response — one of the most expensive individual
+        // queries in the whole request, and entirely avoidable. Every field
+        // it needed is already sitting in memory: surviving existing items
+        // come from order.Items (filtered to updatedItemIds — the ones NOT
+        // removed above), freshly-added ones from itemsToAdd, and their
+        // Product/Unit details from the productsById/unitsById dictionaries
+        // batched earlier in this same method. Building the DTO from these
+        // instead removes an entire round-trip from every save. ──
+        var finalItems = (order.Items?.Where(i => updatedItemIds.Contains(i.Id)) ?? [])
+            .Concat(itemsToAdd)
+            .ToList();
+
         var itemDtos = new List<OrderItemDto>();
-        foreach (var item in updatedOrder?.Items ?? [])
+        foreach (var item in finalItems)
         {
-            var product = item.Product;
-            var unit = item.Unit;
+            productsById.TryGetValue(item.ProductId, out var product);
+            unitsById.TryGetValue(item.UnitId, out var unit);
 
             itemDtos.Add(new OrderItemDto
             {

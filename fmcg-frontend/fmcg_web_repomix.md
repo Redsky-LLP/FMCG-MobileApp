@@ -1501,7 +1501,7 @@ define(['./workbox-f389b5da'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.4unfmaok4mo"
+    "revision": "0.t7u00udesf4"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -67377,6 +67377,17 @@ downloadAdditionalRevenueReport: async (fromDate?: string, toDate?: string) => {
     });
     return res.data as Blob;
   },
+  // ── NEW: Retail Sheet — same shape as downloadLoadingSheet ──
+  downloadRetailSheet: async (routeId?: string, date?: string) => {
+    const params: Record<string, string> = {};
+    if (routeId) params.routeId = routeId;
+    if (date) params.date = date;
+    const res = await apiClient.get('/api/v1/reports/retail-sheet', {
+      params,
+      responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
   downloadBillingSheet: async (routeId?: string, date?: string) => {
     const params: Record<string, string> = {};
     if (routeId) params.routeId = routeId;
@@ -76036,7 +76047,7 @@ export function AdminIncentives() {
 // UPDATED: Added "Add Products" button between items and retail remarks
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Search, Trash2, ShoppingCart, Save,
   ChevronDown, ChevronUp, AlertTriangle, ArrowLeft, Package, X, Edit2,
@@ -76050,6 +76061,10 @@ import {
 import { Spinner, ConfirmModal, Alert } from '../../components/ui';
 import { useAuthStore } from '../../store/authStore';
 import { useIsMobile } from '../../hooks/useIsMobile';
+// FIX: same drift bug already fixed in RouteExecution.tsx/OrderEntry.tsx —
+// this footer was using a hardcoded, disconnected "70px" for the bottom nav
+// bar's height instead of the real shared constant.
+import { MOBILE_NAV_HEIGHT } from '../../components/layout/MobileLayout';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -76341,8 +76356,44 @@ function ItemCard({
 export function AdminOrderEdit() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
   const isMobile = useIsMobile();
+
+  // FIX: carries the date/route filters the admin had selected on the Orders
+  // page back through to this Edit page, so they can be handed straight back
+  // on return — see goBackToOrders() below. Previously this page didn't read
+  // location.state at all, so returning to Orders always reset the calendar
+  // to today and the route filter to "all", regardless of what was actually
+  // selected before clicking Edit.
+  const incomingState = (location.state as { dateFilter?: string; returnRouteFilter?: string } | null) ?? null;
+  function goBackToOrders() {
+    navigate('/admin/orders', {
+      state: { dateFilter: incomingState?.dateFilter, routeFilter: incomingState?.returnRouteFilter },
+    });
+  }
+
+  // ── NEW: scroll to top on save, so the success toast (rendered near the top
+  // of the content area) is actually visible — otherwise, if the admin was
+  // scrolled down editing items lower in a long order, saving gave no visible
+  // confirmation at all. Same approach as OrderEntry.tsx: walks every
+  // scrollable ancestor rather than assuming window is the real scroll
+  // context, since this page can be nested inside MobileLayout's own
+  // scrollable container (tablet/phone) or scroll at the window level
+  // (desktop) depending on where it's rendered. ──
+  function scrollToTopForToast() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    let el: HTMLElement | null = document.querySelector('[data-order-edit-scroll-root]');
+    while (el) {
+      if (el.scrollHeight > el.clientHeight) {
+        el.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      el = el.parentElement;
+    }
+  }
 
   const [order, setOrder] = useState<OrderDetailDto | null>(null);
   const [customer, setCustomer] = useState<CustomerDto | null>(null);
@@ -76529,14 +76580,16 @@ export function AdminOrderEdit() {
       
       await ordersApi.update(orderId!, payload);
       setSuccessMsg(lines.length === 0 ? 'Order cleared successfully!' : 'Order updated successfully!');
+      scrollToTopForToast();
       const updated = await ordersApi.getById(orderId!);
       setOrder(updated);
       setTimeout(() => {
-        navigate('/admin/orders');
+        goBackToOrders();
       }, 1500);
     } catch (err: unknown) {
       console.error('[AdminOrderEdit] Save error:', err);
       setError(err instanceof Error ? err.message : 'Save failed');
+      scrollToTopForToast();
     } finally {
       setSaving(false);
     }
@@ -76549,7 +76602,7 @@ export function AdminOrderEdit() {
     try {
       await ordersApi.delete(orderId);
       setSuccessMsg('Order cancelled successfully!');
-      setTimeout(() => navigate('/admin/orders'), 1500);
+      setTimeout(() => goBackToOrders(), 1500);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to cancel order');
     } finally {
@@ -76570,7 +76623,7 @@ export function AdminOrderEdit() {
         <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.30)', borderRadius: 12, padding: '16px', color: '#fca5a5', marginBottom: 16 }}>
           Order not found.
         </div>
-        <button onClick={() => navigate('/admin/orders')} style={{ padding: '10px 20px', borderRadius: 10, background: D.surface, border: `1px solid ${D.border}`, color: D.muted, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={() => goBackToOrders()} style={{ padding: '10px 20px', borderRadius: 10, background: D.surface, border: `1px solid ${D.border}`, color: D.muted, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
           ← Back to Orders
         </button>
       </div>
@@ -76578,7 +76631,13 @@ export function AdminOrderEdit() {
   }
 
   const orderStatus = order.status;
-  const canEdit = orderStatus !== OrderStatus.Closed && !order.isLocked;
+  // FIX: admin can now edit past the daily-closure lock too (matches the
+  // backend permission update) — this page is admin-only (routed under
+  // /admin), so there's no separate role check needed here. The fallback
+  // "cannot edit" screen below is kept in place as a safe default in case
+  // this component is ever reused somewhere non-admin can reach, but under
+  // normal use it's now unreachable.
+  const canEdit = true;
   const isDraft = orderStatus === OrderStatus.Draft;
 
   if (!canEdit) {
@@ -76589,7 +76648,7 @@ export function AdminOrderEdit() {
             ? "This order is locked — admin has closed the day. It can no longer be edited."
             : `Cannot edit order in '${getStatusLabel(orderStatus)}' status.`}
         </div>
-        <button onClick={() => navigate('/admin/orders')} style={{ padding: '10px 20px', borderRadius: 10, background: D.surface, border: `1px solid ${D.border}`, color: D.muted, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={() => goBackToOrders()} style={{ padding: '10px 20px', borderRadius: 10, background: D.surface, border: `1px solid ${D.border}`, color: D.muted, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
           ← Back to Orders
         </button>
       </div>
@@ -76598,22 +76657,22 @@ export function AdminOrderEdit() {
   return (
     <div style={{ minHeight: '100vh', background: D.bg, paddingBottom: 100 }}>
 
-      {/* ── Header ────────────────────────────────────────────────────────────── */}
+      {/* ── Header ── FIX: tightened padding/spacing throughout (was oversized) ── */}
     <div style={{
         position: 'sticky',
         top: isMobile ? 'var(--mobile-nav-h, 70px)' : 'var(--nav-h, 64px)',
         zIndex: 30,
         background: D.bg,
         borderBottom: `1px solid ${D.border}`,
-        padding: '14px 16px',
+        padding: '8px 16px',
       }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
-              onClick={() => navigate('/admin/orders')}
+              onClick={() => goBackToOrders()}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                padding: '8px 14px',
+                padding: '6px 12px',
                 borderRadius: 9,
                 background: D.surface,
                 border: `1px solid ${D.border}`,
@@ -76656,8 +76715,8 @@ export function AdminOrderEdit() {
           {orderStatus !== OrderStatus.Draft && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              marginTop: 10,
-              padding: '6px 12px',
+              marginTop: 6,
+              padding: '5px 12px',
               borderRadius: 8,
               background: 'rgba(245,158,11,0.10)',
               border: '1px solid rgba(245,158,11,0.25)',
@@ -76676,8 +76735,8 @@ export function AdminOrderEdit() {
             style={{
               width: '100%',
               display: 'flex', alignItems: 'center', gap: 10,
-              marginTop: 10,
-              padding: '10px 14px',
+              marginTop: 6,
+              padding: '8px 14px',
               borderRadius: 10,
               background: D.surface,
               border: `1px solid ${D.border}`,
@@ -76698,7 +76757,7 @@ export function AdminOrderEdit() {
       </div>
 
       {/* ── Main Content ─────────────────────────────────────────────────────── */}
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px' }}>
+      <div data-order-edit-scroll-root style={{ maxWidth: 900, margin: '0 auto', padding: '16px' }}>
 
         {error && (
           <div style={{
@@ -76995,7 +77054,9 @@ Sugar - 50 kg`}
         </div>
       </div>
 
-      {/* ── Fixed bottom footer ── SHOWN EVEN WHEN EMPTY ────────────────────── */}
+      {/* ── Fixed bottom footer ── SHOWN EVEN WHEN EMPTY ── FIX: tightened padding
+      and fixed the hardcoded "70px" nav-height reserve (was disconnected from the
+      real value, same bug already fixed elsewhere in this app) ────────────────── */}
       <div style={{
         position: 'fixed',
         bottom: 0,
@@ -77004,8 +77065,10 @@ Sugar - 50 kg`}
         zIndex: 55,
         background: D.bg,
         borderTop: `1px solid ${D.border}`,
-        padding: '10px 16px',
-        paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px) + 70px)',
+        padding: '8px 16px',
+        paddingBottom: isMobile
+          ? `calc(8px + env(safe-area-inset-bottom, 0px) + ${MOBILE_NAV_HEIGHT}px)`
+          : 'calc(8px + env(safe-area-inset-bottom, 0px))',
       }}>
         <div style={{ 
           maxWidth: 900, 
@@ -77088,7 +77151,7 @@ Sugar - 50 kg`}
 ## File: src/pages/Admin/AdminOrders.tsx
 ``````typescript
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   ShoppingCart, RefreshCw, CheckCircle, Search,
   Package, Eye, Edit2, Clock, X,
@@ -77188,6 +77251,7 @@ const selectStyle = {
 
 export function AdminOrders() {
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useIsMobile();
   const [orders,         setOrders]         = useState<OrderDto[]>([]);
   const [routes,         setRoutes]         = useState<RouteDto[]>([]);
@@ -77229,7 +77293,14 @@ export function AdminOrders() {
   const today = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
-    if (!dateFilter) setDateFilter(today);
+    // FIX: previously always defaulted to today, even when returning from the
+    // Edit page after editing an order for a DIFFERENT date — the calendar
+    // would silently jump back to today instead of staying on whatever date
+    // was actually selected before. Now prefers the date passed back via
+    // navigation state (see handleEdit below / AdminOrderEdit's return
+    // navigation), falling back to today only when nothing was passed
+    // (i.e. a fresh visit to this page, not a return trip).
+    if (!dateFilter) setDateFilter((location.state as any)?.dateFilter || today);
     const now = new Date();
     setCurrentDate(now.toLocaleDateString('en-IN', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
@@ -77270,7 +77341,14 @@ export function AdminOrders() {
   }
 
   async function loadRoutes() {
-    try { const r = await routesApi.getAll(); setRoutes(r); setRouteFilter('all'); }
+    try {
+      const r = await routesApi.getAll();
+      setRoutes(r);
+      // FIX: same reasoning as the date filter above — preserve the route
+      // selection passed back from the Edit page, instead of always
+      // resetting to "all" on every remount.
+      setRouteFilter((location.state as any)?.routeFilter || 'all');
+    }
     catch { setError('Failed to load routes'); }
   }
 
@@ -77396,7 +77474,9 @@ export function AdminOrders() {
 
   function handleEdit(orderId: string, customerId: string) {
     navigate(`/admin/orders/${orderId}/edit`, {
-      state: { orderId, customerId, routeId: routeFilter === 'all' ? undefined : routeFilter }
+      // FIX: added dateFilter/returnRouteFilter so the Edit page can hand
+      // them straight back on its own return navigation — see AdminOrderEdit.tsx.
+      state: { orderId, customerId, routeId: routeFilter === 'all' ? undefined : routeFilter, dateFilter, returnRouteFilter: routeFilter }
     });
   }
 
@@ -77847,6 +77927,18 @@ export function AdminOrders() {
                                 style={actionBtn(D.surface, D.muted)}
                               >
                                 <Eye size={13} /> Review
+                              </button>
+
+                              {/* ── NEW: Edit option for previous/closed orders. handleEdit()
+                              already existed in this file but was never wired to a button —
+                              this page is admin-only (routed under /admin), matching the
+                              "Admin/SuperAdmin only" requirement without needing an extra
+                              role check here; the backend enforces this too. ── */}
+                              <button
+                                onClick={() => handleEdit(String(order.id), String(order.customerId))}
+                                style={actionBtn(D.surface, D.muted)}
+                              >
+                                <Edit2 size={13} /> Edit
                               </button>
 
                               {isPending && (
@@ -80025,6 +80117,9 @@ export function AdminReports() {
   // Filters per report
   const [loadRoute,  setLoadRoute]  = useState('');
   const [loadDate,   setLoadDate]   = useState(today);
+  // ── NEW: Retail Sheet filters ──
+  const [retailRoute, setRetailRoute] = useState('');
+  const [retailDate,  setRetailDate]  = useState(today);
   const [billRoute,  setBillRoute]  = useState('');
   const [billDate,   setBillDate]   = useState(today);
   // const [routeRptRoute, setRouteRptRoute] = useState('');
@@ -80194,6 +80289,43 @@ export function AdminReports() {
         const downloadFn = () => download('loading', fn, `LoadingSheet_${loadDate}.pdf`);
         const routeName = loadRoute ? routes.find(r => r.id === loadRoute)?.name : 'All Routes';
         previewReport('loading', `Loading Sheet - ${loadDate} (${routeName})`, fn, downloadFn);
+      },
+    },
+    {
+      // ── NEW: Retail Sheet — same shape as Loading Sheet, scoped to retail
+      // items only (orders with remarks but no products). ──
+      key: 'retail',
+      title: 'Retail Sheet',
+      desc: 'Retail items list (remarks-only orders, no products)',
+      icon: '📝',
+      color: '#8B5CF6',
+      roles: 'Warehouse / Admin',
+      filters: (
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <select
+            className="input"
+            value={retailRoute}
+            onChange={(e) => setRetailRoute(e.target.value)}
+            style={selectStyle(isMobile)}
+          >
+            <option value="">🌍 All Routes</option>
+            {routes.map((r) => <option key={r.id} value={r.id}>📍 {r.name}</option>)}
+          </select>
+          <input
+            className="input"
+            type="date"
+            value={retailDate}
+            onChange={(e) => setRetailDate(e.target.value)}
+            style={dateInputStyle(isMobile)}
+          />
+        </div>
+      ),
+      onDownload: () => download('retail', () => reportsApi.downloadRetailSheet(retailRoute || undefined, retailDate), `RetailSheet_${retailDate}.pdf`),
+      onPreview: () => {
+        const fn = () => reportsApi.downloadRetailSheet(retailRoute || undefined, retailDate);
+        const downloadFn = () => download('retail', fn, `RetailSheet_${retailDate}.pdf`);
+        const routeName = retailRoute ? routes.find(r => r.id === retailRoute)?.name : 'All Routes';
+        previewReport('retail', `Retail Sheet - ${retailDate} (${routeName})`, fn, downloadFn);
       },
     },
     {
@@ -88676,6 +88808,18 @@ export default function OrderEntry() {
   const [autosaving,     setAutosaving]     = useState(false);
   const [lastAutosavedAt, setLastAutosavedAt] = useState<Date | null>(null);
   const autosaveTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // ── FIX: closes a real data-loss window — previously, if the salesman
+  // edited fast enough that a new autosave got scheduled while an EARLIER
+  // one was still in flight (network round-trip in progress), the newer
+  // attempt was silently dropped via the `autosaving` guard below, with
+  // nothing scheduled to ever retry it. If the salesman then navigated away
+  // without making one more edit (or tapping the manual Save button), that
+  // last batch of changes never got persisted — while the UI still showed
+  // "Auto-saved" from the EARLIER, now-outdated save. This ref remembers
+  // that a save was requested and skipped, so it can be retried immediately
+  // once the in-flight one finishes, using whatever `lines`/`remarks` are
+  // current at that point (not stale). ──
+  const pendingAutosaveRetryRef = useRef(false);
   const skipNextAutosaveRef = useRef(true); // true until the initial data load finishes
 
   // ── FIX: Declare hasExistingOrder BEFORE using it in canCancel ──
@@ -88750,10 +88894,16 @@ export default function OrderEntry() {
               };
             }).filter(Boolean) as LineItem[];
             setLines(mapped);
-            return;
           } catch {}
         }
 
+        // ── FIX: this used to sit inside an `else` (only reached when no existing
+        // order was found), and the branch above returned early — so the moment a
+        // customer had any draft/existing order (i.e. right after saving, or on
+        // reopening a customer already in progress), this fetch never ran and
+        // previousOrders stayed empty, hiding the "Previous Order" button entirely.
+        // It now always runs regardless of whether an existing order was found, so
+        // the button reliably has data before AND after saving. ──
         try {
           const history = await ordersApi.getCustomerHistory(cid, 10);
           if (history?.length) setPreviousOrders(history);
@@ -88942,7 +89092,15 @@ export default function OrderEntry() {
   // the salesman is still mid-edit — it'll catch up on the next debounce
   // cycle once they finish typing. ──
   const performAutosave = async () => {
-    if (!canEdit || saving || autosaving) return;
+    if (!canEdit || saving) return;
+    if (autosaving) {
+      // FIX: an autosave is already in flight — don't start a second
+      // overlapping request, but remember that this one was requested so
+      // it isn't silently lost. Retried automatically in the `finally`
+      // block below, right after the in-flight save completes.
+      pendingAutosaveRetryRef.current = true;
+      return;
+    }
     if (lines.length === 0 && !remarks.trim()) return;
 
     const incomplete = lines.some(l => !l.qty || !l.sellingPrice);
@@ -88970,6 +89128,14 @@ export default function OrderEntry() {
       // retry, and manual Save still surfaces real errors normally.
     } finally {
       setAutosaving(false);
+      // FIX: if an edit came in while this save was in flight and got
+      // deferred above, run it now — using buildPayload()'s fresh read of
+      // the CURRENT lines/remarks (not a stale snapshot), so whatever the
+      // salesman typed during the in-flight request is never left unsaved.
+      if (pendingAutosaveRetryRef.current) {
+        pendingAutosaveRetryRef.current = false;
+        performAutosave();
+      }
     }
   };
 
@@ -88980,9 +89146,12 @@ export default function OrderEntry() {
     if (!canEdit) return;
 
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    // FIX: shortened from 2500ms to 800ms, per request — resets on every
+    // edit, so it still won't fire mid-keystroke, but now catches up much
+    // faster once the salesman actually pauses.
     autosaveTimerRef.current = setTimeout(() => {
       performAutosave();
-    }, 2500);
+    }, 800);
 
     return () => {
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
@@ -90076,6 +90245,10 @@ import type { CurrentRouteExecutionDto, CustomerVisitDto, VisitStatus, CompleteR
 import { OrderStatus } from '../../types';
 import { Spinner } from '../../components/ui';
 import { useIsMobile } from '../../hooks/useIsMobile';
+// ── FIX: this file was using a hardcoded, disconnected "70px" for the bottom
+// nav bar's height instead of the real shared constant — same class of drift
+// bug already fixed once in OrderEntry.tsx. Importing the real value here too. ──
+import { MOBILE_NAV_HEIGHT } from '../../components/layout/MobileLayout';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -90163,19 +90336,14 @@ export default function RouteExecution() {
     load();
   }, [routeId]);
 
-  // ── NEW: bags breakdown now comes directly from the backend on `execution`
-  // (execution.bagsBreakdown) — computed server-side from Unit.BaseUnitValue,
-  // refreshed every time load() runs (i.e. after every completed/skipped/
-  // no-order stop). No client-side computation needed anymore. ──
+  // ── FIX: simplified per updated request — no more separate 50kg count vs
+  // weighted-equivalent display, no threshold/progress bar. Just one merged,
+  // rounded number reflecting total bags loaded so far today on this route.
+  // Still backend-computed (execution.bagsBreakdown), just displayed as one
+  // number instead of a breakdown. ──
   const bags = execution?.bagsBreakdown;
-  const threshold = bags?.threshold ?? 130;
   const totalEquivalent = bags?.totalEquivalentBags ?? 0;
-  // Progress within the CURRENT threshold window (resets after each 130 crossed).
-  const progressInWindow = threshold > 0
-    ? (totalEquivalent > 0 && totalEquivalent % threshold === 0 ? threshold : totalEquivalent % threshold)
-    : 0;
-  const bagsPercent = threshold > 0 ? Math.min(100, Math.round((progressInWindow / threshold) * 100)) : 0;
-  const bagsRemaining = Math.max(0, threshold - progressInWindow);
+  const mergedBagCount = Math.round(totalEquivalent);
 
   function getNextPendingCustomer(currentCustomerId: string): CustomerVisitDto | null {
     if (!execution?.customers) return null;
@@ -90572,7 +90740,18 @@ export default function RouteExecution() {
   ];
 
   return (
-    <div style={{ background: D.bg, paddingBottom: allDone ? 130 : 32 }}>
+    <div style={{
+      background: D.bg,
+      // FIX: the bottom bar is now always visible (not just when allDone —
+      // see below), so this needs to reserve space in both states: a
+      // smaller amount for the simpler "Back to My Routes" bar shown while
+      // stops are still pending, and the same as before for the fuller
+      // "all done" banner + CTA once everything's visited. Accounts for the
+      // nav bar only when it's actually present (isMobile — phone/tablet).
+      paddingBottom: isMobile
+        ? (allDone ? 190 : 150)
+        : (allDone ? 140 : 100),
+    }}>
       <div style={{ background: D.bg, borderBottom: `1px solid ${D.border}`, marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px 4px' }}>
           <button
@@ -90600,51 +90779,16 @@ export default function RouteExecution() {
             <span style={{ fontSize: 9, fontWeight: 700, color: allDone ? D.green : D.accent }}>{progress}%</span>
             <span style={{ fontSize: 9, color: D.sub }}>{allDone ? 'All done!' : `${pendingCount} remaining`}</span>
           </div>
-          {/* ── NEW: Bags Breakdown card — 50kg physical count, weighted
-              50kg-equivalent total, threshold, remaining, and a progress bar.
-              FIX: 30kg/26kg individual counts removed per request — only the
-              50kg count is shown now, alongside the weighted total (which
-              still correctly factors in 30kg/26kg bags behind the scenes,
-              just without breaking them out as separate lines). Data comes
-              straight from execution.bagsBreakdown (backend-computed),
-              refreshed after every completed stop since load() re-fetches
-              the execution each time. ── */}
+          {/* ── FIX: replaced the multi-line breakdown card with a single, minimal
+              merged count per updated request — one rounded number, prominent,
+              no separate 50kg/eq split and no progress bar. Still refreshed from
+              execution.bagsBreakdown after every completed stop. ── */}
           <div style={{
-            marginTop: 8, padding: '10px 12px', borderRadius: 10,
-            background: D.surface, border: `1px solid ${D.border}`,
+            marginTop: 8, display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 12, fontWeight: 800, color: D.text,
           }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
-              fontSize: 11, fontWeight: 800, color: D.text,
-            }}>
-              <Package size={13} />
-              <span>Bags Breakdown</span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: D.muted }}>
-                <span>50kg bags</span>
-                <span style={{ fontWeight: 700, color: D.text }}>{bags?.count50Kg ?? 0}</span>
-              </div>
-            </div>
-
-            <div style={{ borderTop: `1px solid ${D.border}`, paddingTop: 6 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 800, color: D.text, marginBottom: 4 }}>
-                <span>Total (50kg eq)</span>
-                <span>{totalEquivalent % 1 === 0 ? totalEquivalent : totalEquivalent.toFixed(1)} / {threshold}</span>
-              </div>
-              <div style={{ height: 6, background: D.bg, borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{
-                  width: `${bagsPercent}%`, height: '100%',
-                  background: bagsPercent >= 90 ? D.red : D.accent,
-                  transition: 'width 0.3s',
-                }} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3, fontSize: 9, color: D.sub }}>
-                <span>{bagsPercent}% of next {threshold}</span>
-                <span>{bagsRemaining % 1 === 0 ? bagsRemaining : bagsRemaining.toFixed(1)} remaining</span>
-              </div>
-            </div>
+            <Package size={13} />
+            <span>[Bags: {mergedBagCount}]</span>
           </div>
         </div>
 
@@ -90845,27 +90989,52 @@ export default function RouteExecution() {
         })}
       </div>
 
-      {/* ── Bottom CTA ── */}
-      {allDone && !summary && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 55, background: D.surface, borderTop: `1px solid ${D.border}`, padding: '14px 20px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px) + 70px)', boxShadow: '0 -4px 20px rgba(0,0,0,0.3)' }}>
-          <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, background: 'rgba(34,197,94,0.10)', border: `1px solid rgba(34,197,94,0.20)`, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <CheckCircle2 size={15} color={D.green} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: D.green }}>All {total} shops visited! {ordersCount} orders saved.</span>
-          </div>
-          {executionMode === 'order-taking' ? (
+      {/* ── Bottom CTA — FIX: was gated on `allDone`, so it disappeared entirely
+          while any stops were still pending. Now always shown (except on the
+          summary screen, which has its own dedicated button) — a simpler,
+          compact "Back to My Routes" bar while stops are pending, and the
+          full "all done" banner + CTA once everything's visited, same as
+          before. ── */}
+      {!summary && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 55,
+          background: D.surface, borderTop: `1px solid ${D.border}`,
+          padding: '10px 20px',
+          // Was a hardcoded, disconnected "70px" — now uses the real
+          // MOBILE_NAV_HEIGHT constant, only reserved when a nav bar is
+          // actually present (isMobile — covers phone and tablet).
+          paddingBottom: isMobile
+            ? `calc(10px + env(safe-area-inset-bottom, 0px) + ${MOBILE_NAV_HEIGHT}px)`
+            : 'calc(10px + env(safe-area-inset-bottom, 0px))',
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.3)',
+        }}>
+          {allDone && (
+            <div style={{ marginBottom: 8, padding: '7px 12px', borderRadius: 9, background: 'rgba(34,197,94,0.10)', border: `1px solid rgba(34,197,94,0.20)`, display: 'flex', alignItems: 'center', gap: 7 }}>
+              <CheckCircle2 size={14} color={D.green} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: D.green }}>All {total} shops visited! {ordersCount} orders saved.</span>
+            </div>
+          )}
+          {!allDone ? (
             <button
               onClick={() => navigate('/salesman/routes')}
-              style={{ width: '100%', padding: '14px', background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', boxShadow: `0 4px 14px ${D.accentGlow}` }}
+              style={{ width: '100%', padding: '11px', background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, color: '#fff', border: 'none', borderRadius: 11, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', boxShadow: `0 4px 14px ${D.accentGlow}` }}
             >
-              <Home size={17} /> Back to My Routes
+              <Home size={15} /> Back to My Routes
+            </button>
+          ) : executionMode === 'order-taking' ? (
+            <button
+              onClick={() => navigate('/salesman/routes')}
+              style={{ width: '100%', padding: '12px', background: `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, color: '#fff', border: 'none', borderRadius: 11, fontSize: 14, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', boxShadow: `0 4px 14px ${D.accentGlow}` }}
+            >
+              <Home size={16} /> Back to My Routes
             </button>
           ) : (
             <button
               onClick={() => setShowConfirm(true)}
               disabled={completing}
-              style={{ width: '100%', padding: '14px', background: completing ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: completing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', boxShadow: completing ? 'none' : `0 4px 14px ${D.accentGlow}` }}
+              style={{ width: '100%', padding: '12px', background: completing ? D.border : `linear-gradient(135deg, ${D.accent}, ${D.accentH})`, color: '#fff', border: 'none', borderRadius: 11, fontSize: 14, fontWeight: 800, cursor: completing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', boxShadow: completing ? 'none' : `0 4px 14px ${D.accentGlow}` }}
             >
-              {completing ? <Spinner size={17} /> : <><Flag size={17} /> Complete Delivery Route</>}
+              {completing ? <Spinner size={16} /> : <><Flag size={16} /> Complete Delivery Route</>}
             </button>
           )}
         </div>

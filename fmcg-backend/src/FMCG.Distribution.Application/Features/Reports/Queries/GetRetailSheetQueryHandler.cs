@@ -82,19 +82,34 @@ public class GetRetailSheetQueryHandler(IApplicationDbContext context)
             var routes = new List<RetailSheetRouteDto>();
             foreach (var routeGroup in routeGroups)
             {
-                var orderedOrders = routeGroup
-                    .OrderBy(o => o.Customer?.SequenceOrder ?? 0)
+                // ── FIX: was grouping by ORDER, not by customer — if a customer had more
+                // than one order with remarks on the same date (e.g. one order edited
+                // into a second one, or genuinely two separate orders), each order became
+                // its own entry, showing that customer multiple times on the sheet. Now
+                // grouped by customer first, so each customer gets exactly ONE entry per
+                // day, with remarks from all of their orders that day combined together. ──
+                var groupedByCustomer = routeGroup
+                    .GroupBy(o => o.CustomerId)
+                    .Select(g => new
+                    {
+                        Customer = g.First().Customer,
+                        SequenceOrder = g.First().Customer?.SequenceOrder ?? 0,
+                        CombinedRemarks = string.Join("\n", g
+                            .Select(o => o.Remarks)
+                            .Where(r => !string.IsNullOrWhiteSpace(r))),
+                    })
+                    .OrderBy(x => x.SequenceOrder)
                     .ToList();
 
                 var orders = new List<RetailSheetOrderDto>();
                 var stopNumber = 1;
-                foreach (var order in orderedOrders)
+                foreach (var group in groupedByCustomer)
                 {
                     orders.Add(new RetailSheetOrderDto
                     {
                         SequenceOrder = stopNumber,
-                        CustomerName = order.Customer?.NameEnglish ?? "Unknown Customer",
-                        Remarks = order.Remarks ?? string.Empty,
+                        CustomerName = group.Customer?.NameEnglish ?? "Unknown Customer",
+                        Remarks = group.CombinedRemarks,
                     });
                     stopNumber++;
                 }
@@ -159,11 +174,20 @@ public class GetRetailSheetQueryHandler(IApplicationDbContext context)
                                     // Same visual language as the Loading Sheet's per-stop banner and
                                     // the retail-items block that used to appear inline there — kept
                                     // consistent so this reads as "the same data, filtered" rather than
-                                    // a differently-styled report. ShowEntire() is safe here (unlike the
-                                    // Loading Sheet's full item tables) since one customer's remarks
-                                    // block is always small enough to fit on a single page.
+                                    // a differently-styled report.
+                                    //
+                                    // FIX: removed ShowEntire() — it forced each customer's block to
+                                    // render only if it fit without splitting across a page boundary.
+                                    // Small local test datasets always happened to fit, but real
+                                    // production data (longer remarks, more customers per route) could
+                                    // produce a block too large to fit in the remaining page space or
+                                    // even a fresh page, which QuestPDF surfaces as a hard layout
+                                    // exception — the "failing to load" error in production. Dropping
+                                    // ShowEntire lets QuestPDF paginate this block normally, same as
+                                    // every other element in this report.
+                                    //
                                     // FIX: gap between customers reduced from 2cm down to 10pt.
-                                    routeCol.Item().PaddingTop(10).ShowEntire().Column(orderCol =>
+                                    routeCol.Item().PaddingTop(10).Column(orderCol =>
                                     {
                                         orderCol.Item().Background(Colors.Grey.Lighten3)
                                             .Padding(4)
@@ -172,6 +196,13 @@ public class GetRetailSheetQueryHandler(IApplicationDbContext context)
                                         orderCol.Item().PaddingTop(4).PaddingLeft(5)
                                             .Text(order.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
                                     });
+
+                                    // FIX: separator line between each customer entry for readability —
+                                    // was previously missing (customers were only separated by padding).
+                                    if (order != route.Orders.Last())
+                                    {
+                                        routeCol.Item().PaddingTop(8).LineHorizontal(2.5f).LineColor(Colors.Black);
+                                    }
                                 }
 
                                 if (route != routes.Last())
