@@ -477,25 +477,34 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                     {
                         contentCol.Item().PaddingTop(14).EnsureSpace().Column(summaryCol =>
                         {
+                            // FIX: font size increased to 18 (was 16), per updated request.
                             summaryCol.Item().Background(Colors.Grey.Lighten3).Padding(8)
-                                .Text("📦 SIZE GROUP SUMMARY").FontSize(16).Bold();
+                                .Text("📦 SIZE GROUP SUMMARY").FontSize(18).Bold();
 
                             if (weightedItems.Count > 0)
                             {
+                                // FIX: font size increased to 18 (was 13), per updated request.
                                 summaryCol.Item().PaddingTop(3).PaddingLeft(8)
                                     .Text($"50KG + 30KG + 26KG (EQUIVALENT) — {combinedEquivalentTotal:0.#} BAGS")
-                                    .FontSize(13).Bold();
+                                    .FontSize(18).Bold();
                             }
 
                             foreach (var g in individualGroupCounts)
                             {
-                                var unitLabel = g.SizeGroupName.Contains("LTR", StringComparison.OrdinalIgnoreCase)
-                                    ? "TINS"
-                                    : "BAGS";
+                                // FIX: unit label now checks for "CAN" groups too (e.g. "5 LTR
+                                // CAN" → CANS, not TINS) — was only ever KG→BAGS or LTR→TINS,
+                                // which mislabeled can-based groups. CAN is checked first since
+                                // a can-based group's name may also contain "LTR".
+                                var unitLabel = g.SizeGroupName.Contains("CAN", StringComparison.OrdinalIgnoreCase)
+                                    ? "CANS"
+                                    : g.SizeGroupName.Contains("LTR", StringComparison.OrdinalIgnoreCase)
+                                        ? "TINS"
+                                        : "BAGS";
 
+                                // FIX: font size increased to 18 (was 13), per updated request.
                                 summaryCol.Item().PaddingTop(3).PaddingLeft(8)
                                     .Text($"{g.SizeGroupName.ToUpper()} — {g.TotalQuantity:N0} {unitLabel}")
-                                    .FontSize(13).Bold();
+                                    .FontSize(18).Bold();
                             }
                         });
                     }

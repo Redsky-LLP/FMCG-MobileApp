@@ -131,6 +131,58 @@ public class GetRetailSheetQueryHandler(IApplicationDbContext context)
         }
     }
 
+    // ── UPDATED: reformats the whole remarks block, one item per line, with the
+    // dash separator COLUMN-ALIGNED across every line in the block — not just
+    // consistently spaced within each line on its own. Splits on both newlines
+    // and commas — matching the same convention already used to parse remarks
+    // in the Admin Review modal elsewhere in this app — then pads every item's
+    // name out to the width of the longest name in this customer's block
+    // before adding the dash, so "ELAKKA", "ULLI", and "VELLULLI" all line up
+    // at the same dash position instead of each sitting at its own natural
+    // width. ──
+    private static string FormatRetailRemarks(string remarks)
+    {
+        var rawLines = remarks
+            .Split(new[] { '\n', ',' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(l => l.Trim())
+            .Where(l => l.Length > 0)
+            .ToList();
+
+        // ── Parse each line into (name, qty) up front so the padding width can be
+        // computed across the WHOLE block before any line is formatted. Splits on
+        // the FIRST dash only, so a quantity/unit containing its own dash isn't
+        // mangled. A line with no dash (or an empty name/qty) is left untouched —
+        // better to show the raw text than to silently drop something that
+        // doesn't fit the expected "name - qty" shape, and it's also excluded
+        // from the width calculation so one odd line can't blow out the
+        // alignment of every other line in the block. ──
+        var parsedLines = rawLines
+            .Select(line =>
+            {
+                var dashIndex = line.IndexOf('-');
+                if (dashIndex < 0) return (Name: (string?)null, Qty: (string?)null, Raw: line);
+
+                var namePart = line.Substring(0, dashIndex).Trim();
+                var qtyPart = line.Substring(dashIndex + 1).Trim();
+                if (string.IsNullOrEmpty(namePart) || string.IsNullOrEmpty(qtyPart))
+                    return (Name: (string?)null, Qty: (string?)null, Raw: line);
+
+                return (Name: (string?)namePart, Qty: (string?)qtyPart, Raw: line);
+            })
+            .ToList();
+
+        var maxNameLength = parsedLines
+            .Where(p => p.Name != null)
+            .Select(p => p.Name!.Length)
+            .DefaultIfEmpty(0)
+            .Max();
+
+        return string.Join("\n", parsedLines.Select(p =>
+            p.Name != null
+                ? $"{p.Name!.PadRight(maxNameLength)}   -   {p.Qty}"
+                : p.Raw));
+    }
+
     private static byte[] GenerateRetailSheetPdf(List<RetailSheetRouteDto> routes, DateTime targetDate, bool isSingleRoute)
     {
         try
@@ -194,7 +246,7 @@ public class GetRetailSheetQueryHandler(IApplicationDbContext context)
                                             .Text($"{order.SequenceOrder}) {order.CustomerName.ToUpper()}").FontSize(18).ExtraBold();
 
                                         orderCol.Item().PaddingTop(4).PaddingLeft(5)
-                                            .Text(order.Remarks.ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
+                                            .Text(FormatRetailRemarks(order.Remarks).ToUpper()).FontSize(18).ExtraBold().FontColor(Colors.Black);
                                     });
 
                                     // FIX: separator line between each customer entry for readability —
