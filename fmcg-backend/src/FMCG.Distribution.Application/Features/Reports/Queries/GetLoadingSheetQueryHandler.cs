@@ -181,8 +181,34 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 var stops = new List<LoadingSheetStopDto>();
                 var routeTotalQty = 0m;
 
-                var orderedOrders = routeOrders
-                    .OrderBy(o => o.Customer?.SequenceOrder ?? 0)
+                // ── FIX: group this route's orders by CUSTOMER, not by individual order,
+                // before building stops. A customer with more than one Closed/Locked order
+                // on the same date (e.g. a duplicate/double-submit, or a genuinely second
+                // order taken later the same day) previously became a separate numbered
+                // stop for EACH order — e.g. "EMPIRE SUPERMARKET, OLAKKETYAMBALAM" printing
+                // as both stop #10 and #11 with the same items. Every one of a customer's
+                // orders for the day is now merged into a single stop before anything else
+                // runs: their items are concatenated together (so the product-grouping
+                // below naturally sums matching products' quantities into one line instead
+                // of two), and their remarks are joined together. Same fix already applied
+                // to the Billing Sheet and Retail Sheet's identical duplicate-customer bug. ──
+                var customerGroups = routeOrders
+                    .Where(o => o.Customer != null)
+                    .GroupBy(o => o.CustomerId)
+                    .Select(cg => new
+                    {
+                        Customer = cg.First().Customer!,
+                        SequenceOrder = cg.First().Customer?.SequenceOrder ?? 0,
+                        OrderNumber = cg.First().OrderNumber,
+                        CombinedRemarks = string.Join("\n", cg
+                            .Select(o => o.Remarks)
+                            .Where(r => !string.IsNullOrWhiteSpace(r))),
+                        AllItems = cg
+                            .Where(o => o.Items != null)
+                            .SelectMany(o => o.Items!)
+                            .ToList(),
+                    })
+                    .OrderBy(x => x.SequenceOrder)
                     .ToList();
 
                 int stopNumber = 1;
@@ -196,11 +222,11 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                 var runningWeightedBags = 0m;
                 var announcedMilestoneCount = 0;
 
-                foreach (var order in orderedOrders)
+                foreach (var custGroup in customerGroups)
                 {
-                    if (order.Customer == null || order.Items == null) continue;
+                    var items = custGroup.AllItems;
 
-                    var groupedItems = order.Items
+                    var groupedItems = items
                         .Where(i => i.Product != null)
                         .GroupBy(i => new
                         {
@@ -242,25 +268,27 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                     var stopTotal = groupedItems.Sum(i => i.TotalQuantity);
                     routeTotalQty += stopTotal;
 
-                    // ── 50kg bag threshold tracking — snapshot-first, same reasoning as above ──
-                    var fiftyKgBagsThisStop = order.Items
+                    // ── 50kg bag threshold tracking — snapshot-first, same reasoning as above.
+                    // Summed across ALL of this customer's merged items (every one of their
+                    // orders for the day combined), not just a single order. ──
+                    var fiftyKgBagsThisStop = items
                         .Where(i => MatchesSizeGroupWeight(i.SizeGroupNameAtTime ?? i.Product?.SizeGroup?.Name, 50))
                         .Sum(i => i.QuantityBags ?? (int)i.Quantity);
                     runningFiftyKgBags += fiftyKgBagsThisStop;
 
                     // ── Running totals for 30kg / 26kg / 20kg bags — still tracked and shown
                     // alongside the alert for the loader's situational awareness. ──
-                    var thirtyKgBagsThisStop = order.Items
+                    var thirtyKgBagsThisStop = items
                         .Where(i => MatchesSizeGroupWeight(i.SizeGroupNameAtTime ?? i.Product?.SizeGroup?.Name, 30))
                         .Sum(i => i.QuantityBags ?? (int)i.Quantity);
                     runningThirtyKgBags += thirtyKgBagsThisStop;
 
-                    var twentySixKgBagsThisStop = order.Items
+                    var twentySixKgBagsThisStop = items
                         .Where(i => MatchesSizeGroupWeight(i.SizeGroupNameAtTime ?? i.Product?.SizeGroup?.Name, 26))
                         .Sum(i => i.QuantityBags ?? (int)i.Quantity);
                     runningTwentySixKgBags += twentySixKgBagsThisStop;
 
-                    var twentyKgBagsThisStop = order.Items
+                    var twentyKgBagsThisStop = items
                         .Where(i => MatchesSizeGroupWeight(i.SizeGroupNameAtTime ?? i.Product?.SizeGroup?.Name, 20))
                         .Sum(i => i.QuantityBags ?? (int)i.Quantity);
                     runningTwentyKgBags += twentyKgBagsThisStop;
@@ -286,18 +314,18 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
 
                     stops.Add(new LoadingSheetStopDto
                     {
-                        CustomerId = order.Customer.Id,
-                        CustomerName = order.Customer.NameEnglish,
-                        CustomerNameMalayalam = order.Customer.NameMalayalam,
+                        CustomerId = custGroup.Customer.Id,
+                        CustomerName = custGroup.Customer.NameEnglish,
+                        CustomerNameMalayalam = custGroup.Customer.NameMalayalam,
                         SequenceOrder = stopNumber,
                         LoadingPosition = stopNumber,
                         IsFirstDelivery = stopNumber == 1,
-                        IsLastDelivery = stopNumber == orderedOrders.Count,
+                        IsLastDelivery = stopNumber == customerGroups.Count,
                         VisitStatus = VisitStatus.OrderPlaced,
                         Items = groupedItems,
                         StopTotalQuantity = stopTotal,
-                        OrderNumber = order.OrderNumber,
-                        Remarks = string.IsNullOrWhiteSpace(order.Remarks) ? null : order.Remarks,
+                        OrderNumber = custGroup.OrderNumber,
+                        Remarks = string.IsNullOrWhiteSpace(custGroup.CombinedRemarks) ? null : custGroup.CombinedRemarks,
                         FiftyKgThresholdMilestonesCrossed = crossedMilestones,
                         RunningFiftyKgBagTotal = runningFiftyKgBags,
                         RunningThirtyKgBagTotal = runningThirtyKgBags,

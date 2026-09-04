@@ -90,60 +90,104 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
         // Group by route
         var routeGroups = orders
             .GroupBy(o => new { o.RouteId, o.Route!.Name })
-            .Select(g => new BillingSheetRouteGroupDto
+            .Select(g =>
             {
-                RouteId = g.Key.RouteId,
-                RouteName = g.Key.Name,
-                Orders = g
-                    .OrderBy(o => o.Customer?.SequenceOrder ?? 0)
+                // ── FIX: group by CUSTOMER, not by individual order. A customer with
+                // more than one Closed/Locked order on the same date (e.g. a
+                // duplicate/double-submit, or a genuinely second order taken later the
+                // same day) previously showed up as two separate numbered stops with the
+                // same shop name — e.g. "EMPIRE SUPERMARKET, OLAKKETYAMBALAM" appearing
+                // as both #10 and #11 with the same items. Grouping by customer first,
+                // then merging every one of that customer's orders together into one
+                // entry (summing quantity for matching products instead of listing them
+                // twice), gives each shop exactly one entry per day — same fix already
+                // applied to the Retail Sheet's identical duplicate-customer bug. ──
+                var mergedOrders = g
+                    .GroupBy(o => o.CustomerId)
                     // ── FIX: number stops by their position within THIS route's sorted list,
                     // not by the customer's raw (global) SequenceOrder field. The old code used
                     // o.Customer.SequenceOrder directly, which can have gaps/duplicates across
                     // customers (e.g. 3, 7, 12...). Using the loop index guarantees a clean,
                     // contiguous 1, 2, 3, 4, 5, 6... sequence per route, matching the loading sheet. ──
-                    .Select((o, idx) => new BillingSheetOrderDto
+                    .OrderBy(cg => cg.First().Customer?.SequenceOrder ?? 0)
+                    .Select((cg, idx) =>
                     {
-                        OrderId = o.Id,
-                        OrderNumber = o.OrderNumber,
-                        CustomerName = o.Customer?.NameEnglish ?? string.Empty,
-                        CustomerNameMalayalam = o.Customer?.NameMalayalam,
-                        OrderDate = o.OrderDate,
-                        SequenceOrder = idx,
-                        Remarks = string.IsNullOrWhiteSpace(o.Remarks) ? null : o.Remarks,
-                        // ── Items now ordered by the admin-configured size-group priority
-                        // (see sizeGroupPriorities), then by name, instead of insertion order.
-                        // Both the sort key and the displayed name/size-group prefer the
-                        // snapshot taken at order-creation time over the live Product row,
-                        // so this still reflects what was actually ordered even if the
-                        // product's been renamed/regrouped since (including through a
-                        // reopen + re-close cycle). Falls back to the live join for rows
-                        // created before this snapshot field existed. ──
-                        Items = o.Items!
-                            .OrderBy(i => ResolveSizeGroupSortKey(i.SizeGroupNameAtTime ?? i.Product?.SizeGroup?.Name, sizeGroupPriorities))
-                            .ThenBy(i => i.ProductNameAtTime ?? i.Product?.NameEnglish)
-                            .Select(i => new BillingSheetItemDto
+                        var customer = cg.First().Customer;
+                        var combinedRemarks = string.Join("\n", cg
+                            .Select(o => o.Remarks)
+                            .Where(r => !string.IsNullOrWhiteSpace(r)));
+
+                        // ── Merge items across every one of this customer's orders. A line
+                        // is considered "the same" if it's the same product, same size
+                        // group, same selling price, and same base price — matching lines
+                        // have their quantities summed into ONE row instead of printing as
+                        // duplicate rows. A genuinely different selling price for the same
+                        // product across two separate orders (rare, but possible) still
+                        // prints as its own line, since silently combining those would hide
+                        // a real pricing difference rather than a duplicate-order artifact.
+                        // Sort key, name, and size-group prefer the snapshot taken at
+                        // order-creation time over the live Product row, same as before. ──
+                        var mergedItems = cg
+                            .Where(o => o.Items != null)
+                            .SelectMany(o => o.Items!)
+                            .GroupBy(i => new
                             {
-                                ProductName = i.ProductNameAtTime ?? i.Product?.NameEnglish ?? string.Empty,
-                                ProductNameMalayalam = i.ProductNameMalayalamAtTime ?? i.Product?.NameMalayalam,
+                                ProductName = i.ProductNameAtTime ?? i.Product?.NameEnglish,
                                 SizeGroupName = i.SizeGroupNameAtTime ?? i.Product?.SizeGroup?.Name,
-                                // ── NEW: Item Group name (VEGETABLES/CHILLES etc.), not snapshotted —
-                                // group membership isn't expected to change day-to-day, same reasoning
-                                // as the loading sheet's identical addition. ──
+                                i.SellingPrice,
+                                i.BasePriceAtTime,
+                                UnitSymbol = i.Unit?.Symbol,
+                                ProductNameMalayalam = i.ProductNameMalayalamAtTime ?? i.Product?.NameMalayalam,
                                 ProductGroupName = i.Product != null && i.Product.ProductGroup != null
                                     ? i.Product.ProductGroup.Name
                                     : null,
-                                UnitSymbol = i.Unit?.Symbol ?? string.Empty,
-                                Quantity = i.Quantity,
-                                SellingPrice = i.SellingPrice,
-                                LineTotal = i.SellingPrice * i.Quantity,
-                                BasePriceAtTime = i.BasePriceAtTime,
-                                Variance = (i.SellingPrice - i.BasePriceAtTime) * i.Quantity
-                            }).ToList(),
-                        OrderTotal = o.Items!.Sum(i => i.SellingPrice * i.Quantity),
-                        OrderVariance = o.Items!.Sum(i => (i.SellingPrice - i.BasePriceAtTime) * i.Quantity)
-                    }).ToList(),
-                RouteTotalSales = g.SelectMany(o => o.Items!).Sum(i => i.SellingPrice * i.Quantity),
-                RouteTotalVariance = g.SelectMany(o => o.Items!).Sum(i => (i.SellingPrice - i.BasePriceAtTime) * i.Quantity)
+                            })
+                            .Select(ig => new BillingSheetItemDto
+                            {
+                                ProductName = ig.Key.ProductName ?? string.Empty,
+                                ProductNameMalayalam = ig.Key.ProductNameMalayalam,
+                                SizeGroupName = ig.Key.SizeGroupName,
+                                ProductGroupName = ig.Key.ProductGroupName,
+                                UnitSymbol = ig.Key.UnitSymbol ?? string.Empty,
+                                Quantity = ig.Sum(i => i.Quantity),
+                                SellingPrice = ig.Key.SellingPrice,
+                                LineTotal = ig.Key.SellingPrice * ig.Sum(i => i.Quantity),
+                                BasePriceAtTime = ig.Key.BasePriceAtTime,
+                                Variance = (ig.Key.SellingPrice - ig.Key.BasePriceAtTime) * ig.Sum(i => i.Quantity),
+                            })
+                            .OrderBy(i => ResolveSizeGroupSortKey(i.SizeGroupName, sizeGroupPriorities))
+                            .ThenBy(i => i.ProductName)
+                            .ToList();
+
+                        return new BillingSheetOrderDto
+                        {
+                            OrderId = cg.First().Id,
+                            OrderNumber = cg.First().OrderNumber,
+                            CustomerName = customer?.NameEnglish ?? string.Empty,
+                            CustomerNameMalayalam = customer?.NameMalayalam,
+                            OrderDate = cg.First().OrderDate,
+                            SequenceOrder = idx,
+                            Remarks = string.IsNullOrWhiteSpace(combinedRemarks) ? null : combinedRemarks,
+                            Items = mergedItems,
+                            OrderTotal = mergedItems.Sum(i => i.LineTotal),
+                            OrderVariance = mergedItems.Sum(i => i.Variance),
+                        };
+                    })
+                    .ToList();
+
+                return new BillingSheetRouteGroupDto
+                {
+                    RouteId = g.Key.RouteId,
+                    RouteName = g.Key.Name,
+                    Orders = mergedOrders,
+                    // ── FIX: totals now computed from the MERGED per-customer orders
+                    // (mergedOrders), not from the raw un-merged order list — otherwise a
+                    // duplicate order's items would still be double-counted in the route
+                    // total even after the display-level merge above, giving a route total
+                    // that doesn't match what's actually printed on the sheet. ──
+                    RouteTotalSales = mergedOrders.Sum(o => o.OrderTotal),
+                    RouteTotalVariance = mergedOrders.Sum(o => o.OrderVariance),
+                };
             })
             .OrderBy(r => r.RouteName)
             .ToList();
@@ -233,6 +277,30 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
     // the Size Group Summary, same helper used for this purpose elsewhere. ──
     private static bool MatchesSizeGroupWeight(string? sizeGroupName, int kg)
         => sizeGroupName != null && Regex.IsMatch(sizeGroupName, $@"\b{kg}\s*kg\b", RegexOptions.IgnoreCase);
+
+    // ── FIX: unit label is now derived from the actual unit word already present in
+    // the size group's own name (BAG / BOX / CASE / TIN / CAN), instead of guessing
+    // from whether the name contains "KG" vs "LTR" and defaulting everything else to
+    // "BAGS". That guess was wrong for any group that wasn't literally "X KG BAG" or
+    // "X LTR TIN" — e.g. "15 KG BOX" printed as BAGS, and "10 LTR CASE" / "20 LTR
+    // CASE" printed as TINS, even though both size groups already spell out their
+    // real unit right in the name. Checking for each real unit word directly means
+    // any size group — present now, or added later in the Size Groups master — gets
+    // its own correct label automatically, with no per-group mapping to maintain.
+    // Order doesn't matter here: none of BAG/BOX/CASE/TIN/CAN is a substring of any
+    // of the others, so there's no ambiguity between checks. ──
+    private static string ResolveSizeGroupUnitLabel(string sizeGroupName)
+    {
+        if (sizeGroupName.Contains("CASE", StringComparison.OrdinalIgnoreCase)) return "CASE";
+        if (sizeGroupName.Contains("BOX", StringComparison.OrdinalIgnoreCase)) return "BOX";
+        if (sizeGroupName.Contains("CAN", StringComparison.OrdinalIgnoreCase)) return "CANS";
+        if (sizeGroupName.Contains("TIN", StringComparison.OrdinalIgnoreCase)) return "TINS";
+        if (sizeGroupName.Contains("BAG", StringComparison.OrdinalIgnoreCase)) return "BAGS";
+        // Fallback for any size group whose name doesn't spell out one of the known
+        // unit words above — shouldn't happen with real data, but better to show
+        // something explicit than silently mislabel it as one of the others.
+        return "UNITS";
+    }
 
     // ── PDF Generator: matching the Loading Sheet style with 3 columns (Product, Qty, Price) ──
     private static byte[] GenerateBillingSheetPdf(BillingSheetDataDto data)
@@ -491,15 +559,11 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
 
                             foreach (var g in individualGroupCounts)
                             {
-                                // FIX: unit label now checks for "CAN" groups too (e.g. "5 LTR
-                                // CAN" → CANS, not TINS) — was only ever KG→BAGS or LTR→TINS,
-                                // which mislabeled can-based groups. CAN is checked first since
-                                // a can-based group's name may also contain "LTR".
-                                var unitLabel = g.SizeGroupName.Contains("CAN", StringComparison.OrdinalIgnoreCase)
-                                    ? "CANS"
-                                    : g.SizeGroupName.Contains("LTR", StringComparison.OrdinalIgnoreCase)
-                                        ? "TINS"
-                                        : "BAGS";
+                                // FIX: unit label now resolved from the actual unit word in the
+                                // size group's name (BAG/BOX/CASE/TIN/CAN) via
+                                // ResolveSizeGroupUnitLabel — was previously guessed from
+                                // KG-vs-LTR alone, which mislabeled BOX and CASE groups.
+                                var unitLabel = ResolveSizeGroupUnitLabel(g.SizeGroupName);
 
                                 // FIX: font size increased to 18 (was 13), per updated request.
                                 summaryCol.Item().PaddingTop(3).PaddingLeft(8)
