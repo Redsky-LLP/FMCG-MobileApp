@@ -28,33 +28,52 @@ public class RefreshTokenCommandHandler(IApplicationDbContext context, IConfigur
             return Result<RefreshTokenResponse>.Failure("Refresh token is required.");
         }
 
-        var user = await context.Users.FirstOrDefaultAsync(
-            u => u.RefreshToken == request.RefreshToken && u.IsActive, cancellationToken);
+        // ── FIX: was looking up the USER by a single shared RefreshToken column
+        // (u.RefreshToken == request.RefreshToken). Since that column held only
+        // ONE token per account regardless of how many devices/sessions had
+        // logged into it, a second login on the same account (e.g. an admin or
+        // tester using a salesman's PIN directly) silently overwrote it — the
+        // first device's next silent refresh then found no match here and was
+        // force-logged-out, even though its own token was never actually
+        // revoked or expired. The token now lives on the SESSION that issued
+        // it (see UserSession.RefreshToken), so this lookup only ever
+        // succeeds or fails based on that one session's own state — a login
+        // anywhere else can no longer affect it. Also excludes sessions that
+        // have already been explicitly logged out (LogoutAt set), so a
+        // logged-out session's leftover token can't be replayed to silently
+        // resurrect it. ──
+        var session = await context.UserSessions
+            .Include(s => s.User)
+            .FirstOrDefaultAsync(
+                s => s.RefreshToken == request.RefreshToken && s.LogoutAt == null,
+                cancellationToken);
 
-        // Invalid token, or it doesn't match any user (e.g. already rotated
-        // out by a previous refresh, or the account was deactivated).
-        if (user == null)
+        // No matching, still-active session — token invalid, already logged
+        // out, or already rotated out by a previous refresh.
+        if (session == null || session.User == null || !session.User.IsActive)
         {
             return Result<RefreshTokenResponse>.Failure("Invalid or expired session. Please log in again.");
         }
 
         // Refresh token itself has a 7-day expiry — past that, force a real login
         // rather than renewing forever on a token nobody has used in a week.
-        if (user.RefreshTokenExpiry == null || user.RefreshTokenExpiry.Value < DateTime.UtcNow)
+        if (session.RefreshTokenExpiry == null || session.RefreshTokenExpiry.Value < DateTime.UtcNow)
         {
             return Result<RefreshTokenResponse>.Failure("Session expired. Please log in again.");
         }
 
-        // ── Issue a new access token, and rotate the refresh token ──
-        // Rotating on every use means an actively-used app effectively never
-        // needs a manual re-login — only 7+ days of total inactivity does.
-        // NOTE: this does NOT touch UserSessions — a silent refresh is a
-        // continuation of the same session, not a new login/logout event.
-        var newAccessToken = GenerateJwtToken(user);
+        // ── Issue a new access token, and rotate the refresh token — on THIS
+        // session only. Rotating on every use means an actively-used app
+        // effectively never needs a manual re-login — only 7+ days of total
+        // inactivity on that specific session does. This still does NOT touch
+        // LoginAt/LogoutAt — a silent refresh is a continuation of the same
+        // session, not a new login/logout event — and it has no effect on any
+        // other session row for this user. ──
+        var newAccessToken = GenerateJwtToken(session.User);
         var newRefreshToken = GenerateRefreshToken();
 
-        user.RefreshToken = newRefreshToken;
-        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+        session.RefreshToken = newRefreshToken;
+        session.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
         await context.SaveChangesAsync(cancellationToken);
 
         return Result<RefreshTokenResponse>.Success(new RefreshTokenResponse

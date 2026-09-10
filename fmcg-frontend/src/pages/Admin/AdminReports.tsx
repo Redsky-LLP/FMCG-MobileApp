@@ -35,6 +35,30 @@ const D = {
 const today = new Date().toISOString().split('T')[0];
 const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
 
+// ── NEW: 1st and last day of the CURRENT calendar month, used as the default
+// range for the three month-oriented reports (Summary, Incentive, Additional
+// Revenue).
+//
+// FIX: was built with `.toISOString().split('T')[0]`, same as `today`/
+// `thirtyDaysAgo` above — but toISOString() always converts to UTC. In a
+// timezone ahead of UTC (e.g. IST, UTC+5:30), local midnight on the 1st is
+// still 6:30pm on the LAST day of the PREVIOUS month in UTC, so that
+// conversion silently shifted the date back by one — showing 08/31 instead
+// of 09/01, and 09/29 instead of 09/30. Formatting from the Date object's
+// own local year/month/day components avoids the UTC round-trip entirely,
+// so the displayed date always matches what the calendar actually shows
+// locally, regardless of timezone. ──
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+const now = new Date();
+const firstDayOfMonth = formatLocalDate(new Date(now.getFullYear(), now.getMonth(), 1));
+const lastDayOfMonth = formatLocalDate(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+
 // ── Reusable date input style for better visibility ────────────────────────
 const dateInputStyle = (isMobile: boolean): React.CSSProperties => ({
   width: isMobile ? '100%' : 'auto',
@@ -453,12 +477,15 @@ export function AdminReports() {
   // const [routeRptRoute, setRouteRptRoute] = useState('');
   // const [routeFrom, setRouteFrom]  = useState(thirtyDaysAgo);
   // const [routeTo,   setRouteTo]    = useState(today);
-  const [summaryFrom, setSummaryFrom] = useState(thirtyDaysAgo);
-  const [summaryTo, setSummaryTo] = useState(today);
-  const [incentiveFrom, setIncentiveFrom] = useState(thirtyDaysAgo);
-  const [incentiveTo, setIncentiveTo] = useState(today);
-  const [additionalRevenueFrom, setAdditionalRevenueFrom] = useState(thirtyDaysAgo);
-  const [additionalRevenueTo, setAdditionalRevenueTo] = useState(today);
+  // ── FIX: default to 1st–last day of the CURRENT month (was a rolling
+  // 30-day window ending today), per request, for all three of these
+  // month-oriented reports. ──
+  const [summaryFrom, setSummaryFrom] = useState(firstDayOfMonth);
+  const [summaryTo, setSummaryTo] = useState(lastDayOfMonth);
+  const [incentiveFrom, setIncentiveFrom] = useState(firstDayOfMonth);
+  const [incentiveTo, setIncentiveTo] = useState(lastDayOfMonth);
+  const [additionalRevenueFrom, setAdditionalRevenueFrom] = useState(firstDayOfMonth);
+  const [additionalRevenueTo, setAdditionalRevenueTo] = useState(lastDayOfMonth);
   const [prodGroup, setProdGroup]   = useState('');
   const [prodFrom,  setProdFrom]    = useState(thirtyDaysAgo);
   const [prodTo,    setProdTo]      = useState(today);

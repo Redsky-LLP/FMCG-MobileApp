@@ -67,16 +67,36 @@ public class PinLoginCommandHandler : IRequestHandler<PinLoginCommand, Result<Lo
         var token = GenerateJwtToken(user);
         var refreshToken = GenerateRefreshToken();
 
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
-
-        // ── Record login session ──
+        // ── FIX: this used to also do
+        //     user.RefreshToken = refreshToken;
+        //     user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+        // — but that's a SINGLE column per user, shared across every device
+        // that ever logs into this account. Anyone else logging in with the
+        // SAME PIN (e.g. an admin or a tester checking something on their
+        // own phone/laptop, using a salesman's PIN directly rather than the
+        // separate Master-PIN "Act As" flow) silently overwrote whatever
+        // refresh token the salesman's own tablet was holding. The tablet
+        // kept working until it next tried to silently refresh — at that
+        // point the stored token no longer matched, refresh failed, and the
+        // salesman was force-logged-out with no warning, potentially losing
+        // an in-progress order. This is the "signed out multiple times a
+        // day" bug.
+        //
+        // Fix: the refresh token is now stored on THIS session row instead
+        // (see UserSession.RefreshToken) — every login creates its own
+        // session with its own token, so logging into the same account from
+        // a second device can never touch or invalidate the first device's
+        // session. Multiple concurrent sessions per account now work
+        // correctly, and a session only ever ends via explicit logout, its
+        // own 7-day refresh-token expiry, or direct revocation. ──
         var session = new UserSession
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
             LoginAt = DateTime.UtcNow,
             LoginMethod = "PIN",
+            RefreshToken = refreshToken,
+            RefreshTokenExpiry = DateTime.UtcNow.AddDays(7),
             CreatedAt = DateTime.UtcNow,
         };
         _context.UserSessions.Add(session);

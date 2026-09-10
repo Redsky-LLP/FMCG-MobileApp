@@ -1,88 +1,32 @@
 // PATH: src/components/SessionWarningToast.tsx
-// Optional - Shows a warning 1 minute before session expires
-
-import { useState, useEffect } from 'react';
-import { AlertTriangle, Clock } from 'lucide-react';
+//
+// ── FIX: disabled. This toast started its own local 60-second countdown the
+// moment the 'session-warning' event fired — but useSessionTimeout.ts
+// actually dispatches that event 5 MINUTES before the real inactivity
+// logout, not 60 seconds. So the banner was telling the salesman "under a
+// minute left" when they genuinely had up to 5 minutes remaining, and it
+// never listened for the activity that was actively resetting the real
+// timer elsewhere in the app — it just counted down and vanished on its
+// own regardless of what the salesman was doing. That mismatch is what
+// produced the "Session expiring soon — 15 seconds left" warning appearing
+// mid-order, causing confusion and anxiety for no real reason.
+//
+// Autosave (OrderEntry.tsx) already protects in-progress order data well
+// before any inactivity logout could occur, so the underlying concern this
+// toast existed for is already covered. Rather than patch the countdown to
+// show an accurate number, it's disabled outright — a warning that can only
+// ever say "somewhere between a few seconds and 5 minutes remain" isn't
+// useful to show a salesman mid-order taking anyway.
+//
+// The component is kept as a no-op (rather than deleted) so any existing
+// import/usage of <SessionWarningToast /> elsewhere in the app continues to
+// compile and simply renders nothing — no other file needed to change as
+// part of this fix.
+//
+// The actual 60-minute inactivity auto-logout in useSessionTimeout.ts is
+// UNCHANGED and still fully enforced; only this pre-warning banner is
+// disabled. ──
 
 export function SessionWarningToast() {
-  const [show, setShow] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(60);
-
-  useEffect(() => {
-    const handleWarning = () => {
-      setShow(true);
-      setSecondsLeft(60);
-      
-      // Countdown
-      const interval = setInterval(() => {
-        setSecondsLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            setShow(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      
-      return () => clearInterval(interval);
-    };
-
-    // Listen for session warning event
-    window.addEventListener('session-warning', handleWarning);
-    
-    return () => {
-      window.removeEventListener('session-warning', handleWarning);
-    };
-  }, []);
-
-  if (!show) return null;
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
-        right: 16,
-        zIndex: 9999,
-        background: '#1e293b',
-        border: '1px solid #ea580c',
-        borderRadius: 12,
-        padding: '14px 18px',
-        maxWidth: 340,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-        animation: 'slide-up 0.3s ease',
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 12,
-      }}
-    >
-      <div
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: '50%',
-          background: 'rgba(234,88,12,0.15)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        <AlertTriangle size={16} color="#ea580c" />
-      </div>
-      <div>
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>
-          Session expiring soon
-        </p>
-        <p style={{ margin: '2px 0 0', fontSize: 12, color: '#94a3b8' }}>
-          <Clock size={12} style={{ display: 'inline', marginRight: 4 }} />
-          {secondsLeft} second{secondsLeft > 1 ? 's' : ''} left
-        </p>
-        <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748b' }}>
-          Move mouse or tap screen to stay logged in
-        </p>
-      </div>
-    </div>
-  );
+  return null;
 }

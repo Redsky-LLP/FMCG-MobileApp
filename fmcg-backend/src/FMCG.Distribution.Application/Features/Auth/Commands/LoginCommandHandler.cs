@@ -27,16 +27,19 @@ public class LoginCommandHandler(IApplicationDbContext context, IConfiguration c
         var token = GenerateJwtToken(user);
         var refreshToken = GenerateRefreshToken();
 
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
-
-        // ── Record login session ──
+        // ── FIX: refresh token is no longer written to the User row — see
+        // UserSession.RefreshToken for the full explanation. It's stored on
+        // this new session row instead, so logging in here can never
+        // overwrite or invalidate any OTHER session's (e.g. this same
+        // account's) refresh token on a different device. ──
         var session = new UserSession
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
             LoginAt = DateTime.UtcNow,
             LoginMethod = "Email",
+            RefreshToken = refreshToken,
+            RefreshTokenExpiry = DateTime.UtcNow.AddDays(7),
             CreatedAt = DateTime.UtcNow,
         };
         context.UserSessions.Add(session);
