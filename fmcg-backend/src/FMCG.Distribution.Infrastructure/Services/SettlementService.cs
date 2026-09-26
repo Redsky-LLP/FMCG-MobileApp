@@ -86,6 +86,11 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         // them, which can be indefinitely. Drafts are already excluded from
         // the settlement totals below (CalculateExpectedCashAsync filters
         // them out), so they have zero effect on the closure's accuracy.
+        //
+        // NOTE: price-range validity is checked per-order, not here — see
+        // HasOutOfRangePriceItem and its use in CloseOperationalDayAsync. A
+        // single bad-priced Draft order shouldn't block the ENTIRE route
+        // from closing; it's excluded individually instead.
 
         // ── "already closed" is checked per ROUTE + date. ──
         // ── BUG FIX: was missing `c.IsActive` — after a route is reopened,
@@ -152,6 +157,33 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         };
     }
 
+    // ── NEW: returns true if any item on this order has a selling price
+    // outside ±10% of the base price it was created against
+    // (OrderItem.BasePriceAtTime — the same snapshot value already used
+    // everywhere else in reports, so this works without joining back to the
+    // live Product table). Items with a missing/zero base or selling price
+    // are skipped rather than treated as a violation — there's nothing
+    // meaningful to compare, and this check's job is to catch a REAL
+    // out-of-range price, not to punish incomplete data (that's a separate,
+    // pre-existing concern this method isn't meant to police). ──
+    private static bool HasOutOfRangePriceItem(Order order)
+    {
+        if (order.Items == null) return false;
+
+        foreach (var item in order.Items)
+        {
+            var basePrice = item.BasePriceAtTime;
+            var selling = item.SellingPrice;
+            if (basePrice <= 0 || selling <= 0) continue;
+
+            var lower = basePrice * 0.9m;
+            var upper = basePrice * 1.1m;
+            if (selling < lower || selling > upper) return true;
+        }
+
+        return false;
+    }
+
     public async Task<DailyClosureResultDto> CloseOperationalDayAsync(Guid closedByUserId, DateTime closureDate, Guid routeId, string? notes, CancellationToken cancellationToken = default)
     {
         // ── DEBUG LOGGING ──
@@ -187,7 +219,7 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
         }
 
         // ── CHANGED: only lock orders belonging to THIS route ──
-        var ordersToLock = await context.Orders
+        var candidateOrders = await context.Orders
             .Include(o => o.Items)
             .Where(o => !o.IsDeleted
                 && !o.IsLocked
@@ -195,10 +227,41 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
                 && o.OrderDate.Date <= closureDate.Date)
             .ToListAsync(cancellationToken);
 
-        Console.WriteLine($"[CloseRoute] Found {ordersToLock.Count} orders to lock for route {route.Name}");
-        foreach (var order in ordersToLock)
+        Console.WriteLine($"[CloseRoute] Found {candidateOrders.Count} candidate orders for route {route.Name}");
+        foreach (var order in candidateOrders)
         {
             Console.WriteLine($"  - Order {order.OrderNumber}: Status={order.Status}, OrderDate={order.OrderDate}, IsLocked={order.IsLocked}");
+        }
+
+        // ── FIX: previously, EVERY candidate order was locked and any still-
+        // Draft order was force-promoted straight to Closed, with no check at
+        // all — regardless of whether it had ever been submitted, approved,
+        // or even had a valid price on it. A salesman's Draft order still
+        // carrying an unresolved "price outside ±10% of base" warning would
+        // be silently swept to Closed the instant the route closed around
+        // it, and instantly appear in the Billing Sheet and Loading Sheet as
+        // if it had gone through proper review. This is the actual mechanism
+        // behind reports 1-3 and 5 that flagged bad prices reaching
+        // production sheets undetected.
+        //
+        // Fix: any order with at least one item outside the ±10% band is
+        // excluded from this batch entirely — left exactly as it was
+        // (Draft/unlocked/editable) rather than blocking the WHOLE route's
+        // closure over one bad order. It'll be picked up automatically the
+        // next time this route is closed, once its price is actually fixed. ──
+        var ordersToLock = new List<Order>();
+        var skippedOrderNumbers = new List<string>();
+
+        foreach (var order in candidateOrders)
+        {
+            if (HasOutOfRangePriceItem(order))
+            {
+                skippedOrderNumbers.Add(order.OrderNumber);
+                Console.WriteLine($"  - SKIPPED {order.OrderNumber}: contains an item priced outside ±10% of base price.");
+                continue;
+            }
+
+            ordersToLock.Add(order);
         }
 
         var draftCountAsOfClosure = ordersToLock.Count(o => o.Status == OrderStatus.Draft);
@@ -222,6 +285,10 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
 
         Console.WriteLine($"[CloseRoute] Locked {ordersToLock.Count} orders at {closureTimestamp}");
         Console.WriteLine($"[CloseRoute] Changed {draftCountAsOfClosure} orders from Draft to Closed");
+        if (skippedOrderNumbers.Count > 0)
+        {
+            Console.WriteLine($"[CloseRoute] Skipped {skippedOrderNumbers.Count} order(s) for out-of-range pricing: {string.Join(", ", skippedOrderNumbers)}");
+        }
 
         // Create the closure record — now tagged to this route
         var summary = validation.SettlementSummary!;
@@ -318,7 +385,7 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
             TotalOutstanding = closure.TotalOutstanding,
             ExpectedCash = closure.ExpectedCash,
             Success = true,
-            Message = BuildClosureMessage(route.Name, closure.ExpectedCash, closedRouteCount, draftCountAsOfClosure),
+            Message = BuildClosureMessage(route.Name, closure.ExpectedCash, closedRouteCount, draftCountAsOfClosure, skippedOrderNumbers),
             LoadingSheetUrl = loadingUrl,
             BillingSheetUrl = billingUrl,
             ClosedRouteCount = closedRouteCount,
@@ -327,13 +394,20 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
 
     // ── CHANGED: takes routeName so the message reads "Chengannur closed..."
     // instead of the old generic "Operational day closed..." ──
-    private static string BuildClosureMessage(string routeName, decimal expectedCash, int closedRouteCount, int draftCount)
+    // ── CHANGED: now also reports any orders that were deliberately left
+    // untouched because they had an item priced outside ±10% of base price —
+    // the admin needs to know these exist and weren't included in this
+    // closure's totals or reports, since they're not visible anywhere else
+    // (still sitting as ordinary, unlocked Draft orders). ──
+    private static string BuildClosureMessage(string routeName, decimal expectedCash, int closedRouteCount, int draftCount, List<string> skippedForPricing)
     {
         var parts = new List<string> { $"{routeName} closed successfully. Expected cash: {expectedCash:C}." };
         if (closedRouteCount > 0)
             parts.Add($"{routeName} is now fresh and available again for new orders.");
         if (draftCount > 0)
             parts.Add($"Note: {draftCount} draft order(s) on this route were never submitted and are now locked along with everything else — review them manually if needed.");
+        if (skippedForPricing.Count > 0)
+            parts.Add($"⚠ {skippedForPricing.Count} order(s) were NOT closed because they contain a price outside ±10% of base price and were left as Draft for correction: {string.Join(", ", skippedForPricing)}. Fix the price and close this route again to include them.");
         return string.Join(" ", parts);
     }
 
@@ -514,7 +588,7 @@ public class SettlementService(IApplicationDbContext context, IMediator mediator
                 {
                     // ─── CRITICAL: Clear the OrderId reference ───
                     // This prevents the historical order from loading
-                    visit.Status = (VisitStatus)1; 
+                    visit.Status = (VisitStatus)1;
                     visit.OrderId = null;  // ← KEY FIX
                     visit.UpdatedAt = DateTime.UtcNow;
                     resetVisitsCount++;

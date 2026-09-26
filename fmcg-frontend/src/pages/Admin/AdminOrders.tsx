@@ -21,6 +21,25 @@ function orderTimestamp(order: { createdAt?: string | null; orderDate: string })
   return new Date(order.createdAt || order.orderDate);
 }
 
+// ── NEW: mirrors the ±10% rule enforced in OrderEntry.tsx and
+// SettlementService.cs (HasOutOfRangePriceItem) — reads the SAME
+// basePriceAtTime snapshot each OrderItem already carries, no extra
+// lookups needed. Purely a display check: this doesn't change what
+// actually gets closed, it just makes visible on this page WHY a Draft
+// order is (or will be) held back from route closure, instead of leaving
+// it looking identical to any other ordinary unfinished Draft. ──
+function hasPriceIssue(order: { items?: { sellingPrice?: number; basePriceAtTime?: number }[] }): boolean {
+  if (!order.items) return false;
+  return order.items.some(item => {
+    const base = item.basePriceAtTime ?? 0;
+    const selling = item.sellingPrice ?? 0;
+    if (!base || !selling) return false;
+    const lower = base * 0.9;
+    const upper = base * 1.1;
+    return selling < lower || selling > upper;
+  });
+}
+
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
   bg:       '#0f172a',
@@ -664,11 +683,18 @@ export function AdminOrders() {
                       const isPending = statusKey === 'PendingApproval';
                       const isExpanded = expandedOrder === String(order.id);
 
+                      // ── NEW: only meaningful (and only worth showing) while the
+                      // order is still Draft — once Closed/Approved it either
+                      // already got past the check or was deliberately excluded
+                      // and would need a Reopen to touch again, so the badge would
+                      // be confusing noise on anything past Draft. ──
+                      const priceIssue = statusKey === 'Draft' && hasPriceIssue(order);
+
                       return (
                         <div key={order.id} style={{
                           background: D.surface,
                           borderRadius: 12,
-                          border: `1px solid ${isPending ? D.accent : D.border}`,
+                          border: `1px solid ${isPending ? D.accent : priceIssue ? D.red : D.border}`,
                           boxShadow: isPending ? `0 2px 10px ${D.accentGlow}` : 'none',
                           overflow: 'hidden',
                           transition: 'border-color 0.15s',
@@ -705,6 +731,26 @@ export function AdminOrders() {
                                 }}>
                                   {getStatusLabel(order.status)}
                                 </span>
+
+                                {/* ── NEW: Price Issue badge — visible, at-a-glance
+                                explanation for why a Draft order won't be swept
+                                into the next route closure (see
+                                SettlementService.HasOutOfRangePriceItem). Without
+                                this, a stuck Draft looked identical to any
+                                ordinary unfinished one — nothing on this page
+                                told the admin WHY it was being held back. ── */}
+                                {priceIssue && (
+                                  <span style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                                    padding: '2px 8px', borderRadius: 12,
+                                    fontSize: 9, fontWeight: 700,
+                                    background: 'rgba(239,68,68,0.12)',
+                                    color: D.red,
+                                    border: `1px solid ${D.red}55`,
+                                  }}>
+                                    <AlertTriangle size={9} /> Price Issue — won't close
+                                  </span>
+                                )}
 
                                 {order.isLocked && (
                                   <span style={{
@@ -745,19 +791,32 @@ export function AdminOrders() {
                               {/* Items preview */}
                               {items.length > 0 && (
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-                                  {items.slice(0, 3).map((item, i) => (
-                                    <span key={i} style={{
-                                      display: 'inline-flex', alignItems: 'center', gap: 3,
-                                      fontSize: 11, padding: '2px 8px', borderRadius: 4,
-                                      background: D.bg,
-                                      border: `1px solid ${D.border}`,
-                                      color: D.muted,
-                                      fontWeight: 600,
-                                    }}>
-                                      <Package size={10} color={D.sub} />
-                                      {item.productName} <span style={{ color: D.text, fontWeight: 700 }}>×{item.quantity}</span>
-                                    </span>
-                                  ))}
+                                  {items.slice(0, 3).map((item, i) => {
+                                    // ── NEW: flag the SPECIFIC violating item(s) inline,
+                                    // not just a generic order-level badge — saves a trip
+                                    // into Review to find which product is the problem.
+                                    // Cast to any: basePriceAtTime isn't declared on the
+                                    // shared OrderItemDto type, though the backend does
+                                    // send it (see GetOrdersByRouteQueryHandler). ──
+                                    const base = (item as any).basePriceAtTime ?? 0;
+                                    const selling = item.sellingPrice ?? 0;
+                                    const itemHasIssue = priceIssue && base > 0 && selling > 0 &&
+                                      (selling < base * 0.9 || selling > base * 1.1);
+                                    return (
+                                      <span key={i} style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 3,
+                                        fontSize: 11, padding: '2px 8px', borderRadius: 4,
+                                        background: itemHasIssue ? 'rgba(239,68,68,0.10)' : D.bg,
+                                        border: `1px solid ${itemHasIssue ? D.red + '55' : D.border}`,
+                                        color: itemHasIssue ? D.red : D.muted,
+                                        fontWeight: 600,
+                                      }}>
+                                        <Package size={10} color={itemHasIssue ? D.red : D.sub} />
+                                        {item.productName} <span style={{ color: itemHasIssue ? D.red : D.text, fontWeight: 700 }}>×{item.quantity}</span>
+                                        {itemHasIssue && <AlertTriangle size={10} />}
+                                      </span>
+                                    );
+                                  })}
                                   {items.length > 3 && (
                                     <span style={{ fontSize: 11, color: D.muted, fontWeight: 600, padding: '2px 4px' }}>
                                       +{items.length - 3} more
@@ -923,26 +982,56 @@ export function AdminOrders() {
                 </div>
               </div>
 
+              {/* ── NEW: same price-issue callout as the card, but in the
+              modal too — with the actual base/max range for whichever item
+              is out of range, since there's more room here to spell it out. ── */}
+              {String(reviewOrder.status) === 'Draft' && hasPriceIssue(reviewOrder) && (
+                <div style={{
+                  marginBottom: 12,
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  background: 'rgba(239,68,68,0.10)',
+                  border: `1px solid ${D.red}55`,
+                }}>
+                  <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: D.red, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <AlertTriangle size={13} /> This order won't be closed automatically
+                  </p>
+                  <p style={{ margin: '4px 0 0', fontSize: 11, color: D.muted, lineHeight: 1.5 }}>
+                    At least one item's price is outside ±10% of its base price. It'll stay Draft and be
+                    skipped when this route is closed, until the price is corrected.
+                  </p>
+                </div>
+              )}
+
               <h4 style={{ fontSize: 12, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 6px' }}>
                 Items ({reviewOrder.items?.length ?? 0})
               </h4>
               {reviewOrder.items && reviewOrder.items.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto', marginBottom: 12 }}>
-                  {reviewOrder.items.map((item, idx) => (
-                    <div key={idx} style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '8px 10px', borderRadius: 8,
-                      background: D.bg,
-                      border: `1px solid ${D.border}`,
-                    }}>
-                      <div>
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: D.text }}>{item.productName}</p>
-                        <p style={{ margin: '1px 0 0', fontSize: 12, color: D.sub }}>
-                          {item.quantity} {item.unitSymbol || 'unit'} × {fmt(item.sellingPrice)}
-                        </p>
+                  {reviewOrder.items.map((item, idx) => {
+                    const base = (item as any).basePriceAtTime ?? 0;
+                    const selling = item.sellingPrice ?? 0;
+                    const itemHasIssue = base > 0 && selling > 0 && (selling < base * 0.9 || selling > base * 1.1);
+                    return (
+                      <div key={idx} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '8px 10px', borderRadius: 8,
+                        background: itemHasIssue ? 'rgba(239,68,68,0.08)' : D.bg,
+                        border: `1px solid ${itemHasIssue ? D.red + '55' : D.border}`,
+                      }}>
+                        <div>
+                          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: D.text }}>{item.productName}</p>
+                          <p style={{ margin: '1px 0 0', fontSize: 12, color: itemHasIssue ? D.red : D.sub }}>
+                            {item.quantity} {item.unitSymbol || 'unit'} × {fmt(item.sellingPrice)}
+                            {itemHasIssue && base > 0 && (
+                              <> — max {fmt(base * 1.1)} / min {fmt(base * 0.9)}</>
+                            )}
+                          </p>
+                        </div>
+                        {itemHasIssue && <AlertTriangle size={14} color={D.red} />}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '20px 0', marginBottom: 12 }}>

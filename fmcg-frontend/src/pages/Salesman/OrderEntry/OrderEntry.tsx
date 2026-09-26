@@ -11,16 +11,28 @@
 // 9. FIX: Save Draft button centered in bottom bar
 // 10. FIX: hasExistingOrder declared before use
 // 11. FIX: Content no longer hidden behind bottom navigation bar
-// 12. RESTORED: Price Variance Badge + ±10% range validation (was accidentally
-//     dropped from this file at some point — restoring it here, layered on top
-//     of the order-lookup-by-status fix, frozen name snapshot, out-of-stock
-//     picker handling, and acting-as-admin banner-aware positioning, none of
-//     which are touched by this restoration).
-// 13. NEW: Product picker is now search-first — no full 148-item list dumped
-//     on open. It shows just the search bar until something is typed, and the
-//     "+" FAB is hidden while the picker is open (it was previously still
-//     technically present underneath, and on some tablets the on-screen
-//     keyboard opening left part of it visible/tappable behind the sheet).
+// 12. RESTORED: Price Variance Badge + ±10% range validation
+// 13. NEW: Product picker is now search-first
+// 14. FIX: SAVE RACE — the manual Save button and the autosave timer could
+//     previously both fire near-simultaneously (e.g. tapping "Update Order"
+//     right as autosave's debounce fired), each independently deciding
+//     existingOrder was still null and each calling ordersApi.create() —
+//     producing TWO separate Order rows for the same customer visit, each
+//     holding a different subset of the same items. Downstream, every
+//     report that merges a customer's orders for the day (Billing Sheet,
+//     Loading Sheet, Retail Sheet) then correctly summed quantities/remarks
+//     across BOTH orders — which is why it looked like quantities were
+//     "doubled" and retail remarks were "duplicated": the merge logic was
+//     working correctly on genuinely duplicated input. The old
+//     autosaving/pendingAutosaveRetryRef flags only prevented two AUTOSAVES
+//     from overlapping each other — they did nothing to stop a manual save
+//     from landing mid-autosave. Every save (autosave or manual) now goes
+//     through ONE shared FIFO queue (enqueueSave), so at most one save
+//     request is ever in flight at a time, strictly ordered, regardless of
+//     which trigger fired it. This is also what was producing the "Save
+//     conflict. Please refresh the page and try again." toast — two
+//     concurrent UPDATEs to the same order's item list racing on which rows
+//     to add/remove.
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -39,11 +51,6 @@ import { LineItem } from './types';
 import { PriceVarianceBadge } from './types';
 import { PreviousOrdersModal } from './components/PreviousOrdersModal';
 import { useIsMobile } from '../../../hooks/useIsMobile';
-// ── FIX: was a locally-guessed constant (70) that had drifted from the real
-// bottom nav bar's actual height (52, defined once in MobileLayout.tsx). This
-// didn't break anything visibly — it just left extra unnecessary gap above
-// the real nav bar — but importing the single shared value means this can
-// never silently drift out of sync again if the real nav height ever changes. ──
 import { MOBILE_NAV_HEIGHT } from '../../../components/layout/MobileLayout';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
@@ -61,8 +68,6 @@ const D = {
   sub:     '#64748b',
   orange:  '#f97316',
 };
-
-// ── Mobile nav height now imported from MobileLayout.tsx (see import above) ──
 
 export default function OrderEntry() {
   const { routeId, customerId } = useParams<{ routeId: string; customerId: string }>();
@@ -92,55 +97,42 @@ export default function OrderEntry() {
   const [unitPrices,         setUnitPrices]         = useState<Record<string, ProductUnitPriceDto>>({});
   const [showCancelConfirm,  setShowCancelConfirm]  = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  // ── NEW: ref to the most-recently-rendered item card, so we can scroll it
-  // into view automatically the moment it's added — instead of leaving it
-  // below the fold and making the salesman scroll down manually to confirm
-  // the tap actually registered. ──
   const lastItemRef = useRef<HTMLDivElement>(null);
-
-  // ── NEW: ref to the actual scrollable content div. window.scrollTo() /
-  // document.body.scrollTop don't work here because window/body never
-  // scroll in this layout — this inner div does (overflowY: 'auto'). That's
-  // exactly why the post-save scroll-to-top only ever worked on desktop web
-  // (where a different global scroll context sometimes coincidentally
-  // matched) and silently did nothing on phone/tablet builds. ──
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // ── NEW: Autosave — protects against unsaved work being lost to ANY
-  // unexpected session end (forced logout from an admin "Act As" override
-  // overwriting the salesman's refresh token — since fixed separately in
-  // AdminOverrideLoginCommandHandler — but also a crash, a network drop, a
-  // dead battery, or just accidentally hitting Back). Debounced: fires a
-  // few seconds after the salesman stops actively editing, not on every
-  // keystroke. Silent — no toast spam, no scroll-to-top, no navigation —
-  // just a small inline "Auto-saved" indicator so it's not confusing when
-  // the draft ends up already saved. Skips entirely while there's nothing
-  // valid to save yet (matches the same completeness rules handleSave
-  // already enforces), so it never persists a half-typed item. ──
+  // ── Autosave state ──
   const [autosaving,     setAutosaving]     = useState(false);
   const [lastAutosavedAt, setLastAutosavedAt] = useState<Date | null>(null);
   const autosaveTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // ── FIX: closes a real data-loss window — previously, if the salesman
-  // edited fast enough that a new autosave got scheduled while an EARLIER
-  // one was still in flight (network round-trip in progress), the newer
-  // attempt was silently dropped via the `autosaving` guard below, with
-  // nothing scheduled to ever retry it. If the salesman then navigated away
-  // without making one more edit (or tapping the manual Save button), that
-  // last batch of changes never got persisted — while the UI still showed
-  // "Auto-saved" from the EARLIER, now-outdated save. This ref remembers
-  // that a save was requested and skipped, so it can be retried immediately
-  // once the in-flight one finishes, using whatever `lines`/`remarks` are
-  // current at that point (not stale). ──
-  const pendingAutosaveRetryRef = useRef(false);
   const skipNextAutosaveRef = useRef(true); // true until the initial data load finishes
 
-  // ── FIX: Declare hasExistingOrder BEFORE using it in canCancel ──
+  // ── FIX: single shared save queue. Every call to enqueueSave() — whether
+  // from performAutosave or handleSave — is chained onto whatever save is
+  // currently in flight, so it only starts once the previous one has fully
+  // resolved (success or failure). This is what makes it structurally
+  // impossible for two save requests to be in flight for this order at the
+  // same time, regardless of which one (auto or manual) triggered each.
+  // The queue itself never rejects (a failed task's error is caught and
+  // re-thrown to ITS OWN caller only, via the returned promise), so one
+  // failed save can never permanently jam every save after it. ──
+  const saveQueueRef = useRef<Promise<any>>(Promise.resolve());
+  function enqueueSave<T>(task: () => Promise<T>): Promise<T> {
+    const runningAfterPrevious = saveQueueRef.current.then(task, task);
+    // Keep the queue alive even if this task fails — swallow here so a
+    // failure doesn't propagate into the NEXT queued task's chain; the
+    // failure still reaches this call's own caller via the returned promise.
+    saveQueueRef.current = runningAfterPrevious.then(
+      () => undefined,
+      () => undefined,
+    );
+    return runningAfterPrevious;
+  }
+
   const hasExistingOrder = !!existingOrder;
   const isDraft = existingOrder?.status === OrderStatus.Draft;
   const canEdit = !existingOrder || existingOrder.status === OrderStatus.Draft;
   const totalItems  = lines.reduce((s, l) => s + l.qty, 0);
   const hasNoItems = lines.length === 0 && !remarks.trim();
-  // ── NEW: Show cancel button for ANY existing draft order (even with items) ──
   const canCancel = isDraft && hasExistingOrder;
 
   useEffect(() => {
@@ -164,15 +156,6 @@ export default function OrderEntry() {
         }
         setUnitPrices(priceMap);
 
-        // ── FIX: this used to only count an order as "the one to edit" if its
-        // orderDate matched today's calendar date. But a Draft order is meant to
-        // stay open and editable across day boundaries until the admin actually
-        // closes it — so filtering by date silently lost yesterday's still-open
-        // order the moment the calendar rolled over, showing an empty "New" order
-        // instead of the real Draft one with items already on it. Filtering by
-        // status (not yet Closed, not locked) instead of date fixes this — the
-        // most recent still-open order for this customer is always found,
-        // regardless of which day it was originally created on. ──
         const existing  = allOrders
           .filter(o => String(o.customerId) === cid && o.status !== 'Closed' && !o.isLocked)
           .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())[0];
@@ -187,13 +170,6 @@ export default function OrderEntry() {
               if (!prod) return null;
               const up = priceMap[prod.id];
               return {
-                // ── FIX: keep the frozen name from the order itself (item.productName /
-                // item.productNameMalayalam — already correctly snapshot-preferred by the
-                // backend) instead of the live product's current name. Everything else
-                // about `prod` (unit info, base price for lookups, etc.) still comes from
-                // the live product record, since that's needed for editing — only the
-                // display name was wrong, because it was silently overwritten by whichever
-                // name the product currently has, even after a rename. ──
                 product: {
                   ...prod,
                   nameEnglish: item.productName || prod.nameEnglish,
@@ -209,13 +185,6 @@ export default function OrderEntry() {
           } catch {}
         }
 
-        // ── FIX: this used to sit inside an `else` (only reached when no existing
-        // order was found), and the branch above returned early — so the moment a
-        // customer had any draft/existing order (i.e. right after saving, or on
-        // reopening a customer already in progress), this fetch never ran and
-        // previousOrders stayed empty, hiding the "Previous Order" button entirely.
-        // It now always runs regardless of whether an existing order was found, so
-        // the button reliably has data before AND after saving. ──
         try {
           const history = await ordersApi.getCustomerHistory(cid, 10);
           if (history?.length) setPreviousOrders(history);
@@ -224,16 +193,11 @@ export default function OrderEntry() {
       .catch(() => setError('Failed to load data. Please refresh.'))
       .finally(() => {
         setLoading(false);
-        // Initial load just populated `lines`/`remarks` from the server —
-        // that's not a real edit, so don't let it trigger an autosave.
         skipNextAutosaveRef.current = true;
         setTimeout(() => { skipNextAutosaveRef.current = false; }, 0);
       });
   }, [customerId, routeId]);
 
-  // ── Filter products — search-first: no results shown until something is
-  // typed, instead of dumping the entire (often 100+) product catalog the
-  // instant the picker opens. Name / Malayalam name / item code search. ──
   useEffect(() => {
     if (!search.trim()) {
       setFilteredProducts([]);
@@ -252,12 +216,6 @@ export default function OrderEntry() {
     if (showProducts && searchInputRef.current) searchInputRef.current.focus();
   }, [showProducts]);
 
-  // ── NEW: auto-scroll to the newly added item. New items are appended to
-  // the end of `lines`, so after a tap in the picker they land below whatever
-  // was already visible on screen — this brings the just-added item into
-  // view automatically instead of requiring a manual scroll to confirm it
-  // was actually added. A short delay lets the picker's close animation and
-  // the new card's render settle first, so the scroll target is accurate. ──
   const prevLineCountRef = useRef(0);
   useEffect(() => {
     if (lines.length > prevLineCountRef.current) {
@@ -270,9 +228,6 @@ export default function OrderEntry() {
     prevLineCountRef.current = lines.length;
   }, [lines.length]);
 
-  // ── Add product — one tap adds one item, then the picker closes.
-  // Tap "+" again to add the next item (deliberate: simpler, less error-prone
-  // on a small mobile screen than a picker that stays open). ──
   const addProduct = useCallback((product: any) => {
     if (!canEdit) return;
     setLines(prev => {
@@ -299,9 +254,6 @@ export default function OrderEntry() {
     else setLines(prev => prev.map(l => l.product.id === productId ? { ...l, qty: n } : l));
   };
 
-  // ── Price IS editable for the salesman — it varies per customer.
-  // Staged in tempPrices while typing (same pattern as quantity) so a decimal
-  // point or trailing zero isn't stripped mid-keystroke by the controlled input. ──
   const handlePriceInput = (productId: string, value: string) => {
     if (!canEdit) return;
     setTempPrices(prev => ({ ...prev, [productId]: value }));
@@ -313,7 +265,6 @@ export default function OrderEntry() {
     if (tmp === undefined) return;
     setTempPrices(prev => { const n = { ...prev }; delete n[productId]; return n; });
     const n = parseFloat(tmp);
-    // Invalid/empty entry — leave the price as it was rather than zeroing it out.
     if (tmp === '' || isNaN(n) || n < 0) return;
     setLines(prev => prev.map(l => l.product.id === productId ? { ...l, sellingPrice: n } : l));
   };
@@ -323,10 +274,6 @@ export default function OrderEntry() {
     return tmp !== undefined ? tmp : price === 0 ? '' : String(price);
   };
 
-  // ── RESTORED: reads the live typed price (before blur commits it to `lines`)
-  // so the variance badge and save-validation react immediately as the
-  // salesman types, not only after they tab/click away from the field. Falls
-  // back to the committed sellingPrice when nothing's actively being typed. ──
   const getEffectivePrice = (productId: string, committedPrice: number): number => {
     const tmp = tempPrices[productId];
     if (tmp !== undefined) {
@@ -336,11 +283,6 @@ export default function OrderEntry() {
     return committedPrice;
   };
 
-  // ── FIX: same idea as getEffectivePrice, for quantity. Autosave needs to
-  // see what's actually been typed into the Qty box, not just the last
-  // value that was committed to `lines` on blur — otherwise it has no way
-  // to know a fresh item's quantity has been filled in until the salesman
-  // taps away from the field. ──
   const getEffectiveQty = (productId: string, committedQty: number): number => {
     const tmp = tempQuantities[productId];
     if (tmp !== undefined) {
@@ -350,9 +292,6 @@ export default function OrderEntry() {
     return committedQty;
   };
 
-  // ── RESTORED: selling price must stay within ±10% of base price. Returns
-  // true when it's outside that band — used both to show the warning badge
-  // and to block Save until it's corrected. ──
   const getPriceRangeIssue = (base: number, selling: number): boolean => {
     if (!base || !selling) return false;
     const lower = base * 0.9;
@@ -372,17 +311,6 @@ export default function OrderEntry() {
     return tmp !== undefined ? tmp : qty === 0 ? '' : String(qty);
   };
 
-  // ── FIX: neither window nor a single fixed ref reliably identifies "the"
-  // scrolling element across every context this page renders in — on
-  // desktop it's the window; inside MobileLayout on tablet/phone, it's
-  // actually MobileLayout's OWN outer content div, not this page's inner
-  // one, since this page's wrapper isn't height-constrained and just grows
-  // to fit inside whatever ancestor really scrolls. Guessing one specific
-  // element is fragile. Instead: walk up from the ref through every
-  // ancestor, and scroll any of them that's actually capable of scrolling
-  // (scrollHeight > clientHeight) — plus window/document as a final
-  // catch-all. Whichever one is the real scroll context for a given
-  // platform gets reset; the rest are harmless no-ops. ──
   function scrollEverythingToTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     document.documentElement.scrollTop = 0;
@@ -398,75 +326,72 @@ export default function OrderEntry() {
   }
 
   const buildPayload = (): CreateOrderCommand => ({
-  customerId:      String(customerId),
-  routeId:         String(routeId),
-  orderDate:       new Date().toISOString(),
-  // ── FIX: read the EFFECTIVE (live-typed, pre-blur) qty/price rather than
-  // only what's already committed to `lines`. No-op for the manual Save
-  // button (its click already blurred whatever was focused, so the staging
-  // maps are empty by the time this runs) — this only changes what
-  // autosave sees while the salesman is still actively typing. ──
-  items:           lines.map(l => ({ 
-    productId: l.product.id, 
-    quantity: getEffectiveQty(l.product.id, l.qty), 
-    unitId: l.product.productUnitId, 
-    sellingPrice: getEffectivePrice(l.product.id, l.sellingPrice) 
-  })),
-  executionId:     executionContext?.executionId,
-  customerVisitId: executionContext?.customerVisitId,
-  ...(remarks ? { remarks } : {}),
-});
+    customerId:      String(customerId),
+    routeId:         String(routeId),
+    orderDate:       new Date().toISOString(),
+    items:           lines.map(l => ({
+      productId: l.product.id,
+      quantity: getEffectiveQty(l.product.id, l.qty),
+      unitId: l.product.productUnitId,
+      sellingPrice: getEffectivePrice(l.product.id, l.sellingPrice)
+    })),
+    executionId:     executionContext?.executionId,
+    customerVisitId: executionContext?.customerVisitId,
+    ...(remarks ? { remarks } : {}),
+  });
 
-  // ── NEW: silent autosave worker — same completeness/price-range rules as
-  // the manual Save button, but no toast, no scroll, no navigation. Skips
-  // quietly (no error shown) if anything's incomplete, since that just means
-  // the salesman is still mid-edit — it'll catch up on the next debounce
-  // cycle once they finish typing. ──
+  // ── FIX: the actual network call, with no state side-effects other than
+  // returning the result or throwing — this is the single "unit of work"
+  // enqueueSave serializes. IMPORTANT: it reads `existingOrder` at the
+  // moment it actually RUNS (inside the queue), not at the moment it was
+  // scheduled — so if an earlier queued save just created the order, a
+  // later queued save correctly sees it as an update, never a second create. ──
+  // ── FIX: doSave must always check the CURRENT existingOrder, not a value
+  // captured in a stale closure. Without this, two Save clicks fired within
+  // the same render tick — e.g. a double-tap on a touchscreen, where both
+  // click events can land before React commits the button's `disabled`
+  // state — would both close over the SAME stale `existingOrder` (null, if
+  // this is the first save). Even with the queue correctly running them one
+  // after another, the second task would still see the stale null and
+  // incorrectly call create() a second time. This ref is kept in sync with
+  // the existingOrder state and read at the moment each queued task
+  // actually EXECUTES, so a save that runs after an earlier one has
+  // already completed and updated existingOrder correctly sees it as an
+  // update, never a duplicate create — this is what closed the near-
+  // instant (sub-millisecond to low-millisecond) duplicate orders found in
+  // production, which were too fast to be the autosave/manual-save timing
+  // race and were actually double-fired Save clicks. ──
+  const existingOrderRef = useRef(existingOrder);
+  useEffect(() => { existingOrderRef.current = existingOrder; }, [existingOrder]);
+
+  async function doSave(payload: CreateOrderCommand) {
+    const current = existingOrderRef.current;
+    if (current) {
+      return await ordersApi.update(current.id, { id: current.id, ...payload });
+    }
+    return await ordersApi.create(payload);
+  }
+
+  // ── Silent autosave worker — same completeness rules as the manual Save
+  // button, but no toast, no scroll, no navigation. Deliberately does NOT
+  // check the ±10% price-range rule (that's a submission-time business
+  // rule enforced in handleSave, not a data-loss concern — see the
+  // reasoning kept from the earlier fix). Every save request — this one or
+  // a manual one — goes through enqueueSave, so it can never overlap with
+  // another save in flight. ──
   const performAutosave = async () => {
     if (!canEdit || saving) return;
-    if (autosaving) {
-      // FIX: an autosave is already in flight — don't start a second
-      // overlapping request, but remember that this one was requested so
-      // it isn't silently lost. Retried automatically in the `finally`
-      // block below, right after the in-flight save completes.
-      pendingAutosaveRetryRef.current = true;
-      return;
-    }
     if (lines.length === 0 && !remarks.trim()) return;
 
-    // ── FIX: check the EFFECTIVE (live-typed) qty/price, not just what's
-    // already committed to `lines`. Previously this only saw a freshly-typed
-    // quantity or price once the field lost focus (blur), which meant
-    // autosave stayed silent — looking like it needed "a click somewhere" —
-    // right up until the salesman happened to tap elsewhere on the screen. ──
     const incomplete = lines.some(l =>
       !getEffectiveQty(l.product.id, l.qty) || !getEffectivePrice(l.product.id, l.sellingPrice)
     );
     if (incomplete) return;
 
-    // ── FIX: autosave no longer blocks on the ±10% price-range check. That
-    // rule exists to stop a salesman from SUBMITTING an order with a price
-    // outside the allowed band — it's a submission-time business rule, not a
-    // data-loss concern, and it's still fully enforced in handleSave below.
-    // Gating autosave on it too meant that the moment a price drifted out of
-    // range, autosave went silent and stayed silent until the price was
-    // corrected — surfacing as an unpredictable "sometimes it saves,
-    // sometimes there's a long delay" rather than an actual performance
-    // regression. Autosave's only job is protecting whatever the salesman
-    // has typed so far (e.g. against a Master PIN admin login ending their
-    // session), so it should persist an out-of-range price as-is, the same
-    // as any other in-progress draft value — the order must never be lost
-    // regardless of whether the price happens to pass this rule yet. ──
-
     setAutosaving(true);
     try {
       const payload = buildPayload();
-      let result;
-      if (existingOrder) {
-        result = await ordersApi.update(existingOrder.id, { id: existingOrder.id, ...payload });
-      } else {
-        result = await ordersApi.create(payload);
-      }
+      const result = await enqueueSave(() => doSave(payload));
       setExistingOrder(result);
       setLastAutosavedAt(new Date());
     } catch {
@@ -475,36 +400,15 @@ export default function OrderEntry() {
       // retry, and manual Save still surfaces real errors normally.
     } finally {
       setAutosaving(false);
-      // FIX: if an edit came in while this save was in flight and got
-      // deferred above, run it now — using buildPayload()'s fresh read of
-      // the CURRENT lines/remarks (not a stale snapshot), so whatever the
-      // salesman typed during the in-flight request is never left unsaved.
-      if (pendingAutosaveRetryRef.current) {
-        pendingAutosaveRetryRef.current = false;
-        performAutosave();
-      }
     }
   };
 
-  // Debounced: waits for a pause in editing before autosaving, rather than
-  // firing on every keystroke/qty change.
-  //
-  // ── FIX: also watches tempQuantities/tempPrices (the live-typed staging
-  // state), not just lines/remarks. Quantity and price only get copied into
-  // `lines` on blur, so watching `lines` alone meant this effect never even
-  // scheduled a save while the salesman was typing into a fresh item's Qty
-  // or Price box — it silently waited for a blur (i.e. tapping elsewhere on
-  // the screen) before it had any signal that something had changed at all.
-  // Now every keystroke in those fields resets the same 800ms debounce
-  // timer, exactly like an edit to `lines` already did. ──
+  // Debounced: waits for a pause in editing before autosaving.
   useEffect(() => {
     if (skipNextAutosaveRef.current) return;
     if (!canEdit) return;
 
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
-    // FIX: shortened from 2500ms to 800ms, per request — resets on every
-    // edit, so it still won't fire mid-keystroke, but now catches up much
-    // faster once the salesman actually pauses.
     autosaveTimerRef.current = setTimeout(() => {
       performAutosave();
     }, 800);
@@ -515,72 +419,84 @@ export default function OrderEntry() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lines, remarks, tempQuantities, tempPrices]);
 
+  // ── FIX: synchronous guard against handleSave being invoked twice in the
+  // same event-loop tick — the actual double-tap scenario. setSaving(true)
+  // alone isn't enough to stop this: React state updates aren't applied
+  // synchronously, so the button's `disabled` attribute doesn't visually
+  // update until AFTER the current tick finishes, meaning two click events
+  // dispatched back-to-back (a fast double-tap) can both start running
+  // handleSave before either one sees `saving` as true. A plain ref,
+  // checked and set synchronously, closes that gap immediately — the
+  // second click returns instantly instead of ever reaching the save
+  // logic at all. (The queue + live-ref fixes above are what protect
+  // against the SLOWER race — autosave overlapping a manual save — which
+  // this synchronous guard doesn't cover since a real 800ms-apart autosave
+  // and click aren't in the same tick.) ──
+  const saveClickInFlightRef = useRef(false);
+
   const handleSave = async () => {
-  if (!canEdit) { 
-    setError('Cannot edit this order.'); 
-    return; 
-  }
-  
-  if (lines.length === 0 && !remarks.trim()) { 
-    setError('Add at least one product or retail remark.'); 
-    return; 
-  }
-  
-  const incomplete = lines.find(l => !l.qty || !l.sellingPrice);
-  if (incomplete) {
-    setError(`Enter quantity and price for "${incomplete.product.nameEnglish}" before saving.`);
-    return;
-  }
-
-  // ── RESTORED: block save if any line's price is outside ±10% of its
-  // product's base price. Checked against the EFFECTIVE price (live typed
-  // value if present) so a field still mid-edit but out of range is caught
-  // too, not just already-blurred/committed values. ──
-  const outOfRange = lines.find(l =>
-    getPriceRangeIssue(l.product.basePrice, getEffectivePrice(l.product.id, l.sellingPrice))
-  );
-  if (outOfRange) {
-    const base = outOfRange.product.basePrice;
-    setError(
-      `Price for "${outOfRange.product.nameEnglish}" must be within ±10% of the base price ` +
-      `(₹${(base * 0.9).toFixed(2)} – ₹${(base * 1.1).toFixed(2)}).`
-    );
-    return;
-  }
-  
-  setSaving(true); 
-  setError(''); 
-  setSuccessMsg('');
-  
-  try {
-    let result;
-    const payload = buildPayload();
-    
-    if (existingOrder) {
-      result = await ordersApi.update(existingOrder.id, { id: existingOrder.id, ...payload });
-      setSuccessMsg('Order updated!');
-    } else {
-      result = await ordersApi.create(payload);
-      setSuccessMsg('Saved as draft!');
+    if (saveClickInFlightRef.current) return;
+    saveClickInFlightRef.current = true;
+    try {
+      await handleSaveInner();
+    } finally {
+      saveClickInFlightRef.current = false;
     }
-    
-    setExistingOrder(result);
-    
-    // ── FIX: walks up every real scrolling ancestor (see helper above) —
-    // more robust than guessing window vs. a single container ref, since
-    // which one actually scrolls depends on whether this page is nested
-    // inside MobileLayout (tablet/phone) or standalone (desktop web). ──
-    scrollEverythingToTop();
-    
-  } catch (e: unknown) {
-    setError(e instanceof Error ? e.message : 'Save failed');
-    scrollEverythingToTop();
-  } finally { 
-    setSaving(false); 
-  }
-};
+  };
 
-  // ── FIX: Cancel/Delete Order — redirect back to Route Execution ──
+  const handleSaveInner = async () => {
+    if (!canEdit) {
+      setError('Cannot edit this order.');
+      return;
+    }
+
+    if (lines.length === 0 && !remarks.trim()) {
+      setError('Add at least one product or retail remark.');
+      return;
+    }
+
+    const incomplete = lines.find(l => !l.qty || !l.sellingPrice);
+    if (incomplete) {
+      setError(`Enter quantity and price for "${incomplete.product.nameEnglish}" before saving.`);
+      return;
+    }
+
+    // ── ±10% price-range check — manual Save only, same as before. ──
+    const outOfRange = lines.find(l =>
+      getPriceRangeIssue(l.product.basePrice, getEffectivePrice(l.product.id, l.sellingPrice))
+    );
+    if (outOfRange) {
+      const base = outOfRange.product.basePrice;
+      setError(
+        `Price for "${outOfRange.product.nameEnglish}" must be within ±10% of the base price ` +
+        `(₹${(base * 0.9).toFixed(2)} – ₹${(base * 1.1).toFixed(2)}).`
+      );
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      const payload = buildPayload();
+      // ── FIX: routed through the SAME queue as autosave. If an autosave is
+      // currently in flight, this save simply waits its turn in line instead
+      // of firing a second, independent request — this is what closes the
+      // duplicate-order/"Save conflict" race. ──
+      const result = await enqueueSave(() => doSave(payload));
+
+      setExistingOrder(result);
+      setSuccessMsg(hasExistingOrder ? 'Order updated!' : 'Saved as draft!');
+      scrollEverythingToTop();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Save failed');
+      scrollEverythingToTop();
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleCancelOrder = async () => {
     if (!existingOrder) return;
     setDeleting(true);
@@ -588,20 +504,17 @@ export default function OrderEntry() {
     try {
       await ordersApi.delete(String(existingOrder.id));
       setSuccessMsg('Order cancelled successfully! You can now take a new order.');
-      
-      // ── FIX: Navigate back to Route Execution page ──
-      // If we have execution context, go back to the execute page
-      // Otherwise go back one step (which should be the route execution page)
+
       setTimeout(() => {
         if (executionContext?.executionId) {
-          navigate(`/salesman/routes/${routeId}/execute`, { 
-            state: { mode: 'order-taking' } 
+          navigate(`/salesman/routes/${routeId}/execute`, {
+            state: { mode: 'order-taking' }
           });
         } else {
-          navigate(-1); // Fallback to previous page
+          navigate(-1);
         }
       }, 1500);
-      
+
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to cancel order');
     } finally {
@@ -619,7 +532,6 @@ export default function OrderEntry() {
       return { product: prod, productId: String(prod.id), qty: item.quantity, sellingPrice: item.sellingPrice || (up?.salePrice ?? prod.basePrice), unit: prod.productUnitName ?? 'Unit' };
     }).filter(Boolean) as LineItem[];
 
-    // Also copy remarks if present
     if (order.remarks) {
       setRemarks(order.remarks);
     }
@@ -639,13 +551,6 @@ export default function OrderEntry() {
   const orderStatus = existingOrder?.status;
 
   return (
-    // FIX: removed minHeight:'100vh' — same root cause as the blank-scroll-
-    // space bug already fixed in SalesmanRoutes.tsx/RouteExecution.tsx. When
-    // this page is rendered inside MobileLayout's own scrollable container
-    // (which already provides full-height background), stacking a second
-    // near-full-viewport minimum height on top of it left a large dead
-    // blank area below the form on shorter orders. The dark background
-    // still fills the screen via MobileLayout's own container either way.
     <div style={{
       background: D.bg,
       color: D.text,
@@ -709,28 +614,13 @@ export default function OrderEntry() {
         </div>
       </div>
 
-      {/* ── CONTENT (no longer independently scrollable — see note below) ── */}
-      {/* FIX: this div previously had its own flex:1 + overflowY:'auto',
-      making it a SECOND scrollable container nested inside MobileLayout's
-      own already-scrollable content wrapper — that's exactly what produced
-      two visible scrollbars stacked on top of each other. position:fixed
-      elements (the header above, the Save Draft bar below) stay pinned to
-      the viewport regardless of whether this div scrolls internally or its
-      parent does, so there was never a real need for this div to manage its
-      own scroll — removing it makes whichever ancestor is the genuine
-      scroll context (MobileLayout's container on tablet/phone, or the
-      browser window on desktop) the single source of scrolling. The ref is
-      kept for scrollEverythingToTop() to walk up from, even though this
-      specific div itself is no longer the thing that scrolls. ── */}
-      <div ref={scrollContainerRef} style={{ 
+      <div ref={scrollContainerRef} style={{
         padding: '10px 16px',
-        /* ── FIX: Large bottom padding to clear both Save button AND mobile nav ── */
-        paddingBottom: isMobile 
-          ? 'calc(130px + env(safe-area-inset-bottom, 0px) + ' + MOBILE_NAV_HEIGHT + 'px)' 
+        paddingBottom: isMobile
+          ? 'calc(130px + env(safe-area-inset-bottom, 0px) + ' + MOBILE_NAV_HEIGHT + 'px)'
           : '130px',
       }}>
 
-        {/* Alerts */}
         {error && (
           <div style={{ marginBottom: 10, padding: '10px 14px', background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.30)', borderRadius: 10, color: '#fca5a5', fontSize: 13, display: 'flex', justifyContent: 'space-between' }}>
             <span>{error}</span>
@@ -742,9 +632,6 @@ export default function OrderEntry() {
             ✓ {successMsg}
           </div>
         )}
-        {/* ── NEW: small, quiet autosave indicator — never competes with the
-        louder error/success banners above, just a subtle confirmation that
-        in-progress work is being protected in the background. ── */}
         {canEdit && (autosaving || lastAutosavedAt) && (
           <div style={{ marginBottom: 8, fontSize: 11, color: D.sub, display: 'flex', alignItems: 'center', gap: 5 }}>
             {autosaving ? (
@@ -767,7 +654,6 @@ export default function OrderEntry() {
           </div>
         )}
 
-        {/* ── Empty state ── */}
         {lines.length === 0 && canEdit && (
           <div style={{ textAlign: 'center', padding: '32px 20px', background: D.card, border: `2px dashed ${D.border}`, borderRadius: 12, marginBottom: 12 }}>
             <Package size={40} color={D.border} style={{ marginBottom: 8 }} />
@@ -784,7 +670,6 @@ export default function OrderEntry() {
           </div>
         )}
 
-        {/* ── Item cards ── */}
         {lines.length > 0 && (
           <div style={{ marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -800,21 +685,17 @@ export default function OrderEntry() {
                   ref={idx === lines.length - 1 ? lastItemRef : undefined}
                   style={{ background: D.card, border: `1px solid ${D.border}`, borderRadius: 12, padding: '12px 14px' }}
                 >
-                  {/* Product name row */}
                   <div style={{ marginBottom: 10 }}>
                     <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: D.text }}>{line.product.nameEnglish}</p>
                     {line.product.nameMalayalam && (
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: D.muted }} lang="ml">{line.product.nameMalayalam}</p>
                     )}
-                    {/* ── RESTORED: variance badge, driven by the live-typed effective
-                    price so it updates as the salesman types, before blur commits it. ── */}
                     <PriceVarianceBadge
                       base={line.product.basePrice}
                       selling={getEffectivePrice(line.product.id, line.sellingPrice)}
                     />
                   </div>
 
-                  {/* Fields row */}
                   <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
                     <div style={{ width: 110, flexShrink: 0, minWidth: 0 }}>
                       <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Item Code</p>
@@ -866,11 +747,6 @@ export default function OrderEntry() {
           </div>
         )}
 
-        {/* ── ADD PRODUCTS - LARGE FLOATING PLUS BUTTON ──
-        Hidden while the picker sheet is open — previously it stayed rendered
-        underneath the sheet, and on some tablets the on-screen keyboard
-        opening (once the search field is focused) left part of it visible
-        and tappable behind/around the sheet's edges. ── */}
         {canEdit && !showProducts && (
           <div style={{
             display: 'flex',
@@ -929,7 +805,6 @@ export default function OrderEntry() {
           </div>
         )}
 
-        {/* Retail remarks */}
         <div style={{ marginBottom: 10 }}>
           <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             🛍 Retail Items / Remarks
@@ -945,23 +820,18 @@ export default function OrderEntry() {
         </div>
       </div>
 
-      {/* ── Save Draft sticky bottom bar ── */}
       {canEdit && (lines.length > 0 || remarks.trim()) && (
         <div style={{
-          position: 'fixed', 
-          // ── Shifts up automatically when the "Acting as a salesman" banner is
-          // showing (see ReturnToAdminBanner in App.tsx), instead of sitting at a
-          // hardcoded bottom:0 and getting painted over by that banner. ──
-          bottom: 'var(--acting-banner-h, 0px)', 
-          left: 0, 
-          right: 0, 
+          position: 'fixed',
+          bottom: 'var(--acting-banner-h, 0px)',
+          left: 0,
+          right: 0,
           zIndex: 45,
-          background: D.bg, 
+          background: D.bg,
           borderTop: `1px solid ${D.border}`,
           padding: '10px 14px',
-          /* ── FIX: Add bottom padding for mobile nav ── */
-          paddingBottom: isMobile 
-            ? 'calc(10px + env(safe-area-inset-bottom, 0px) + ' + MOBILE_NAV_HEIGHT + 'px)' 
+          paddingBottom: isMobile
+            ? 'calc(10px + env(safe-area-inset-bottom, 0px) + ' + MOBILE_NAV_HEIGHT + 'px)'
             : '10px',
           display: 'flex',
           alignItems: 'center',
@@ -994,7 +864,6 @@ export default function OrderEntry() {
         </div>
       )}
 
-      {/* ── Product picker bottom sheet ── */}
       {showProducts && canEdit && (
         <>
           <div onClick={() => setShowProducts(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 60 }} />
@@ -1026,9 +895,6 @@ export default function OrderEntry() {
                   style={{ width: '100%', padding: '9px 12px 9px 32px', background: D.bg, border: `1px solid ${D.border}`, borderRadius: 9, fontSize: 14, color: D.text, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
-              {/* ── Only shown once the salesman has actually typed something —
-              no point showing a running "148 products" count against an
-              empty, not-yet-rendered list. ── */}
               {search.trim() && (
                 <p style={{ margin: '6px 0 0', fontSize: 11, color: D.sub }}>
                   {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
@@ -1054,9 +920,6 @@ export default function OrderEntry() {
                 filteredProducts.map((product: any) => {
                   const isInBill  = lines.some(l => l.product.id === product.id);
                   const billQty   = lines.find(l => l.product.id === product.id)?.qty ?? 0;
-                  // ── NEW: Out of Stock — faded, disabled, can't add a new one. An item
-                  // already sitting in this draft bill from before it went out of stock
-                  // is left alone (that's handled elsewhere, not by this picker button). ──
                   const outOfStock = !!product.isOutOfStock;
 
                   return (
@@ -1112,7 +975,6 @@ export default function OrderEntry() {
         onUseOrder={copyFromPrevious}
       />
 
-      {/* ── Cancel Confirmation Modal ── */}
       {showCancelConfirm && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: D.card, borderRadius: 16, maxWidth: 400, width: '100%', padding: 24, border: `1px solid ${D.border}` }}>

@@ -1,5 +1,7 @@
 ﻿// PATH: src/FMCG.Distribution.Infrastructure/Persistence/ApplicationDbContext.cs
 // UPDATED: Added SizeGroup DbSet and configuration
+// UPDATED: Added a hard database-level backstop against duplicate active
+//          orders per customer (see the Order entity configuration below).
 
 using System.Data;
 using Microsoft.EntityFrameworkCore;
@@ -44,11 +46,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
             entity.HasIndex(e => e.Email).IsUnique();
-            // ── NEW: UserName configuration ──
             entity.Property(e => e.UserName).HasMaxLength(50);
             entity.HasIndex(e => e.UserName)
                 .IsUnique()
-                .HasFilter("\"UserName\" IS NOT NULL");  // PostgreSQL syntax
+                .HasFilter("\"UserName\" IS NOT NULL");
             entity.Property(e => e.PasswordHash).IsRequired();
             entity.Property(e => e.FullName).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Role).IsRequired().HasConversion<int>();
@@ -176,7 +177,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   .HasForeignKey(e => e.DefaultUnitId)
                   .OnDelete(DeleteBehavior.Restrict);
 
-            // ── NEW: SizeGroup relationship ──
             entity.HasOne(e => e.SizeGroup)
                   .WithMany(g => g.Products)
                   .HasForeignKey(e => e.SizeGroupId)
@@ -208,6 +208,44 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasIndex(e => e.IsLocked);
             entity.HasIndex(e => new { e.RouteId, e.Status });
             entity.HasIndex(e => new { e.CustomerId, e.OrderDate });
+
+            // ── FIX: hard database-level backstop against duplicate active
+            // orders for the same customer. A client-side race between the
+            // manual Save button and the autosave timer (fixed separately in
+            // OrderEntry.tsx via a shared save queue) could previously call
+            // CreateOrderCommandHandler twice near-simultaneously for the
+            // same customer before either request's write was visible to
+            // the other — CreateOrderCommandHandler's existing
+            // "visit.OrderId.HasValue" duplicate check is a check-then-act
+            // race and can't catch two requests that both read it as null at
+            // the same instant. That produced two separate Order rows for
+            // one customer visit, each holding a different, overlapping
+            // subset of the same items — which is what made quantities
+            // inflate and retail remarks duplicate wherever a customer's
+            // orders for the day get merged (Billing Sheet, Loading Sheet,
+            // Retail Sheet): the merge logic was correctly summing two
+            // genuinely duplicated orders.
+            //
+            // This index makes that impossible at the database level,
+            // regardless of client bugs, multiple browser tabs, or multiple
+            // devices: at most ONE non-Closed order can exist per customer
+            // at a time — exactly the same invariant OrderEntry.tsx already
+            // assumes when it looks up "the existing open order" to edit.
+            // Scoped to IsDeleted = false (matches the entity's own
+            // soft-delete query filter) so a genuinely cancelled/deleted
+            // order never blocks a new one, and Status <> 5 (Closed) so a
+            // customer can always start a new order once their previous one
+            // is actually closed. (OrderStatus: Draft=1, PendingApproval=2,
+            // Approved=3, Packed=4, Closed=5 — if this enum's numbering ever
+            // changes, this filter needs updating to match.)
+            //
+            // CreateOrderCommandHandler catches the resulting unique-
+            // violation and returns a friendly "order already in progress"
+            // message instead of a raw database error. ──
+            entity.HasIndex(e => e.CustomerId)
+                  .IsUnique()
+                  .HasFilter("\"IsDeleted\" = false AND \"Status\" <> 5")
+                  .HasDatabaseName("IX_Orders_CustomerId_ActiveUnique");
 
             entity.HasOne(e => e.Customer)
                   .WithMany()
@@ -458,21 +496,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasIndex(e => e.RouteExecutionId);
             entity.HasIndex(e => e.CustomerId);
             entity.HasIndex(e => new { e.RouteExecutionId, e.SequenceOrder });
-            // FIX: without this, two overlapping requests to
-            // GetCurrentRouteExecutionQueryHandler (e.g. the salesman app
-            // reloading, or a slow network causing a retry) could both decide
-            // a newly-added customer was "missing" a visit and each insert
-            // their own CustomerVisit row for that customer — nothing at the
-            // database level stopped it. This constraint makes a second
-            // insert for the same (execution, customer) pair fail outright,
-            // and the query handler now catches that failure and treats it
-            // as "someone else already added it" instead of erroring.
-            // FIX: needed HasFilter here — CustomerVisit uses soft-delete
-            // (IsDeleted), and a plain unique index enforces uniqueness across
-            // ALL rows including old soft-deleted ones, which would block
-            // legitimate new visits forever once any row for that pair was
-            // ever deleted. Scoping to IsDeleted = false matches the entity's
-            // own HasQueryFilter above, so only currently-active rows count. ──
             entity.HasIndex(e => new { e.RouteExecutionId, e.CustomerId })
                   .IsUnique()
                   .HasFilter("\"IsDeleted\" = false");
@@ -502,8 +525,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.IsActive).IsRequired();
             entity.HasQueryFilter(e => !e.IsDeleted);
-
-            // Navigation to Products is configured in Product entity
         });
     }
 
@@ -520,11 +541,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         return await base.SaveChangesAsync(cancellationToken);
     }
 
-    /// <summary>
-    /// Gets the next value from the PostgreSQL order_number_seq sequence.
-    /// Atomic at the database level — guaranteed unique even under thousands of
-    /// concurrent requests across multiple server instances.
-    /// </summary>
     public async Task<long> NextOrderSequenceAsync(CancellationToken cancellationToken = default)
     {
         var connection = Database.GetDbConnection();
@@ -534,7 +550,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT nextval('public.order_number_seq')";
-
 
         var result = await command.ExecuteScalarAsync(cancellationToken);
         return Convert.ToInt64(result);

@@ -1,15 +1,15 @@
 ﻿// PATH: src/FMCG.Distribution.Application/Features/Orders/Commands/CreateOrderCommandHandler.cs
 // FIX: Replaced SemaphoreSlim + SELECT-based order number generation with
 //      PostgreSQL sequence (order_number_seq) via IApplicationDbContext.NextOrderSequenceAsync().
-//      PostgreSQL sequences are atomic at the database level — no duplicate keys possible,
-//      no race conditions, works correctly across multiple server instances.
 // FIX: Unit lookup no longer requires IsActive - only checks IsDeleted
-// NEW: Captures ProductNameAtTime / ProductNameMalayalamAtTime / SizeGroupNameAtTime on each
-//      OrderItem at creation, mirroring the existing BasePriceAtTime snapshot pattern. This
-//      is what keeps historical reports (Billing Sheet / Loading Sheet) showing the name and
-//      size group that were actually on the order that day, even if the product gets renamed
-//      or moved to a different size group later — including through a reopen + re-close cycle,
-//      since this value is only ever set here at creation and never overwritten afterwards.
+// NEW: Captures ProductNameAtTime / ProductNameMalayalamAtTime / SizeGroupNameAtTime.
+// NEW: catches the IX_Orders_CustomerId_ActiveUnique unique-constraint violation
+//      (see ApplicationDbContext) and returns a friendly, actionable message
+//      instead of letting the raw Postgres error surface. This is the backstop
+//      for the manual-save/autosave race that the frontend's new save queue
+//      (OrderEntry.tsx) already prevents in the common case — this catch only
+//      fires for the races that queue can't reach (a second browser tab, a
+//      second device, a retried request after a dropped connection).
 
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -51,18 +51,6 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
         var orderItems = new List<OrderItem>();
         var itemDtos = new List<OrderItemDto>();
 
-        // ── PERFORMANCE FIX: previously, every item in the request triggered two
-        // separate database round-trips (one for its Product, one for its Unit) —
-        // an order with 10 items meant 20 sequential round-trips before the order
-        // was even created. This is exactly the delay you're seeing when opening
-        // a brand-new order screen and it appears empty while still loading, and
-        // again on save. Fetching every distinct referenced product and unit in
-        // TWO queries up front, then looking each one up from an in-memory
-        // dictionary inside the loop, turns that into 2 round-trips total
-        // regardless of how many items are on the order. Across a cross-cloud
-        // connection (app server and DB in different data centers), each
-        // round-trip costs real time — this was likely the single biggest
-        // contributor to the salesman-side delay reported. ──
         var requestedProductIds = request.Items.Select(i => i.ProductId).Distinct().ToList();
         var requestedUnitIds = request.Items.Select(i => i.UnitId).Distinct().ToList();
 
@@ -81,10 +69,6 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             if (!productsById.TryGetValue(item.ProductId, out var product))
                 return Result<OrderDetailDto>.Failure($"Product '{item.ProductId}' not found or inactive.");
 
-            // ── NEW: Out of Stock guard — a salesman shouldn't be able to place a fresh
-            // order for something the admin has marked as out of stock, even if a stale
-            // client screen still shows it. This mirrors the existing inactive/deleted
-            // checks above — same kind of "this can't be ordered right now" rule. ──
             if (product.IsOutOfStock)
                 return Result<OrderDetailDto>.Failure($"'{product.NameEnglish}' is currently out of stock.");
 
@@ -95,11 +79,6 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             if (item.SellingPrice <= 0)
                 return Result<OrderDetailDto>.Failure($"Selling price must be greater than zero for '{product.NameEnglish}'.");
 
-            // ── FIX: no longer require IsActive here. A packing category being
-            // deactivated (e.g. via AdminCatalogConfig) is meant to hide it from NEW
-            // product assignments — it should NOT retroactively break orders for
-            // products that are already linked to it. Only IsDeleted disqualifies a
-            // unit, since a hard-deleted unit genuinely no longer exists. ──
             if (!unitsById.TryGetValue(item.UnitId, out var unit))
                 return Result<OrderDetailDto>.Failure($"Unit not found for product '{product.NameEnglish}'.");
 
@@ -111,7 +90,6 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
                 UnitId = item.UnitId,
                 SellingPrice = item.SellingPrice,
                 BasePriceAtTime = product.BasePrice,
-                // ── NEW: name/size-group snapshot, captured once, right here ──
                 ProductNameAtTime = product.NameEnglish,
                 ProductNameMalayalamAtTime = product.NameMalayalam,
                 SizeGroupNameAtTime = product.SizeGroup?.Name,
@@ -138,26 +116,11 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             });
         }
 
-        // ── FIX: Allow orders with only remarks (no items) ──
-        // If there are no items but remarks exist, create an order with empty items list
         if (orderItems.Count == 0 && string.IsNullOrWhiteSpace(request.Remarks))
         {
             return Result<OrderDetailDto>.Failure("Add at least one product or retail remark to create an order.");
         }
 
-        // ── BUG FIX: OrderDate used to always be DateTime.UtcNow — the exact
-        // moment Save was clicked, completely regardless of which route
-        // execution this order actually belongs to. This broke the case of a
-        // customer missed on the original route day (e.g. Saturday) and only
-        // filled in later (e.g. Monday, after a Sunday gap) — the order would
-        // get stamped with Monday's date instead of the Saturday route's real
-        // date, even though editing an already-existing order always correctly
-        // preserved its original date (UpdateOrderCommandHandler never touches
-        // OrderDate at all). New orders now resolve the same way: find the
-        // route execution this order belongs to FIRST, and stamp OrderDate from
-        // its ExecutionDate — falling back to "now" only if no execution
-        // context can be resolved at all (should be rare, since every order is
-        // tied to a route that always operates through an execution). ──
         CustomerVisit? visit = null;
         DateTime? executionDate = null;
 
@@ -198,22 +161,17 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             }
         }
 
-        // ── FIX: Duplicate-order guard — a visit already carrying an OrderId means an
-        // order was already created for this customer's stop (e.g. a double-tap/retry
-        // from the salesman app produced two CreateOrder calls back to back). Without
-        // this check, nothing stopped a second, fully independent Order row from being
-        // created for the same visit, and once both got closed they'd both legitimately
-        // show up as separate stops on the Loading Sheet and Billing Sheet. Only blocks
-        // when the visit is already linked to a real order — a visit with no OrderId yet
-        // is unaffected. ──
+        // ── Duplicate-order guard (check-then-act) — still worth keeping as a
+        // fast, cheap early-out for the common case, even though it can't
+        // fully close the race on its own. The unique index below is what
+        // actually guarantees correctness when two requests land close
+        // enough together that both pass this check. ──
         if (visit != null && visit.OrderId.HasValue)
         {
             return Result<OrderDetailDto>.Failure("An order already exists for this visit.");
         }
 
         // ── Generate unique order number via PostgreSQL sequence ───────────────
-        // nextval('order_number_seq') is atomic — the DB guarantees each call
-        // returns a unique value, even with thousands of concurrent requests.
         var orderNumber = await GenerateOrderNumberAsync(cancellationToken);
 
         // ── Create the order ───────────────────────────────────────────────────
@@ -232,10 +190,27 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
         };
 
         await context.Orders.AddAsync(order, cancellationToken);
-        await context.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (
+            ex.InnerException?.Message.Contains("IX_Orders_CustomerId_ActiveUnique") == true)
+        {
+            // ── FIX: this is the database-level backstop firing — a
+            // concurrent request (a different browser tab, a different
+            // device, or a retried request) already created an active order
+            // for this customer between when THIS request read the world and
+            // when it tried to write. Rather than surfacing a raw constraint-
+            // violation error, tell the salesman plainly what happened; the
+            // client should refetch and continue editing the order that won,
+            // instead of silently creating a duplicate. ──
+            return Result<OrderDetailDto>.Failure(
+                "An order is already in progress for this customer. Please refresh the page to continue editing it.");
+        }
 
         // ── Mark the visit as ordered, now that the order exists ──
-        // (Visit/execution already resolved above — no need to re-look it up here.)
         if (visit != null && visit.Status == VisitStatus.Pending)
         {
             visit.RecordOrder(order.Id);
@@ -268,20 +243,10 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
         }, "Order created successfully.");
     }
 
-    // ── Generate order number using PostgreSQL atomic sequence ─────────────────
-    // Format: ORD-YYYYMMDD-NNNN  (e.g. ORD-20260616-1042)
-    // The sequence value is globally unique across all dates, so we combine it
-    // with the date prefix for human readability.
-    // Even if the sequence wraps across days, the date prefix ensures no collisions.
     private async Task<string> GenerateOrderNumberAsync(CancellationToken cancellationToken)
     {
         var datePart = DateTime.UtcNow.ToString("yyyyMMdd");
-
-        // This single DB call is atomic — PostgreSQL guarantees uniqueness
         var seqValue = await context.NextOrderSequenceAsync(cancellationToken);
-
-        // Format: ORD-20260616-1042
-        // Use seqValue directly (no date-based reset) to keep it globally unique
         return $"ORD-{datePart}-{seqValue:D4}";
     }
 
