@@ -27,28 +27,14 @@ public class GetAdditionalRevenueReportQueryHandler : IRequestHandler<GetAdditio
 
         Console.WriteLine($"🔵 Additional Revenue Report: {fromDate:yyyy-MM-dd} to {toDate:yyyy-MM-dd}");
 
-        // Get all active salesmen
-        var salesmen = await _context.Users
-            .AsNoTracking()
-            .Where(u => u.Role == UserRole.Salesman && u.IsActive && !u.IsDeleted)
-            .ToListAsync(cancellationToken);
-
-        if (salesmen.Count == 0)
-        {
-            return Result<byte[]>.Failure("No salesmen found.");
-        }
-
-        var salesmanIds = salesmen.Select(s => s.Id).ToList();
-
-        // Get closed orders within date range with product and customer details
+        // Closed orders within the date range (report is customer/date based,
+        // so it no longer depends on salesmen at all).
         var orders = await _context.Orders
             .AsNoTracking()
             .Include(o => o.Customer)
             .Include(o => o.Items)
                 .ThenInclude(i => i.Product)
             .Where(o => !o.IsDeleted
-                && o.SalesmanId != null
-                && salesmanIds.Contains(o.SalesmanId)
                 && o.OrderDate.Date >= fromDate.Date
                 && o.OrderDate.Date <= toDate.Date
                 && o.Status == OrderStatus.Closed)
@@ -62,59 +48,59 @@ public class GetAdditionalRevenueReportQueryHandler : IRequestHandler<GetAdditio
             ToDate = toDate,
             GeneratedAt = DateTime.UtcNow,
             Items = new List<AdditionalRevenueReportItemDto>(),
-            GrandTotalAdditionalRevenue = 0,
-            TotalSalesmen = salesmen.Count
+            GrandTotalAdditionalRevenue = 0
         };
 
         // ─── Calculate additional revenue for each order item ───
-        foreach (var salesman in salesmen)
+        foreach (var order in orders)
         {
-            var salesmanOrders = orders.Where(o => o.SalesmanId == salesman.Id).ToList();
-
-            foreach (var order in salesmanOrders)
+            foreach (var item in order.Items)
             {
-                foreach (var item in order.Items)
+                if (item.ProductId == Guid.Empty) continue;
+                if (item.Product == null) continue;
+
+                var product = item.Product;
+
+                // ─── Get Unit Size from Product ───
+                var unitSize = product.UnitSize ?? 1;
+
+                // ─── Calculate Additional Revenue ───
+                // (Selling Price - Base Price) × Unit Size × Quantity
+                var priceDiff = item.SellingPrice - item.BasePriceAtTime;
+                var additionalRevenue = priceDiff * unitSize * item.Quantity;
+
+                // ─── Only include if additional revenue is not zero ───
+                if (additionalRevenue != 0)
                 {
-                    if (item.ProductId == Guid.Empty) continue;
-                    if (item.Product == null) continue;
-
-                    var product = item.Product;
-
-                    // ─── Get Unit Size from Product ───
-                    var unitSize = product.UnitSize ?? 1;
-
-                    // ─── Calculate Additional Revenue ───
-                    // (Selling Price - Base Price) × Unit Size × Quantity
-                    var priceDiff = item.SellingPrice - item.BasePriceAtTime;
-                    var additionalRevenue = priceDiff * unitSize * item.Quantity;
-
-                    // ─── Only include if additional revenue is not zero ───
-                    if (additionalRevenue != 0)
+                    reportData.Items.Add(new AdditionalRevenueReportItemDto
                     {
-                        reportData.Items.Add(new AdditionalRevenueReportItemDto
-                        {
-                            SalesmanId = salesman.Id,
-                            SalesmanName = salesman.FullName,
-                            CustomerName = order.Customer?.NameEnglish ?? "Unknown",
-                            ProductName = product.NameEnglish,
-                            Quantity = item.Quantity,
-                            BasePrice = item.BasePriceAtTime,
-                            SellingPrice = item.SellingPrice,
-                            UnitSize = unitSize,
-                            AdditionalRevenue = additionalRevenue
-                        });
+                        CustomerId = order.CustomerId,
+                        CustomerName = order.Customer?.NameEnglish ?? "Unknown",
+                        OrderDate = order.OrderDate.Date,
+                        ProductName = product.NameEnglish,
+                        Quantity = item.Quantity,
+                        BasePrice = item.BasePriceAtTime,
+                        SellingPrice = item.SellingPrice,
+                        UnitSize = unitSize,
+                        AdditionalRevenue = additionalRevenue
+                    });
 
-                        reportData.GrandTotalAdditionalRevenue += additionalRevenue;
-                    }
+                    reportData.GrandTotalAdditionalRevenue += additionalRevenue;
                 }
             }
         }
 
-        // Sort by salesman name
+        // Sort by customer, then date, then product
         reportData.Items = reportData.Items
-            .OrderBy(i => i.SalesmanName)
+            .OrderBy(i => i.CustomerName)
+            .ThenBy(i => i.OrderDate)
             .ThenBy(i => i.ProductName)
             .ToList();
+
+        reportData.TotalCustomers = reportData.Items
+            .Select(i => i.CustomerId)
+            .Distinct()
+            .Count();
 
         Console.WriteLine($"🔵 Total Additional Revenue: {reportData.GrandTotalAdditionalRevenue}");
 
@@ -124,6 +110,15 @@ public class GetAdditionalRevenueReportQueryHandler : IRequestHandler<GetAdditio
 
     private byte[] GenerateAdditionalRevenueReportPdf(AdditionalRevenueReportDataDto data)
     {
+        // Customer -> Date -> Items  (customers A-Z, dates oldest first)
+        var customerGroups = data.Items
+            .GroupBy(i => new { i.CustomerId, i.CustomerName })
+            .OrderBy(g => g.Key.CustomerName)
+            .ToList();
+
+        static string Money(decimal v) => $"₹{v:N2}";
+        static string MoneyColor(decimal v) => v >= 0 ? Colors.Green.Medium : Colors.Red.Medium;
+
         return Document.Create(container =>
         {
             container.Page(page =>
@@ -136,36 +131,31 @@ public class GetAdditionalRevenueReportQueryHandler : IRequestHandler<GetAdditio
                 page.Header()
                     .BorderBottom(0.5f)
                     .PaddingBottom(5)
-                    .Row(row =>
+                    .AlignRight()
+                    .Column(col =>
                     {
-                        row.RelativeItem().Column(col =>
-                        {
-                            col.Item().Text("ADDITIONAL REVENUE REPORT").FontSize(14).Bold();
-                            col.Item().Text($"Period: {data.FromDate:dd-MM-yyyy} to {data.ToDate:dd-MM-yyyy}");
-                        });
-                        //row.RelativeItem().AlignRight().Column(col =>
-                        //{
-                        //    col.Item().Text($"Generated: {data.GeneratedAt:dd-MM-yyyy HH:mm}");
-                        //    col.Item().Text($"Total Additional Revenue: ₹{data.GrandTotalAdditionalRevenue:N2}");
-                        //});
+                        col.Item().Text("ADDITIONAL REVENUE REPORT").FontSize(14).Bold();
+                        col.Item().Text($"Period: {data.FromDate:dd-MM-yyyy} to {data.ToDate:dd-MM-yyyy}");
                     });
 
                 // ─── Content ───
                 page.Content().Column(col =>
                 {
+                    col.Spacing(6);
+
                     // ─── Summary Cards ───
-                    col.Item().PaddingTop(8).PaddingBottom(8).Row(summaryRow =>
+                    col.Item().PaddingTop(8).Row(summaryRow =>
                     {
                         summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
                         {
-                            c.Item().Text("SALESMEN").FontSize(7).FontColor(Colors.Grey.Medium);
-                            c.Item().Text($"{data.TotalSalesmen}").FontSize(12).Bold();
+                            c.Item().Text("CUSTOMERS").FontSize(7).FontColor(Colors.Grey.Medium);
+                            c.Item().Text($"{data.TotalCustomers}").FontSize(12).Bold();
                         });
                         summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
                         {
                             c.Item().Text("TOTAL ADDITIONAL REVENUE").FontSize(7).FontColor(Colors.Grey.Medium);
-                            c.Item().Text($"₹{data.GrandTotalAdditionalRevenue:N2}").FontSize(12).Bold()
-                                .FontColor(data.GrandTotalAdditionalRevenue >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
+                            c.Item().Text(Money(data.GrandTotalAdditionalRevenue)).FontSize(12).Bold()
+                                .FontColor(MoneyColor(data.GrandTotalAdditionalRevenue));
                         });
                         summaryRow.RelativeItem().Border(0.5f).Padding(5).Column(c =>
                         {
@@ -174,64 +164,100 @@ public class GetAdditionalRevenueReportQueryHandler : IRequestHandler<GetAdditio
                         });
                     });
 
-                    // ─── Main Table ───
-                    col.Item().Table(table =>
+                    // ─── One block per customer ───
+                    // Each date block (date band + its table) is kept together, and the customer
+                    // band travels with the FIRST date block of that customer. A band can no longer
+                    // be left alone at the bottom of a page while its table starts on the next page.
+                    foreach (var customer in customerGroups)
                     {
-                        table.ColumnsDefinition(columns =>
-                        {
-                            columns.RelativeColumn(2);  // Salesman
-                            columns.RelativeColumn(2);  // Customer
-                            columns.RelativeColumn(2);  // Product
-                            columns.RelativeColumn(1);  // Qty
-                            columns.RelativeColumn(1);  // Base Price
-                            columns.RelativeColumn(1);  // Selling Price
-                            columns.RelativeColumn(1);  // Unit Size
-                            columns.RelativeColumn(2);  // Additional Revenue
-                        });
+                        var customerTotal = customer.Sum(i => i.AdditionalRevenue);
+                        var dateGroups = customer.GroupBy(i => i.OrderDate.Date).OrderBy(g => g.Key).ToList();
+                        var isFirstDay = true;
 
-                        // ─── Table Header ───
-                        table.Header(header =>
+                        foreach (var day in dateGroups)
                         {
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("SALESMAN").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("CUSTOMER").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("PRODUCT").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("QTY").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("BASE").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("SELLING").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("UNIT SIZE").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("ADDITIONAL REVENUE").Bold();
-                        });
+                            var daySubtotal = day.Sum(i => i.AdditionalRevenue);
+                            var dayItems = day.OrderBy(i => i.ProductName).ToList();
+                            var showCustomerBand = isFirstDay;
+                            isFirstDay = false;
 
-                        // ─── Table Rows ───
-                        foreach (var item in data.Items)
-                        {
-                            var color = item.AdditionalRevenue >= 0 ? Colors.Green.Medium : Colors.Red.Medium;
+                            // Minimum room needed to start this block on the current page:
+                            // bands + table header + the first (up to 3) rows. If it does not fit,
+                            // the whole block starts on the next page. Longer tables still continue
+                            // onto following pages as before (the table header repeats).
+                            var minHeight = (showCustomerBand ? 22 : 0) + 18 + 16 + Math.Min(dayItems.Count, 3) * 15;
 
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.SalesmanName.ToUpper());
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.CustomerName.ToUpper());
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName.ToUpper());
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.Quantity:N0}");
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.BasePrice:N2}");
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.SellingPrice:N2}");
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.UnitSize:N2}");
-                            table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"₹{item.AdditionalRevenue:N2}")
-                                .FontColor(color);
+                            col.Item().EnsureSpace(minHeight).Column(block =>
+                            {
+                                block.Spacing(6);
+
+                                if (showCustomerBand)
+                                {
+                                    // Customer band: name on the left, total on the right
+                                    block.Item().Background(Colors.Grey.Lighten3).Padding(4).Row(r =>
+                                    {
+                                        r.RelativeItem().Text($"CUSTOMER: {customer.Key.CustomerName.ToUpper()}").FontSize(9).Bold();
+                                        r.AutoItem().Text($"Total: {Money(customerTotal)}").FontSize(8).Bold()
+                                            .FontColor(MoneyColor(customerTotal));
+                                    });
+                                }
+
+                                // Date band: date on the left, subtotal on the right
+                                block.Item().Background(Colors.Grey.Lighten4).PaddingVertical(3).PaddingHorizontal(4).Row(r =>
+                                {
+                                    r.RelativeItem().Text($"— {day.Key:dd-MM-yyyy} —").Bold();
+                                    r.AutoItem().Text($"Subtotal: {Money(daySubtotal)}").Bold()
+                                        .FontColor(MoneyColor(daySubtotal));
+                                });
+
+                                // Items table for that date (no salesman column)
+                                block.Item().Table(table =>
+                                {
+                                    table.ColumnsDefinition(columns =>
+                                    {
+                                        columns.RelativeColumn(4);  // Product
+                                        columns.RelativeColumn(1);  // Qty
+                                        columns.RelativeColumn(1.3f); // Base
+                                        columns.RelativeColumn(1.3f); // Selling
+                                        columns.RelativeColumn(1.2f); // Unit size
+                                        columns.RelativeColumn(1.6f); // Add. revenue
+                                    });
+
+                                    table.Header(header =>
+                                    {
+                                        header.Cell().BorderBottom(0.5f).Padding(2).Text("PRODUCT").Bold();
+                                        header.Cell().BorderBottom(0.5f).Padding(2).AlignRight().Text("QTY").Bold();
+                                        header.Cell().BorderBottom(0.5f).Padding(2).AlignRight().Text("BASE").Bold();
+                                        header.Cell().BorderBottom(0.5f).Padding(2).AlignRight().Text("SELLING").Bold();
+                                        header.Cell().BorderBottom(0.5f).Padding(2).AlignRight().Text("UNIT SIZE").Bold();
+                                        header.Cell().BorderBottom(0.5f).Padding(2).AlignRight().Text("ADD. REVENUE").Bold();
+                                    });
+
+                                    foreach (var item in dayItems)
+                                    {
+                                        table.Cell().BorderBottom(0.25f).Padding(2).Text(item.ProductName.ToUpper());
+                                        table.Cell().BorderBottom(0.25f).Padding(2).AlignRight().Text($"{item.Quantity:N0}");
+                                        table.Cell().BorderBottom(0.25f).Padding(2).AlignRight().Text(Money(item.BasePrice));
+                                        table.Cell().BorderBottom(0.25f).Padding(2).AlignRight().Text(Money(item.SellingPrice));
+                                        table.Cell().BorderBottom(0.25f).Padding(2).AlignRight().Text($"{item.UnitSize:N2}");
+                                        table.Cell().BorderBottom(0.25f).Padding(2).AlignRight().Text(Money(item.AdditionalRevenue))
+                                            .FontColor(MoneyColor(item.AdditionalRevenue));
+                                    }
+                                });
+                            });
                         }
+                    }
 
-                        // ─── Total Row ───
-                        if (data.Items.Count > 0)
+                    // ─── Grand Total ───
+                    if (data.Items.Count > 0)
+                    {
+                        col.Item().BorderTop(0.5f).PaddingTop(4).Row(r =>
                         {
-                            table.Cell().BorderTop(0.5f).Padding(3).Text("TOTAL").Bold();
-                            table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
-                            table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
-                            table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.Items.Sum(i => i.Quantity):N0}").Bold();
-                            table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
-                            table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
-                            table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
-                            table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"₹{data.GrandTotalAdditionalRevenue:N2}").Bold()
-                                .FontColor(data.GrandTotalAdditionalRevenue >= 0 ? Colors.Green.Medium : Colors.Red.Medium);
-                        }
-                    });
+                            r.RelativeItem().Text("GRAND TOTAL").FontSize(9).Bold();
+                            r.AutoItem().Text(Money(data.GrandTotalAdditionalRevenue)).FontSize(9).Bold()
+                                .FontColor(MoneyColor(data.GrandTotalAdditionalRevenue));
+                        });
+                    }
                 });
 
                 // ─── Footer ───
@@ -245,6 +271,7 @@ public class GetAdditionalRevenueReportQueryHandler : IRequestHandler<GetAdditio
                         x.CurrentPageNumber();
                         x.Span(" of ");
                         x.TotalPages();
+                        x.Span($" | Generated: {data.GeneratedAt:HH:mm:ss}");
                     });
             });
         }).GeneratePdf();

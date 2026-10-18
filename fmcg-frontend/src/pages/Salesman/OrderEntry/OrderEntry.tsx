@@ -40,7 +40,7 @@ import {
   ArrowLeft, Edit3, Lock, Save,
   CalendarDays, Trash2, CheckCircle2, Clock,
   ChevronLeft, ChevronRight, Search, X, Package,
-  AlertTriangle, Trash, Phone, MapPin,
+  AlertTriangle, Trash, Phone, MapPin, UserCog,
 } from 'lucide-react';
 import { customersApi, ordersApi, productsApi } from '../../../api/services';
 import {
@@ -605,6 +605,12 @@ export default function OrderEntry() {
               </span>
             )}
           </div>
+          {customer?.orderTakenByAdmin && (                                              // ← ADD
+  <div style={{ marginTop: 3, display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 12, fontSize: 9, fontWeight: 700, background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.35)', color: '#a78bfa' }}>
+    <UserCog size={9} /> Admin is taking orders for this store
+  </div>
+)}
+<div style={{ marginTop: 3 }}></div>
           <div style={{ marginTop: 3 }}>
             {!existingOrder && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '1px 6px', background: '#422006', border: '1px solid #92400e', borderRadius: 12, fontSize: 8, fontWeight: 700, color: '#fb923c' }}><Edit3 size={8} /> New</span>}
             {orderStatus === OrderStatus.Draft && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '1px 6px', background: '#422006', border: '1px solid #92400e', borderRadius: 12, fontSize: 8, fontWeight: 700, color: '#fb923c' }}><Edit3 size={8} /> Draft</span>}

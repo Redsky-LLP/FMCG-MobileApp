@@ -63,6 +63,8 @@ export function AdminRoutes() {
       await routesApi.create({
         name: form.name,
         description: form.description || undefined,
+          dailyBagTarget:   form.dailyBagTarget   ? parseInt(form.dailyBagTarget, 10)   : undefined,   // ← ADD
+  monthlyBagTarget: form.monthlyBagTarget ? parseInt(form.monthlyBagTarget, 10) : undefined,   // ← ADD
       });
       setShowAddCard(false);
       showBannerToast('✅ Route created successfully!', 'success');

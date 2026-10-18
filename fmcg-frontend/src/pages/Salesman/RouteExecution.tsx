@@ -7,7 +7,7 @@ import {
   ShoppingCart, ArrowLeft, Flag, Home,
   CheckCircle2, XCircle, Clock, Phone, MapPin,
   AlertCircle, Eye, CalendarDays, ChevronRight, Search, X, RotateCcw, Check,
-  Package,
+  Package,UserCog
 } from 'lucide-react';
 import { routesApi, ordersApi } from '../../api/services';
 import type { CurrentRouteExecutionDto, CustomerVisitDto, VisitStatus, CompleteRouteExecutionResponse } from '../../types';
@@ -113,6 +113,11 @@ export default function RouteExecution() {
   const bags = execution?.bagsBreakdown;
   const totalEquivalent = bags?.totalEquivalentBags ?? 0;
   const mergedBagCount = Math.round(totalEquivalent);
+  const monthlyBagCount = Math.round(bags?.monthlyEquivalentBags ?? 0);
+const dailyTarget     = bags?.dailyTarget ?? 0;
+const monthlyTarget   = bags?.monthlyTarget ?? 0;
+const dailyHit        = dailyTarget > 0 && mergedBagCount >= dailyTarget;
+const monthlyHit      = monthlyTarget > 0 && monthlyBagCount >= monthlyTarget;
 
   function getNextPendingCustomer(currentCustomerId: string): CustomerVisitDto | null {
     if (!execution?.customers) return null;
@@ -552,13 +557,19 @@ export default function RouteExecution() {
               merged count per updated request — one rounded number, prominent,
               no separate 50kg/eq split and no progress bar. Still refreshed from
               execution.bagsBreakdown after every completed stop. ── */}
-          <div style={{
-            marginTop: 8, display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 12, fontWeight: 800, color: D.text,
-          }}>
-            <Package size={13} />
-            <span>[Bags: {mergedBagCount}]</span>
-          </div>
+          
+<div style={{
+  marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+  gap: 8, fontSize: 12, fontWeight: 800, color: D.text,
+}}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: dailyHit ? D.green : D.text }}>
+    <Package size={13} />
+    <span>Daily: {mergedBagCount}{dailyTarget > 0 ? `/${dailyTarget}` : ''}</span>
+  </div>
+  <span style={{ color: monthlyHit ? D.green : D.text }}>
+    Monthly: {monthlyBagCount}{monthlyTarget > 0 ? `/${monthlyTarget}` : ''}
+  </span>
+</div>
         </div>
 
         <div style={{ padding: '0 10px 6px' }}>
@@ -678,6 +689,15 @@ export default function RouteExecution() {
                   {(visit as any).customerNameMalayalam && (
                     <div style={{ fontSize: 13, color: D.muted, marginBottom: 4 }}>{(visit as any).customerNameMalayalam}</div>
                   )}
+                  {visit.orderTakenByAdmin && (                                                  // ← ADD
+  <div style={{
+    display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 5,
+    padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 800,
+    background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.35)', color: '#a78bfa',
+  }}>
+    <UserCog size={11} /> Admin taking orders
+  </div>
+)}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     {visit.phoneNumber && (
                       <a href={`tel:${visit.phoneNumber}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 700, color: D.accent, textDecoration: 'none' }}>

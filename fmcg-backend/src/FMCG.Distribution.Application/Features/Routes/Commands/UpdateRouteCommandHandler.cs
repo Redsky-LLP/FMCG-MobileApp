@@ -29,6 +29,11 @@ public class UpdateRouteCommandHandler : IRequestHandler<UpdateRouteCommand, Res
         route.SequenceOrder = request.SequenceOrder;
         route.AssignedSalesmanId = request.AssignedSalesmanId;
         route.IsActive = request.IsActive;
+        // null = not sent → keep the old value; 0 = clear the target; >0 = set it
+        if (request.DailyBagTarget.HasValue)
+            route.DailyBagTarget = request.DailyBagTarget.Value > 0 ? request.DailyBagTarget : null;
+        if (request.MonthlyBagTarget.HasValue)
+            route.MonthlyBagTarget = request.MonthlyBagTarget.Value > 0 ? request.MonthlyBagTarget : null;
         route.UpdateTimestamp("system");
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -40,6 +45,8 @@ public class UpdateRouteCommandHandler : IRequestHandler<UpdateRouteCommand, Res
             Description = route.Description,
             SequenceOrder = route.SequenceOrder,
             AssignedSalesmanId = route.AssignedSalesmanId,
+            DailyBagTarget = route.DailyBagTarget,
+            MonthlyBagTarget = route.MonthlyBagTarget,
             IsActive = route.IsActive
         }, "Route updated successfully.");
     }

@@ -9,6 +9,8 @@ public class Route : BaseEntity
     public int SequenceOrder { get; set; }
     public Guid? AssignedSalesmanId { get; set; }
     public bool IsActive { get; set; } = true;
+    public int? DailyBagTarget { get; set; }       // ← ADD
+    public int? MonthlyBagTarget { get; set; }     // ← ADD
 
     // Navigation properties
     public virtual User? AssignedSalesman { get; set; }

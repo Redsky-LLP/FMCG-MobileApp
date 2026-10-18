@@ -1,4 +1,6 @@
-// PATH: src/pages/Admin/AdminCustomers.tsx
+// NEW: "Orders by" dropdown on each customer card (Salesman / Admin) — every added line is marked "← NEW".
+// ADDED: "History" button on each customer card → slide-in panel listing ALL of that
+// customer's orders (newest first) with items, amounts and status.
 // UPDATED: Removed "Set Sequence" text, added Back button, dark theme
 // FIXED: Toast messages shown in banner area
 // FIX: handleEdit() now includes sequenceOrder in the update payload — it was
@@ -10,10 +12,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Plus, Edit2, Trash2, Users, Search, RefreshCw,
   AlertTriangle, Phone, MapPin, Route, X, Save,
-  ChevronRight, ArrowUpDown, MoveRight, Trash, ArrowLeft,
+  ChevronRight, ArrowUpDown, MoveRight, Trash, ArrowLeft, History as HistoryIcon,
+  UserCog,                                                    // ← NEW
 } from 'lucide-react';
-import { customersApi, routesApi } from '../../api/services';
-import type { CustomerDto, RouteDto } from '../../types';
+import { customersApi, routesApi, ordersApi } from '../../api/services';
+import type { CustomerDto, RouteDto, CustomerOrderHistoryDto } from '../../types';
 import { PageLoader, Spinner, Alert, ConfirmModal } from '../../components/ui';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
@@ -314,11 +317,163 @@ function DeletePage({
   );
 }
 
+// ── Order History Page (Slide-in panel) ───────────────────────
+// Shows EVERY non-draft order for the customer (newest first). The backend
+// endpoint takes a `limit`, so we pass a very large number to get all of them.
+const HISTORY_LIMIT_ALL = 100000;
+
+const fmtMoney = (n: number) =>
+  `₹${(n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+function statusStyle(status: string) {
+  const st = (status || '').toLowerCase();
+  if (st === 'closed')    return { color: D.green, bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.30)' };
+  if (st === 'submitted') return { color: D.amber, bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.30)' };
+  return { color: D.muted, bg: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.30)' };
+}
+
+function HistoryPage({ customer, onClose }: { customer: CustomerDto; onClose: () => void }) {
+  const [orders,  setOrders]  = useState<CustomerOrderHistoryDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const data = await ordersApi.getCustomerHistory(String(customer.id), HISTORY_LIMIT_ALL);
+        if (!cancelled) setOrders(data ?? []);
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message ?? 'Failed to load order history.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [customer.id]);
+
+  const grandTotal = orders.reduce((sum, o) => sum + (o.totalAmount ?? 0), 0);
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.60)', zIndex: 200, backdropFilter: 'blur(4px)' }} />
+      <div style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0, width: '100%', maxWidth: 560,
+        background: D.surface, zIndex: 210,
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '-8px 0 40px rgba(0,0,0,0.4)',
+        animation: 'slide-in-right 0.26s cubic-bezier(0.34,1.2,0.64,1)',
+        borderLeft: `1px solid ${D.border}`,
+      }}>
+        {/* Header */}
+        <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${D.accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <HistoryIcon size={20} color={D.accent} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: D.text, letterSpacing: '-0.02em' }}>Order History</div>
+            <div style={{ fontSize: 13, color: D.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{customer.nameEnglish}</div>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${D.border}`, background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: D.sub }}>
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Summary */}
+        {!loading && !error && orders.length > 0 && (
+          <div style={{ display: 'flex', gap: 10, padding: '14px 24px 0', flexShrink: 0 }}>
+            <div style={{ flex: 1, background: D.bg, border: `1px solid ${D.border}`, borderRadius: 10, padding: '8px 12px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Orders</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: D.text }}>{orders.length}</div>
+            </div>
+            <div style={{ flex: 1, background: D.bg, border: `1px solid ${D.border}`, borderRadius: 10, padding: '8px 12px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total Value</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: D.accent }}>{fmtMoney(grandTotal)}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px 20px' }}>
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}><Spinner size={28} /></div>
+          ) : error ? (
+            <Alert variant="error">{error}</Alert>
+          ) : orders.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '48px 0', color: D.sub }}>
+              <HistoryIcon size={36} style={{ margin: '0 auto 12px', opacity: 0.4 }} />
+              <div style={{ fontWeight: 700, color: D.text }}>No orders yet</div>
+              <div style={{ fontSize: 13, marginTop: 4 }}>This customer has no submitted or closed orders.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {orders.map(o => {
+                const ss = statusStyle(o.status);
+                return (
+                  <div key={o.orderId} style={{ background: D.bg, border: `1px solid ${D.border}`, borderRadius: 12, overflow: 'hidden' }}>
+                    {/* Order header */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: D.surface2, borderBottom: `1px solid ${D.border}` }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: D.text }}>{fmtDate(o.orderDate)}</div>
+                        <div style={{ fontSize: 11, color: D.sub }}>{o.orderNumber}</div>
+                      </div>
+                      <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 20, color: ss.color, background: ss.bg, border: `1px solid ${ss.border}`, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        {o.status}
+                      </span>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: D.accent }}>{fmtMoney(o.totalAmount)}</div>
+                    </div>
+
+                    {/* Items */}
+                    <div style={{ padding: '6px 14px 10px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, fontSize: 10, fontWeight: 700, color: D.sub, textTransform: 'uppercase', padding: '4px 0', borderBottom: `1px solid ${D.border}` }}>
+                        <span>Product</span><span style={{ textAlign: 'right' }}>Qty × Price</span><span style={{ textAlign: 'right', minWidth: 70 }}>Amount</span>
+                      </div>
+                      {o.items.map((it, idx) => (
+                        <div key={`${o.orderId}-${idx}`} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, alignItems: 'center', fontSize: 12, padding: '5px 0', borderBottom: idx === o.items.length - 1 ? 'none' : `1px solid ${D.border}55` }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ color: D.text, fontWeight: 600 }}>{it.productName}</div>
+                            {it.productNameMalayalam && (
+                              <div style={{ fontSize: 10, color: D.sub, fontFamily: "'Manjari', sans-serif" }}>{it.productNameMalayalam}</div>
+                            )}
+                          </div>
+                          <div style={{ color: D.muted, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            {it.quantity} {it.unitSymbol} × ₹{it.sellingPrice}
+                          </div>
+                          <div style={{ color: D.text, fontWeight: 700, textAlign: 'right', minWidth: 70 }}>
+                            {fmtMoney(it.quantity * it.sellingPrice)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '16px 24px', borderTop: `1px solid ${D.border}`, flexShrink: 0 }}>
+          <button onClick={onClose} style={{ width: '100%', padding: '11px', borderRadius: 10, fontSize: 14, fontWeight: 700, color: D.sub, border: `1px solid ${D.border}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>Close</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Customer Card ────────────────────────────────────────────
 function CustomerCard({
-  customer, onEdit, onReorder, onDelete,
+  customer, onEdit, onReorder, onDelete, onHistory,
+  onOrderTakerChange,                                         // ← NEW
 }: {
   customer: CustomerDto;
+  onOrderTakerChange?: (toAdmin: boolean) => void;            // ← NEW
+  onHistory: () => void;
   onEdit:   () => void;
   onReorder: () => void;
   onDelete: () => void;
@@ -330,7 +485,7 @@ function CustomerCard({
     <div
       style={{
         background: D.surface,
-        border: `1px solid ${hovered ? D.accent : D.border}`,
+        border: `1px solid ${hovered ? D.accent : customer.orderTakenByAdmin ? '#8b5cf6' : D.border}`,   // ← NEW: purple when admin takes orders
         borderRadius: 14,
         padding: '18px 18px 14px',
         transition: 'all 0.18s',
@@ -359,6 +514,16 @@ function CustomerCard({
               {customer.nameMalayalam}
             </div>
           )}
+          {/* ← NEW: "Admin orders" badge */}
+          {customer.orderTakenByAdmin && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6,
+              padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 800,
+              background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.35)', color: '#a78bfa',
+            }}>
+              <UserCog size={10} /> Admin orders
+            </div>
+          )}
         </div>
       </div>
 
@@ -379,6 +544,28 @@ function CustomerCard({
           </div>
         )}
       </div>
+
+      {/* ← NEW: "Orders by" dropdown (Salesman / Admin) */}
+      {onOrderTakerChange && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: D.sub, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+            Orders by
+          </span>
+          <select
+            value={customer.orderTakenByAdmin ? 'admin' : 'salesman'}
+            onChange={e => onOrderTakerChange(e.target.value === 'admin')}
+            style={{
+              flex: 1, padding: '7px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+              background: D.bg, fontFamily: 'inherit', cursor: 'pointer', outline: 'none',
+              color: customer.orderTakenByAdmin ? '#a78bfa' : D.muted,
+              border: `1px solid ${customer.orderTakenByAdmin ? 'rgba(139,92,246,0.5)' : D.border}`,
+            }}
+          >
+            <option value="salesman">Salesman (default)</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      )}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: `1px solid ${D.border}`, paddingTop: 12 }}>
         {hasSeqWarn ? (
@@ -404,6 +591,19 @@ function CustomerCard({
         )}
 
         <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            onClick={onHistory}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px',
+              borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg,
+              fontSize: 12, fontWeight: 700, color: D.muted, cursor: 'pointer',
+              transition: 'all 0.13s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = D.accent; (e.currentTarget as HTMLElement).style.color = D.accent; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = D.border; (e.currentTarget as HTMLElement).style.color = D.muted; }}
+          >
+            <HistoryIcon size={12} /> History
+          </button>
           <button
             onClick={onReorder}
             style={{
@@ -600,6 +800,7 @@ export function AdminCustomers() {
   const [editModal,   setEditModal]   = useState<CustomerDto | null>(null);
   const [reorderPage, setReorderPage] = useState<CustomerDto | null>(null);
   const [deletePage,  setDeletePage]  = useState<CustomerDto | null>(null);
+  const [historyPage, setHistoryPage] = useState<CustomerDto | null>(null);
   const [saving,      setSaving]      = useState(false);
   const [deleting,    setDeleting]    = useState(false);
   const [reordering,  setReordering]  = useState(false);
@@ -669,6 +870,27 @@ export function AdminCustomers() {
         ? String(editModal.sequenceOrder > 0 ? editModal.sequenceOrder : nextSeq(newRouteId))
         : String(nextSeq(newRouteId)),
     }));
+  }
+
+  // ── NEW: "Orders by" dropdown on a card. Updates the card instantly, saves
+  // through customersApi.setOrderTaker(), and puts the card back if saving
+  // fails. No full reload, so scroll position and filters stay. ──
+  async function handleOrderTakerChange(c: CustomerDto, toAdmin: boolean) {
+    setError('');
+    setCustomers(prev => prev.map(x => x.id === c.id ? { ...x, orderTakenByAdmin: toAdmin } : x));
+    try {
+      await customersApi.setOrderTaker(c.id, toAdmin);
+      showBannerToast(
+        toAdmin
+          ? `✅ Admin is now taking orders for ${c.nameEnglish}`
+          : `✅ ${c.nameEnglish} is back with the salesman`,
+        'success'
+      );
+    } catch (err: unknown) {
+      console.error('Order taker update error:', err);
+      setCustomers(prev => prev.map(x => x.id === c.id ? { ...x, orderTakenByAdmin: !!c.orderTakenByAdmin } : x));
+      showBannerToast('❌ Failed to update who takes orders', 'error');
+    }
   }
 
   async function handleReorder(customer: CustomerDto, newSeq: number) {
@@ -1005,9 +1227,16 @@ export function AdminCustomers() {
                 onEdit={() => openEdit(c)}
                 onReorder={() => setReorderPage(c)}
                 onDelete={() => setDeletePage(c)}
+                onHistory={() => setHistoryPage(c)}
+                onOrderTakerChange={(toAdmin) => handleOrderTakerChange(c, toAdmin)}   // ← NEW
               />
             ))}
           </div>
+        )}
+
+        {/* History Page (Slide-in) */}
+        {historyPage && (
+          <HistoryPage customer={historyPage} onClose={() => setHistoryPage(null)} />
         )}
 
         {/* Reorder Page (Slide-in) */}

@@ -11,7 +11,7 @@ public class Customer : BaseEntity
     public Guid RouteId { get; set; }
     public int SequenceOrder { get; set; }
     public bool IsActive { get; set; } = true;
-
+    public bool OrderTakenByAdmin { get; set; }
     // Navigation properties
     public virtual Route? Route { get; set; }
 }

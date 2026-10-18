@@ -86,6 +86,19 @@ public class CustomersController(IMediator mediator, IApplicationDbContext conte
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
+    // ── NEW: admin chooses who takes orders for a customer (Salesman / Admin) ──
+    [HttpPut("{id}/order-taker")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<Result<bool>>> SetOrderTaker(Guid id, [FromBody] SetOrderTakerRequest request)
+    {
+        var result = await mediator.Send(new SetCustomerOrderTakerCommand
+        {
+            CustomerId = id,
+            OrderTakenByAdmin = request.OrderTakenByAdmin
+        });
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
     // ── NEW: Reorder customers within a route ──────────────────────────────
     [HttpPost("reorder")]
     [Authorize(Roles = "Admin,SuperAdmin")]
@@ -131,6 +144,12 @@ public class CustomersController(IMediator mediator, IApplicationDbContext conte
 
         return Ok(Result<bool>.Success(true, "Customers reordered successfully"));
     }
+}
+
+// ── DTO for the order-taker request ──────────────────────────────────────────
+public class SetOrderTakerRequest
+{
+    public bool OrderTakenByAdmin { get; set; }
 }
 
 // ── DTO for reorder request ──────────────────────────────────────────────────

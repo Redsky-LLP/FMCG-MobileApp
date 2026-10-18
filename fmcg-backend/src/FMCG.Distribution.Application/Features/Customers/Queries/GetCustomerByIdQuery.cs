@@ -22,4 +22,5 @@ public class CustomerDetailDto
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public int? TotalOrdersCount { get; set; }
+    public bool OrderTakenByAdmin { get; set; }
 }

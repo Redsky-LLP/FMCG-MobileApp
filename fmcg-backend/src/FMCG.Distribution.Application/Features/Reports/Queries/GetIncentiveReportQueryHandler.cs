@@ -46,6 +46,7 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
             .Where(o => !o.IsDeleted
                 && o.SalesmanId != null
                 && salesmanIds.Contains(o.SalesmanId)
+                && !o.TakenByAdmin
                 && o.OrderDate.Date >= fromDate.Date
                 && o.OrderDate.Date <= toDate.Date
                 && o.Status == OrderStatus.Closed)
@@ -133,7 +134,7 @@ public class GetIncentiveReportQueryHandler : IRequestHandler<GetIncentiveReport
                     .PaddingBottom(5)
                     .Row(row =>
                     {
-                        row.RelativeItem().Column(col =>
+                        row.RelativeItem().AlignRight().Column(col =>
                         {
                             col.Item().Text("INCENTIVE REPORT").FontSize(14).Bold();
                             col.Item().Text($"Period: {data.FromDate:dd-MM-yyyy} to {data.ToDate:dd-MM-yyyy}");

@@ -67,6 +67,8 @@ public class GetAllRoutesQueryHandler(IApplicationDbContext context)
                 IsActive = r.IsActive,
                 CreatedAt = r.CreatedAt,
                 CustomerCount = r.Customers?.Count(c => !c.IsDeleted && c.IsActive) ?? 0,
+                DailyBagTarget = r.DailyBagTarget,
+                MonthlyBagTarget = r.MonthlyBagTarget,
                 IsTodayOverride = overrideRouteIds.Contains(r.Id),
                 OverrideNotes = overrideRouteIds.Contains(r.Id) ? overrideNotes.GetValueOrDefault(r.Id) : null
             }).ToList();
@@ -92,6 +94,8 @@ public class GetAllRoutesQueryHandler(IApplicationDbContext context)
                 IsActive = r.IsActive,
                 CreatedAt = r.CreatedAt,
                 CustomerCount = r.Customers != null ? r.Customers.Count(c => !c.IsDeleted && c.IsActive) : 0,
+                DailyBagTarget = r.DailyBagTarget,
+                MonthlyBagTarget = r.MonthlyBagTarget,
                 HasOverrideToday = context.RouteAssignments
                     .Any(a => a.RouteId == r.Id && a.AssignmentDate.Date == today && !a.IsDeleted)
             })

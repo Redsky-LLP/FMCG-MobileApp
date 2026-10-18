@@ -93,7 +93,7 @@ public class GetDailySummaryReportQueryHandler(IApplicationDbContext context)
                     .PaddingBottom(5)
                     .Row(row =>
                     {
-                        row.RelativeItem().Column(col =>
+                        row.RelativeItem().AlignRight().Column(col =>
                         {
                             col.Item().Text("DAILY SUMMARY REPORT").FontSize(14).Bold();
                             col.Item().Text($"Date: {data.ReportDate:dd-MM-yyyy}");

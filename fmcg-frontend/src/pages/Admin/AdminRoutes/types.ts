@@ -4,6 +4,8 @@ export interface RouteFormData {
   name: string;
   description: string;
   // assignedSalesmanId: string;
+   dailyBagTarget: string;      // ← ADD
+  monthlyBagTarget: string;    // ← ADD
 }
 
 export interface AssignFormData {

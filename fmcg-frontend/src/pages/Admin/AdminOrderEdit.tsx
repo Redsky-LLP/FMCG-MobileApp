@@ -49,6 +49,10 @@ interface LineItem {
   isNew?: boolean;
 }
 
+// Whole prices stay "350"; prices with decimals always show two digits, e.g. "350.50".
+const fmtPriceInput = (n: number): string =>
+  Number.isInteger(n) ? String(n) : n.toFixed(2);
+
 function PriceVarianceBadge({ base, selling }: { base: number; selling: number }) {
   if (!base || !selling) return null;
   const diff = ((selling - base) / base) * 100;
@@ -300,7 +304,7 @@ function ItemCard({
           </div>
           <div style={{ background: D.bg, borderRadius: 8, padding: '8px 12px' }}>
             <span style={{ fontSize: 10, color: D.sub, display: 'block' }}>Qty × Price</span>
-            <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 700, color: D.accent }}>{line.qty} × ₹{fmtNum(line.sellingPrice)}</p>
+            <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 700, color: D.accent }}>{line.qty} × ₹{Number.isInteger(line.sellingPrice) ? fmtNum(line.sellingPrice) : line.sellingPrice.toFixed(2)}</p>
           </div>
         </div>
       )}
@@ -365,6 +369,9 @@ export function AdminOrderEdit() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  // Text typed in each Price box. Kept as text so a trailing "." (e.g. "301.") is not
+  // lost while typing; the numeric value is still saved to line.sellingPrice.
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   
   // ── FIX: Use local state for input values, not temp state ──
   // We directly use line.qty and line.sellingPrice as the source of truth
@@ -455,6 +462,10 @@ export function AdminOrderEdit() {
 
   // ── FIX: Directly update price on input change ──
   const handlePriceChange = (productId: string, value: string) => {
+    // Only digits with one optional decimal point (up to 2 decimal places)
+    if (!/^\d*\.?\d{0,2}$/.test(value)) return;
+    // Remember exactly what was typed so "301." and "30.0" stay visible
+    setPriceDrafts(prev => ({ ...prev, [productId]: value }));
     const numValue = parseFloat(value);
     if (value === '' || value === '.') {
       // Allow empty or decimal point temporarily
@@ -485,6 +496,11 @@ export function AdminOrderEdit() {
   };
 
   const handlePriceBlur = (productId: string) => {
+    // Done typing: drop the draft text so the box shows the clean saved number
+    setPriceDrafts(prev => {
+      const { [productId]: _removed, ...rest } = prev;
+      return rest;
+    });
     setLines(prev => prev.map(l => {
       if (l.productId === productId) {
         // If price is 0 or invalid, set to base price
@@ -873,7 +889,7 @@ export function AdminOrderEdit() {
             const isExpanded = expandedProduct === line.product.id;
             // ── FIX: Directly use line values for display ──
             const displayQty = line.qty === 0 ? '' : String(line.qty);
-            const displayPrice = line.sellingPrice === 0 ? '' : String(line.sellingPrice);
+            const displayPrice = priceDrafts[line.productId] ?? (line.sellingPrice === 0 ? '' : fmtPriceInput(line.sellingPrice));
             
             return (
               <ItemCard

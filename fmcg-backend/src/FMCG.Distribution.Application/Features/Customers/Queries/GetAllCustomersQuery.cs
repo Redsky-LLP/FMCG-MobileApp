@@ -23,4 +23,5 @@ public class CustomerDto
     public int SequenceOrder { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public bool OrderTakenByAdmin { get; set; }
 }

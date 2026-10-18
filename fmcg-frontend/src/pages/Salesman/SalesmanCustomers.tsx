@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Users, Phone, MapPin, ArrowLeft, Search, X, ChevronRight } from 'lucide-react';
+import { Users, Phone, MapPin, ArrowLeft, Search, X, ChevronRight,UserCog  } from 'lucide-react';
 import { customersApi } from '../../api/services';
 import { CustomerDto } from '../../types';
 import { Spinner, EmptyState } from '../../components/ui';
@@ -102,6 +102,13 @@ export default function SalesmanCustomers() {
                 <h3 className="font-semibold text-slate-800 truncate">{c.nameEnglish}</h3>
                 {c.nameMalayalam && <p className="text-xs text-slate-500 truncate" lang="ml">{c.nameMalayalam}</p>}
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                  {c.nameMalayalam && <p className="text-xs text-slate-500 truncate" lang="ml">{c.nameMalayalam}</p>}
+{c.orderTakenByAdmin && (                                                      // ← ADD
+  <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700 border border-violet-200">
+    <UserCog size={10} /> Admin taking orders
+  </span>
+)}
+<div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1"></div>
                   {c.phoneNumber && (
                     <span className="text-xs text-slate-500 flex items-center gap-1">
                       <Phone size={11} /> {c.phoneNumber}

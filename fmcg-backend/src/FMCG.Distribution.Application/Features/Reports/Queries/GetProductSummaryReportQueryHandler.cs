@@ -25,7 +25,12 @@ public class GetSummaryReportQueryHandler : IRequestHandler<GetSummaryReportQuer
         var fromDate = request.FromDate ?? DateTime.UtcNow.Date.AddDays(-30);
         var toDate = request.ToDate ?? DateTime.UtcNow.Date;
 
-        Console.WriteLine($"🔵 Summary Report: {fromDate:yyyy-MM-dd} to {toDate:yyyy-MM-dd}");
+        // ── NEW: view mode — "summary" (default) | "product" | "sizegroup" | "category" ──
+        var viewMode = (request.GroupBy ?? string.Empty).Trim().ToLowerInvariant();
+        if (viewMode != "product" && viewMode != "sizegroup" && viewMode != "category")
+            viewMode = "summary";
+
+        Console.WriteLine($"🔵 Summary Report: {fromDate:yyyy-MM-dd} to {toDate:yyyy-MM-dd} | view: {viewMode}");
 
         // Get closed orders with items, product groups, and size groups
         var orders = await _context.Orders
@@ -44,8 +49,12 @@ public class GetSummaryReportQueryHandler : IRequestHandler<GetSummaryReportQuer
 
         Console.WriteLine($"🔵 Orders found: {orders.Count}");
 
-        // Group by Item Group + Size Group
-        var groupedData = new Dictionary<(string ItemGroup, string SizeGroup), SummaryReportItemDto>();
+        // Group according to the selected view:
+        //   summary   -> Item Group + Size Group   (original behaviour)
+        //   product   -> Product (+ its Item Group and Size Group)
+        //   sizegroup -> Size Group only
+        //   category  -> Item Group (Category) only
+        var groupedData = new Dictionary<(string Product, string ItemGroup, string SizeGroup), SummaryReportItemDto>();
 
         foreach (var order in orders)
         {
@@ -55,10 +64,15 @@ public class GetSummaryReportQueryHandler : IRequestHandler<GetSummaryReportQuer
                 if (item.Product == null) continue;
 
                 var product = item.Product;
+
                 var itemGroupName = product.ProductGroup?.Name ?? "Uncategorized";
                 var sizeGroupName = product.SizeGroup?.Name ?? "No Size Group";
 
-                var key = (ItemGroup: itemGroupName, SizeGroup: sizeGroupName);
+                var productKey = viewMode == "product" ? (product.NameEnglish ?? "-") : string.Empty;
+                var itemGroupKey = viewMode == "sizegroup" ? string.Empty : itemGroupName;
+                var sizeGroupKey = viewMode == "category" ? string.Empty : sizeGroupName;
+
+                var key = (Product: productKey, ItemGroup: itemGroupKey, SizeGroup: sizeGroupKey);
 
                 if (groupedData.ContainsKey(key))
                 {
@@ -68,8 +82,9 @@ public class GetSummaryReportQueryHandler : IRequestHandler<GetSummaryReportQuer
                 {
                     groupedData[key] = new SummaryReportItemDto
                     {
-                        ItemGroupName = itemGroupName,
-                        SizeGroupName = sizeGroupName,
+                        ProductName = productKey,
+                        ItemGroupName = itemGroupKey,
+                        SizeGroupName = sizeGroupKey,
                         TotalQuantity = item.Quantity
                     };
                 }
@@ -81,9 +96,11 @@ public class GetSummaryReportQueryHandler : IRequestHandler<GetSummaryReportQuer
             FromDate = fromDate,
             ToDate = toDate,
             GeneratedAt = DateTime.UtcNow,
+            ViewMode = viewMode,
             Items = groupedData.Values
                 .OrderBy(i => i.ItemGroupName)
                 .ThenBy(i => i.SizeGroupName)
+                .ThenBy(i => i.ProductName)
                 .ToList(),
             GrandTotalQuantity = groupedData.Values.Sum(i => i.TotalQuantity),
             TotalEntries = groupedData.Count
@@ -98,6 +115,20 @@ public class GetSummaryReportQueryHandler : IRequestHandler<GetSummaryReportQuer
 
     private byte[] GenerateSummaryReportPdf(SummaryReportDataDto data)
     {
+        // Which columns to show for the selected view
+        var showProduct = data.ViewMode == "product";
+        var showItemGroup = data.ViewMode != "sizegroup";
+        var showSizeGroup = data.ViewMode != "category";
+        var itemGroupHeader = data.ViewMode == "category" ? "CATEGORY" : "ITEM GROUP";
+
+        var viewLabel = data.ViewMode switch
+        {
+            "product" => "View: By Product",
+            "sizegroup" => "View: By Size Group",
+            "category" => "View: By Category",
+            _ => string.Empty
+        };
+
         return Document.Create(container =>
         {
             container.Page(page =>
@@ -112,10 +143,15 @@ public class GetSummaryReportQueryHandler : IRequestHandler<GetSummaryReportQuer
                     .PaddingBottom(5)
                     .Row(row =>
                     {
-                        row.RelativeItem().Column(col =>
+                        row.RelativeItem().AlignRight().Column(col =>
                         {
                             col.Item().Text("SUMMARY REPORT").FontSize(14).Bold();
                             col.Item().Text($"Period: {data.FromDate:dd-MM-yyyy} to {data.ToDate:dd-MM-yyyy}");
+
+                            if (!string.IsNullOrEmpty(viewLabel))
+                            {
+                                col.Item().Text(viewLabel).FontColor(Colors.Grey.Darken1);
+                            }
                         });
                         //row.RelativeItem().AlignRight().Column(col =>
                         //{
@@ -147,32 +183,45 @@ public class GetSummaryReportQueryHandler : IRequestHandler<GetSummaryReportQuer
                     {
                         table.ColumnsDefinition(columns =>
                         {
-                            columns.RelativeColumn(3);  // Item Group
-                            columns.RelativeColumn(3);  // Size Group
-                            columns.RelativeColumn(2);  // Quantity
+                            if (showProduct) columns.RelativeColumn(4);  // Product
+                            if (showItemGroup) columns.RelativeColumn(3);  // Item Group / Category
+                            if (showSizeGroup) columns.RelativeColumn(3);  // Size Group
+                            columns.RelativeColumn(2);                     // Quantity
                         });
 
                         // ─── Table Header ───
                         table.Header(header =>
                         {
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("ITEM GROUP").Bold();
-                            header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("SIZE GROUP").Bold();
+                            if (showProduct)
+                                header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("PRODUCT").Bold();
+                            if (showItemGroup)
+                                header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text(itemGroupHeader).Bold();
+                            if (showSizeGroup)
+                                header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).Text("SIZE GROUP").Bold();
                             header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(0.5f).Padding(3).AlignRight().Text("QUANTITY").Bold();
                         });
 
                         // ─── Table Rows ───
                         foreach (var item in data.Items)
                         {
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ItemGroupName.ToUpper());
-                            table.Cell().BorderBottom(0.5f).Padding(3).Text(item.SizeGroupName.ToUpper());
+                            if (showProduct)
+                                table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ProductName.ToUpper());
+                            if (showItemGroup)
+                                table.Cell().BorderBottom(0.5f).Padding(3).Text(item.ItemGroupName.ToUpper());
+                            if (showSizeGroup)
+                                table.Cell().BorderBottom(0.5f).Padding(3).Text(item.SizeGroupName.ToUpper());
                             table.Cell().BorderBottom(0.5f).Padding(3).AlignRight().Text($"{item.TotalQuantity:N0}");
                         }
 
                         // ─── Total Row ───
                         if (data.Items.Count > 0)
                         {
-                            table.Cell().BorderTop(0.5f).Padding(3).Text("TOTAL").Bold();
-                            table.Cell().BorderTop(0.5f).Padding(3).Text("").Bold();
+                            // "TOTAL" goes in the first column, other label columns stay empty
+                            var labelColumns = (showProduct ? 1 : 0) + (showItemGroup ? 1 : 0) + (showSizeGroup ? 1 : 0);
+                            for (var i = 0; i < labelColumns; i++)
+                            {
+                                table.Cell().BorderTop(0.5f).Padding(3).Text(i == 0 ? "TOTAL" : "").Bold();
+                            }
                             table.Cell().BorderTop(0.5f).Padding(3).AlignRight().Text($"{data.GrandTotalQuantity:N0}").Bold();
                         }
                     });

@@ -28,4 +28,6 @@ public class RouteDto
 
     // For Admin view - indicates if route has any override for today
     public bool HasOverrideToday { get; set; }
+    public int? DailyBagTarget { get; set; }
+    public int? MonthlyBagTarget { get; set; }
 }

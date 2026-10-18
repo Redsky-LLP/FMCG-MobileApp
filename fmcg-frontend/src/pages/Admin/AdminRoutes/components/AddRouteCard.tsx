@@ -39,7 +39,7 @@ export function AddRouteCard({
   onCancel,
 }: AddRouteCardProps) {
   const isMobile = useIsMobile();
-  const [form, setForm] = useState<RouteFormData>({ name: '', description: '' });
+  const [form, setForm] = useState<RouteFormData>({ name: '', description: '' , dailyBagTarget: '', monthlyBagTarget: '' });
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { nameRef.current?.focus(); }, []);
@@ -171,6 +171,27 @@ export function AddRouteCard({
           />
         </div>
       </div>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
+  {([['dailyBagTarget', 'Daily Bag Target'], ['monthlyBagTarget', 'Monthly Bag Target']] as const).map(([key, label]) => (
+    <div key={key}>
+      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: D.muted, marginBottom: 7, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>
+        {label} <span style={{ fontSize: 10, color: D.sub, textTransform: 'none' }}>(optional)</span>
+      </label>
+      <input
+        type="number" min="0" value={form[key]}
+        onChange={e => update(key, e.target.value)}
+        placeholder={key === 'dailyBagTarget' ? 'e.g., 240' : 'e.g., 1920'}
+        style={{
+          width: '100%', padding: '11px 14px', background: D.bg,
+          border: `1px solid ${D.border}`, borderRadius: 10, fontSize: 14, color: D.text,
+          outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const, transition: 'all 0.15s',
+        }}
+        onFocus={e => { e.target.style.borderColor = D.accent; e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`; e.target.style.background = D.surface2; }}
+        onBlur={e => { e.target.style.borderColor = D.border; e.target.style.boxShadow = 'none'; e.target.style.background = D.bg; }}
+      />
+    </div>
+  ))}
+</div>
 
       {/* ── Assign Salesman field removed ── */}
 

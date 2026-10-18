@@ -103,6 +103,9 @@ namespace FMCG.Distribution.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<bool>("OrderTakenByAdmin")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -341,6 +344,9 @@ namespace FMCG.Distribution.Infrastructure.Migrations
 
                     b.Property<DateTime?>("SubmittedAt")
                         .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("TakenByAdmin")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp without time zone");
@@ -927,6 +933,9 @@ namespace FMCG.Distribution.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
+                    b.Property<int?>("DailyBagTarget")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -936,6 +945,9 @@ namespace FMCG.Distribution.Infrastructure.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<int?>("MonthlyBagTarget")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()

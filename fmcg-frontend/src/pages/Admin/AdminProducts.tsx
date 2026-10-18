@@ -77,8 +77,8 @@ function onBlr(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTe
 }
 
 function parsePriceFromItemCode(code: string): number | null {
-  if (!code || !code.includes('-')) return null;
-  const lastDashIndex = code.lastIndexOf('-');
+  if (!code || !code.includes('.')) return null;
+  const lastDashIndex = code.lastIndexOf('.');
   const pricePart = code.slice(lastDashIndex + 1).trim();
   if (!pricePart) return null;
   const n = parseFloat(pricePart);
@@ -94,9 +94,9 @@ function parsePriceFromItemCode(code: string): number | null {
 // which is a reformat, not a mirror. No reformatting = no mismatch. ──
 function generateItemCode(prefix: string, priceStr: string): string {
   const cleanPrefix = prefix.trim();
-  const basePrefix = cleanPrefix.includes('-')
-    ? cleanPrefix.substring(0, cleanPrefix.lastIndexOf('-') + 1)
-    : cleanPrefix + '-';
+  const basePrefix = cleanPrefix.includes('.')
+    ? cleanPrefix.substring(0, cleanPrefix.lastIndexOf('.') + 1)
+    : cleanPrefix + '.';
   return `${basePrefix}${priceStr.trim()}`;
 }
 
@@ -105,8 +105,8 @@ function generateItemCode(prefix: string, priceStr: string): string {
 // format request. Existing products keep whatever prefix they already have —
 // this only affects the fallback used for new products or malformed codes.
 function extractItemCodePrefix(code: string): string {
-  if (!code || !code.includes('-')) return '6387-';
-  const lastDashIndex = code.lastIndexOf('-');
+  if (!code || !code.includes('.')) return '6387-';
+  const lastDashIndex = code.lastIndexOf('.');
   return code.substring(0, lastDashIndex + 1);
 }
 
@@ -385,22 +385,23 @@ function ProductFormFields({
           style={{ ...inp, fontSize: 18, fontWeight: 800, color: D.accent, background: D.surface2, border: `1px solid ${D.accent}33` }}
           onFocus={onFoc} onBlur={onBlr} 
         />
-        <p style={{ margin: '8px 0 0', fontSize: 11, color: D.sub }}>
-          Format: <strong>code-price</strong> — the number after the last dash is the price. "6387-90" → price ₹90.
-        </p>
-        {(() => {
-          const parsed = parsePriceFromItemCode(form.itemCode);
-          if (!form.itemCode) return null;
-          return parsed !== null ? (
-            <p style={{ margin: '8px 0 0', fontSize: 12, color: D.accent, fontWeight: 600 }}>
-              Salesman will see: <strong>{form.itemCode}</strong> · price ₹{form.basePrice || parsed}
-            </p>
-          ) : (
-            <p style={{ margin: '8px 0 0', fontSize: 12, color: D.red, fontWeight: 600 }}>
-              ⚠ No price found — add a dash and the price at the end, e.g. "{form.itemCode}-90".
-            </p>
-          );
-        })()}
+       
+      <p style={{ margin: '8px 0 0', fontSize: 11, color: D.sub }}>
+        Format: <strong>code.price</strong> the number after the last dot is the price. "1000.90" → price ₹90.
+      </p>
+      {(() => {
+        const parsed = parsePriceFromItemCode(form.itemCode);
+        if (!form.itemCode) return null;
+        return parsed !== null ? (
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: D.accent, fontWeight: 600 }}>
+            Salesman will see: <strong>{form.itemCode}</strong> · price ₹{parsed}
+          </p>
+        ) : (
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: D.red, fontWeight: 600 }}>
+            ⚠ No price found add a dot and the price at the end, e.g. "{form.itemCode} 90".
+          </p>
+        );
+      })()}
       </div>
     </div>
   );
@@ -439,7 +440,7 @@ export function AdminProducts() {
   // FIX: default item code prefix changed from "1000-" to "6387-" per request.
   // Only affects NEW products going forward — existing products keep their
   // current item code untouched, no forced backfill/migration.
-  const DEFAULT_ITEM_CODE_PREFIX = '6387-';
+  const DEFAULT_ITEM_CODE_PREFIX = '6387.';
 
   // ── Default unit ID (set from first available unit) ──
   const [defaultUnitId, setDefaultUnitId] = useState('');

@@ -9,6 +9,8 @@ public class CreateRouteCommand : IRequest<Result<CreateRouteResponse>>
     public string? Description { get; set; }
     public int SequenceOrder { get; set; }
     public Guid? AssignedSalesmanId { get; set; }
+    public int? DailyBagTarget { get; set; }
+    public int? MonthlyBagTarget { get; set; }
 }
 
 public class CreateRouteResponse
@@ -19,4 +21,6 @@ public class CreateRouteResponse
     public int SequenceOrder { get; set; }
     public Guid? AssignedSalesmanId { get; set; }
     public bool IsActive { get; set; }
+    public int? DailyBagTarget { get; set; }
+    public int? MonthlyBagTarget { get; set; }
 }

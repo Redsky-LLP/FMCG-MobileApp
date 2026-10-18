@@ -485,14 +485,15 @@ public class GetLoadingSheetQueryHandler(IApplicationDbContext context)
                     page.Header()
                         .BorderBottom(0.5f)
                         .PaddingBottom(5)
+                        .AlignRight()
                         .Column(col =>
                         {
                             col.Item().Text("LOADING SHEET").FontSize(16).Bold();
                             col.Item().Text($"Date: {targetDate:dd-MM-yyyy}").FontSize(10);
-                            if (isSingleRoute && routes.Count == 1)
-                            {
-                                col.Item().Text($"Route: {routes[0].RouteName.ToUpper()}").FontSize(11).Bold();
-                            }
+                            //if (isSingleRoute && routes.Count == 1)
+                            //{
+                            //    col.Item().Text($"Route: {routes[0].RouteName.ToUpper()}").FontSize(11).Bold();
+                            //}
                         });
 
                     // ── Content ──

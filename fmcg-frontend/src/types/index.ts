@@ -19,6 +19,7 @@ export interface CustomerVisitDto {
   orderId?:        string;
   skipReason?:     string;
   visitedAt?:      string;
+  orderTakenByAdmin?: boolean;    
 }
 
 export interface CurrentRouteExecutionDto {
@@ -44,6 +45,9 @@ export interface BagsBreakdownDto {
   count26Kg:             number;
   totalEquivalentBags:  number;
   threshold:            number;
+  monthlyEquivalentBags?: number;          // ← ADD
+  dailyTarget?:           number;          // ← ADD
+  monthlyTarget?:         number;          // ← ADD
 }
 
 export interface StartRouteExecutionResponse {
@@ -140,6 +144,8 @@ export interface RouteDto {
     isTodayOverride?:      boolean;
     overrideNotes?:        string | null;
     hasOverrideToday?:     boolean;
+    dailyBagTarget?:   number | null;      // ← ADD
+    monthlyBagTarget?: number | null;      // ← ADD
 }
 
 export interface RouteCardDto {
@@ -162,6 +168,8 @@ export interface CreateRouteCommand {
   name:                string;
   description?:        string;
   assignedSalesmanId?: string;
+   dailyBagTarget?:   number;               // ← ADD
+  monthlyBagTarget?: number;               // ← ADD
 }
 
 export interface UpdateRouteCommand extends CreateRouteCommand {
@@ -180,6 +188,7 @@ export interface CustomerDto {
   isActive:      boolean;
   sequenceOrder: number;
   createdAt:     string;
+  orderTakenByAdmin?: boolean;  
 }
 
 export interface CustomerDetailDto extends CustomerDto {

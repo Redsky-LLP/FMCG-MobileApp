@@ -151,6 +151,7 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
             VisitStatus = v.Status.ToString(),
             OrderId = v.OrderId,
             SkipReason = v.SkipReason,
+            OrderTakenByAdmin = v.Customer?.OrderTakenByAdmin ?? false,
         }).ToList();
 
         // ── NEW: bags breakdown for this route/day.
@@ -212,6 +213,39 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
             bagsBreakdown.Count50Kg
             + (0.5m * bagsBreakdown.Count30Kg)
             + (0.5m * bagsBreakdown.Count26Kg);
+
+        var istNow = DateTime.UtcNow.AddHours(5.5);
+        var monthStartIst = new DateTime(istNow.Year, istNow.Month, 1);
+        var monthStartUtc = DateTime.SpecifyKind(monthStartIst.AddHours(-5.5), DateTimeKind.Utc);
+        var nextMonthStartUtc = DateTime.SpecifyKind(monthStartIst.AddMonths(1).AddHours(-5.5), DateTimeKind.Utc);
+
+        var monthlyRows = await context.Orders
+            .AsNoTracking()
+            .Where(o => !o.IsDeleted
+                && o.RouteId == request.RouteId
+                && o.OrderDate >= monthStartUtc
+                && o.OrderDate < nextMonthStartUtc)
+            .SelectMany(o => o.Items!)
+            .Select(i => new
+            {
+                SizeGroup = i.SizeGroupNameAtTime
+                    ?? (i.Product != null && i.Product.SizeGroup != null ? i.Product.SizeGroup.Name : null),
+                i.Quantity
+            })
+            .ToListAsync(cancellationToken);
+
+        decimal monthlyEquivalent = 0;
+        foreach (var row in monthlyRows)
+        {
+            var qty = (int)row.Quantity;
+            if (MatchesSizeGroupWeight(row.SizeGroup, 50)) monthlyEquivalent += qty;
+            else if (MatchesSizeGroupWeight(row.SizeGroup, 30) || MatchesSizeGroupWeight(row.SizeGroup, 26))
+                monthlyEquivalent += 0.5m * qty;
+        }
+
+        bagsBreakdown.MonthlyEquivalentBags = monthlyEquivalent;
+        bagsBreakdown.DailyTarget = route?.DailyBagTarget;       // targets now come from the route
+        bagsBreakdown.MonthlyTarget = route?.MonthlyBagTarget;
 
         return Result<CurrentRouteExecutionDto>.Success(new CurrentRouteExecutionDto
         {

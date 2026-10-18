@@ -151,7 +151,8 @@ public class ReportsController(IMediator mediator) : ControllerBase
     [HttpGet("summary-report")]
     public async Task<IActionResult> GetSummaryReport(
      [FromQuery] string? fromDate,
-     [FromQuery] string? toDate)
+     [FromQuery] string? toDate,
+     [FromQuery] string? groupBy)   // NEW: product | sizegroup | category
     {
         Console.WriteLine("🔵🔵🔵 SUMMARY REPORT ENDPOINT CALLED! 🔵🔵🔵");
         Console.WriteLine($"fromDate: {fromDate}");
@@ -160,7 +161,8 @@ public class ReportsController(IMediator mediator) : ControllerBase
         var query = new GetSummaryReportQuery
         {
             FromDate = fromDate != null ? DateTime.Parse(fromDate) : null,
-            ToDate = toDate != null ? DateTime.Parse(toDate) : null
+            ToDate = toDate != null ? DateTime.Parse(toDate) : null,
+            GroupBy = groupBy
         };
 
         var result = await mediator.Send(query);

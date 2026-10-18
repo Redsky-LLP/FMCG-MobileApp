@@ -51,6 +51,7 @@ public class GetAllCustomersQueryHandler(IApplicationDbContext context)
                 RouteName = c.Route != null ? c.Route.Name : null,
                 SequenceOrder = c.SequenceOrder,
                 IsActive = c.IsActive,
+                OrderTakenByAdmin = c.OrderTakenByAdmin,
                 CreatedAt = c.CreatedAt
             })
             .ToListAsync(cancellationToken);

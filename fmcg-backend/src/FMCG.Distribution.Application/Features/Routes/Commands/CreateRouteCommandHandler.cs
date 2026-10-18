@@ -23,6 +23,8 @@ public class CreateRouteCommandHandler : IRequestHandler<CreateRouteCommand, Res
             Description = request.Description,
             SequenceOrder = request.SequenceOrder,
             AssignedSalesmanId = request.AssignedSalesmanId,
+            DailyBagTarget = request.DailyBagTarget > 0 ? request.DailyBagTarget : null,       // ← ADD
+            MonthlyBagTarget = request.MonthlyBagTarget > 0 ? request.MonthlyBagTarget : null, // ← ADD
             IsActive = true
         };
 
@@ -36,6 +38,8 @@ public class CreateRouteCommandHandler : IRequestHandler<CreateRouteCommand, Res
             Description = route.Description,
             SequenceOrder = route.SequenceOrder,
             AssignedSalesmanId = route.AssignedSalesmanId,
+            DailyBagTarget = route.DailyBagTarget,
+            MonthlyBagTarget = route.MonthlyBagTarget,
             IsActive = route.IsActive
         }, "Route created successfully.");
     }
