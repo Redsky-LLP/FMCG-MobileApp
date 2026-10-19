@@ -241,6 +241,7 @@ public class RouteSummaryReportDataDto
 
 public class SummaryReportItemDto
 {
+    public string ProductName { get; set; } = string.Empty;   // NEW — filled only in "product" view
     public string ItemGroupName { get; set; } = string.Empty;
     public string SizeGroupName { get; set; } = string.Empty;
     public decimal TotalQuantity { get; set; }
@@ -254,6 +255,7 @@ public class SummaryReportDataDto
     public DateTime ToDate { get; set; }
     public DateTime GeneratedAt { get; set; }
     public List<SummaryReportItemDto> Items { get; set; } = new();
+    public string ViewMode { get; set; } = "summary";         // NEW — "summary" | "product" | "sizegroup" | "category"
     public decimal GrandTotalQuantity { get; set; }
     public decimal GrandTotalRevenue { get; set; }
     public int TotalEntries { get; set; }
@@ -316,9 +318,10 @@ public class IncentiveReportDataDto
 
 public class AdditionalRevenueReportItemDto
 {
-    public Guid SalesmanId { get; set; }
-    public string SalesmanName { get; set; } = string.Empty;
+
+    public Guid CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
+    public DateTime OrderDate { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public decimal BasePrice { get; set; }
@@ -334,9 +337,8 @@ public class AdditionalRevenueReportDataDto
     public DateTime GeneratedAt { get; set; }
     public List<AdditionalRevenueReportItemDto> Items { get; set; } = new();
     public decimal GrandTotalAdditionalRevenue { get; set; }
-    public int TotalSalesmen { get; set; }
+    public int TotalCustomers { get; set; }
 }
-
 // ── NEW: Retail Sheet report — same-shaped DTOs as the Loading Sheet's
 // per-stop structure, but scoped to retail-only orders (zero items, remarks
 // present). ──
@@ -351,4 +353,18 @@ public class RetailSheetRouteDto
 {
     public string RouteName { get; set; } = string.Empty;
     public List<RetailSheetOrderDto> Orders { get; set; } = [];
+}
+
+public class AdditionalRevenueDateBlockDto
+{
+    public DateTime Date { get; set; }
+    public List<AdditionalRevenueReportItemDto> Items { get; set; } = new();
+    public decimal DateTotal { get; set; }
+}
+
+public class AdditionalRevenueCustomerBlockDto
+{
+    public string CustomerName { get; set; } = string.Empty;
+    public List<AdditionalRevenueDateBlockDto> DateGroups { get; set; } = new();
+    public decimal CustomerTotal { get; set; }
 }

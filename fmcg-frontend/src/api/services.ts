@@ -185,6 +185,8 @@ export const customersApi = {
   delete: (id: number | string) => del<boolean>(`/api/v1/customers/${id}`),
   reorder: (routeId: string, customerId: string, newSequenceOrder: number) =>
     post<boolean>('/api/v1/customers/reorder', { routeId, customerId, newSequenceOrder }),
+   setOrderTaker: (id: string, orderTakenByAdmin: boolean) =>            // ← ADD
+    put<boolean>(`/api/v1/customers/${id}/order-taker`, { orderTakenByAdmin }),
 };
 
 // ── Product Groups ────────────────────────────────────────────────────────────
@@ -428,16 +430,18 @@ export const reportsApi = {
     });
     return res.data as Blob;
   },
-  downloadSummaryReport: async (fromDate?: string, toDate?: string) => {
-  const params: Record<string, string> = {};
-  if (fromDate) params.fromDate = fromDate;
-  if (toDate) params.toDate = toDate;
-  const res = await apiClient.get('/api/v1/reports/summary-report', {
-    params,
-    responseType: 'blob',
-  });
-  return res.data as Blob;
-},
+  // groupBy: 'product' | 'sizegroup' | 'category' (omit for the default summary)
+  downloadSummaryReport: async (f: { fromDate?: string; toDate?: string; groupBy?: string }) => {
+    const params: Record<string, string> = {};
+    if (f.fromDate) params.fromDate = f.fromDate;
+    if (f.toDate)   params.toDate   = f.toDate;
+    if (f.groupBy)  params.groupBy  = f.groupBy;
+    const res = await apiClient.get('/api/v1/reports/summary-report', {
+      params,
+      responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
   // ── Incentive Report ──
 downloadIncentiveReport: async (fromDate?: string, toDate?: string) => {
   const params: Record<string, string> = {};

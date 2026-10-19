@@ -147,9 +147,10 @@ public class GetRetailSheetQueryHandler(IApplicationDbContext context)
                     page.Header()
                         .BorderBottom(0.5f)
                         .PaddingBottom(5)
+                        .AlignRight()
                         .Column(col =>
                         {
-                            col.Item().Text("📝 RETAIL SHEET").FontSize(16).Bold().Underline();
+                            col.Item().Text(" RETAIL SHEET").FontSize(16).Bold();
                             col.Item().Text($"Date: {targetDate:dd-MM-yyyy}").FontSize(10);
                             if (isSingleRoute && routes.Count == 1)
                             {

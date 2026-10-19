@@ -35,19 +35,6 @@ const D = {
 const today = new Date().toISOString().split('T')[0];
 const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
 
-// ── NEW: 1st and last day of the CURRENT calendar month, used as the default
-// range for the three month-oriented reports (Summary, Incentive, Additional
-// Revenue).
-//
-// FIX: was built with `.toISOString().split('T')[0]`, same as `today`/
-// `thirtyDaysAgo` above — but toISOString() always converts to UTC. In a
-// timezone ahead of UTC (e.g. IST, UTC+5:30), local midnight on the 1st is
-// still 6:30pm on the LAST day of the PREVIOUS month in UTC, so that
-// conversion silently shifted the date back by one — showing 08/31 instead
-// of 09/01, and 09/29 instead of 09/30. Formatting from the Date object's
-// own local year/month/day components avoids the UTC round-trip entirely,
-// so the displayed date always matches what the calendar actually shows
-// locally, regardless of timezone. ──
 function formatLocalDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -337,7 +324,7 @@ function PreviewModal({
                 Open PDF
               </button>
               <p style={{ fontSize: 11, color: D.sub, marginTop: 8 }}>
-                ⚡ Opens in your device's PDF viewer
+                 Opens in your device's PDF viewer
               </p>
             </div>
           ) : (
@@ -391,12 +378,12 @@ function PreviewModal({
             </span>
             {!isFullscreen && pdfUrl && !isMobile && (
               <span style={{ fontSize: 10, color: D.sub }}>
-                🔍 Scroll to zoom · 📄 Auto-fit to page
+                 Scroll to zoom ·  Auto-fit to page
               </span>
             )}
             {!isFullscreen && pdfUrl && isMobile && (
               <span style={{ fontSize: 10, color: D.sub }}>
-                📱 Tap "Open PDF" to view
+                 Tap "Open PDF" to view
               </span>
             )}
           </div>
@@ -477,11 +464,10 @@ export function AdminReports() {
   // const [routeRptRoute, setRouteRptRoute] = useState('');
   // const [routeFrom, setRouteFrom]  = useState(thirtyDaysAgo);
   // const [routeTo,   setRouteTo]    = useState(today);
-  // ── FIX: default to 1st–last day of the CURRENT month (was a rolling
-  // 30-day window ending today), per request, for all three of these
-  // month-oriented reports. ──
   const [summaryFrom, setSummaryFrom] = useState(firstDayOfMonth);
   const [summaryTo, setSummaryTo] = useState(lastDayOfMonth);
+  // '' = Summary (default) | 'product' | 'sizegroup' | 'category'
+  const [summaryView, setSummaryView] = useState('');
   const [incentiveFrom, setIncentiveFrom] = useState(firstDayOfMonth);
   const [incentiveTo, setIncentiveTo] = useState(lastDayOfMonth);
   const [additionalRevenueFrom, setAdditionalRevenueFrom] = useState(firstDayOfMonth);
@@ -615,7 +601,7 @@ export function AdminReports() {
       key: 'loading',
       title: 'Loading Sheet',
       desc: 'Warehouse picking list for today\'s deliveries',
-      icon: '📦',
+      icon: '',
       color: D.accent,
       roles: 'Warehouse / Admin',
       filters: (
@@ -626,7 +612,7 @@ export function AdminReports() {
             onChange={(e) => setLoadRoute(e.target.value)} 
             style={selectStyle(isMobile)}
           >
-            <option value="">🌍 All Routes</option>
+            <option value=""> All Routes</option>
             {routes.map((r) => <option key={r.id} value={r.id}>📍 {r.name}</option>)}
           </select>
           <input 
@@ -652,7 +638,7 @@ export function AdminReports() {
       key: 'retail',
       title: 'Retail Sheet',
       desc: 'Retail items list (remarks-only orders, no products)',
-      icon: '📝',
+      icon: '',
       color: '#8B5CF6',
       roles: 'Warehouse / Admin',
       filters: (
@@ -663,7 +649,7 @@ export function AdminReports() {
             onChange={(e) => setRetailRoute(e.target.value)}
             style={selectStyle(isMobile)}
           >
-            <option value="">🌍 All Routes</option>
+            <option value=""> All Routes</option>
             {routes.map((r) => <option key={r.id} value={r.id}>📍 {r.name}</option>)}
           </select>
           <input
@@ -687,7 +673,7 @@ export function AdminReports() {
       key: 'billing',
       title: 'Billing Sheet',
       desc: 'Accounts billing report with customer-wise totals',
-      icon: '🧾',
+      icon: '',
       color: '#22C55E',
       roles: 'Accounts / Admin',
       filters: (
@@ -698,7 +684,7 @@ export function AdminReports() {
             onChange={(e) => setBillRoute(e.target.value)} 
             style={selectStyle(isMobile)}
           >
-            <option value="">🌍 All Routes</option>
+            <option value=""> All Routes</option>
             {routes.map((r) => <option key={r.id} value={r.id}>📍 {r.name}</option>)}
           </select>
           <input 
@@ -765,11 +751,22 @@ export function AdminReports() {
   key: 'summary',
   title: 'Summary Report',
   desc: 'Item Group & Size Group wise quantity summary',
-  icon: '📊',
+  icon: '',
   color: '#3B82F6',
   roles: 'Admin',
   filters: (
     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+      <select
+        className="input"
+        value={summaryView}
+        onChange={(e) => setSummaryView(e.target.value)}
+        style={selectStyle(isMobile)}
+      >
+        <option value=""> Summary</option>
+        <option value="product"> Product</option>
+        <option value="sizegroup"> Size Group</option>
+        <option value="category"> Category</option>
+      </select>
       <input 
         className="input" 
         type="date" 
@@ -787,18 +784,19 @@ export function AdminReports() {
       />
     </div>
   ),
-  onDownload: () => download('summary', () => reportsApi.downloadSummaryReport(summaryFrom, summaryTo), `SummaryReport_${summaryFrom}.pdf`),
+  onDownload: () => download('summary', () => reportsApi.downloadSummaryReport({ fromDate: summaryFrom, toDate: summaryTo, groupBy: summaryView || undefined }), `SummaryReport_${summaryFrom}.pdf`),
   onPreview: () => {
-    const fn = () => reportsApi.downloadSummaryReport(summaryFrom, summaryTo);
+    const fn = () => reportsApi.downloadSummaryReport({ fromDate: summaryFrom, toDate: summaryTo, groupBy: summaryView || undefined });
     const downloadFn = () => download('summary', fn, `SummaryReport_${summaryFrom}.pdf`);
-    previewReport('summary', `Summary Report - ${summaryFrom} to ${summaryTo}`, fn, downloadFn);
+    const viewLabel = ({ product: 'Product', sizegroup: 'Size Group', category: 'Category' } as Record<string, string>)[summaryView];
+    previewReport('summary', `Summary Report - ${summaryFrom} to ${summaryTo}${viewLabel ? ` (By ${viewLabel})` : ''}`, fn, downloadFn);
   },
 },
 {
   key: 'incentive',
   title: 'Incentive Report',
   desc: 'Salesman-wise incentive earnings from product incentives',
-  icon: '🎯',
+  icon: '',
   color: '#8B5CF6',
   roles: 'Admin',
   filters: (
@@ -831,7 +829,7 @@ export function AdminReports() {
   key: 'additionalRevenue',
   title: 'Additional Revenue Report',
   desc: '(Selling Price - Base Price) × Unit Size × Quantity',
-  icon: '💰',
+  icon: '',
   color: '#F59E0B',
   roles: 'Admin',
   filters: (
@@ -864,7 +862,7 @@ export function AdminReports() {
     //   key: 'daily',
     //   title: 'Daily Summary Report',
     //   desc: 'Full operational day summary',
-    //   icon: '📋',
+    //   icon: '',
     //   color: '#14B8A6',
     //   roles: 'Admin / Accounts',
     //   filters: (

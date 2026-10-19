@@ -33,6 +33,7 @@ public class GetCustomerByIdQueryHandler(IApplicationDbContext context)
             SequenceOrder = customer.SequenceOrder,
             IsActive = customer.IsActive,
             CreatedAt = customer.CreatedAt,
+            OrderTakenByAdmin = customer.OrderTakenByAdmin,  // ← ADD
             TotalOrdersCount = 0
         };
 

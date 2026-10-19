@@ -187,6 +187,7 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
             Remarks = request.Remarks,
             Items = orderItems,
             CustomerVisitId = request.CustomerVisitId,
+            TakenByAdmin = customer.OrderTakenByAdmin,
         };
 
         await context.Orders.AddAsync(order, cancellationToken);

@@ -11,6 +11,8 @@ public class UpdateRouteCommand : IRequest<Result<UpdateRouteResponse>>
     public int SequenceOrder { get; set; }
     public Guid? AssignedSalesmanId { get; set; }
     public bool IsActive { get; set; }
+    public int? DailyBagTarget { get; set; }
+    public int? MonthlyBagTarget { get; set; }
 }
 
 public class UpdateRouteResponse
@@ -21,4 +23,6 @@ public class UpdateRouteResponse
     public int SequenceOrder { get; set; }
     public Guid? AssignedSalesmanId { get; set; }
     public bool IsActive { get; set; }
+    public int? DailyBagTarget { get; set; }
+    public int? MonthlyBagTarget { get; set; }
 }

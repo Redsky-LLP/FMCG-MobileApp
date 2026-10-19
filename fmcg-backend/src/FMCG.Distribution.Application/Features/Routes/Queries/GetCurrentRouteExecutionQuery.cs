@@ -42,6 +42,9 @@ public class BagsBreakdownDto
     public int Count26Kg { get; set; }
     public decimal TotalEquivalentBags { get; set; }
     public int Threshold { get; set; } = 130;
+    public decimal MonthlyEquivalentBags { get; set; }
+    public int? DailyTarget { get; set; }
+    public int? MonthlyTarget { get; set; }
 }
 
 public class CustomerVisitStatusDto
@@ -57,4 +60,5 @@ public class CustomerVisitStatusDto
     public Guid? OrderId { get; set; }
     public string? SkipReason { get; set; }
     public bool IsCompleted => VisitStatus != "Pending";
+    public bool OrderTakenByAdmin { get; set; }
 }

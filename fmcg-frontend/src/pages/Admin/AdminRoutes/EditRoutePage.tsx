@@ -34,6 +34,8 @@ export default function EditRoutePage() {
   const [form, setForm] = useState({
     name: route?.name || '',
     description: route?.description || '',
+    dailyBagTarget:   route?.dailyBagTarget   ? String(route.dailyBagTarget)   : '',   // ← ADD
+  monthlyBagTarget: route?.monthlyBagTarget ? String(route.monthlyBagTarget) : '',   // ← ADD
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -60,6 +62,8 @@ export default function EditRoutePage() {
         name: form.name,
         description: form.description || undefined,
         isActive: true,
+         dailyBagTarget:   form.dailyBagTarget   ? parseInt(form.dailyBagTarget, 10)   : undefined,   // ← ADD
+  monthlyBagTarget: form.monthlyBagTarget ? parseInt(form.monthlyBagTarget, 10) : undefined,   // ← ADD
       } as any);
       setSuccess('Route updated successfully!');
       setTimeout(() => {
@@ -223,6 +227,25 @@ export default function EditRoutePage() {
                   }}
                 />
               </div>
+              {([['dailyBagTarget', 'Daily Bag Target'], ['monthlyBagTarget', 'Monthly Bag Target']] as const).map(([key, label]) => (
+  <div key={key}>
+    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: D.muted, marginBottom: 6, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>
+      {label}
+    </label>
+    <input
+      type="number" min="0" value={form[key]}
+      onChange={e => setForm({ ...form, [key]: e.target.value })}
+      placeholder="Leave empty to keep, 0 to remove"
+      style={{
+        width: '100%', padding: '11px 14px', background: D.bg,
+        border: `1px solid ${D.border}`, borderRadius: 10, fontSize: 14, color: D.text,
+        outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const, transition: 'all 0.15s',
+      }}
+      onFocus={e => { e.target.style.borderColor = D.accent; e.target.style.boxShadow = `0 0 0 3px ${D.accentGlow}`; e.target.style.background = D.surface2; }}
+      onBlur={e => { e.target.style.borderColor = D.border; e.target.style.boxShadow = 'none'; e.target.style.background = D.bg; }}
+    />
+  </div>
+))}
 
               {/* ── Assign Salesman field removed ── */}
             </div>

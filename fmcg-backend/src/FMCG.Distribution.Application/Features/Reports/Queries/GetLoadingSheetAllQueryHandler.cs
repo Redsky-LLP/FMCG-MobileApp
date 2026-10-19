@@ -272,7 +272,7 @@ public class GetLoadingSheetAllQueryHandler(IApplicationDbContext context)
                             row.RelativeItem().AlignRight().Column(col =>
                             {
                                 col.Item().Text($"Generated: {DateTime.UtcNow:dd-MM-yyyy HH:mm}");
-                                col.Item().Text($"Routes: {routes.Count} | Orders: {totalOrders} | Stops: {totalStops}");
+                                //col.Item().Text($"Routes: {routes.Count} | Orders: {totalOrders} | Stops: {totalStops}");
                             });
                         });
 

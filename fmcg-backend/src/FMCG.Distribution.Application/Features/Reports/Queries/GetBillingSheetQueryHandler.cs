@@ -317,6 +317,7 @@ public class GetBillingSheetQueryHandler(IApplicationDbContext context)
                 page.Header()
                     .BorderBottom(0.5f)
                     .PaddingBottom(5)
+                    .AlignRight()
                     .Column(col =>
                     {
                         col.Item().Text("BILLING SHEET").FontSize(16).Bold();
