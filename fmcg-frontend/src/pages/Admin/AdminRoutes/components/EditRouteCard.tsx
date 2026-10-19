@@ -27,6 +27,8 @@ export function EditRouteCard({
     name: route.name,
     description: route.description || '',
     // assignedSalesmanId: route.assignedSalesmanId || '',
+    dailyBagTarget: '',
+    monthlyBagTarget: '',
   });
   const nameRef = useRef<HTMLInputElement>(null);
 
