@@ -18,6 +18,7 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 // nav bar's height instead of the real shared constant — same class of drift
 // bug already fixed once in OrderEntry.tsx. Importing the real value here too. ──
 import { MOBILE_NAV_HEIGHT } from '../../components/layout/MobileLayout';
+import { useAuthStore } from '../../store/authStore';
 
 // ── Dark theme tokens ─────────────────────────────────────────────────────────
 const D = {
@@ -52,6 +53,8 @@ export default function RouteExecution() {
   const location    = useLocation();
   const executionMode = location.state?.mode as 'order-taking' | 'delivery' | undefined;
   const isMobile = useIsMobile();
+  const { user } = useAuthStore();
+  const salesmanName = user?.name ?? 'Salesman';
 
   const [execution,   setExecution]   = useState<CurrentRouteExecutionDto | null>(null);
   const [loading,     setLoading]     = useState(true);
@@ -110,14 +113,31 @@ export default function RouteExecution() {
   // rounded number reflecting total bags loaded so far today on this route.
   // Still backend-computed (execution.bagsBreakdown), just displayed as one
   // number instead of a breakdown. ──
-  const bags = execution?.bagsBreakdown;
+   const bags = execution?.bagsBreakdown;
   const totalEquivalent = bags?.totalEquivalentBags ?? 0;
-  const mergedBagCount = Math.round(totalEquivalent);
-  const monthlyBagCount = Math.round(bags?.monthlyEquivalentBags ?? 0);
-const dailyTarget     = bags?.dailyTarget ?? 0;
-const monthlyTarget   = bags?.monthlyTarget ?? 0;
-const dailyHit        = dailyTarget > 0 && mergedBagCount >= dailyTarget;
-const monthlyHit      = monthlyTarget > 0 && monthlyBagCount >= monthlyTarget;
+  const monthlyEquivalent = bags?.monthlyEquivalentBags ?? 0;
+
+  // Don't round the actual values — keep the decimal for calculations
+  const mergedBagCount = totalEquivalent; 
+  const monthlyBagCount = monthlyEquivalent;
+  
+  // Admin and Salesman splits
+  const dailyAdminBags      = bags?.dailyAdminBags ?? 0;
+  const dailySalesmanBags   = mergedBagCount - dailyAdminBags;
+  const monthlyAdminBags    = bags?.monthlyAdminBags ?? 0;
+  const monthlySalesmanBags = monthlyBagCount - monthlyAdminBags;
+
+  // Keep these as they are
+  const dailyTarget     = bags?.dailyTarget ?? 0;
+  const monthlyTarget   = bags?.monthlyTarget ?? 0;
+  const dailyHit        = dailyTarget > 0 && mergedBagCount >= dailyTarget;
+  const monthlyHit      = monthlyTarget > 0 && monthlyBagCount >= monthlyTarget;
+  
+  // Helper to format numbers (e.g., 257.5 instead of 258, but 100 instead of 100.0)
+  const fmt = (num: number) => num % 1 === 0 ? num.toString() : num.toFixed(1);
+  
+  const dailyOf   = dailyTarget   > 0 ? `/${dailyTarget}`   : '';
+  const monthlyOf = monthlyTarget > 0 ? `/${monthlyTarget}` : '';
 
   function getNextPendingCustomer(currentCustomerId: string): CustomerVisitDto | null {
     if (!execution?.customers) return null;
@@ -559,16 +579,30 @@ const monthlyHit      = monthlyTarget > 0 && monthlyBagCount >= monthlyTarget;
               execution.bagsBreakdown after every completed stop. ── */}
           
 <div style={{
-  marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+  marginTop: 8, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
   gap: 8, fontSize: 12, fontWeight: 800, color: D.text,
 }}>
-  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: dailyHit ? D.green : D.text }}>
-    <Package size={13} />
-    <span>Daily: {mergedBagCount}{dailyTarget > 0 ? `/${dailyTarget}` : ''}</span>
+  <div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: dailyHit ? D.green : D.text }}>
+  <Package size={13} />
+  {/* Use fmt() here */}
+  <span>Daily: {fmt(mergedBagCount)}{dailyTarget > 0 ? `/${dailyTarget}` : ''}</span>
+</div>
+<div style={{ marginTop: 2, fontSize: 11, fontWeight: 700, color: D.muted }}>
+  {/* Use fmt() here */}
+  {salesmanName}: {fmt(dailySalesmanBags)}{dailyOf} · Admin: {fmt(dailyAdminBags)}{dailyOf}
+</div>
   </div>
-  <span style={{ color: monthlyHit ? D.green : D.text }}>
-    Monthly: {monthlyBagCount}{monthlyTarget > 0 ? `/${monthlyTarget}` : ''}
-  </span>
+ <div style={{ textAlign: 'right' }}>
+  <div style={{ color: monthlyHit ? D.green : D.text }}>
+    {/* Use fmt() here */}
+    Monthly: {fmt(monthlyBagCount)}{monthlyTarget > 0 ? `/${monthlyTarget}` : ''}
+  </div>
+  <div style={{ marginTop: 2, fontSize: 11, fontWeight: 700, color: D.muted }}>
+    {/* Use fmt() here */}
+    {salesmanName}: {fmt(monthlySalesmanBags)}{monthlyOf} · Admin: {fmt(monthlyAdminBags)}{monthlyOf}
+  </div>
+</div>
 </div>
         </div>
 

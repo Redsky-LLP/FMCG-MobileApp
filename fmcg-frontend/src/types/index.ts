@@ -47,7 +47,11 @@ export interface BagsBreakdownDto {
   threshold:            number;
   monthlyEquivalentBags?: number;          // ← ADD
   dailyTarget?:           number;          // ← ADD
-  monthlyTarget?:         number;          // ← ADD
+  monthlyTarget?:         number;   
+  dailySalesmanBags?:   number;
+dailyAdminBags?:      number;
+monthlySalesmanBags?: number;
+monthlyAdminBags?:    number;       // ← ADD
 }
 
 export interface StartRouteExecutionResponse {

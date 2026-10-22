@@ -35,6 +35,17 @@ const D = {
 const today = new Date().toISOString().split('T')[0];
 const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
 
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+const now = new Date();
+const firstDayOfMonth = formatLocalDate(new Date(now.getFullYear(), now.getMonth(), 1));
+const lastDayOfMonth = formatLocalDate(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+
 // ── Reusable date input style for better visibility ────────────────────────
 const dateInputStyle = (isMobile: boolean): React.CSSProperties => ({
   width: isMobile ? '100%' : 'auto',
@@ -453,14 +464,23 @@ export function AdminReports() {
   // const [routeRptRoute, setRouteRptRoute] = useState('');
   // const [routeFrom, setRouteFrom]  = useState(thirtyDaysAgo);
   // const [routeTo,   setRouteTo]    = useState(today);
-  const [summaryFrom, setSummaryFrom] = useState(thirtyDaysAgo);
-  const [summaryTo, setSummaryTo] = useState(today);
+  const [summaryFrom, setSummaryFrom] = useState(firstDayOfMonth);
+  const [summaryTo, setSummaryTo] = useState(lastDayOfMonth);
   // '' = Summary (default) | 'product' | 'sizegroup' | 'category'
   const [summaryView, setSummaryView] = useState('');
-  const [incentiveFrom, setIncentiveFrom] = useState(thirtyDaysAgo);
-  const [incentiveTo, setIncentiveTo] = useState(today);
-  const [additionalRevenueFrom, setAdditionalRevenueFrom] = useState(thirtyDaysAgo);
-  const [additionalRevenueTo, setAdditionalRevenueTo] = useState(today);
+  const [incentiveFrom, setIncentiveFrom] = useState(firstDayOfMonth);
+  const [incentiveTo, setIncentiveTo] = useState(lastDayOfMonth);
+  const [additionalRevenueFrom, setAdditionalRevenueFrom] = useState(firstDayOfMonth);
+  const [additionalRevenueTo, setAdditionalRevenueTo] = useState(lastDayOfMonth);
+  // Bag Report filters — default = 1st to last day of the current month
+const monthDefault = (last: boolean) => {
+  const d = new Date();
+  const x = last ? new Date(d.getFullYear(), d.getMonth() + 1, 0) : new Date(d.getFullYear(), d.getMonth(), 1);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+};
+const [bagFrom, setBagFrom] = useState(() => monthDefault(false));
+const [bagTo, setBagTo] = useState(() => monthDefault(true));
+const [bagRoute, setBagRoute] = useState('');
   const [prodGroup, setProdGroup]   = useState('');
   const [prodFrom,  setProdFrom]    = useState(thirtyDaysAgo);
   const [prodTo,    setProdTo]      = useState(today);
@@ -845,6 +865,39 @@ export function AdminReports() {
     const fn = () => reportsApi.downloadAdditionalRevenueReport(additionalRevenueFrom, additionalRevenueTo);
     const downloadFn = () => download('additionalRevenue', fn, `AdditionalRevenueReport_${additionalRevenueFrom}.pdf`);
     previewReport('additionalRevenue', `Additional Revenue Report - ${additionalRevenueFrom} to ${additionalRevenueTo}`, fn, downloadFn);
+  },
+},
+{
+  key: 'bagReport',
+  title: 'Bag Report',
+  desc: 'Route-wise daily & monthly bag count vs fixed targets',
+  icon: '',
+  color: '#14B8A6',
+  roles: 'Admin',
+  filters: (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+      <select
+        className="input"
+        value={bagRoute}
+        onChange={(e) => setBagRoute(e.target.value)}
+        style={selectStyle(isMobile)}
+      >
+        <option value=""> All Routes</option>
+        {routes.map((r) => <option key={r.id} value={r.id}>📍 {r.name}</option>)}
+      </select>
+      <input className="input" type="date" value={bagFrom}
+        onChange={(e) => setBagFrom(e.target.value)} style={dateInputStyle(isMobile)} />
+      <span style={{ color: D.sub, fontSize: 13, alignSelf: 'center' }}>to</span>
+      <input className="input" type="date" value={bagTo}
+        onChange={(e) => setBagTo(e.target.value)} style={dateInputStyle(isMobile)} />
+    </div>
+  ),
+  onDownload: () => download('bagReport', () => reportsApi.downloadBagReport(bagFrom, bagTo, bagRoute || undefined), `BagReport_${bagFrom}.pdf`),
+  onPreview: () => {
+    const fn = () => reportsApi.downloadBagReport(bagFrom, bagTo, bagRoute || undefined);
+    const downloadFn = () => download('bagReport', fn, `BagReport_${bagFrom}.pdf`);
+    const routeName = bagRoute ? routes.find(r => r.id === bagRoute)?.name : 'All Routes';
+    previewReport('bagReport', `Bag Report - ${bagFrom} to ${bagTo} (${routeName})`, fn, downloadFn);
   },
 },
     // {

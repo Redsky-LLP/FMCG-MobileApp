@@ -467,6 +467,17 @@ downloadAdditionalRevenueReport: async (fromDate?: string, toDate?: string) => {
   });
   return res.data as Blob;
 },
+downloadBagReport: async (fromDate?: string, toDate?: string, routeId?: string) => {
+  const params: Record<string, string> = {};
+  if (fromDate) params.fromDate = fromDate;
+  if (toDate) params.toDate = toDate;
+  if (routeId) params.routeId = routeId;
+  const res = await apiClient.get('/api/v1/reports/bag-report', {
+    params,
+    responseType: 'blob',
+  });
+  return res.data as Blob;
+},
   dailySummary: async (date: string) => {
     const res = await apiClient.get('/api/v1/reports/daily-summary', {
       params: { date },
@@ -536,6 +547,7 @@ downloadAdditionalRevenueReport: async (fromDate?: string, toDate?: string) => {
     });
     return res.data as Blob;
   },
+  
 };
 
 // ── Analytics ─────────────────────────────────────────────────────────────────

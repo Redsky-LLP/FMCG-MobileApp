@@ -197,6 +197,7 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
                 .Where(o => !o.IsDeleted && executionOrderIds.Contains(o.Id))
                 .ToListAsync(cancellationToken);
 
+        decimal dailyAdminBags = 0;   // NEW: bags from orders the admin took today
         foreach (var order in routeOrdersToday)
         {
             if (order.Items == null) continue;
@@ -204,9 +205,11 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
             {
                 var sizeGroupName = item.SizeGroupNameAtTime ?? item.Product?.SizeGroup?.Name;
                 var qty = (int)item.Quantity;
-                if (MatchesSizeGroupWeight(sizeGroupName, 50)) bagsBreakdown.Count50Kg += qty;
-                else if (MatchesSizeGroupWeight(sizeGroupName, 30)) bagsBreakdown.Count30Kg += qty;
-                else if (MatchesSizeGroupWeight(sizeGroupName, 26)) bagsBreakdown.Count26Kg += qty;
+                decimal itemBags = 0;
+                if (MatchesSizeGroupWeight(sizeGroupName, 50)) { bagsBreakdown.Count50Kg += qty; itemBags = qty; }
+                else if (MatchesSizeGroupWeight(sizeGroupName, 30)) { bagsBreakdown.Count30Kg += qty; itemBags = 0.5m * qty; }
+                else if (MatchesSizeGroupWeight(sizeGroupName, 26)) { bagsBreakdown.Count26Kg += qty; itemBags = 0.5m * qty; }
+                if (order.TakenByAdmin) dailyAdminBags += itemBags;
             }
         }
         bagsBreakdown.TotalEquivalentBags =
@@ -214,6 +217,13 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
             + (0.5m * bagsBreakdown.Count30Kg)
             + (0.5m * bagsBreakdown.Count26Kg);
 
+        // NEW: daily split. Salesman + Admin always equals the daily total.
+        bagsBreakdown.DailyAdminBags = dailyAdminBags;
+        bagsBreakdown.DailySalesmanBags = bagsBreakdown.TotalEquivalentBags - dailyAdminBags;
+
+        // ── Monthly bag total (with salesman / admin split) + fixed route targets ──
+        // Month boundaries use Indian time (UTC+5:30) so orders near midnight
+        // on the 1st land in the right month.
         var istNow = DateTime.UtcNow.AddHours(5.5);
         var monthStartIst = new DateTime(istNow.Year, istNow.Month, 1);
         var monthStartUtc = DateTime.SpecifyKind(monthStartIst.AddHours(-5.5), DateTimeKind.Utc);
@@ -225,9 +235,9 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
                 && o.RouteId == request.RouteId
                 && o.OrderDate >= monthStartUtc
                 && o.OrderDate < nextMonthStartUtc)
-            .SelectMany(o => o.Items!)
-            .Select(i => new
+            .SelectMany(o => o.Items!, (o, i) => new
             {
+                o.TakenByAdmin,
                 SizeGroup = i.SizeGroupNameAtTime
                     ?? (i.Product != null && i.Product.SizeGroup != null ? i.Product.SizeGroup.Name : null),
                 i.Quantity
@@ -235,16 +245,22 @@ public class GetCurrentRouteExecutionQueryHandler(IApplicationDbContext context)
             .ToListAsync(cancellationToken);
 
         decimal monthlyEquivalent = 0;
+        decimal monthlyAdmin = 0;
         foreach (var row in monthlyRows)
         {
             var qty = (int)row.Quantity;
-            if (MatchesSizeGroupWeight(row.SizeGroup, 50)) monthlyEquivalent += qty;
+            decimal rowBags = 0;
+            if (MatchesSizeGroupWeight(row.SizeGroup, 50)) rowBags = qty;
             else if (MatchesSizeGroupWeight(row.SizeGroup, 30) || MatchesSizeGroupWeight(row.SizeGroup, 26))
-                monthlyEquivalent += 0.5m * qty;
+                rowBags = 0.5m * qty;
+            monthlyEquivalent += rowBags;
+            if (row.TakenByAdmin) monthlyAdmin += rowBags;
         }
 
         bagsBreakdown.MonthlyEquivalentBags = monthlyEquivalent;
-        bagsBreakdown.DailyTarget = route?.DailyBagTarget;       // targets now come from the route
+        bagsBreakdown.MonthlyAdminBags = monthlyAdmin;
+        bagsBreakdown.MonthlySalesmanBags = monthlyEquivalent - monthlyAdmin;
+        bagsBreakdown.DailyTarget = route?.DailyBagTarget;
         bagsBreakdown.MonthlyTarget = route?.MonthlyBagTarget;
 
         return Result<CurrentRouteExecutionDto>.Success(new CurrentRouteExecutionDto
