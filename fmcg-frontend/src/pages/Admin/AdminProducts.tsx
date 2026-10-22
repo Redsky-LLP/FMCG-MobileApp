@@ -86,24 +86,41 @@ const ITEM_CODE_SEP = '.';
 const ITEM_CODE_RE = /^(.*?)[.-](\d+(?:\.\d+)?)$/;
 
 function parsePriceFromItemCode(code: string): number | null {
+<<<<<<< HEAD
   const m = (code || '').trim().match(ITEM_CODE_RE);
   if (!m) return null;
   const n = parseFloat(m[2]);
+=======
+  if (!code || !code.includes('-')) return null;
+  const lastDashIndex = code.lastIndexOf('-');
+  const pricePart = code.slice(lastDashIndex + 1).trim();
+  if (!pricePart) return null;
+  const n = parseFloat(pricePart);
+>>>>>>> d2448c4a452944a2841e3c0eab48ad55168667b4
   return !isNaN(n) && n >= 0 ? n : null;
 }
 
 // Takes the price as the RAW STRING from the Base Price field so the code
 // always matches it character for character.
 function generateItemCode(prefix: string, priceStr: string): string {
+<<<<<<< HEAD
   const clean = prefix.trim();
   const base = /[.-]$/.test(clean)
     ? clean.slice(0, -1) + ITEM_CODE_SEP
     : clean + ITEM_CODE_SEP;
   return `${base}${priceStr.trim()}`;
+=======
+  const cleanPrefix = prefix.trim();
+  const basePrefix = cleanPrefix.includes('-')
+    ? cleanPrefix.substring(0, cleanPrefix.lastIndexOf('-') + 1)
+    : cleanPrefix + '-';
+  return `${basePrefix}${priceStr.trim()}`;
+>>>>>>> d2448c4a452944a2841e3c0eab48ad55168667b4
 }
 
 // "6387.250" or "6387-250" → "6387."   (falls back to the default prefix)
 function extractItemCodePrefix(code: string): string {
+<<<<<<< HEAD
   const m = (code || '').trim().match(/^(.*?)[.-]/);
   return m && m[1] ? m[1] + ITEM_CODE_SEP : '6387.';
 }
@@ -112,6 +129,11 @@ function extractItemCodePrefix(code: string): string {
 function normalizeItemCode(code: string): string {
   const m = (code || '').trim().match(ITEM_CODE_RE);
   return m ? `${m[1]}${ITEM_CODE_SEP}${m[2]}` : code;
+=======
+  if (!code || !code.includes('-')) return '6387-';
+  const lastDashIndex = code.lastIndexOf('-');
+  return code.substring(0, lastDashIndex + 1);
+>>>>>>> d2448c4a452944a2841e3c0eab48ad55168667b4
 }
 
 // ── Product Card ─────────────────────────────────────────────
@@ -386,7 +408,11 @@ function ProductFormFields({
           onFocus={onFoc} onBlur={onBlr} 
         />
         <p style={{ margin: '8px 0 0', fontSize: 11, color: D.sub }}>
+<<<<<<< HEAD
                    Format: <strong>code.price</strong> — the number after the dot is the price. "6387.90" → price ₹90.
+=======
+          Format: <strong>code-price</strong> — the number after the last dash is the price. "6387-90" → price ₹90.
+>>>>>>> d2448c4a452944a2841e3c0eab48ad55168667b4
         </p>
         {(() => {
           const parsed = parsePriceFromItemCode(form.itemCode);
@@ -397,7 +423,11 @@ function ProductFormFields({
             </p>
           ) : (
             <p style={{ margin: '8px 0 0', fontSize: 12, color: D.red, fontWeight: 600 }}>
+<<<<<<< HEAD
                             ⚠ No price found — add a dot and the price at the end, e.g. "{extractItemCodePrefix(form.itemCode)}90".
+=======
+              ⚠ No price found — add a dash and the price at the end, e.g. "{form.itemCode}-90".
+>>>>>>> d2448c4a452944a2841e3c0eab48ad55168667b4
             </p>
           );
         })()}
@@ -439,7 +469,7 @@ export function AdminProducts() {
   // FIX: default item code prefix changed from "1000-" to "6387-" per request.
   // Only affects NEW products going forward — existing products keep their
   // current item code untouched, no forced backfill/migration.
-  const DEFAULT_ITEM_CODE_PREFIX = '6387.';
+  const DEFAULT_ITEM_CODE_PREFIX = '6387-';
 
   // ── Default unit ID (set from first available unit) ──
   const [defaultUnitId, setDefaultUnitId] = useState('');

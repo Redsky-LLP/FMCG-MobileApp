@@ -567,7 +567,7 @@ function CustomerCard({
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: `1px solid ${D.border}`, paddingTop: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', rowGap: 8, borderTop: `1px solid ${D.border}`, paddingTop: 12 }}>
         {hasSeqWarn ? (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 5,
@@ -575,6 +575,8 @@ function CustomerCard({
             background: 'rgba(245,158,11,0.10)',
             border: `1px solid rgba(245,158,11,0.25)`,
             color: D.amber, fontSize: 11, fontWeight: 700,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
           }}>
             <AlertTriangle size={11} /> No Sequence
           </div>
@@ -590,7 +592,7 @@ function CustomerCard({
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto' }}>
           <button
             onClick={onHistory}
             style={{
