@@ -270,4 +270,25 @@ public class ReportsController(IMediator mediator) : ControllerBase
 
         return File(result.Data!, "application/pdf", $"AdditionalRevenueReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
     }
+
+    [HttpGet("bag-report")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<IActionResult> GetBagReport(
+    [FromQuery] string? fromDate,
+    [FromQuery] string? toDate,
+    [FromQuery] Guid? routeId)
+    {
+        var query = new GetBagReportQuery
+        {
+            FromDate = fromDate != null ? DateTime.Parse(fromDate) : null,
+            ToDate = toDate != null ? DateTime.Parse(toDate) : null,
+            RouteId = routeId
+        };
+
+        var result = await mediator.Send(query);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error });
+
+        return File(result.Data!, "application/pdf", $"BagReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
+    }
 }

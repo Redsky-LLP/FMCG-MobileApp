@@ -42,9 +42,17 @@ public class BagsBreakdownDto
     public int Count26Kg { get; set; }
     public decimal TotalEquivalentBags { get; set; }
     public int Threshold { get; set; } = 130;
+
+    // ── Monthly total and fixed route targets ──
     public decimal MonthlyEquivalentBags { get; set; }
     public int? DailyTarget { get; set; }
     public int? MonthlyTarget { get; set; }
+
+    // ── NEW: who took the bags. Salesman + Admin always add up to the total above. ──
+    public decimal DailySalesmanBags { get; set; }
+    public decimal DailyAdminBags { get; set; }
+    public decimal MonthlySalesmanBags { get; set; }
+    public decimal MonthlyAdminBags { get; set; }
 }
 
 public class CustomerVisitStatusDto
@@ -59,6 +67,6 @@ public class CustomerVisitStatusDto
     public string VisitStatus { get; set; } = string.Empty;
     public Guid? OrderId { get; set; }
     public string? SkipReason { get; set; }
-    public bool IsCompleted => VisitStatus != "Pending";
     public bool OrderTakenByAdmin { get; set; }
+    public bool IsCompleted => VisitStatus != "Pending";
 }
