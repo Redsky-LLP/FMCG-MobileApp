@@ -1,5 +1,6 @@
 ﻿using FMCG.Distribution.Domain.Entities;
 using FMCG.Distribution.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace FMCG.Distribution.Infrastructure.Persistence;
 
@@ -9,52 +10,58 @@ public static class DbInitializer
     {
         await context.Database.EnsureCreatedAsync();
 
-        // Seed Super Admin if not exists
-        if (!context.Users.Any(u => u.Role == UserRole.SuperAdmin))
+        // Seed default users ONLY on a brand-new database where the Users table is completely empty.
+        // IgnoreQueryFilters so soft-deleted users still count as "users exist" (prevents re-creating
+        // removed default accounts and unique-email conflicts on every restart/deploy).
+        if (!context.Users.IgnoreQueryFilters().Any())
         {
-            var superAdmin = new User
+            // Seed Super Admin if not exists
+            if (!context.Users.Any(u => u.Role == UserRole.SuperAdmin))
             {
-                Id = Guid.NewGuid(),
-                Email = "admin@fmcg.com",
-                FullName = "Super Admin",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
-                Role = UserRole.SuperAdmin,
-                IsActive = true
-            };
-            await context.Users.AddAsync(superAdmin);
-            await context.SaveChangesAsync();
-        }
+                var superAdmin = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Email = "admin@fmcg.com",
+                    FullName = "Super Admin",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+                    Role = UserRole.SuperAdmin,
+                    IsActive = true
+                };
+                await context.Users.AddAsync(superAdmin);
+                await context.SaveChangesAsync();
+            }
 
-        // Seed Admin if not exists
-        if (!context.Users.Any(u => u.Role == UserRole.Admin))
-        {
-            var admin = new User
+            // Seed Admin if not exists
+            if (!context.Users.Any(u => u.Role == UserRole.Admin))
             {
-                Id = Guid.NewGuid(),
-                Email = "admin@distribution.com",
-                FullName = "Distribution Admin",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
-                Role = UserRole.Admin,
-                IsActive = true
-            };
-            await context.Users.AddAsync(admin);
-            await context.SaveChangesAsync();
-        }
+                var admin = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Email = "admin@distribution.com",
+                    FullName = "Distribution Admin",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+                    Role = UserRole.Admin,
+                    IsActive = true
+                };
+                await context.Users.AddAsync(admin);
+                await context.SaveChangesAsync();
+            }
 
-        // Seed Salesman if not exists
-        if (!context.Users.Any(u => u.Role == UserRole.Salesman))
-        {
-            var salesman = new User
+            // Seed Salesman if not exists
+            if (!context.Users.Any(u => u.Role == UserRole.Salesman))
             {
-                Id = Guid.NewGuid(),
-                Email = "salesman@fmcg.com",
-                FullName = "Route Salesman",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Sales@123"),
-                Role = UserRole.Salesman,
-                IsActive = true
-            };
-            await context.Users.AddAsync(salesman);
-            await context.SaveChangesAsync();
+                var salesman = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Email = "salesman@fmcg.com",
+                    FullName = "Route Salesman",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Sales@123"),
+                    Role = UserRole.Salesman,
+                    IsActive = true
+                };
+                await context.Users.AddAsync(salesman);
+                await context.SaveChangesAsync();
+            }
         }
 
         // Seed Product Groups
