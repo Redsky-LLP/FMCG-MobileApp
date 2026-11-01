@@ -464,6 +464,7 @@ downloadAdditionalRevenueReport: async (fromDate?: string, toDate?: string) => {
   const res = await apiClient.get('/api/v1/reports/additional-revenue', {
     params,
     responseType: 'blob',
+    timeout: 120000, // report PDF can take 30s+ to generate; client default is 30s
   });
   return res.data as Blob;
 },
