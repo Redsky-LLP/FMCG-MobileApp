@@ -35,6 +35,7 @@ public class GetAdditionalRevenueReportQueryHandler : IRequestHandler<GetAdditio
             .Include(o => o.Items)
                 .ThenInclude(i => i.Product)
             .Where(o => !o.IsDeleted
+                && !o.TakenByAdmin   // only orders the admin took are left out; earlier salesman orders still show
                 && o.OrderDate.Date >= fromDate.Date
                 && o.OrderDate.Date <= toDate.Date
                 && o.Status == OrderStatus.Closed)
